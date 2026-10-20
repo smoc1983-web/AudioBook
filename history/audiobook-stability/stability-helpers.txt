@@ -1,0 +1,198 @@
+// A browser belongs to its AndroidView until Compose detaches it. Never remove
+// children from Compose's ViewGroup while a lazy list is measuring or disposing.
+private object AbWebViews {
+    private class Entry(val owner:Context) {
+        var released=false; var rendererGone=false; var destroyed=false
+        var cancel:(()->Unit)?=null
+    }
+    private val entries=java.util.WeakHashMap<WebView,Entry>()
+    private val main=android.os.Handler(android.os.Looper.getMainLooper())
+    private fun owner(context: Context):Context {
+        var current=context
+        while(current is android.content.ContextWrapper && current !is android.app.Activity) {
+            val base=current.baseContext
+            if(base===current) break
+            current=base
+        }
+        return current
+    }
+    fun register(web: WebView) { entries[web]=Entry(owner(web.context)) }
+    fun onClose(web: WebView,cancel:()->Unit) { entries[web]?.cancel=cancel }
+    fun available(web: WebView):Boolean {
+        val entry=entries[web] ?: return false
+        return !entry.released && !entry.rendererGone && !entry.destroyed
+    }
+    fun closeAll(context: Context) {
+        // Compose's recomposer can already be paused by ON_STOP. Cancel work
+        // synchronously; the activity changes the browser generation on start.
+        val activity=owner(context)
+        entries.keys.toList().filter {entries[it]?.owner===activity}.forEach {web ->
+            entries[web]?.cancel?.invoke()
+            release(web)
+        }
+    }
+    fun rendererGone(web: WebView) { entries[web]?.rendererGone=true }
+    fun release(web: WebView) {
+        val entry=entries[web] ?: return
+        if(entry.released) return
+        entry.released=true
+        entry.cancel=null
+        if(!entry.rendererGone) {
+            web.stopLoading()
+            web.onPause()
+        }
+        // This client also handles a shared renderer dying during disposal.
+        web.webViewClient=AbBookWebViewClient { }
+        main.post {
+            if(!web.isAttachedToWindow) destroy(web,entry)
+            else web.addOnAttachStateChangeListener(object:android.view.View.OnAttachStateChangeListener {
+                override fun onViewAttachedToWindow(view:android.view.View) { }
+                override fun onViewDetachedFromWindow(view:android.view.View) {
+                    web.removeOnAttachStateChangeListener(this)
+                    main.post { destroy(web,entry) }
+                }
+            })
+        }
+    }
+    private fun destroy(web: WebView,entry: Entry) {
+        if(entry.destroyed) return
+        entry.destroyed=true
+        entries.remove(web)
+        web.destroy()
+    }
+}
+
+private open class AbBookWebViewClient(private val failed:()->Unit):WebViewClient() {
+    override fun onRenderProcessGone(view: WebView?,detail: android.webkit.RenderProcessGoneDetail?):Boolean {
+        if(view!=null) AbWebViews.rendererGone(view)
+        try { failed() } finally { if(view!=null) AbWebViews.release(view) }
+        // Android otherwise terminates the app when any affected WebView does
+        // not handle renderer loss. The next request creates a fresh browser.
+        return true
+    }
+}
+
+@Composable
+private fun AbBackgroundImage(resource: Int,uri: String?,modifier: Modifier) {
+    val context=androidx.compose.ui.platform.LocalContext.current.applicationContext
+    val address=uri ?: "android.resource://${context.packageName}/$resource"
+    val request="background:$address"
+    var bitmap by remember(request) {mutableStateOf(AbCoverStore.peek(request))}
+    LaunchedEffect(request) {
+        bitmap=withContext(Dispatchers.IO) {
+            AbCoverStore.load(context,request,address,"","","",1280)
+        }
+    }
+    bitmap?.let {Image(it.asImageBitmap(),null,contentScale=ContentScale.Crop,modifier=modifier)}
+}
+
+// Keep the platform/Code On The Go crash handler. The local report is only
+// copied or shared when the user presses a button; it is never uploaded.
+private object AbCrashReport {
+    private const val FILE="audiobook-last-crash.txt"
+    private var installed=false
+    @Volatile var screen="Запуск приложения"
+    @Synchronized fun install(context: Context) {
+        if(installed) return
+        installed=true
+        val app=context.applicationContext
+        val previous=Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { thread,error ->
+            try {
+                val trace=android.util.Log.getStackTraceString(error).take(64_000)
+                File(app.filesDir,FILE).writeText(
+                    "AudioBook 4.0\n${java.util.Date()}\nAndroid ${Build.VERSION.SDK_INT}, ${Build.MANUFACTURER} ${Build.MODEL}\n"+
+                    "Экран: $screen\nПоток: ${thread.name}\n\n$trace",Charsets.UTF_8)
+            } catch(_:Throwable) { /* Reporting must not interfere with crash handling. */ }
+            if(previous!=null) previous.uncaughtException(thread,error)
+            else {
+                android.os.Process.killProcess(android.os.Process.myPid())
+                kotlin.system.exitProcess(10)
+            }
+        }
+    }
+    fun read(context: Context):Pair<Long,String>? {
+        val local=readLocal(context)
+        val system=readSystem(context)
+        return if(system!=null && (local==null || system.first>local.first+10_000L)) system else local ?: system
+    }
+    private fun readLocal(context: Context):Pair<Long,String>? = try {
+        val file=File(context.filesDir,FILE)
+        if(!file.isFile) null else file.lastModified() to file.inputStream().use {
+            it.bufferedReader(Charsets.UTF_8).readText().take(66_000)
+        }
+    } catch(_:Exception) {null}
+    private fun readSystem(context: Context):Pair<Long,String>? {
+        if(Build.VERSION.SDK_INT<30) return null
+        return try {
+            val manager=context.getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
+            val exit=manager.getHistoricalProcessExitReasons(context.packageName,0,5).firstOrNull {
+                it.reason in listOf(android.app.ApplicationExitInfo.REASON_CRASH,
+                    android.app.ApplicationExitInfo.REASON_CRASH_NATIVE,
+                    android.app.ApplicationExitInfo.REASON_ANR,
+                    android.app.ApplicationExitInfo.REASON_LOW_MEMORY,
+                    android.app.ApplicationExitInfo.REASON_INITIALIZATION_FAILURE,
+                    android.app.ApplicationExitInfo.REASON_EXCESSIVE_RESOURCE_USAGE)
+            } ?: return null
+            val reason=when(exit.reason) {
+                android.app.ApplicationExitInfo.REASON_CRASH -> "Необработанная ошибка приложения"
+                android.app.ApplicationExitInfo.REASON_CRASH_NATIVE -> "Ошибка нативного компонента"
+                android.app.ApplicationExitInfo.REASON_ANR -> "Приложение перестало отвечать (ANR)"
+                android.app.ApplicationExitInfo.REASON_LOW_MEMORY -> "Android завершил процесс из-за нехватки памяти"
+                android.app.ApplicationExitInfo.REASON_INITIALIZATION_FAILURE -> "Ошибка запуска процесса"
+                else -> "Превышен расход ресурсов"
+            }
+            val text=StringBuilder("AudioBook 4.0 · системный отчёт\n${java.util.Date(exit.timestamp)}\n"+
+                "Android ${Build.VERSION.SDK_INT}, ${Build.MANUFACTURER} ${Build.MODEL}\n"+
+                "Причина: $reason\n${exit.description.orEmpty()}\nPSS: ${exit.pss} KB; RSS: ${exit.rss} KB\n")
+            if(exit.reason==android.app.ApplicationExitInfo.REASON_ANR) {
+                exit.traceInputStream?.bufferedReader(Charsets.UTF_8)?.use {reader ->
+                    val buffer=CharArray(4096)
+                    while(text.length<64_000) {
+                        val count=reader.read(buffer,0,minOf(buffer.size,64_000-text.length))
+                        if(count<=0) break
+                        text.append(buffer,0,count)
+                    }
+                }
+            }
+            exit.timestamp to text.toString()
+        } catch(_:Exception) {null}
+    }
+    fun seen(context: Context,stamp: Long) {
+        context.getSharedPreferences("audiobook_diagnostics",Context.MODE_PRIVATE)
+            .edit().putLong("seen",stamp).apply()
+    }
+    fun copy(context: Context,text: String) {
+        (context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager)
+            .setPrimaryClip(android.content.ClipData.newPlainText("AudioBook: отчёт о сбое",text))
+        Toast.makeText(context,"Отчёт скопирован. Его можно вставить в сообщение.",Toast.LENGTH_LONG).show()
+    }
+}
+
+@Composable
+private fun AbCrashReports(theme: AbTheme,requested: Int) {
+    val context=androidx.compose.ui.platform.LocalContext.current
+    var report by remember {mutableStateOf<Pair<Long,String>?>(null)}
+    LaunchedEffect(requested) {
+        val saved=withContext(Dispatchers.IO) {AbCrashReport.read(context)}
+        val seen=context.getSharedPreferences("audiobook_diagnostics",Context.MODE_PRIVATE).getLong("seen",0L)
+        if(saved!=null && (requested>0 || saved.first!=seen)) report=saved
+        else if(requested>0) Toast.makeText(context,"Отчёт пока не записан. Он появится после повторного сбоя.",Toast.LENGTH_LONG).show()
+    }
+    val saved=report ?: return
+    fun dismiss() {AbCrashReport.seen(context,saved.first);report=null}
+    AbDialog("Отчёт о сбое",theme,{dismiss()}) {
+        Text("Сохранена причина предыдущего сбоя. Скопируйте отчёт и пришлите его вместе с описанием действий перед вылетом.",
+            color=theme.muted,fontSize=14.sp,lineHeight=20.sp)
+        AbButton("Скопировать отчёт",theme) {AbCrashReport.copy(context,saved.second)}
+        AbButton("Поделиться отчётом",theme) {
+            try {context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply {
+                type="text/plain";putExtra(Intent.EXTRA_TEXT,saved.second)
+                putExtra(Intent.EXTRA_SUBJECT,"AudioBook 4.0: отчёт о сбое")
+            },"Отправить отчёт"))} catch(_:android.content.ActivityNotFoundException) {
+                AbCrashReport.copy(context,saved.second)
+            }
+        }
+        AbButton("Закрыть",theme) {dismiss()}
+    }
+}

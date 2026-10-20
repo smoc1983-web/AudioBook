@@ -1,0 +1,30 @@
+        if(genrePending.isNotEmpty()) {
+            val request=genreRequestId
+            val name=selectedGenre
+            genrePending.toList().forEach {site->
+                key(request,site) {
+                    val page=genrePages[site]
+                    HiddenBookWebView {web->
+                        AbGenreTask(web,name,site,page,genreVisited[site].orEmpty(),prefs) {books,next,root,url,more,error->
+                            if(request==genreRequestId && selectedGenre==name && site in genrePending) {
+                                val combined=mergeSearchBooks(genreReports[site]?.books.orEmpty()+books)
+                                genreReports=genreReports+(site to SiteSearchResult(combined,error))
+                                val visited=genreVisited[site].orEmpty()+url.substringBefore('#').trimEnd('/')
+                                genreVisited=genreVisited+(site to visited)
+                                val numeric=next.firstOrNull {it.substringBefore('#').trimEnd('/') !in visited}
+                                val nextPage=if(numeric!=null) AbGenrePage(numeric,root)
+                                    else if(more && books.isNotEmpty()) AbGenrePage(url,root,(page?.clicks ?: 0)+1) else null
+                                genreNext=if(nextPage!=null) genreNext+(site to nextPage) else genreNext-site
+                                genrePending=genrePending-site
+                                bookLinks=mergeSearchBooks(listOf("Книгоблуд","Bookinfo").flatMap{genreReports[it]?.books.orEmpty()})
+                                val errors=genreReports.values.map{it.error}.filter{it.isNotBlank()}
+                                status="Жанр «$name»: ${bookLinks.size} книг"+
+                                    if(genrePending.isNotEmpty()) ". Загружаю остальные источники…"
+                                    else if(errors.isNotEmpty()) ". "+errors.joinToString(". ") else ""
+                            }
+                        }
+                    }
+                }
+            }
+        }
+

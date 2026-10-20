@@ -1,0 +1,317 @@
+--- previous/MainActivity.kt
++++ MainActivity.kt
+@@ -106,6 +106,10 @@
+ import androidx.compose.ui.draw.clipToBounds
+ import androidx.compose.foundation.layout.offset
+ import androidx.compose.ui.Alignment
++import androidx.compose.ui.draw.scale
++import androidx.compose.animation.core.tween
++import androidx.compose.animation.core.LinearEasing
++import androidx.compose.animation.core.Animatable
+ 
+ data class BookLink(
+     val title: String,
+@@ -195,10 +199,13 @@
+     private var readyJob: kotlinx.coroutines.Job?=null
+     private var appStarted=false
+     private var launchToken=0L
++    private var launchAnimationAllowed=true
+ 
+     override fun onCreate(savedInstanceState: Bundle?) {
+         AbCrashReport.install(this)
+         super.onCreate(savedInstanceState)
++        // Rotate/recreate the activity without replaying the launch animation.
++        launchAnimationAllowed=savedInstanceState==null
+         volumeControlStream=android.media.AudioManager.STREAM_MUSIC
+         AbCrashReport.install(this)
+         val recover=AbLaunchState.needsRecovery(this)
+@@ -235,13 +242,16 @@
+             browserGeneration++
+             libraryAccessVersion++
+             setContent {
+-                AudioBookApp(libraryAccessVersion,foreground,browserGeneration,!withoutAutomaticCatalogs)
+-                LaunchedEffect(launchToken) {
+-                    androidx.compose.runtime.withFrameNanos { }
+-                    androidx.compose.runtime.withFrameNanos { }
+-                    delay(2000L)
+-                    AbLaunchState.healthy(this@MainActivity,launchToken)
+-                    if(foreground && !isFinishing && !isDestroyed)requestMissingPermissions()
++                AudioBookRoot(libraryAccessVersion,foreground,browserGeneration,!withoutAutomaticCatalogs,
++                    showIntro=launchAnimationAllowed&&!withoutAutomaticCatalogs) {
++                    // Mark a successful launch only after the main app has composed, not during the intro.
++                    LaunchedEffect(launchToken) {
++                        androidx.compose.runtime.withFrameNanos { }
++                        androidx.compose.runtime.withFrameNanos { }
++                        delay(2000L)
++                        AbLaunchState.healthy(this@MainActivity,launchToken)
++                        if(foreground && !isFinishing && !isDestroyed)requestMissingPermissions()
++                    }
+                 }
+             }
+         }catch(error: RuntimeException) {
+@@ -322,10 +332,255 @@
+     }
+ }
+ 
++// The splash is presentation only; the current application and its lifecycle inputs stay intact.
++@Composable
++private fun AudioBookRoot(libraryAccessVersion:Int,foreground:Boolean,browserGeneration:Int,
++    automaticCatalogs:Boolean,showIntro:Boolean,onAppVisible:@Composable ()->Unit) {
++    var showSplash by remember {mutableStateOf(showIntro)}
++    if(showSplash) {
++        AudioBookSplashScreen(onFinished={showSplash=false})
++    } else {
++        AudioBookApp(libraryAccessVersion,foreground,browserGeneration,automaticCatalogs)
++        onAppVisible()
++    }
++}
++
++@SuppressLint("DiscouragedApi")
++@Composable
++private fun AudioBookSplashLogo(modifier:Modifier) {
++    // Resolve app_icon if present; otherwise use the installed launcher icon, including adaptive icons.
++    // A runtime resource lookup avoids adding an undeclared R.drawable.app_icon dependency.
++    androidx.compose.ui.viewinterop.AndroidView(
++        modifier=modifier,
++        factory={context ->
++            android.widget.ImageView(context).apply {
++                scaleType=android.widget.ImageView.ScaleType.CENTER_CROP
++                contentDescription=AB_PRODUCT_NAME
++                val icon=runCatching {
++                    val resource=context.resources.getIdentifier("app_icon","drawable",context.packageName)
++                    if(resource!=0)context.getDrawable(resource)
++                    else context.packageManager.getApplicationIcon(context.applicationInfo)
++                }.getOrNull() ?: context.packageManager.defaultActivityIcon
++                setImageDrawable(icon)
++            }
++        }
++    )
++}
++
++@Composable
++private fun AudioBookSplashScreen(
++    onFinished: () -> Unit
++) {
++    val logoScale = remember {
++        Animatable(0.72f)
++    }
++
++    val logoAlpha = remember {
++        Animatable(0f)
++    }
++
++    val titleAlpha = remember {
++        Animatable(0f)
++    }
++
++    val glowAlpha = remember {
++        Animatable(0f)
++    }
++
++    val progress = remember {
++        Animatable(0f)
++    }
++
++    LaunchedEffect(Unit) {
++        logoAlpha.animateTo(
++            targetValue = 1f,
++            animationSpec = tween(
++                durationMillis = 420
++            )
++        )
++
++        logoScale.animateTo(
++            targetValue = 1.05f,
++            animationSpec = tween(
++                durationMillis = 520
++            )
++        )
++
++        logoScale.animateTo(
++            targetValue = 1f,
++            animationSpec = tween(
++                durationMillis = 180
++            )
++        )
++
++        glowAlpha.animateTo(
++            targetValue = 0.9f,
++            animationSpec = tween(
++                durationMillis = 260
++            )
++        )
++
++        titleAlpha.animateTo(
++            targetValue = 1f,
++            animationSpec = tween(
++                durationMillis = 350
++            )
++        )
++
++        progress.animateTo(
++            targetValue = 1f,
++            animationSpec = tween(
++                durationMillis = 650,
++                easing = LinearEasing
++            )
++        )
++
++        delay(180)
++
++        logoAlpha.animateTo(
++            targetValue = 0f,
++            animationSpec = tween(
++                durationMillis = 220
++            )
++        )
++
++        onFinished()
++    }
++
++    Box(
++        modifier = Modifier
++            .fillMaxSize()
++            .background(
++                Brush.verticalGradient(
++                    listOf(
++                        Color(0xFF020816),
++                        Color(0xFF061A38),
++                        Color(0xFF020713)
++                    )
++                )
++            ),
++        contentAlignment = Alignment.Center
++    ) {
++        Box(
++            modifier = Modifier
++                .size(250.dp)
++                .scale(
++                    0.90f + (glowAlpha.value * 0.15f)
++                )
++                .alpha(
++                    glowAlpha.value * 0.22f
++                )
++                .background(
++                    Brush.radialGradient(
++                        listOf(
++                            Color(0xFF27B8FF),
++                            Color(0x333188FF),
++                            Color.Transparent
++                        )
++                    ),
++                    RoundedCornerShape(140.dp)
++                )
++        )
++
++        Column(
++            modifier = Modifier
++                .alpha(logoAlpha.value),
++            horizontalAlignment = Alignment.CenterHorizontally
++        ) {
++            AudioBookSplashLogo(
++                modifier = Modifier
++                    .size(170.dp)
++                    .scale(logoScale.value)
++                    .clip(
++                        RoundedCornerShape(38.dp)
++                    )
++            )
++
++            Spacer(
++                modifier = Modifier.height(22.dp)
++            )
++
++            Row(
++                verticalAlignment = Alignment.CenterVertically,
++                modifier = Modifier.alpha(
++                    titleAlpha.value
++                )
++            ) {
++                Text(
++                    text = "Audio",
++                    color = Color.White,
++                    fontSize = 35.sp,
++                    fontWeight = FontWeight.Bold
++                )
++
++                Text(
++                    text = "book",
++                    color = Color(0xFFFFC85A),
++                    fontSize = 35.sp,
++                    fontWeight = FontWeight.Bold
++                )
++            }
++
++            Spacer(
++                modifier = Modifier.height(30.dp)
++            )
++
++            Box(
++                modifier = Modifier
++                    .width(230.dp)
++                    .height(6.dp)
++                    .clip(
++                        RoundedCornerShape(20.dp)
++                    )
++                    .background(
++                        Color(0x3347BFFF)
++                    )
++            ) {
++                Box(
++                    modifier = Modifier
++                        .fillMaxWidth(
++                            progress.value
++                                .coerceIn(
++                                    0f,
++                                    1f
++                                )
++                        )
++                        .height(6.dp)
++                        .clip(
++                            RoundedCornerShape(20.dp)
++                        )
++                        .background(
++                            Brush.horizontalGradient(
++                                listOf(
++                                    Color(0xFF31D9FF),
++                                    Color(0xFF2688FF),
++                                    Color(0xFFFFC85A)
++                                )
++                            )
++                        )
++                )
++            }
++
++            Spacer(
++                modifier = Modifier.height(13.dp)
++            )
++
++            Text(
++                text = "Слушай. Открывай. Погружайся.",
++                color = Color(0xFFB8CAE8),
++                fontSize = 14.sp,
++                modifier = Modifier.alpha(
++                    titleAlpha.value
++                )
++            )
++        }
++    }
++}
++
+ // A committed marker survives abrupt process termination. The token prevents
+ // a previous activity instance from clearing the next instance's startup.
+ private object AbLaunchState {
+-    private const val REVISION="4.0-php-playlist-1"
++    private const val REVISION="4.0-splash-merged-1"
+     private fun prefs(context: Context)=context.applicationContext.getSharedPreferences("audiobook_startup",Context.MODE_PRIVATE)
+     @Synchronized fun needsRecovery(context: Context): Boolean {
+         val store=prefs(context)
+@@ -11803,7 +12058,7 @@
+ 
+ private object AbCrashReport {
+     private const val FILE="audiobook-last-crash.txt"
+-    private const val REVISION="4.0-php-playlist-1"
++    private const val REVISION="4.0-splash-merged-1"
+     private const val FIRST_RUN="first_run_"+REVISION
+     private val reporting=java.util.concurrent.atomic.AtomicBoolean(false)
+     @Volatile var screen="Запуск приложения"

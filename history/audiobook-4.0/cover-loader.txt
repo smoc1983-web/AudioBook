@@ -1,0 +1,223 @@
+// Shared thumbnails survive lazy-list recycling and tab changes. All disk/network work runs on IO.
+private object AbCoverStore {
+    private const val MAX_DOWNLOAD = 10L * 1024L * 1024L
+    private const val MAX_DISK = 48L * 1024L * 1024L
+    private val memory = object : android.util.LruCache<String, android.graphics.Bitmap>(16 * 1024 * 1024) {
+        override fun sizeOf(key: String, value: android.graphics.Bitmap): Int = value.byteCount
+    }
+    private val slots = kotlinx.coroutines.sync.Semaphore(3)
+    private val locks = java.util.concurrent.ConcurrentHashMap<String, kotlinx.coroutines.sync.Mutex>()
+
+    fun peek(key: String): android.graphics.Bitmap? = memory.get(key)
+    fun clearMemory() {memory.evictAll()}
+
+    suspend fun load(context: Context, key: String, localUri: String, localPath: String,
+        direct: String, page: String, edge: Int, title: String = "", audio: String = "",
+        folder: String = ""): android.graphics.Bitmap? {
+        peek(key)?.let { return it }
+        val lock = locks.getOrPut(key) { kotlinx.coroutines.sync.Mutex() }
+        lock.lock()
+        try {
+            peek(key)?.let { return it }
+            slots.acquire()
+            try {
+                kotlinx.coroutines.currentCoroutineContext().ensureActive()
+                val local = if (localUri.isNotBlank()) decode(edge) {
+                    context.contentResolver.openInputStream(Uri.parse(localUri))
+                } else null
+                val file = local ?: if (localPath.isNotBlank()) decode(edge) {
+                    File(localPath).inputStream()
+                } else null
+                val saved = if (file==null && title.isNotBlank()) decode(edge) { durable(context,title).inputStream() } else null
+                val legacy = if (file==null && saved==null && title.isNotBlank()) {
+                    val prefs=context.getSharedPreferences("audiobook_downloader",Context.MODE_PRIVATE)
+                    val path=prefs.getString("widget_cover_path","").orEmpty()
+                    if(abCoverIdentity(prefs.getString("widget_book","").orEmpty())==abCoverIdentity(title) && path.isNotBlank())
+                        decode(edge) {if(path.startsWith("content://")) context.contentResolver.openInputStream(Uri.parse(path)) else File(path).inputStream()}
+                    else null
+                } else null
+                val embedded = if(file==null && saved==null && legacy==null && audio.isNotBlank()) embedded(context,audio,edge) else null
+                val ref = if(file==null && saved==null && legacy==null && embedded==null)
+                    abRecoverCoverRef(context,title,direct,page,folder) else BookRef(title,page,direct)
+                val bitmap = file ?: saved ?: legacy ?: embedded ?: remote(context,ref.cover,ref.url,edge)
+                kotlinx.coroutines.currentCoroutineContext().ensureActive()
+                // A downloaded book keeps its cover outside the disposable search cache.
+                if(bitmap!=null && audio.isNotBlank() && title.isNotBlank() && !durable(context,title).exists())
+                    writeImage(durable(context,title),bitmap)
+                if (bitmap != null) memory.put(key, bitmap)
+                return bitmap
+            } finally { slots.release() }
+        } finally { lock.unlock() }
+    }
+
+    private fun durable(context: Context,title: String): File =
+        File(File(context.filesDir,"book-covers"),abCoverFileId(title)+".jpg")
+
+    private fun embedded(context: Context,source: String,edge: Int): android.graphics.Bitmap? {
+        var retriever: MediaMetadataRetriever?=null
+        return try {
+            val reader=MediaMetadataRetriever()
+            retriever=reader
+            if(source.startsWith("content://")) reader.setDataSource(context,Uri.parse(source)) else reader.setDataSource(source)
+            val bytes=reader.embeddedPicture
+            if(bytes!=null && bytes.size<=MAX_DOWNLOAD) decode(edge) {bytes.inputStream()} else null
+        } catch(_:Exception) {null} catch(_:OutOfMemoryError) {null} finally {try {retriever?.release()} catch(_:Exception) {}}
+    }
+
+    private fun writeImage(file: File,bitmap: android.graphics.Bitmap): Boolean {
+        var temp: File?=null
+        return try {
+            val parent=file.parentFile ?: return false
+            if(!parent.exists() && !parent.mkdirs()) return false
+            val target=File.createTempFile("cover-",".tmp",parent)
+            temp=target
+            val ok=target.outputStream().use {bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG,92,it)}
+            ok && target.renameTo(file)
+        } catch(_:Exception) {false} finally {temp?.delete()}
+    }
+
+    suspend fun saveForDownload(context: Context,title: String,local: LibraryBook?,direct: String,page: String): Boolean {
+        val ref=abRecoverCoverRef(context,title,direct,page,local?.folder?.path.orEmpty())
+        val folder=local?.folder ?: File(libraryRoot(),safeFileName(title))
+        val metadata=JSONObject().put("format","AudioBookMetadata").put("version",1)
+            .put("title",title).put("url",ref.url).put("cover",ref.cover)
+        abWriteBookMetadata(File(File(context.filesDir,"book-covers"),abCoverFileId(title)+".json"),metadata)
+        abWriteBookMetadata(File(folder,"book_metadata.json"),metadata)
+        val path=local?.coverFilePath?.ifBlank {File(folder,"cover.jpg").path} ?: File(folder,"cover.jpg").path
+        val bitmap=load(context,"download:${abCoverIdentity(title)}:${ref.url}:${ref.cover}:${local?.coverUri}:${local?.coverRevision}",local?.coverUri.orEmpty(),
+            path,ref.cover,ref.url,960,title,local?.files?.firstOrNull()?.let{libraryTrackSource(it)}.orEmpty(),folder.path) ?: return false
+        val kept=writeImage(durable(context,title),bitmap)
+        val publicCover=File(folder,"cover.jpg")
+        val check=decode(64) {publicCover.inputStream()}
+        val valid=check!=null
+        check?.recycle()
+        if(!valid) writeImage(publicCover,bitmap)
+        if(local!=null && local.folderUri.isNotBlank() && local.coverUri.isBlank()) try {
+            val uri=android.provider.DocumentsContract.createDocument(context.contentResolver,
+                Uri.parse(local.folderUri),"image/jpeg","cover.jpg")
+            if(uri!=null) {
+                val ok=context.contentResolver.openOutputStream(uri,"w")?.use {
+                    bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG,92,it)
+                } ?: false
+                if(!ok) android.provider.DocumentsContract.deleteDocument(context.contentResolver,uri)
+            }
+        } catch(_:Exception) {}
+        if(kept) context.getSharedPreferences("audiobook_downloader",Context.MODE_PRIVATE).edit()
+            .putLong("book_cover_revision_"+safeFileName(title),System.currentTimeMillis()).apply()
+        return kept
+    }
+
+    private fun decode(edge: Int, open: () -> java.io.InputStream?): android.graphics.Bitmap? = try {
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        open()?.use { BitmapFactory.decodeStream(it, null, bounds) }
+        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) null else {
+            var sample = 1
+            while (maxOf(bounds.outWidth, bounds.outHeight) / sample > edge * 2) sample *= 2
+            val options = BitmapFactory.Options().apply { inSampleSize = sample }
+            val bitmap = open()?.use { BitmapFactory.decodeStream(it, null, options) }
+            if (bitmap != null && maxOf(bitmap.width, bitmap.height) > edge) {
+                val scale = edge.toFloat() / maxOf(bitmap.width, bitmap.height)
+                val small = android.graphics.Bitmap.createScaledBitmap(bitmap,
+                    (bitmap.width * scale).toInt().coerceAtLeast(1),
+                    (bitmap.height * scale).toInt().coerceAtLeast(1), true)
+                if (small !== bitmap) bitmap.recycle()
+                small
+            } else bitmap
+        }
+    } catch (_: Exception) { null } catch (_: OutOfMemoryError) { null }
+
+    private fun address(raw: String, page: String): String {
+        val value = raw.trim().replace("&amp;", "&").replace("\\/", "/")
+        if (value.isBlank() || isBadCoverUrl(value)) return ""
+        return try {
+            val resolved = if (value.startsWith("//")) "https:$value"
+                else if (page.isNotBlank()) URL(URL(page), value).toString() else URL(value).toString()
+            if (URL(resolved).protocol in listOf("http", "https")) resolved else ""
+        } catch (_: Exception) { "" }
+    }
+
+    private suspend fun remote(context: Context, direct: String, page: String, edge: Int): android.graphics.Bitmap? {
+        val tried = mutableSetOf<String>()
+        val saved = context.getSharedPreferences("audiobook_cover_cache", Context.MODE_PRIVATE)
+        suspend fun attempt(raw: String): android.graphics.Bitmap? {
+            val url = address(raw, page)
+            if (url.isBlank() || !tried.add(url)) return null
+            kotlinx.coroutines.currentCoroutineContext().ensureActive()
+            val bitmap = fetch(context, url, page, edge)
+            if (bitmap != null && page.isNotBlank()) saved.edit().putString(page, url).apply()
+            return bitmap
+        }
+        attempt(direct)?.let { return it }
+        if (page.isBlank()) return null
+        attempt(saved.getString(page, "").orEmpty())?.let { return it }
+        val cached = synchronized(searchCoverUrlCache) { searchCoverUrlCache[page].orEmpty() }
+        attempt(cached)?.let { return it }
+        // A dead thumbnail must not prevent trying the actual book page.
+        kotlinx.coroutines.currentCoroutineContext().ensureActive()
+        val found = findCoverUrlFromBookPage(page)
+        if (found.isNotBlank()) synchronized(searchCoverUrlCache) { searchCoverUrlCache[page] = found }
+        return attempt(found)
+    }
+
+    private fun fetch(context: Context, url: String, page: String, edge: Int): android.graphics.Bitmap? {
+        val folder = File(context.cacheDir, "audiobook-covers-v2")
+        val name = java.security.MessageDigest.getInstance("SHA-256").digest(url.toByteArray(Charsets.UTF_8))
+            .joinToString("") { "%02x".format(it.toInt() and 255) }
+        val file = File(folder, name)
+        // Serialise identical URLs even when a player and a thumbnail request different sizes.
+        synchronized(locks.getOrPut("url:$url") { kotlinx.coroutines.sync.Mutex() }) {
+            if (file.exists()) {
+                decode(edge) { file.inputStream() }?.let { file.setLastModified(System.currentTimeMillis()); return it }
+                file.delete()
+            }
+            var connection: HttpURLConnection? = null
+            var temp: File? = null
+            try {
+                if (!folder.exists() && !folder.mkdirs()) return null
+                connection = URL(url).openConnection() as HttpURLConnection
+                connection.connectTimeout = 8000
+                connection.readTimeout = 8000
+                connection.instanceFollowRedirects = true
+                connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36")
+                connection.setRequestProperty("Accept", "image/jpeg,image/png,image/webp,image/*;q=0.8")
+                if (page.isNotBlank()) connection.setRequestProperty("Referer", page)
+                val cookies = android.webkit.CookieManager.getInstance().getCookie(url)
+                if (!cookies.isNullOrBlank()) connection.setRequestProperty("Cookie", cookies)
+                if (connection.responseCode !in 200..299 || connection.contentLength.toLong() > MAX_DOWNLOAD) return null
+                val target = File.createTempFile("cover-", ".tmp", folder)
+                temp = target
+                connection.inputStream.use { input -> target.outputStream().use { output ->
+                    val buffer = ByteArray(8192)
+                    var total = 0L
+                    while (true) {
+                        val count = input.read(buffer)
+                        if (count < 0) break
+                        total += count
+                        if (total > MAX_DOWNLOAD) throw java.io.IOException("Cover is too large")
+                        output.write(buffer, 0, count)
+                    }
+                } }
+                val bitmap = decode(edge) { target.inputStream() } ?: return null
+                if (!target.renameTo(file)) target.delete()
+                var bytes = folder.listFiles()?.sumOf { it.length() } ?: 0L
+                if (bytes > MAX_DISK) folder.listFiles()?.filter { it != file && !it.name.endsWith(".tmp") }
+                    ?.sortedBy { it.lastModified() }?.forEach {
+                        if (bytes > MAX_DISK) { val length = it.length(); if (it.delete()) bytes -= length }
+                    }
+                return bitmap
+            } catch (_: Exception) { return null }
+            finally { temp?.delete(); try { connection?.disconnect() } catch (_: Exception) { } }
+        }
+    }
+}
+
+/** Called by the background library scan, never while composing a scrolling row. */
+private fun abLibraryCoverMetadata(book: LibraryBook): LibraryBook {
+    val preferred = setOf("cover", "folder", "front", "обложка")
+    val cover = try {
+        book.folder.listFiles()?.filter { it.isFile && it.extension.lowercase() in setOf("jpg", "jpeg", "png", "webp") }
+            ?.sortedWith(compareBy<File> { if (it.nameWithoutExtension.lowercase() in preferred) 0 else 1 }
+                .thenBy { it.name.lowercase() })?.firstOrNull()
+    } catch (_: Exception) { null }
+    return book.copy(coverFilePath = cover?.absolutePath.orEmpty(), coverRevision = cover?.lastModified() ?: 0L)
+}

@@ -1,0 +1,279 @@
+private const val LIBRARY_TREE_KEY = "library_tree_uri"
+
+/** A File keeps chapter names/order compatible; Android reads its audio through the URI. */
+class LibraryAudioFile(path: String, val audioUri: String) : File(path)
+
+fun libraryTrackSource(file: File): String =
+    (file as? LibraryAudioFile)?.audioUri ?: file.absolutePath
+
+fun libraryFileForTrack(bookTitle: String, track: ServiceTrack): File {
+    if (!track.src.startsWith("content://")) return File(track.src)
+    return LibraryAudioFile(
+        File(libraryRoot(), "${safeFileName(bookTitle)}/${safeFileName(track.title)}.mp3").path,
+        track.src
+    )
+}
+
+@Suppress("DEPRECATION")
+fun libraryRoot(): File = File(
+    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "AudioBooks"
+)
+
+fun libraryAudioPermission(): String? = when {
+    Build.VERSION.SDK_INT >= 33 -> android.Manifest.permission.READ_MEDIA_AUDIO
+    Build.VERSION.SDK_INT >= 23 -> android.Manifest.permission.READ_EXTERNAL_STORAGE
+    else -> null
+}
+
+fun hasLibraryAudioPermission(context: Context): Boolean {
+    val permission = libraryAudioPermission() ?: return true
+    return context.checkSelfPermission(permission) == android.content.pm.PackageManager.PERMISSION_GRANTED
+}
+
+data class LibraryScanResult(val books: List<LibraryBook>, val folderUnavailable: Boolean = false)
+
+private data class LibraryDocument(
+    val uri: Uri, val name: String, val isDirectory: Boolean, val size: Long
+)
+
+private fun libraryDocuments(context: Context, tree: Uri, parent: Uri): List<LibraryDocument> {
+    val children = android.provider.DocumentsContract.buildChildDocumentsUriUsingTree(
+        tree, android.provider.DocumentsContract.getDocumentId(parent)
+    )
+    val columns = arrayOf(
+        android.provider.DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+        android.provider.DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+        android.provider.DocumentsContract.Document.COLUMN_MIME_TYPE,
+        android.provider.DocumentsContract.Document.COLUMN_SIZE
+    )
+    val result = mutableListOf<LibraryDocument>()
+    val cursor = context.contentResolver.query(children, columns, null, null, null)
+        ?: throw java.io.IOException("Папка недоступна")
+    cursor.use {
+        while (it.moveToNext()) {
+            val id = it.getString(0) ?: continue
+            val name = it.getString(1) ?: continue
+            result.add(LibraryDocument(
+                android.provider.DocumentsContract.buildDocumentUriUsingTree(tree, id),
+                name,
+                it.getString(2) == android.provider.DocumentsContract.Document.MIME_TYPE_DIR,
+                if (it.isNull(3)) -1L else it.getLong(3)
+            ))
+        }
+    }
+    return result
+}
+
+private fun libraryDocumentFolder(context: Context, tree: Uri, document: Uri): File {
+    // Match primary-storage document paths to the filesystem scan, so the same book appears once.
+    val id = android.provider.DocumentsContract.getDocumentId(document)
+    if (tree.authority == "com.android.externalstorage.documents" && id.startsWith("primary:")) {
+        return File(Environment.getExternalStorageDirectory(), id.substringAfter(':'))
+    }
+    return File(context.filesDir, "library-links/${tree.toString().hashCode()}/${id.hashCode()}")
+}
+
+private fun sortedLibraryFiles(files: Collection<File>): List<File> = files.sortedWith(
+    compareBy<File> { trackSortNumber(it.nameWithoutExtension) }.thenBy { it.nameWithoutExtension }
+)
+
+private fun mergeLibraryBook(books: MutableMap<String, LibraryBook>, incoming: LibraryBook) {
+    val key = incoming.folder.absolutePath
+    val existing = books[key]
+    if (existing == null) {
+        books[key] = incoming
+        return
+    }
+    val files = existing.files.associateBy { it.name }.toMutableMap()
+    incoming.files.forEach { files[it.name] = it }
+    books[key] = incoming.copy(
+        files = sortedLibraryFiles(files.values),
+        folderUri = incoming.folderUri.ifBlank { existing.folderUri },
+        coverUri = incoming.coverUri.ifBlank { existing.coverUri }
+    )
+}
+
+/** Scans real audio, independently of download jobs or SharedPreferences from the old installation. */
+fun scanLibraryReport(context: Context? = null): LibraryScanResult {
+    val books = linkedMapOf<String, LibraryBook>()
+    val root = libraryRoot()
+    try {
+        root.listFiles()?.filter { it.isDirectory }?.forEach { folder ->
+            val files = folder.listFiles()?.filter {
+                it.isFile && it.extension.equals("mp3", true) && it.length() > 0L && it.canRead()
+            }.orEmpty()
+            if (files.isNotEmpty()) mergeLibraryBook(books,
+                LibraryBook(folder.name, folder, sortedLibraryFiles(files)))
+        }
+    } catch (_: Exception) { }
+
+    if (context == null) return LibraryScanResult(books.values.sortedBy { it.title.lowercase() })
+
+    // Scoped storage can allow playback via MediaStore while hiding directory listings.
+    try {
+        val collection = android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
+        val columns = arrayOf(
+            android.provider.MediaStore.Audio.Media._ID,
+            android.provider.MediaStore.Audio.Media.DATA,
+            android.provider.MediaStore.Audio.Media.SIZE
+        )
+        @Suppress("DEPRECATION")
+        val selection = android.provider.MediaStore.Audio.Media.DATA + " LIKE ?"
+        context.contentResolver.query(collection, columns, selection,
+            arrayOf(root.absolutePath + "/%"), null)?.use { cursor ->
+            val discovered = linkedMapOf<File, MutableList<File>>()
+            while (cursor.moveToNext()) {
+                val path = cursor.getString(1) ?: continue
+                val file = File(path)
+                val folder = file.parentFile ?: continue
+                if (folder.parentFile?.absolutePath != root.absolutePath ||
+                    !file.extension.equals("mp3", true) || cursor.getLong(2) <= 0L) continue
+                val uri = android.content.ContentUris.withAppendedId(collection, cursor.getLong(0))
+                discovered.getOrPut(folder) { mutableListOf() }.add(LibraryAudioFile(path, uri.toString()))
+            }
+            discovered.forEach { (folder, files) ->
+                mergeLibraryBook(books, LibraryBook(folder.name, folder, sortedLibraryFiles(files)))
+            }
+        }
+    } catch (_: Exception) { }
+
+    val treeText = context.getSharedPreferences("audiobook_downloader", Context.MODE_PRIVATE)
+        .getString(LIBRARY_TREE_KEY, "").orEmpty()
+    var folderUnavailable = false
+    if (treeText.isNotBlank()) {
+        try {
+            val tree = Uri.parse(treeText)
+            val document = android.provider.DocumentsContract.buildDocumentUriUsingTree(
+                tree, android.provider.DocumentsContract.getTreeDocumentId(tree)
+            )
+            val rootName = context.contentResolver.query(document, arrayOf(
+                android.provider.DocumentsContract.Document.COLUMN_DISPLAY_NAME
+            ), null, null, null)?.use { if (it.moveToFirst()) it.getString(0) else null }
+                ?: throw java.io.IOException("Папка недоступна")
+            val children = libraryDocuments(context, tree, document)
+            fun addFolder(uri: Uri, name: String, items: List<LibraryDocument>) {
+                val folder = libraryDocumentFolder(context, tree, uri)
+                val files = items.filter {
+                    !it.isDirectory && it.name.endsWith(".mp3", true) && it.size != 0L
+                }.map { LibraryAudioFile(File(folder, it.name).path, it.uri.toString()) }
+                if (files.isNotEmpty()) mergeLibraryBook(books, LibraryBook(
+                    name, folder, sortedLibraryFiles(files), uri.toString(),
+                    items.firstOrNull { !it.isDirectory && it.name.equals("cover.jpg", true) }
+                        ?.uri?.toString().orEmpty()
+                ))
+            }
+            // Both AudioBooks and an individual book folder can be selected.
+            addFolder(document, rootName, children)
+            children.filter { it.isDirectory }.forEach { child ->
+                try { addFolder(child.uri, child.name, libraryDocuments(context, tree, child.uri)) }
+                catch (_: Exception) { folderUnavailable = true }
+            }
+        } catch (_: Exception) { folderUnavailable = true }
+    }
+    return LibraryScanResult(books.values.sortedBy { it.title.lowercase() }, folderUnavailable)
+}
+
+fun scanLibrary(context: Context? = null): List<LibraryBook> = scanLibraryReport(context).books
+
+class LibrarySyncState {
+    val books = mutableStateOf<List<LibraryBook>>(emptyList())
+    var request by mutableStateOf(0)
+    var isSyncing by mutableStateOf(true)
+    var message by mutableStateOf("")
+    fun requestSync() { request++ }
+}
+
+@Composable
+fun rememberLibrarySync(accessVersion: Int, page: AppPage): LibrarySyncState {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val state = remember { LibrarySyncState() }
+    LaunchedEffect(page) { if (page == AppPage.LIBRARY) state.requestSync() }
+    LaunchedEffect(accessVersion, state.request) {
+        state.isSyncing = true
+        try {
+            val result = withContext(Dispatchers.IO) { scanLibraryReport(context) }
+            state.books.value = result.books
+            state.message = when {
+                result.folderUnavailable -> "Нет доступа к выбранной папке или части её книг. Выберите папку снова."
+                result.books.isEmpty() && !hasLibraryAudioPermission(context) ->
+                    "Для старых файлов нужен доступ к аудио или к папке библиотеки."
+                result.books.isEmpty() -> "Проверьте, что MP3 находятся в папках книг внутри AudioBooks."
+                else -> "Библиотека синхронизирована: ${result.books.size} книг."
+            }
+        } catch (cancelled: kotlinx.coroutines.CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+            state.message = "Не удалось прочитать библиотеку. Проверьте доступ и повторите синхронизацию."
+        } finally {
+            state.isSyncing = false
+        }
+    }
+    return state
+}
+
+/** Access controls are separate from the large main screen to keep its generated methods small. */
+@Composable
+fun LibrarySyncControls(
+    syncing: Boolean, message: String, onSync: () -> Unit,
+    textColor: Color, buttonColor: Color
+) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val prefs = remember { context.getSharedPreferences("audiobook_downloader", Context.MODE_PRIVATE) }
+    var permissionGranted by remember { mutableStateOf(hasLibraryAudioPermission(context)) }
+    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
+        permissionGranted = it
+        onSync()
+    }
+    val folderLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        if (uri != null) {
+            try {
+                val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                try { context.contentResolver.takePersistableUriPermission(uri, flags) }
+                catch (_: SecurityException) {
+                    context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                val old = prefs.getString(LIBRARY_TREE_KEY, "").orEmpty()
+                prefs.edit().putString(LIBRARY_TREE_KEY, uri.toString()).apply()
+                if (old.isNotBlank() && old != uri.toString()) {
+                    try {
+                        context.contentResolver.persistedUriPermissions.firstOrNull { it.uri.toString() == old }?.let {
+                            context.contentResolver.releasePersistableUriPermission(it.uri,
+                                (if (it.isReadPermission) Intent.FLAG_GRANT_READ_URI_PERMISSION else 0) or
+                                    (if (it.isWritePermission) Intent.FLAG_GRANT_WRITE_URI_PERMISSION else 0))
+                        }
+                    } catch (_: Exception) { }
+                }
+                onSync()
+            } catch (_: Exception) {
+                Toast.makeText(context, "Не удалось сохранить доступ к папке. Выберите её снова.", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+    LaunchedEffect(syncing) { permissionGranted = hasLibraryAudioPermission(context) }
+    Text(
+        if (syncing) "⏳ Синхронизация…" else "🔄 СИНХРОНИЗИРОВАТЬ",
+        color = buttonColor, fontSize = 14.sp, fontWeight = FontWeight.Bold,
+        modifier = Modifier.fillMaxWidth().clickable(enabled = !syncing) { onSync() }
+            .padding(vertical = 12.dp)
+    )
+    Text("📂 ВЫБРАТЬ ПАПКУ БИБЛИОТЕКИ", color = buttonColor, fontSize = 14.sp,
+        fontWeight = FontWeight.Bold,
+        modifier = Modifier.fillMaxWidth().clickable(enabled = !syncing) {
+            try {
+                val saved = prefs.getString(LIBRARY_TREE_KEY, "").orEmpty()
+                folderLauncher.launch(saved.takeIf { it.isNotBlank() }?.let { Uri.parse(it) })
+            } catch (_: Exception) {
+                Toast.makeText(context, "Выбор папки недоступен на этом устройстве", Toast.LENGTH_LONG).show()
+            }
+        }.padding(vertical = 10.dp))
+    if (!permissionGranted) {
+        Text("🔓 РАЗРЕШИТЬ ДОСТУП К АУДИО", color = buttonColor, fontSize = 13.sp,
+            modifier = Modifier.fillMaxWidth().clickable(enabled = !syncing) {
+                val permission = libraryAudioPermission()
+                if (permission != null) permissionLauncher.launch(permission)
+            }.padding(vertical = 10.dp))
+    }
+    if (message.isNotBlank()) Text(message, color = textColor, fontSize = 13.sp)
+    Text("Если старые книги не появились, выберите папку Download/AudioBooks. После переустановки доступ к папке нужно выдать заново.",
+        color = textColor, fontSize = 12.sp, modifier = Modifier.padding(vertical = 8.dp))
+}

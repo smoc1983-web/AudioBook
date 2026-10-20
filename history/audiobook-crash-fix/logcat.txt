@@ -1,0 +1,32 @@
+    // The crash buffer can contain the missing Java stack even when a library
+    // replaced the uncaught-exception handler. Restrict it to this app's UID.
+    // This is called from Dispatchers.IO; it never blocks the UI thread.
+    private fun readCrashBuffer():String? {
+        var process:Process?=null
+        return try {
+            val child=ProcessBuilder("logcat","-d","-b","crash","-v","threadtime",
+                "-t","160","--uid="+android.os.Process.myUid()).redirectErrorStream(true).start()
+            process=child
+            val input=child.inputStream
+            val output=java.io.ByteArrayOutputStream()
+            val buffer=ByteArray(4096)
+            val deadline=android.os.SystemClock.elapsedRealtime()+1800L
+            while(android.os.SystemClock.elapsedRealtime()<deadline && output.size()<64_000) {
+                while(input.available()>0 && output.size()<64_000) {
+                    val count=input.read(buffer,0,minOf(buffer.size,input.available(),64_000-output.size()))
+                    if(count<=0)break
+                    output.write(buffer,0,count)
+                }
+                val stopped=try{child.exitValue();true}catch(_:IllegalThreadStateException){false}
+                if(stopped && input.available()==0)break
+                Thread.sleep(15L)
+            }
+            val text=String(output.toByteArray(),Charsets.UTF_8).trim()
+            text.takeIf{it.contains("FATAL EXCEPTION")||it.contains("Fatal signal")}
+        }catch(_:Exception){null}
+        finally{
+            process?.destroy()
+            try{process?.inputStream?.close()}catch(_:Exception){}
+        }
+    }
+

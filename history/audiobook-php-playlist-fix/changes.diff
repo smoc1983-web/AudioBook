@@ -1,0 +1,143 @@
+--- previous/MainActivity.kt
++++ MainActivity.kt
+@@ -325,7 +325,7 @@
+ // A committed marker survives abrupt process termination. The token prevents
+ // a previous activity instance from clearing the next instance's startup.
+ private object AbLaunchState {
+-    private const val REVISION="4.0-online-player-load-1"
++    private const val REVISION="4.0-php-playlist-1"
+     private fun prefs(context: Context)=context.applicationContext.getSharedPreferences("audiobook_startup",Context.MODE_PRIVATE)
+     @Synchronized fun needsRecovery(context: Context): Boolean {
+         val store=prefs(context)
+@@ -8298,13 +8298,17 @@
+                     finish(null,"Ошибка разбора страницы: "+parseError.take(200))
+                     return@launch
+                 }
+-                if(AbBookSources.isAudioOnline(page)) {
+-                    root.optJSONObject("sourceDebug")?.put("blockedAdvertisingRequests",blockedAdvertising.get())
+-                    AbSourceTrace.record(web.context,"Открытие книги",root.optJSONObject("sourceDebug"))
+-                }
+                 abEnrichAzbyka(web,root,page)
+                 abEnrichAudioOnline(web,root,page)
+                 if(!valid(id))return@launch
++                if(AbBookSources.isAudioOnline(page)) {
++                    root.optJSONObject("sourceDebug")?.apply {
++                        put("blockedAdvertisingRequests",blockedAdvertising.get())
++                        put("chapters",root.optJSONObject("player")?.optJSONArray("playlist")?.length() ?: 0)
++                        if(root.optString("sourceError").isNotBlank())put("playlistError",root.optString("sourceError"))
++                    }
++                    AbSourceTrace.record(web.context,"Открытие книги",root.optJSONObject("sourceDebug"))
++                }
+                 val playable=root.optJSONObject("player")?.let{parsePlayer(it)}!=null
+                 val catalogue=(root.optJSONArray("links")?.length() ?: 0)>0
+                 val expectsPlaylist=abIsBookDetailAddress(page)
+@@ -11799,7 +11803,7 @@
+ 
+ private object AbCrashReport {
+     private const val FILE="audiobook-last-crash.txt"
+-    private const val REVISION="4.0-online-player-load-1"
++    private const val REVISION="4.0-php-playlist-1"
+     private const val FIRST_RUN="first_run_"+REVISION
+     private val reporting=java.util.concurrent.atomic.AtomicBoolean(false)
+     @Volatile var screen="Запуск приложения"
+@@ -12874,8 +12878,8 @@
+     return """
+ (function(){var pool=$scripts,prepared=window.__abPlayerPreparation||{attempts:0,containers:0,deferredFrames:0};
+     window.__abPlayerPreparation=prepared;
+-    if(prepared.attempts++>=3)return;
+-    var nodes=document.querySelectorAll('#player,#playerjs,#audioplayer,.fplayer,.full-player,.book-player,[data-player]');
++    if(prepared.attempts>=3)return;prepared.attempts++;
++    var nodes=document.querySelectorAll('#player,#playerjs,[id^="playerjs"],#audioplayer,.fplayer,.full-player,.book-player,[data-player]');
+     prepared.containers=nodes.length;
+     for(var i=0;i<nodes.length&&i<12;i++){
+         var node=nodes[i];if(node.closest('nav,header,footer,aside,[class*="advert"],[class*="recommend"],[class*="related"]'))continue;
+@@ -12884,7 +12888,7 @@
+     }
+     var frames=document.querySelectorAll('iframe[data-src]');
+     for(var f=0;f<frames.length&&f<20;f++){
+-        var frame=frames[f],holder=frame.closest('#player,#playerjs,#audioplayer,.fplayer,.full-player,.book-player,[data-player]');
++        var frame=frames[f],holder=frame.closest('#player,#playerjs,[id^="playerjs"],#audioplayer,.fplayer,.full-player,.book-player,[data-player]');
+         if(!holder||frame.closest('aside,[class*="advert"],[class*="recommend"],[class*="related"]'))continue;
+         var src=frame.getAttribute('src')||'',lazy=frame.getAttribute('data-src');if(src&&src!=='about:blank')continue;
+         try{var u=new URL(lazy,location.href);if(!/^https?:${'$'}/.test(u.protocol)||pool.advertising(u.href))continue;
+@@ -12994,7 +12998,7 @@
+             else if(/player|playlist|tracks|chapters|setMedia|uppod/i.test(content)) {
+                 if(snippets++>=3)continue;
+                 var start=Math.max(0,content.search(/new\s+(?:window\.)?Playerjs|playlist|playerInit|setPlaylist|setMedia/i)-300);
+-                scripts.push(content.slice(start,start+2400).replace(/https?:[^\s'"<>]+/g,'[URL]').replace(/(?:token|password|secret|key)\s*[:=]\s*['"][^'"]*['"]/gi,'[REDACTED]').slice(0,2400));}
++                scripts.push(content.slice(start,start+2400).replace(/https?:[^\s'"<>]+/g,'[URL]').replace(/\b[\w]*(?:token|password|secret|hash|nonce|key)['"]?\s*[:=]\s*['"][^'"]*['"]/gi,'[REDACTED]').slice(0,2400));}
+             if(scripts.length>=12)break;
+         }
+         var fs=document.querySelectorAll('form');for(var j=0;j<fs.length&&j<12;j++){
+@@ -13174,7 +13178,7 @@
+             }
+             var url=absolute(value,base);if(!url)return;
+             var path=new URL(url).pathname;
+-            if(/\.(?:json|txt|m3u)${'$'}/i.test(path)){if(!reference)reference=url;return;}
++            if(/\.(?:json|txt|m3u)(?:\.php)?${'$'}/i.test(path)){if(!reference)reference=url;return;}
+             if(!/\.(?:mp3|m4a|m4b|aac|ogg|opus|wav|flac)${'$'}/i.test(path)&&!/^audio\//i.test(String(type||'')))return;
+             if(seen[url]||tracks.length>=3000)return;seen[url]=true;
+             tracks.push({src:url,title:String(title||'').trim()||('Глава '+(tracks.length+1)),duration:seconds(duration)});
+@@ -13322,6 +13326,10 @@
+         if(address.isNotBlank())root.put("sourceError","Некорректный адрес списка глав источника.")
+         return
+     }
++    val loadDebug=JSONObject().put("stage","request")
++    val publicAddress=Uri.parse(address).buildUpon().clearQuery().fragment(null).build().toString()
++    loadDebug.put("address",publicAddress)
++    root.optJSONObject("sourceDebug")?.put("playlistLoad",loadDebug)
+     val agent=web.settings.userAgentString
+     val loaded=try {withContext(Dispatchers.IO) {
+         var current=address
+@@ -13333,28 +13341,32 @@
+             try {
+                 connection.instanceFollowRedirects=false;connection.connectTimeout=4000;connection.readTimeout=4000
+                 connection.setRequestProperty("User-Agent",agent);connection.setRequestProperty("Referer",page)
++                connection.setRequestProperty("Accept","application/json,text/plain,application/x-mpegurl,*/*;q=0.5")
+                 if(AbBookSources.isAudioOnline(current)) {
+                     val cookies=android.webkit.CookieManager.getInstance().getCookie(current)
+                     if(!cookies.isNullOrBlank())connection.setRequestProperty("Cookie",cookies)
+                 }
+                 val code=connection.responseCode
++                loadDebug.put("httpStatus",code).put("contentType",connection.contentType.orEmpty().take(100))
+                 if(code in listOf(301,302,303,307,308))current=URL(URL(current),connection.getHeaderField("Location") ?: error("Нет адреса перенаправления")).toString()
+                 else {
+                     require(code in 200..299){"HTTP $code"}
+-                    require(!connection.contentType.orEmpty().contains("html",true)){"Сайт вернул страницу вместо списка глав"}
+                     val bytes=java.io.ByteArrayOutputStream()
+                     connection.inputStream.use {input ->
+                         val buffer=ByteArray(8192)
+                         while(true) {kotlinx.coroutines.currentCoroutineContext().ensureActive();val count=input.read(buffer);if(count<0)break
+                             require(bytes.size()+count<=1024*1024){"Список глав превышает допустимый размер"};bytes.write(buffer,0,count)}
+                     }
+-                    answer=bytes.toString("UTF-8") to current;break
++                    val text=bytes.toString("UTF-8")
++                    require(!text.trimStart('\uFEFF',' ','\t','\r','\n').startsWith("<")){"Сайт вернул HTML вместо списка глав"}
++                    loadDebug.put("bytes",bytes.size()).put("stage","received")
++                    answer=text to current;break
+                 }
+             }finally{connection.disconnect()}
+         }
+         answer ?: error("Слишком много перенаправлений списка глав")
+     }}catch(cancelled:kotlinx.coroutines.CancellationException){throw cancelled}
+-    catch(error:Exception){root.put("sourceError","Не удалось прочитать список глав: "+(error.message ?: error.javaClass.simpleName));return}
++    catch(error:Exception){loadDebug.put("stage","request-error");root.put("sourceError","Не удалось прочитать список глав: "+(error.message ?: error.javaClass.simpleName));return}
+     if(!AbWebViews.available(web))return
+     val raw=kotlinx.coroutines.withTimeoutOrNull(5000L) {
+         kotlinx.coroutines.suspendCancellableCoroutine<String?> {reply ->
+@@ -13362,8 +13374,13 @@
+         }
+     }
+     val parsed=try{JSONObject(decodeJsString(raw))}catch(_:Exception){null}
+-    if(parsed!=null&&(parsed.optJSONArray("playlist")?.length() ?: 0)>0)root.put("player",parsed)
+-    else root.put("sourceError","Источник не передал читаемые аудиоглавы. Попробуйте другую версию книги.")
++    if(parsed!=null&&(parsed.optJSONArray("playlist")?.length() ?: 0)>0) {
++        root.put("player",parsed)
++        loadDebug.put("stage","resolved").put("chapters",parsed.optJSONArray("playlist")?.length() ?: 0)
++    } else {
++        loadDebug.put("stage","parse-error")
++        root.put("sourceError","Список глав получен, но его формат не удалось прочитать.")
++    }
+ }
+ 
+ 

@@ -1,0 +1,117 @@
+--- previous/MainActivity.kt
++++ MainActivity.kt
+@@ -580,7 +580,7 @@
+ // A committed marker survives abrupt process termination. The token prevents
+ // a previous activity instance from clearing the next instance's startup.
+ private object AbLaunchState {
+-    private const val REVISION="4.0-splash-merged-1"
++    private const val REVISION="4.0-txt-report-1"
+     private fun prefs(context: Context)=context.applicationContext.getSharedPreferences("audiobook_startup",Context.MODE_PRIVATE)
+     @Synchronized fun needsRecovery(context: Context): Boolean {
+         val store=prefs(context)
+@@ -12058,7 +12058,7 @@
+ 
+ private object AbCrashReport {
+     private const val FILE="audiobook-last-crash.txt"
+-    private const val REVISION="4.0-splash-merged-1"
++    private const val REVISION="4.0-txt-report-1"
+     private const val FIRST_RUN="first_run_"+REVISION
+     private val reporting=java.util.concurrent.atomic.AtomicBoolean(false)
+     @Volatile var screen="Запуск приложения"
+@@ -12353,6 +12353,45 @@
+     }
+ }
+ 
++// Android grants a recipient temporary read access to a report, never to the whole cache.
++class AbDiagnosticReportProvider : androidx.core.content.FileProvider()
++
++private object AbDiagnosticReportFiles {
++    private const val DIRECTORY="diagnostic-reports"
++    private const val MAX_AGE_MS=24L*60L*60L*1000L
++
++    fun create(context:Context,report:String):Uri {
++        val app=context.applicationContext
++        val folder=File(app.cacheDir,DIRECTORY)
++        if(!folder.isDirectory && !folder.mkdirs() && !folder.isDirectory)throw java.io.IOException("Не удалось создать папку отчётов")
++        val now=System.currentTimeMillis()
++        // Remove only our expired reports, so another app can still read a recently shared attachment.
++        folder.listFiles()?.filter {it.isFile && it.name.startsWith("Audiobook-report-") && it.extension=="txt" &&
++            now-it.lastModified()>MAX_AGE_MS}?.forEach {it.delete()}
++        val stamp=java.text.SimpleDateFormat("yyyy-MM-dd_HH-mm-ss",java.util.Locale.ROOT).format(java.util.Date(now))
++        val file=File.createTempFile("Audiobook-report-$stamp-",".txt",folder)
++        try {
++            file.outputStream().bufferedWriter(Charsets.UTF_8).use {it.write(report)}
++            return androidx.core.content.FileProvider.getUriForFile(app,app.packageName+".diagnostic_reports",file)
++        }catch(error:Exception){file.delete();throw error}
++    }
++
++    fun share(context:Context,uri:Uri) {
++        val intent=Intent(Intent.ACTION_SEND).apply {
++            type="text/plain"
++            putExtra(Intent.EXTRA_STREAM,uri)
++            putExtra(Intent.EXTRA_SUBJECT,AB_PRODUCT_NAME+": диагностика и логи")
++            clipData=android.content.ClipData.newRawUri("Отчёт Audiobook",uri)
++            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
++        }
++        val chooser=Intent.createChooser(intent,"Отправить отчёт (.txt)").apply {
++            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
++            if(context !is android.app.Activity)addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
++        }
++        context.startActivity(chooser)
++    }
++}
++
+ @Composable
+ private fun AbCrashReports(theme: AbTheme,requested: Int) {
+     val context=androidx.compose.ui.platform.LocalContext.current
+@@ -12360,9 +12399,14 @@
+     var loading by remember {mutableStateOf(false)}
+     var visible by remember {mutableStateOf(false)}
+     var failure by remember {mutableStateOf("")}
++    var sharing by remember {mutableStateOf(false)}
++    var shareError by remember {mutableStateOf("")}
++    val work=androidx.compose.runtime.rememberCoroutineScope()
++    var shareJob by remember {mutableStateOf<kotlinx.coroutines.Job?>(null)}
+     LaunchedEffect(requested) {
+         // No IO, logcat collection or report dialog on ordinary startup.
+         if(requested<=0)return@LaunchedEffect
++        shareJob?.cancel();shareJob=null;sharing=false;shareError=""
+         report=null;failure="";visible=true;loading=true
+         try {
+             report=withContext(Dispatchers.IO) {AbCrashReport.read(context,true)}
+@@ -12380,14 +12424,33 @@
+         }
+     }
+     val saved=report ?: return
+-    fun dismiss() {visible=false;report=null}
++    fun dismiss() {shareJob?.cancel();shareJob=null;sharing=false;shareError="";visible=false;report=null}
+     AbDialog("Диагностика и логи",theme,{dismiss()}) {
+         Text("Отчёт содержит сведения об устройстве, последние события плеера и сохранённую ошибку, если она есть. Отправьте его вместе с описанием проблемы. Получателя вы выбираете сами.",
+             color=theme.muted,fontSize=14.sp,lineHeight=20.sp)
+         if(AbCrashReport.historical(context,saved.first)) Text(
+             "В отчёте есть событие предыдущей версии диагностики. Его дата указана отдельно.",color=theme.muted,fontSize=12.sp)
++        AbButton(if(sharing) "Готовим файл…" else "Отправить отчёт (.txt)",theme,
++            primary=true,enabled=!sharing) {
++            if(!sharing) {
++                sharing=true;shareError=""
++                shareJob=work.launch {
++                    try {
++                        val uri=withContext(Dispatchers.IO) {AbDiagnosticReportFiles.create(context,saved.second)}
++                        if(!visible || report!==saved)return@launch
++                        AbDiagnosticReportFiles.share(context,uri)
++                    }catch(cancelled:kotlinx.coroutines.CancellationException){throw cancelled}
++                    catch(_:android.content.ActivityNotFoundException){shareError="Нет приложения для отправки файла. Можно скопировать отчёт."}
++                    catch(_:java.io.IOException){shareError="Не удалось записать файл отчёта. Проверьте свободное место и повторите попытку."}
++                    catch(_:Exception){shareError="Не удалось подготовить файл отчёта. Повторите попытку."}
++                    finally {if(report===saved)sharing=false}
++                }
++            }
++        }
++        if(sharing)androidx.compose.material3.CircularProgressIndicator(Modifier.size(20.dp),color=theme.accent,strokeWidth=2.dp)
++        if(shareError.isNotBlank())Text(shareError,color=theme.muted,fontSize=12.sp)
+         AbButton("Скопировать отчёт",theme) {AbCrashReport.copy(context,saved.second)}
+-        AbButton("Отправить логи",theme) {
++        AbButton("Отправить текстом",theme,enabled=!sharing) {
+             try {context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply {
+                 type="text/plain";putExtra(Intent.EXTRA_TEXT,saved.second)
+                 putExtra(Intent.EXTRA_SUBJECT,AB_PRODUCT_NAME+": диагностика и логи")

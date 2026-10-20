@@ -1,0 +1,105 @@
+private object AbCrashReport {
+    private const val FILE="audiobook-last-crash.txt"
+    private const val REVISION="4.0-diagnostics-2"
+    private const val FIRST_RUN="first_run_"+REVISION
+    private val reporting=java.util.concurrent.atomic.AtomicBoolean(false)
+    @Volatile var screen="Запуск приложения"
+
+    private class LimitedWriter:java.io.Writer() {
+        val text=StringBuilder()
+        override fun write(chars:CharArray,offset:Int,length:Int) {
+            val count=minOf(length,64_000-text.length)
+            if(count>0) text.append(chars,offset,count)
+        }
+        override fun flush() { }
+        override fun close() { }
+    }
+
+    private class Recorder(private val app:Context,
+        private val next:Thread.UncaughtExceptionHandler?):Thread.UncaughtExceptionHandler {
+        override fun uncaughtException(thread:Thread,error:Throwable) {
+            val first=reporting.compareAndSet(false,true)
+            try {
+                if(first) save(app,thread,error)
+                if(next!=null) next.uncaughtException(thread,error)
+                else {
+                    android.os.Process.killProcess(android.os.Process.myPid())
+                    kotlin.system.exitProcess(10)
+                }
+            } finally {if(first) reporting.set(false)}
+        }
+    }
+
+    @Synchronized fun install(context:Context) {
+        val app=context.applicationContext
+        val prefs=app.getSharedPreferences("audiobook_diagnostics",Context.MODE_PRIVATE)
+        if(!prefs.contains(FIRST_RUN)) prefs.edit().putLong(FIRST_RUN,System.currentTimeMillis()).apply()
+        val current=Thread.getDefaultUncaughtExceptionHandler()
+        if(current !is Recorder) Thread.setDefaultUncaughtExceptionHandler(Recorder(app,current))
+        // A handler attached directly to Main bypasses the process default.
+        // Keep ThreadGroup delegation intact, and wrap explicit library handlers.
+        val main=android.os.Looper.getMainLooper().thread
+        val direct=main.uncaughtExceptionHandler
+        if(direct!=null && direct !is ThreadGroup && direct !is Recorder)
+            main.uncaughtExceptionHandler=Recorder(app,direct)
+    }
+
+    private fun save(app:Context,thread:Thread,error:Throwable) {
+        try {
+            val limited=LimitedWriter()
+            // Unlike Log.getStackTraceString, this keeps UnknownHostException
+            // and its causes as well as other exception types.
+            java.io.PrintWriter(limited).use {error.printStackTrace(it)}
+            val body="AudioBook 4.0 · локальный стек\nДиагностика: $REVISION\n${java.util.Date()}\n"+
+                "Android ${Build.VERSION.SDK_INT}, ${Build.MANUFACTURER} ${Build.MODEL}\n"+
+                "Экран: $screen\nПоток: ${thread.name}\n\n${limited.text}"
+            val atomic=android.util.AtomicFile(File(app.filesDir,FILE))
+            var stream:java.io.FileOutputStream?=null
+            try {
+                val output=atomic.startWrite()
+                stream=output
+                output.write(body.toByteArray(Charsets.UTF_8))
+                // Flush/sync and commit before the platform terminates the process.
+                atomic.finishWrite(output)
+                stream=null
+            } finally {if(stream!=null) atomic.failWrite(stream)}
+        } catch(_:Throwable) { /* Reporting must not interfere with crash handling. */ }
+    }
+
+    fun historical(context:Context,stamp:Long):Boolean {
+        val first=context.getSharedPreferences("audiobook_diagnostics",Context.MODE_PRIVATE).getLong(FIRST_RUN,0L)
+        return first>0L && stamp<first
+    }
+
+    fun read(context:Context):Pair<Long,String>? {
+        val local=readLocal(context)
+        val system=readSystem(context)
+        if(local==null && system==null) return null
+        val stamp=maxOf(local?.first ?: 0L,system?.first ?: 0L)
+        val text=StringBuilder("Версия диагностики: $REVISION\n")
+        if(historical(context,stamp)) text.append(
+            "Историческая запись: событие произошло до первого запуска этой версии диагностики.\n\n")
+        if(local!=null) text.append("=== Сохранённое исключение ===\n${local.second}\n")
+        if(system!=null) {
+            if(local!=null && system.first>local.first+10_000L) text.append(
+                "\nСистемное событие ниже новее локального стека. Для него отдельный стек не записан.\n")
+            text.append("\n=== Сведения Android ===\n${system.second}")
+        }
+        return stamp to text.toString()
+    }
+
+    private fun readLocal(context:Context):Pair<Long,String>? = try {
+        val file=File(context.filesDir,FILE)
+        val atomic=android.util.AtomicFile(file)
+        val content=atomic.openRead().bufferedReader(Charsets.UTF_8).use {reader ->
+            val result=StringBuilder()
+            val buffer=CharArray(4096)
+            while(result.length<66_000) {
+                val count=reader.read(buffer,0,minOf(buffer.size,66_000-result.length))
+                if(count<=0) break
+                result.append(buffer,0,count)
+            }
+            result.toString()
+        }
+        if(content.isBlank()) null else file.lastModified() to content
+    } catch(_:Exception) {null}

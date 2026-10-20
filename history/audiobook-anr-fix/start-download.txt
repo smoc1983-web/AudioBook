@@ -1,0 +1,71 @@
+    fun requestModernDownload(track: AudioTrack, book: String) {
+        if(isTrackDownloaded(track,book,downloadedIndex)) {
+            trackStates[track.title]=TrackState.DOWNLOADED
+            return
+        }
+        val waiting=downloadStarts[track.title]
+        if(waiting!=null || downloadIds.values.contains(track.title)) {
+            val otherBook=waiting?.book ?: downloadRetryBooks[track.title]
+            if(otherBook!=book)Toast.makeText(context,
+                "Глава с таким названием уже загружается из другой книги. Дождитесь её завершения.",
+                Toast.LENGTH_LONG).show()
+            return
+        }
+        val request=AbStartingDownload(book)
+        downloadStarts[track.title]=request
+        downloadRetryTracks[track.title]=track
+        downloadRetryBooks[track.title]=book
+        downloadErrors.remove(track.title)
+        trackStates[track.title]=TrackState.DOWNLOADING
+        request.job=modernWork.launch {
+            var enqueued: Long?=null
+            try {
+                // Do not enqueue duplicates while the initial/completion scan is still running.
+                androidx.compose.runtime.snapshotFlow{librarySync.isSyncing}.first{!it}
+                val index=librarySync.downloadedIndex
+                if(isTrackDownloaded(track,book,index)) {
+                    trackStates[track.title]=TrackState.DOWNLOADED
+                    downloadRetryTracks.remove(track.title)
+                    downloadRetryBooks.remove(track.title)
+                    return@launch
+                }
+                keepDownloadedCover(book)
+                withContext(Dispatchers.IO) {
+                    AbDownloadStarts.slots.acquire()
+                    try {
+                        kotlinx.coroutines.currentCoroutineContext().ensureActive()
+                        // Android may create destination directories and perform Binder calls here.
+                        enqueued=downloadTrack(context.applicationContext,track,book,index)
+                    } finally {AbDownloadStarts.slots.release()}
+                }
+                val id=enqueued
+                if(id!=null) {
+                    downloadIds[id]=track.title
+                    prefs.edit().putString("download_job_"+id,track.title+"|||"+book+"|||"+track.src).apply()
+                    status="Загрузка: "+track.title
+                } else {
+                    trackStates[track.title]=TrackState.ERROR
+                    downloadErrors[track.title]="Не удалось начать загрузку"
+                    status="Не удалось начать загрузку: "+track.title
+                }
+            } catch(cancelled: kotlinx.coroutines.CancellationException) {
+                // Cancellation after enqueue but before dispatching back to Main must not orphan a job.
+                enqueued?.let {id ->
+                    withContext(kotlinx.coroutines.NonCancellable+Dispatchers.IO) {
+                        try {(context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager).remove(id)}
+                        catch(_:Exception) {
+                            prefs.edit().putString("download_job_"+id,track.title+"|||"+book+"|||"+track.src).apply()
+                        }
+                    }
+                }
+                throw cancelled
+            } finally {
+                if(downloadStarts[track.title]===request) {
+                    downloadStarts.remove(track.title)
+                    if(!downloadIds.values.contains(track.title) && trackStates[track.title]==TrackState.DOWNLOADING)
+                        trackStates[track.title]=TrackState.READY
+                }
+            }
+        }
+    }
+

@@ -8,3 +8,8 @@ local.properties
 *.jks
 *.keystore
 .DS_Store
+
+# Restored historical archives; all bytes are tracked in releases/.parts/.
+/releases/Audiobook-Black-Themes-Library-Genres.zip
+/releases/Audiobook-Liquid-Glass-Vivid.zip
+/releases/Audiobook-Widgets-5-Themes.zip

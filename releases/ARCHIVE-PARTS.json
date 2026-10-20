@@ -1,0 +1,72 @@
+{
+  "version": 1,
+  "note": "These three historical release archives exceed the connector request limit. Restore them with python tools/restore_archives.py. Current sources and resources are stored directly.",
+  "archives": [
+    {
+      "path": "releases/Audiobook-Black-Themes-Library-Genres.zip",
+      "size": 23959892,
+      "sha256": "bfe719fa929bd2dddcf5d6b541c3e92381825e6dd3990a9b94f73e1231ea8d70",
+      "git_blob": "1655c0b75fb8273fa21149f2174909c93ccba5b6",
+      "parts": [
+        {
+          "path": "releases/.parts/Audiobook-Black-Themes-Library-Genres.zip/part-001",
+          "size": 8388608,
+          "sha256": "5637f7caa06fdbfc722f9ca598888225f88b68674d3e5abd8d6941a61b1d33e4",
+          "git_blob": "49a356461c242c09540319894d502451696787b2"
+        },
+        {
+          "path": "releases/.parts/Audiobook-Black-Themes-Library-Genres.zip/part-002",
+          "size": 8388608,
+          "sha256": "d1de351e55fefd04d3a9fe0e8d759910f9e4c1ffd13109187b89f3eedec0fe32",
+          "git_blob": "886bef3a3c2bed7d2b4e9510ba0a63758e650386"
+        },
+        {
+          "path": "releases/.parts/Audiobook-Black-Themes-Library-Genres.zip/part-003",
+          "size": 7182676,
+          "sha256": "17fa8e26009007643d0edfbf82bff27988f8b89f3b60cf5ac8b8e9f5b5af12ae",
+          "git_blob": "880f489b4f3b08d66db4f41ff27724da53e9c19a"
+        }
+      ]
+    },
+    {
+      "path": "releases/Audiobook-Liquid-Glass-Vivid.zip",
+      "size": 13401716,
+      "sha256": "12b9ae077f017ace77bf5d7dee65ba32ff0147df4251dcf712aae03c962d6e2c",
+      "git_blob": "e3a5bc17376e1d95da280abd25793f8b3cc6a80d",
+      "parts": [
+        {
+          "path": "releases/.parts/Audiobook-Liquid-Glass-Vivid.zip/part-001",
+          "size": 8388608,
+          "sha256": "227f5721f0cb52ea7b97966a05d682107e75551c9b6f0f425f5e93e74764cd36",
+          "git_blob": "a183749bedf809accf1fb47c6bd1725f5f6fd49e"
+        },
+        {
+          "path": "releases/.parts/Audiobook-Liquid-Glass-Vivid.zip/part-002",
+          "size": 5013108,
+          "sha256": "b3a805c39ca6141bd00a8e0f33fe3e8e2344d28e38a55b79cfb3a55c0712752d",
+          "git_blob": "dd06f8ec22b94be67d53100638eda04d357dc7e8"
+        }
+      ]
+    },
+    {
+      "path": "releases/Audiobook-Widgets-5-Themes.zip",
+      "size": 13422922,
+      "sha256": "c64d009148a4bbf79a63fd6541745eb49668193ebc1fa5a4657996d2c1e6eefd",
+      "git_blob": "26be97c509b9f277c84a3f8e170378f4b92e4f9e",
+      "parts": [
+        {
+          "path": "releases/.parts/Audiobook-Widgets-5-Themes.zip/part-001",
+          "size": 8388608,
+          "sha256": "4daa1f8d5a12cde2307ae68bee76821923e901f5ae11aa131f0c95d0957529c2",
+          "git_blob": "776b75f3778d4d8694c903afda444996aeac6e34"
+        },
+        {
+          "path": "releases/.parts/Audiobook-Widgets-5-Themes.zip/part-002",
+          "size": 5034314,
+          "sha256": "2e688aa1708b4e6039e6fe310c68b5d619b29170edec6c92640f694cff89d022",
+          "git_blob": "ddcdb6e48455daeab79c05948dd5b580942df9af"
+        }
+      ]
+    }
+  ]
+}

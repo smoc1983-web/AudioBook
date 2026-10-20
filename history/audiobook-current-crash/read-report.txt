@@ -1,0 +1,136 @@
+    private data class SystemSnapshot(val stamp:Long,val pid:Int,val text:String)
+    private data class CrashBuffer(val text:String,val note:String)
+
+    fun read(context:Context,includeHealth:Boolean=false):Pair<Long,String>? {
+        val local=readLocal(context)
+        val system=readSystem(context)
+        if(local==null && system==null && !includeHealth)return null
+        val stamp=maxOf(local?.first ?: 0L,system?.stamp ?: 0L).takeIf{it>0L}
+            ?: context.getSharedPreferences("audiobook_diagnostics",Context.MODE_PRIVATE).getLong(FIRST_RUN,0L)
+        val text=StringBuilder("Версия диагностики: "+REVISION+"\nОтчёт собран: "+java.util.Date()+"\n")
+        text.append("\n=== Установленная сборка ===\n"+installedBuild(context)+"\n")
+        if(historical(context,stamp))text.append(
+            "\nИсторическая запись: событие произошло до первого запуска этой версии диагностики.\n")
+        if(local!=null) {
+            text.append("\n=== Сохранённое исключение ===\nВремя записи: "+java.util.Date(local.first)+"\n"+local.second+"\n")
+            if(system!=null && kotlin.math.abs(system.stamp-local.first)>10_000L)
+                text.append("\nВремя этого сохранённого стека отличается от системного события. Он не подтверждает причину последнего завершения.\n")
+        }
+        if(system!=null)text.append("\n=== Сведения Android ===\n"+system.text)
+        if(local==null && system==null)text.append("\nСохранённых сведений о сбое пока нет.\n")
+        val target=system?.stamp ?: local?.first
+        if(target!=null && (local==null || (system!=null && kotlin.math.abs(system.stamp-local.first)>10_000L))) {
+            val log=readCrashBuffer(system?.pid,target)
+            text.append("\n=== Журнал для указанного события ===\n"+log.note+"\n")
+            if(log.text.isNotBlank())text.append(log.text)
+        }
+        return stamp to text.toString()
+    }
+
+    @Suppress("DEPRECATION")
+    private fun installedBuild(context:Context):String = try {
+        val manager=context.packageManager
+        val flags=android.content.pm.PackageManager.GET_PROVIDERS or android.content.pm.PackageManager.GET_SERVICES or
+            android.content.pm.PackageManager.MATCH_DISABLED_COMPONENTS
+        val info=manager.getPackageInfo(context.packageName,flags)
+        val version=if(Build.VERSION.SDK_INT>=28)info.longVersionCode else info.versionCode.toLong()
+        fun component(name:String,item:android.content.pm.ComponentInfo?):String {
+            if(item==null)return "не объявлен в установленном APK"
+            val componentState=manager.getComponentEnabledSetting(android.content.ComponentName(context.packageName,name))
+            val enabled=when(componentState) {
+                android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED -> true
+                android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+                android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_DISABLED_USER,
+                android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_DISABLED_UNTIL_USED -> false
+                else -> item.enabled
+            }
+            return "объявлен; enabled="+enabled+"; override="+componentState
+        }
+        val provider="com.itsaky.androidide.logsender.utils.LogSenderInstaller"
+        val service="com.itsaky.androidide.logsender.LogSenderService"
+        val main=android.os.Looper.getMainLooper().thread
+        "Пакет: "+context.packageName+"\nВерсия APK: "+info.versionName+" ("+version+")"+
+            "\nПоследнее обновление APK: "+java.util.Date(info.lastUpdateTime)+
+            "\nPID текущего процесса: "+android.os.Process.myPid()+
+            "\nLogSenderInstaller: "+component(provider,info.providers.orEmpty().firstOrNull{it.name==provider})+
+            "\nLogSenderService: "+component(service,info.services.orEmpty().firstOrNull{it.name==service})+
+            "\nОбработчик процесса: "+(Thread.getDefaultUncaughtExceptionHandler()?.javaClass?.name ?: "нет")+
+            "\nОбработчик Main: "+(main.uncaughtExceptionHandler?.javaClass?.name ?: "нет")
+    }catch(error:Exception){"Не удалось прочитать состав APK: "+(error.message ?: error.javaClass.simpleName)}
+
+    // Epoch format permits exact date comparison without guessing the year or
+    // locale. Continuation lines belong only to the preceding accepted record.
+    private val LOG_PREFIX=Regex("^\\s*(\\d{9,12}\\.\\d+)\\s+(\\d+)\\s+(\\d+)\\s+([VDIWEFAS])\\s+([^:]+):\\s?(.*)$")
+    private fun matchingCrash(raw:String,pid:Int?,stamp:Long):String {
+        val result=StringBuilder()
+        var accept=false
+        raw.lineSequence().forEach {line ->
+            val match=LOG_PREFIX.matchEntire(line)
+            if(match!=null) {
+                val time=match.groupValues[1].toDoubleOrNull()?.let{(it*1000).toLong()} ?: 0L
+                val process=match.groupValues[2].toIntOrNull()
+                accept=time in (stamp-90_000L)..(stamp+5_000L) && (pid==null || pid<=0 || process==pid)
+            }else if(line.startsWith("---------"))accept=false
+            if(accept)result.append(line).append('\n')
+        }
+        return result.toString().trim()
+    }
+
+    // Drain the snapshot until EOF/deadline, retaining its LAST 64 KB.
+    // Do not stop when the buffer fills: that discarded fresh stacks before.
+    // This method is reached only through background report readers.
+    private fun readCrashBuffer(pid:Int?,stamp:Long):CrashBuffer {
+        var process:Process?=null
+        return try {
+            val command=mutableListOf("logcat","-d","-b","crash","-v","epoch","-t","2000",
+                "--uid="+android.os.Process.myUid())
+            if(pid!=null && pid>0)command.add("--pid="+pid)
+            val child=ProcessBuilder(command).redirectErrorStream(true).start()
+            process=child
+            val input=child.inputStream
+            val output=java.io.ByteArrayOutputStream(64_000)
+            val buffer=ByteArray(4096)
+            val deadline=android.os.SystemClock.elapsedRealtime()+3000L
+            var cropped=false
+            var completed=false
+            var exitCode:Int?=null
+            while(android.os.SystemClock.elapsedRealtime()<deadline) {
+                while(input.available()>0 && android.os.SystemClock.elapsedRealtime()<deadline) {
+                    val count=input.read(buffer,0,minOf(buffer.size,input.available()))
+                    if(count<=0)break
+                    if(output.size()+count>64_000) {
+                        val previous=output.toByteArray()
+                        val keep=minOf(previous.size,64_000-count)
+                        output.reset()
+                        output.write(previous,previous.size-keep,keep)
+                        cropped=true
+                    }
+                    output.write(buffer,0,count)
+                }
+                val stopped=try{exitCode=child.exitValue();true}catch(_:IllegalThreadStateException){false}
+                if(stopped && input.available()==0){completed=true;break}
+                Thread.sleep(15L)
+            }
+            val raw=String(output.toByteArray(),Charsets.UTF_8)
+            val current=matchingCrash(raw,pid,stamp)
+            val selection="Событие: "+java.util.Date(stamp)+"; PID: "+(pid?.toString() ?: "неизвестен")+
+                ". Допуск времени: 90 секунд до завершения и 5 секунд после."
+            val status=when {
+                exitCode!=null && exitCode!=0 -> "logcat завершился с кодом "+exitCode+". "+
+                    raw.lineSequence().firstOrNull().orEmpty().take(180)
+                current.isBlank() -> "Подходящий стек этого события в журнале не найден. Старые записи в отчёт не включены."
+                current.contains("FATAL EXCEPTION") || current.contains("Fatal signal") ->
+                    "Ниже записи, совпадающие с PID и временем события."
+                else -> "Найден фрагмент журнала процесса. Полный заголовок исключения недоступен."
+            }
+            val limits=(if(cropped)" Сохранены последние 64 КБ журнала." else "")+
+                (if(!completed)" Чтение остановлено по времени; журнал может быть неполным." else "")
+            CrashBuffer(current,selection+"\n"+status+limits)
+        }catch(error:Exception){
+            CrashBuffer("","Журнал этого события недоступен: "+(error.message ?: error.javaClass.simpleName))
+        }finally {
+            process?.destroy()
+            try{process?.inputStream?.close()}catch(_:Exception){}
+        }
+    }
+

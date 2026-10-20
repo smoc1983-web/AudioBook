@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+    <application android:label="@string/audiobook_product_name" tools:replace="android:label">
+        <activity android:name="com.audiobookdownloader.MainActivity"
+            android:label="@string/audiobook_product_name" tools:replace="android:label" />
+        <service
+            android:name="com.audiobookdownloader.PlaybackService"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback"
+            android:stopWithTask="false"
+            tools:replace="android:exported,android:foregroundServiceType,android:stopWithTask" />
+        <!-- This IDE component starts before MainActivity and can crash the process. -->
+        <provider
+            android:name="com.itsaky.androidide.logsender.utils.LogSenderInstaller"
+            tools:node="remove" />
+        <service
+            android:name="com.itsaky.androidide.logsender.LogSenderService"
+            tools:node="remove" />
+        <!-- Manual diagnostic attachment sharing; private provider with per-URI read grants. -->
+        <provider
+            android:name="com.audiobookdownloader.AbDiagnosticReportProvider"
+            android:authorities="${applicationId}.diagnostic_reports"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/audiobook_diagnostic_paths" />
+        </provider>
+        <receiver android:name="com.audiobookdownloader.AbCompactWidget"
+            android:exported="false" android:label="@string/ab_widget_compact_label">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/ab_widget_compact_info" />
+        </receiver>
+        <receiver android:name="com.audiobookdownloader.AbCoverWidget"
+            android:exported="false" android:label="@string/ab_widget_cover_label">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/ab_widget_cover_info" />
+        </receiver>
+        <receiver android:name="com.audiobookdownloader.AbPlayerWidget"
+            android:exported="false" android:label="@string/ab_widget_player_label">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/ab_widget_player_info" />
+        </receiver>
+        <activity android:name="com.audiobookdownloader.AbWidgetConfigureActivity"
+            android:exported="true" android:excludeFromRecents="true"
+            android:theme="@android:style/Theme.Material.NoActionBar"
+            android:label="Виджет Audiobook">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" /></intent-filter>
+        </activity>
+    </application>
+</manifest>

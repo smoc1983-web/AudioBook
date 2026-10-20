@@ -1,0 +1,198 @@
+class MainActivity : ComponentActivity() {
+    // Recovery must not initialize Compose state before it shows its report.
+    private val accessState by lazy {mutableStateOf(0)}
+    private val foregroundState by lazy {mutableStateOf(false)}
+    private val browserState by lazy {mutableStateOf(0)}
+    private var libraryAccessVersion: Int
+        get()=accessState.value
+        set(value){accessState.value=value}
+    private var foreground: Boolean
+        get()=foregroundState.value
+        set(value){foregroundState.value=value}
+    private var browserGeneration: Int
+        get()=browserState.value
+        set(value){browserState.value=value}
+    private var activityVisible=false
+    private val activityWork by lazy {
+        kotlinx.coroutines.CoroutineScope(Dispatchers.Main+kotlinx.coroutines.SupervisorJob())
+    }
+    private var reportJob: kotlinx.coroutines.Job?=null
+    private var readyJob: kotlinx.coroutines.Job?=null
+    private var appStarted=false
+    private var launchToken=0L
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        AbCrashReport.install(this)
+        super.onCreate(savedInstanceState)
+        AbCrashReport.install(this)
+        val recover=AbLaunchState.needsRecovery(this)
+        // A native screen works without composing the main app or creating WebView.
+        // The first installation of this repair opens recovery once as well.
+        showStartup(recover)
+        if(!recover) readyJob=activityWork.launch {
+            delay(250L)
+            while(!activityVisible && !isFinishing && !isDestroyed)delay(50L)
+            if(!isFinishing && !isDestroyed) startApp(false)
+        }
+    }
+
+    private fun requestMissingPermissions() {
+        if(Build.VERSION.SDK_INT<23)return
+        val permissions=mutableListOf<String>()
+        libraryAudioPermission()?.let {
+            if(checkSelfPermission(it)!=android.content.pm.PackageManager.PERMISSION_GRANTED) permissions.add(it)
+        }
+        if(Build.VERSION.SDK_INT>=33 &&
+            checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)!=android.content.pm.PackageManager.PERMISSION_GRANTED)
+            permissions.add(android.Manifest.permission.POST_NOTIFICATIONS)
+        if(permissions.isNotEmpty())requestPermissions(permissions.toTypedArray(),1002)
+    }
+
+    private fun startApp(withoutAutomaticCatalogs: Boolean) {
+        if(appStarted || isFinishing || isDestroyed)return
+        readyJob?.cancel()
+        reportJob?.cancel()
+        AbCrashReport.install(this)
+        launchToken=AbLaunchState.arm(this)
+        appStarted=true
+        try {
+            foreground=activityVisible
+            browserGeneration++
+            libraryAccessVersion++
+            setContent {
+                AudioBookApp(libraryAccessVersion,foreground,browserGeneration,!withoutAutomaticCatalogs)
+                LaunchedEffect(launchToken) {
+                    androidx.compose.runtime.withFrameNanos { }
+                    androidx.compose.runtime.withFrameNanos { }
+                    delay(2000L)
+                    AbLaunchState.healthy(this@MainActivity,launchToken)
+                    if(foreground && !isFinishing && !isDestroyed)requestMissingPermissions()
+                }
+            }
+        }catch(error: RuntimeException) {
+            startupFailed(error)
+        }catch(error: LinkageError) {
+            startupFailed(error)
+        }
+    }
+
+    private fun startupFailed(error: Throwable) {
+        appStarted=false
+        AbCrashReport.record(this,error,"Подготовка главного экрана")
+        showStartup(true)
+    }
+
+    private fun showStartup(recover: Boolean) {
+        val panel=android.widget.LinearLayout(this).apply {
+            orientation=android.widget.LinearLayout.VERTICAL
+            setBackgroundColor(android.graphics.Color.rgb(7,20,37))
+            val padding=(20*resources.displayMetrics.density).toInt()
+            setPadding(padding,padding*2,padding,padding)
+        }
+        fun label(value: String,size: Float)=android.widget.TextView(this).apply {
+            text=value;textSize=size
+            setTextColor(android.graphics.Color.WHITE)
+            setPadding(0,10,0,10)
+        }
+        panel.addView(label("AudioBook 4.0",26f))
+        panel.addView(label(if(recover)
+            "Восстановление запуска. Можно открыть приложение без фоновой загрузки каталогов или скопировать отчёт."
+            else "Запускаем приложение…",16f))
+        if(recover) {
+            var reportText="Отчёт пока не найден."
+            fun button(value: String,click:()->Unit)=android.widget.Button(this).apply {
+                text=value
+                setOnClickListener{click()}
+                panel.addView(this,android.widget.LinearLayout.LayoutParams(
+                    android.view.ViewGroup.LayoutParams.MATCH_PARENT,android.view.ViewGroup.LayoutParams.WRAP_CONTENT))
+            }
+            button("Открыть без фоновой загрузки"){startApp(true)}
+            val copy=button("Скопировать отчёт"){AbCrashReport.copy(this,reportText)}.apply{isEnabled=false}
+            val share=button("Поделиться отчётом"){
+                try {
+                    startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply {
+                        type="text/plain"
+                        putExtra(Intent.EXTRA_TEXT,reportText)
+                        putExtra(Intent.EXTRA_SUBJECT,"AudioBook 4.0: запуск")
+                    },"Отправить отчёт"))
+                }catch(_:android.content.ActivityNotFoundException){AbCrashReport.copy(this,reportText)}
+            }.apply{isEnabled=false}
+            button("Обычный запуск"){startApp(false)}
+            val details=label("Загружаем сведения о сбое…",12f).apply{setTextIsSelectable(true)}
+            panel.addView(android.widget.ScrollView(this).apply{addView(details)},
+                android.widget.LinearLayout.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT,0,1f))
+            reportJob=activityWork.launch {
+                val report=withContext(Dispatchers.IO){AbCrashReport.read(this@MainActivity)}
+                reportText=report?.second ?: ("AudioBook 4.0 · запуск\nРевизия: 4.0-startup-recovery-1\n"+
+                    "Android "+Build.VERSION.SDK_INT+", "+Build.MANUFACTURER+" "+Build.MODEL+
+                    "\nСохранённый стек и журнал Android пока недоступны.")
+                details.text=reportText
+                copy.isEnabled=true;share.isEnabled=true
+            }
+        }
+        setContentView(panel)
+    }
+
+    override fun onStart() {
+        super.onStart()
+        AbCrashReport.install(this)
+        activityVisible=true
+        if(appStarted){browserGeneration++;foreground=true}
+    }
+    override fun onStop() {
+        activityVisible=false
+        if(appStarted)foreground=false
+        // A voluntary exit after composing is not a failed startup.
+        if(appStarted)AbLaunchState.healthy(this,launchToken)
+        try {AbWebViews.closeAll(this)}
+        catch(error: RuntimeException){AbCrashReport.record(this,error,"Закрытие браузеров")}
+        catch(error: LinkageError){AbCrashReport.record(this,error,"Закрытие браузеров")}
+        super.onStop()
+    }
+    override fun onDestroy() {
+        activityWork.coroutineContext[kotlinx.coroutines.Job]?.cancel()
+        super.onDestroy()
+    }
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        if(appStarted && level>=android.content.ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW)AbCoverStore.clearMemory()
+    }
+    override fun onResume() {
+        super.onResume()
+        AbCrashReport.install(this)
+        if(appStarted)libraryAccessVersion++
+    }
+    override fun onRequestPermissionsResult(requestCode: Int,permissions: Array<out String>,grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode,permissions,grantResults)
+        if(appStarted)libraryAccessVersion++
+    }
+}
+
+// A committed marker survives abrupt process termination. The token prevents
+// a previous activity instance from clearing the next instance's startup.
+private object AbLaunchState {
+    private const val REVISION="4.0-startup-recovery-1"
+    private fun prefs(context: Context)=context.applicationContext.getSharedPreferences("audiobook_startup",Context.MODE_PRIVATE)
+    @Synchronized fun needsRecovery(context: Context): Boolean {
+        val store=prefs(context)
+        val first=store.getString("revision","")!=REVISION
+        val pending=store.getBoolean("pending",false)||store.getBoolean("failed",false)
+        if(first)store.edit().putString("revision",REVISION).commit()
+        return first||pending
+    }
+    @Synchronized fun arm(context: Context): Long {
+        val token=System.nanoTime()
+        prefs(context).edit().putLong("token",token).putBoolean("pending",true).putBoolean("failed",false).commit()
+        AbCrashReport.screen="Запуск главного экрана"
+        return token
+    }
+    @Synchronized fun healthy(context: Context,token: Long) {
+        if(token==0L)return
+        val store=prefs(context)
+        if(store.getLong("token",0L)==token && store.getBoolean("pending",false) && !store.getBoolean("failed",false))
+            store.edit().putBoolean("pending",false).commit()
+    }
+    @Synchronized fun failed(context: Context) {
+        prefs(context).edit().putBoolean("pending",true).putBoolean("failed",true).commit()
+    }
+}

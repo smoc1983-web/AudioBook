@@ -1,0 +1,202 @@
+// Fetch Azbyka's public static HTML directly. Parsing still uses the existing
+// DOM adapters, but the site scripts and search-engine results are not needed.
+private object AbAzbykaPages {
+    private const val LIMIT=3*1024*1024
+    private const val TTL=6*60*60*1000L
+    private fun checked(address: String): java.net.URL {
+        require(AbBookSources.isAzbyka(address) && Uri.parse(address).scheme=="https") {
+            "Недопустимый адрес Азбуки"
+        }
+        return java.net.URL(address)
+    }
+    suspend fun text(context: Context,address: String,userAgent: String): String=withContext(Dispatchers.IO) {
+        checked(address)
+        val directory=File(context.cacheDir,"azbyka-pages-v1").apply{mkdirs()}
+        val digest=java.security.MessageDigest.getInstance("SHA-256").digest(address.toByteArray(Charsets.UTF_8))
+            .joinToString(""){String.format(java.util.Locale.ROOT,"%02x",it.toInt() and 255)}
+        val cached=File(directory,digest+".txt")
+        if(cached.isFile && cached.length()<=LIMIT && System.currentTimeMillis()-cached.lastModified() in 0..TTL) {
+            return@withContext cached.readText(Charsets.UTF_8)
+        }
+        var target=address
+        val started=android.os.SystemClock.elapsedRealtime()
+        for(redirect in 0..5) {
+            kotlinx.coroutines.currentCoroutineContext().ensureActive()
+            val connection=checked(target).openConnection() as java.net.HttpURLConnection
+            try {
+                connection.instanceFollowRedirects=false
+                connection.connectTimeout=5000;connection.readTimeout=8000
+                connection.setRequestProperty("User-Agent",userAgent)
+                connection.setRequestProperty("Accept","text/html,text/plain,application/x-mpegurl,*/*;q=0.5")
+                connection.setRequestProperty("Accept-Language","ru-RU,ru;q=0.9,en;q=0.5")
+                connection.setRequestProperty("Accept-Encoding","identity")
+                connection.setRequestProperty("Referer",AbBookSources.home(AbBookSources.AZBYKA))
+                val status=connection.responseCode
+                if(status in listOf(301,302,303,307,308)) {
+                    val location=connection.getHeaderField("Location") ?: error("Пустой адрес перенаправления")
+                    target=java.net.URL(checked(target),location).toString()
+                    checked(target)
+                    if(android.os.SystemClock.elapsedRealtime()-started>18_000L) error("Истекло время загрузки")
+                    continue
+                }
+                if(status !in 200..299) error("Азбука: HTTP "+status)
+                val result=connection.inputStream.buffered().use {input ->
+                    val data=java.io.ByteArrayOutputStream()
+                    val buffer=ByteArray(8192)
+                    while(true) {
+                        kotlinx.coroutines.currentCoroutineContext().ensureActive()
+                        if(android.os.SystemClock.elapsedRealtime()-started>18_000L) error("Истекло время загрузки")
+                        val size=input.read(buffer)
+                        if(size<0)break
+                        require(data.size()+size<=LIMIT){"Ответ Азбуки слишком большой"}
+                        data.write(buffer,0,size)
+                    }
+                    String(data.toByteArray(),Charsets.UTF_8).removePrefix("\uFEFF")
+                }
+                require(result.isNotBlank()){"Азбука вернула пустой ответ"}
+                if(!Uri.parse(address).path.orEmpty().endsWith(".m3u",true)) {
+                    require(Regex("(?i)<(?:html|body|main|article)\\b").containsMatchIn(result)) {
+                        "Азбука вернула ответ без каталога"
+                    }
+                    require(!Regex("(?i)<title[^>]*>\\s*(?:Just a moment|Access denied|Checking your browser)").containsMatchIn(result)) {
+                        "Азбука требует проверку в браузере"
+                    }
+                }
+                // Cache failures must not discard a successfully fetched page.
+                try {
+                    val temporary=File.createTempFile("page-",".tmp",directory)
+                    try {temporary.writeText(result,Charsets.UTF_8);temporary.renameTo(cached)}
+                    finally {temporary.delete()}
+                    var bytes=0L
+                    directory.listFiles().orEmpty().filter{it.extension=="txt"}.sortedByDescending{it.lastModified()}.forEach {
+                        bytes+=it.length();if(bytes>32L*1024*1024)it.delete()
+                    }
+                }catch(_:java.io.IOException){}
+                return@withContext result
+            }finally{connection.disconnect()}
+        }
+        error("Слишком много перенаправлений Азбуки")
+    }
+    private fun staticHtml(html: String): String {
+        val options=setOf(RegexOption.IGNORE_CASE,RegexOption.DOT_MATCHES_ALL)
+        // Keep WordPress playlist JSON and structured metadata, discard executable JS.
+        var result=Regex("<script\\b([^>]*)>(.*?)</script\\s*>",options).replace(html) {match ->
+            if(Regex("type\\s*=\\s*['\"]application/(?:ld\\+)?json['\"]",RegexOption.IGNORE_CASE)
+                .containsMatchIn(match.groupValues[1])) match.value else ""
+        }
+        result=Regex("<(?:iframe|object|style)\\b[^>]*>.*?</(?:iframe|object|style)\\s*>",options).replace(result,"")
+        result=Regex("<(?:base|link|embed)\\b[^>]*>",options).replace(result,"")
+        result=Regex("<meta\\b[^>]*http-equiv\\s*=[^>]*>",options).replace(result,"")
+        result=Regex("\\s+on[a-z]+\\s*=\\s*(?:\"[^\"]*\"|'[^']*'|[^\\s>]+)",options).replace(result,"")
+        return result
+    }
+    fun load(web: WebView,address: String,work: kotlinx.coroutines.CoroutineScope,
+        alive:()->Boolean,failed:(String)->Unit): kotlinx.coroutines.Job {
+        val app=web.context.applicationContext
+        val agent=web.settings.userAgentString
+        return work.launch {
+            try {
+                val html=text(app,address,agent)
+                val clean=withContext(Dispatchers.Default){staticHtml(html)}
+                if(alive() && AbWebViews.available(web)) {
+                    web.settings.blockNetworkLoads=true
+                    web.loadDataWithBaseURL(address,clean,"text/html","UTF-8",address)
+                }
+            }catch(cancelled: kotlinx.coroutines.CancellationException){throw cancelled}
+            catch(error: Exception) {
+                if(alive()) failed("Азбука: "+(error.message ?: error.javaClass.simpleName))
+            }
+        }
+    }
+}
+
+private class AbAzbykaSearchTask(web: WebView,private val query: String,
+    private val done:(SiteSearchResult)->Unit):BookWebsiteTask(web) {
+    private val job=kotlinx.coroutines.SupervisorJob()
+    private val work=kotlinx.coroutines.CoroutineScope(Dispatchers.Main+job)
+    private val pending=java.util.ArrayDeque<String>()
+    private val visited=mutableSetOf<String>()
+    private val collected=linkedMapOf<String,BookLink>()
+    private var finished=false
+    private var current=""
+    private var token=0
+    private var completedToken=-1
+    private var readablePages=0
+    private val errors=mutableListOf<String>()
+    init {
+        web.webViewClient=object:AbBookWebViewClient({finish("Браузер Азбуки закрыт системой. Повторите поиск.")}) {
+            override fun onPageFinished(view: WebView?,url: String?) {
+                if(active&&!finished && url?.trimEnd('/')==current.trimEnd('/')) {
+                    val id=token
+                    handler.postDelayed({collect(id)},150L)
+                }
+            }
+            override fun onReceivedError(view: WebView?,request: android.webkit.WebResourceRequest?,
+                error: android.webkit.WebResourceError?) {
+                if(request?.isForMainFrame==true) pageFailed(token,"Не удалось прочитать каталог Азбуки")
+            }
+        }
+        pending.add(AbBookSources.SITEMAP)
+        handler.postDelayed({finish("Поиск Азбуки не успел прочитать весь каталог. Повторите запрос.")},90_000L)
+        next()
+    }
+    private fun next() {
+        if(!active||finished)return
+        while(pending.isNotEmpty()) {
+            val address=pending.removeFirst().trimEnd('/')
+            if(!visited.add(address))continue
+            if(visited.size>12){finish("Прочитана только часть каталога Азбуки");return}
+            current=address
+            val id=++token
+            AbAzbykaPages.load(web,address,work,{active&&!finished&&token==id}) {
+                pageFailed(id,it)
+            }
+            return
+        }
+        finish(errors.distinct().joinToString("; "))
+    }
+    private fun pageFailed(id: Int,error: String) {
+        if(!active||finished||id!=token||completedToken==id)return
+        completedToken=id
+        errors.add(error)
+        // Pagination routes are supplied by the sitemap itself, not guessed.
+        handler.post {next()}
+    }
+    private fun collect(id: Int) {
+        if(!active||finished||id!=token||completedToken==id)return
+        web.evaluateJavascript(abAzbykaCatalogJs()) {raw ->
+            if(!active||finished||id!=token||completedToken==id)return@evaluateJavascript
+            completedToken=id
+            try {
+                val json=JSONObject(decodeJsString(raw))
+                val books=parseBookLinks(json.optJSONArray("links") ?: JSONArray(),false)
+                    .filter{AbBookSources.isAzbykaBook(it.url)}
+                if(books.isEmpty()) errors.add("В карте Азбуки не удалось прочитать список книг")
+                else readablePages++
+                books.filter{abMatchesBookQuery(it,query)}.forEach {book ->
+                    val old=collected[book.url]
+                    collected[book.url]=if(old==null)book else old.copy(
+                        author=old.author.ifBlank{book.author},
+                        coverUrl=old.coverUrl.ifBlank{book.coverUrl})
+                }
+                val pages=json.optJSONArray("nextUrls") ?: JSONArray()
+                for(i in 0 until pages.length()) {
+                    val address=pages.optString(i).trimEnd('/')
+                    if(AbBookSources.isAzbyka(address) &&
+                        Regex("/audio/karta-sajta(?:/\\d+)?").matches(Uri.parse(address).path.orEmpty()) &&
+                        Uri.parse(address).query==null && address !in visited && address !in pending) pending.add(address)
+                }
+            }catch(_:Exception){errors.add("Не удалось разобрать карту Азбуки")}
+            handler.post {next()}
+        }
+    }
+    private fun finish(error: String) {
+        if(!active||finished)return
+        finished=true
+        handler.removeCallbacksAndMessages(null)
+        job.cancel()
+        val notice=error.ifBlank{if(readablePages==0)"Каталог Азбуки недоступен" else ""}
+        done(SiteSearchResult(collected.values.toList(),notice))
+    }
+    override fun close() {job.cancel();super.close()}
+}

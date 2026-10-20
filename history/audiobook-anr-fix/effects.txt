@@ -1,0 +1,102 @@
+    // Restore system jobs in one background query instead of blocking Main for each chapter.
+    LaunchedEffect(Unit) {
+        val saved=prefs.all.filterKeys{it.startsWith("download_job_")}
+        val ids=saved.keys.mapNotNull{it.removePrefix("download_job_").toLongOrNull()}
+        val statuses=abReadDownloadStatuses(context.applicationContext,ids)
+        if(statuses!=null) saved.forEach {entry ->
+            val id=entry.key.removePrefix("download_job_").toLongOrNull()
+            val parts=(entry.value as? String).orEmpty().split("|||",limit=3)
+            val title=parts.getOrNull(0).orEmpty()
+            val book=parts.getOrNull(1).orEmpty()
+            val src=parts.getOrNull(2).orEmpty()
+            if(id==null || title.isBlank())return@forEach
+            when(statuses[id]?.status) {
+                DownloadManager.STATUS_PENDING,DownloadManager.STATUS_RUNNING,DownloadManager.STATUS_PAUSED -> {
+                    downloadIds[id]=title
+                    trackStates[title]=TrackState.DOWNLOADING
+                    if(src.isNotBlank())downloadRetryTracks[title]=AudioTrack(title,0,src)
+                    downloadRetryBooks[title]=book
+                }
+                DownloadManager.STATUS_SUCCESSFUL -> {
+                    trackStates[title]=TrackState.DOWNLOADED
+                    prefs.edit().remove(entry.key).apply()
+                }
+                DownloadManager.STATUS_FAILED -> {
+                    trackStates[title]=TrackState.ERROR
+                    prefs.edit().remove(entry.key).apply()
+                }
+                else -> prefs.edit().remove(entry.key).apply()
+            }
+        }
+        librarySync.requestSync()
+    }
+
+    LaunchedEffect(downloadIds.size) {
+        while(downloadIds.isNotEmpty()) {
+            val snapshot=downloadIds.toMap()
+            val statuses=abReadDownloadStatuses(context.applicationContext,snapshot.keys)
+            if(statuses==null) {delay(1000L);continue}
+            var cycleDownloadedBytes=0L
+            var cycleKnownTotalBytes=0L
+            var cycleKnownCount=0
+            var cycleUnknownCount=0
+            var completedDownloads=false
+            snapshot.forEach {entry ->
+                // A cancelled/replaced job must not overwrite newer UI state.
+                if(downloadIds[entry.key]!=entry.value)return@forEach
+                val result=statuses[entry.key] ?: return@forEach
+                when(result.status) {
+                    DownloadManager.STATUS_SUCCESSFUL -> {
+                        dlFinishedBytes+=if(result.total>0L)result.total else result.downloaded
+                        dlFinishedCount++
+                        trackStates[entry.value]=TrackState.DOWNLOADED
+                        downloadErrors.remove(entry.value)
+                        downloadRetryTracks.remove(entry.value)
+                        downloadRetryBooks.remove(entry.value)
+                        downloadIds.remove(entry.key)
+                        prefs.edit().remove("download_job_"+entry.key).apply()
+                        completedDownloads=true
+                    }
+                    DownloadManager.STATUS_FAILED -> {
+                        trackStates[entry.value]=TrackState.ERROR
+                        downloadErrors[entry.value]=abDownloadReason(result.reason)
+                        downloadIds.remove(entry.key)
+                        prefs.edit().remove("download_job_"+entry.key).apply()
+                    }
+                    DownloadManager.STATUS_RUNNING,DownloadManager.STATUS_PENDING,DownloadManager.STATUS_PAUSED -> {
+                        cycleDownloadedBytes+=result.downloaded
+                        if(result.total>0L) {cycleKnownTotalBytes+=result.total;cycleKnownCount++}
+                        else cycleUnknownCount++
+                        trackStates[entry.value]=TrackState.DOWNLOADING
+                    }
+                }
+            }
+            // Several completed chapters in one poll require only one library scan.
+            if(completedDownloads)librarySync.requestSync()
+            val knownFiles=dlFinishedCount+cycleKnownCount
+            val averageSize=if(knownFiles>0) (dlFinishedBytes+cycleKnownTotalBytes)/knownFiles else 0L
+            val estimatedTotal=dlFinishedBytes+cycleKnownTotalBytes+averageSize*cycleUnknownCount
+            downloadBytesCurrent=dlFinishedBytes+cycleDownloadedBytes
+            downloadBytesTotal=maxOf(estimatedTotal,downloadBytesCurrent)
+            val percent=if(downloadBytesTotal>0L)(downloadBytesCurrent*100L/downloadBytesTotal).toInt().coerceIn(0,100) else 0
+            dlMaxPercent=maxOf(dlMaxPercent,percent)
+            downloadPercent=dlMaxPercent
+            delay(1000L)
+        }
+        if(downloadIds.isEmpty()) {
+            downloadBytesCurrent=0L;downloadBytesTotal=0L;downloadPercent=0
+            dlFinishedBytes=0L;dlFinishedCount=0;dlMaxPercent=0
+        }
+    }
+
+    // React only to actual changes. Checks are O(1) lookups in an immutable memory index.
+    LaunchedEffect(player,pageTitle,downloadedIndex) {
+        val title=cleanBookTitle(pageTitle)
+        player?.tracks.orEmpty().forEach {track ->
+            if(isTrackDownloaded(track,title,downloadedIndex))
+                trackStates[track.title]=TrackState.DOWNLOADED
+            else if(trackStates[track.title]==TrackState.DOWNLOADED)
+                trackStates[track.title]=TrackState.READY
+        }
+    }
+

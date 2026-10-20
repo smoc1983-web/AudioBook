@@ -1,0 +1,22 @@
+@Composable
+private fun AbGenreCard(title:String,index:Int,atlas:androidx.compose.ui.graphics.ImageBitmap?,theme:AbTheme,
+    modifier:Modifier=Modifier,onClick:()->Unit) {
+    Box(modifier.height(88.dp).clip(RoundedCornerShape(13.dp)).background(theme.panel)
+        .clickable(onClick=onClick).border(1.dp,theme.border,RoundedCornerShape(13.dp))) {
+        if(atlas!=null)Canvas(Modifier.fillMaxSize()) {
+            val tileW=atlas.width/3;val tileH=atlas.height/5
+            val pad=4
+            val availableW=tileW-pad*2;val availableH=tileH-pad*2
+            val targetRatio=size.width/size.height.coerceAtLeast(1f)
+            val cropW=minOf(availableW,(availableH*targetRatio).toInt()).coerceAtLeast(1)
+            val cropH=minOf(availableH,(availableW/targetRatio).toInt()).coerceAtLeast(1)
+            drawImage(atlas,srcOffset=androidx.compose.ui.unit.IntOffset(index%3*tileW+pad+(availableW-cropW)/2,
+                index/3*tileH+pad+(availableH-cropH)/2),srcSize=androidx.compose.ui.unit.IntSize(cropW,cropH),
+                dstSize=androidx.compose.ui.unit.IntSize(size.width.toInt(),size.height.toInt()))
+        }
+        Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Black.copy(alpha=.08f),Color.Black.copy(alpha=.82f)))))
+        Text(title,color=Color.White,fontSize=12.sp,lineHeight=14.sp,fontWeight=FontWeight.SemiBold,maxLines=2,
+            overflow=TextOverflow.Ellipsis,modifier=Modifier.align(Alignment.BottomStart).padding(horizontal=8.dp,vertical=9.dp))
+    }
+}
+

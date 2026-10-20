@@ -1,0 +1,64 @@
+from pathlib import Path
+import re
+root=Path(__file__).parent
+s=(root/'MainActivity.kt').read_text()
+service=(root/'PlaybackService.kt').read_text()
+base=Path('/workspace/audiobook-compact-player')
+obj=s[s.index('internal object AbLibraryHousekeeping'):s.index('@Suppress("DEPRECATION")\nfun libraryRoot()')]
+assert 'deleteRecursively' not in obj and 'DocumentsContract' not in obj and 'contentResolver' not in obj
+assert 'val root=libraryRoot()' in obj
+assert 'if(!directChild(parent,root))' in obj and 'if(!directChild(root,folder)' in obj
+assert 'child.canonicalFile==File(parent.canonicalFile,child.name)' in obj
+assert 'val children=folder.listFiles() ?: return 0' in obj
+assert 'remaining.isEmpty() && folder.delete()' in obj
+assert 'if(depth>8 || protectedNow())return 0' in obj
+assert 'if(!protectedNow() && remaining.isEmpty()' in obj
+assert 'if(!hasLibraryAudioPermission(context))continue' in obj
+assert 'val allowed=setOf("cover.jpg","book_metadata.json")' in obj
+assert 'it.name !in allowed' in obj and 'json.optString("format")=="AudioBookMetadata"' in obj
+assert 'json.optInt("version")==1' in obj and 'bookKey(json.optString("title"))==name' in obj
+assert obj.index('if(!owned)continue')<obj.index('cover.delete()')<obj.index('metadata.delete()')
+assert 'val latest=folder.listFiles() ?: continue' in obj and 'now-it.lastModified()<QUIET_MS' in obj
+assert 'catch(_:Exception) {null}' in obj and 'val retained=retainedNames(context) ?: return CleanupResult(0)' in obj
+for key in ['FAVORITES_KEY','SHELVES_KEY','QUEUE_KEY','download_job_']:
+    assert key in obj
+assert 'state.isPlaying || state.isLoading' in obj and 'holds.containsKey(name)' in obj
+print('PASS: deletion is scoped to the public app root, rejects aliases and unreadable listings, retains unknown/audio files, saved references and downloads; legacy-only deletion requires a valid ownership marker')
+
+request=s[s.index('        request.job=modernWork.launch {'):s.index('    fun cancelModernDownload')]
+assert request.index('AbLibraryHousekeeping.hold(book)')<request.index('keepDownloadedCover(book)')
+assert request.index('putString("download_job_"+id')<request.index('releaseFolder()')
+assert '} finally {\n                releaseFolder()' in request
+cover=s[s.index('    suspend fun saveForDownload'):s.index('    private fun decode(',s.index('    suspend fun saveForDownload'))]
+assert 'exportToLibrary:Boolean=true' in cover
+assert 'publicFolder=exportToLibrary && (local==null || local.folderUri.isBlank())' in cover
+assert 'if(publicFolder) abWriteBookMetadata(File(folder,"book_metadata.json"),metadata)' in cover
+assert 'if(keep) abWriteBookMetadata(File(File(context.filesDir,"book-covers")' in cover
+assert 'if(publicFolder) {' in cover and 'if(keep) writeImage' in cover
+assert 'if(exportToLibrary && local!=null && local.folderUri.isNotBlank()' in cover
+assert '} finally {\n            releaseFolder()' in cover
+assert 'saveForDownload(context.applicationContext,title,local,cover,url,exportToLibrary=local!=null)' in s
+print('PASS: previews do not export library files; explicit downloads and saved books keep durable covers; linked libraries no longer create filesystem shadow folders; in-flight writers reserve their titles')
+
+assert 'ScheduledThreadPoolExecutor(1,' in obj and 'worker.schedule(Runnable {' in obj
+assert 'pending?.cancel(false)' in obj and 'setRemoveOnCancelPolicy(true)' in obj
+assert 'if(requestGeneration==token)schedule(app,QUIET_MS+1500L)' in obj
+assert 'LaunchedEffect(data.searching,data.searchScreenId,data.page)' in s
+assert 'LaunchedEffect(data.searching,data.searchScreenId,data.page,data.version)' not in s
+assert 'if(key==FAVORITES_KEY || key==SHELVES_KEY || key==QUEUE_KEY)coverRetentionVersion++' in s
+assert 'if(wasActive && !isPlaying && !isLoading)AbLibraryHousekeeping.request(applicationContext)' in service
+print('PASS: one debounced background worker, deferred retry for recent files, event-based scheduling rather than progress polling; no audio control commands in housekeeping')
+
+# Existing playback behavior and compact interface must not change for this filesystem update.
+old_service=(base/'PlaybackService.kt').read_text()
+for a,b in [('    private fun startTrack','    private fun prepareTrack'),
+            ('    private fun prepareTrack','    private fun readPosition'),
+            ('    private fun remainingSleepSeconds()', '    private fun publish')]:
+    assert service[service.index(a):service.index(b)]==old_service[old_service.index(a):old_service.index(b)],a
+old_main=(base/'MainActivity.kt').read_text()
+a='@Composable\nprivate fun AbPlayerScreen'
+b='@Composable\nprivate fun AbBookMenu'
+assert s[s.index(a):s.index(b)]==old_main[old_main.index(a):old_main.index(b)]
+assert (root/'app/src/debug/AndroidManifest.xml').read_bytes()==(base/'app/src/debug/AndroidManifest.xml').read_bytes()
+print('PASS: player preparation, focus, timers, queue, wake lock, compact UI and debug manifest preserved')
+print('Static regression checks only; no Kotlin compilation or Android filesystem/device execution.')

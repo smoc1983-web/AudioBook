@@ -1,0 +1,23 @@
+
+/** Built from a completed library scan, never from a directory listing on the UI thread. */
+class DownloadedChapterIndex private constructor(private val chapters: Map<String, Set<String>>) {
+    fun contains(bookTitle: String, trackTitle: String): Boolean =
+        chapters[bookKey(bookTitle)]?.contains(fileKey(safeFileName(trackTitle)+".mp3")) == true
+
+    companion object {
+        val EMPTY=DownloadedChapterIndex(emptyMap())
+        private fun fileKey(value: String)=value.lowercase(java.util.Locale.ROOT)
+        private fun bookKey(value: String)=fileKey(safeFileName(value))
+        fun fromLibrary(books: List<LibraryBook>): DownloadedChapterIndex {
+            val result=linkedMapOf<String, MutableSet<String>>()
+            books.forEach {book ->
+                val names=book.files.map{fileKey(it.name)}
+                // File.name only parses the path; no exists/length/listFiles calls.
+                result.getOrPut(bookKey(book.title)){linkedSetOf()}.addAll(names)
+                result.getOrPut(bookKey(book.folder.name)){linkedSetOf()}.addAll(names)
+            }
+            return DownloadedChapterIndex(result.mapValues{it.value.toSet()})
+        }
+    }
+}
+

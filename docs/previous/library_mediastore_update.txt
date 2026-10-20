@@ -1,0 +1,30 @@
+    // A download may be indexed under Downloads instead of Audio after an app update.
+    val collections=mutableListOf(android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI)
+    if(Build.VERSION.SDK_INT>=29)collections.add(android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI)
+    for(collection in collections) try {
+        val columns=mutableListOf("_id","_data","_size","_display_name")
+        if(Build.VERSION.SDK_INT>=29)columns.add("relative_path")
+        val selection=if(Build.VERSION.SDK_INT>=29)"(_data LIKE ? OR relative_path LIKE ?)" else "_data LIKE ?"
+        val arguments=if(Build.VERSION.SDK_INT>=29)arrayOf(root.absolutePath+"/%","Download/AudioBooks/%") else arrayOf(root.absolutePath+"/%")
+        context.contentResolver.query(collection,columns.toTypedArray(),selection,arguments,null)?.use {cursor ->
+            val discovered=linkedMapOf<File,MutableList<File>>()
+            while(cursor.moveToNext()) {
+                val path=cursor.getString(1)?.takeIf{it.isNotBlank()} ?: if(Build.VERSION.SDK_INT>=29) {
+                    val relative=cursor.getString(4).orEmpty();val name=cursor.getString(3).orEmpty()
+                    if(relative.isBlank()||name.isBlank())continue
+                    File(Environment.getExternalStorageDirectory(),relative+name).path
+                } else continue
+                val file=File(path);val folder=file.parentFile ?: continue
+                if(folder.parentFile?.absolutePath!=root.absolutePath||!LibraryRecoveryRules.isAudio(file.name)||cursor.getLong(2)<=0L)continue
+                val uri=android.content.ContentUris.withAppendedId(collection,cursor.getLong(0))
+                val audio=if(file.canRead())file else {
+                    val readable=try{context.contentResolver.openFileDescriptor(uri,"r")?.use{true} ?: false}catch(_:Exception){false}
+                    if(!readable)continue
+                    LibraryAudioFile(path,uri.toString(),cursor.getLong(2))
+                }
+                discovered.getOrPut(folder){mutableListOf()}.add(audio)
+            }
+            discovered.forEach{(folder,files)->mergeLibraryBook(books,LibraryBook(folder.name,folder,sortedLibraryFiles(files)))}
+        }
+    }catch(_:Exception){ /* Retain any books found through the other provider or SAF. */ }
+

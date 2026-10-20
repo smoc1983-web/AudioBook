@@ -1,0 +1,21 @@
+// Android can fail to create WebView when its installed provider is unavailable
+// or has incompatible classes. Record these errors and report them to the caller.
+private fun abCreateBrowser(context: Context,failed:(String)->Unit,
+    setup:WebView.()->Unit):android.view.View {
+    var browser:WebView?=null
+    fun failure(error:Throwable):android.view.View {
+        AbCrashReport.record(context,error,"Создание браузера")
+        browser?.let{web ->try{AbWebViews.release(web)}catch(_:RuntimeException){}catch(_:LinkageError){}}
+        val message="Не удалось открыть браузер источника. Ошибка сохранена в отчёте."
+        android.os.Handler(android.os.Looper.getMainLooper()).post {failed(message)}
+        return android.view.View(context)
+    }
+    return try {
+        val web=WebView(context)
+        browser=web
+        AbWebViews.register(web)
+        web.setup()
+        web
+    }catch(error:RuntimeException){failure(error)}
+    catch(error:LinkageError){failure(error)}
+}

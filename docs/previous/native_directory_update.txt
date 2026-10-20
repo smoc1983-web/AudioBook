@@ -1,0 +1,184 @@
+private fun abSourceDirectoryJs(site:String):String {
+    if(site=="Bookinfo")return abNativeGenreDirectoryJs()
+    val source=JSONObject.quote(site)
+    return """
+    (function(){
+        var site=$source,rows=[],indices=[],seen=Object.create(null);
+        function text(n){return String(n?(n.innerText||n.textContent||''):'').replace(/\s+/g,' ').trim();}
+        function same(u){var h=u.hostname.replace(/^(?:www|mob)\./,'').toLowerCase();
+            return site==='Азбука веры'?h==='azbyka.ru':site==='Audiokniga-online.ru'?h==='audiokniga-online.ru':h==='knigoblud.club';}
+        var body=text(document.body),blocked=/captcha|just a moment|checking your browser|access denied|подтвердите.{0,30}(?:человек|робот)/i.test(body.slice(0,6000));
+        var links=document.querySelectorAll('a[href]');
+        for(var i=0;i<links.length;i++){
+            var a=links[i],u;try{u=new URL(a.getAttribute('href'),location.href);}catch(e){continue;}
+            if(!same(u)||!/^https?:${'$'}/.test(u.protocol)||u.username||u.password||u.hash||u.search)continue;
+            var path=u.pathname.replace(/\/${'$'}/,''),parts=path.split('/').filter(Boolean);
+            if(!parts.length||a.closest('footer,[class*="recommend"],[class*="related"],[class*="comment"],[data-book],[class*="book-card"],[class*="book-item"]'))continue;
+            var title=text(a).replace(/\s*\(\d[\d\s]*\)\s*${'$'}/,'').trim();
+            if(!title||title.length>140)continue;
+            if(/\/(?:genres?|categories|zhanry)${'$'}/i.test(path)) {if(indices.indexOf(u.href)<0)indices.push(u.href);continue;}
+            var accepted=false;
+            if(site==='Азбука веры') {
+                accepted=/^\/audio\/(?:\d+\/[^/.]+|metka\/[^/.]+)${'$'}/i.test(path);
+            } else if(site==='Audiokniga-online.ru') {
+                accepted=(parts.length===1&&!/\.(?:html?|php)${'$'}/i.test(path)&&
+                    !/^(?:engine|uploads|templates|search|poisk|index|authors?|avtory?|readers?|chtecy|contacts?|rules|about|login|register|info|podborki|sitemap|top|new|popular)${'$'}/i.test(parts[0]))||
+                    (parts[0]==='podborki'&&parts.length===2)||(/^categor(?:y|ies)${'$'}/i.test(parts[0])&&parts.length===2);
+            } else {
+                accepted=/^\/(?:genres?|categories|zhanry)\/[^/]+${'$'}/i.test(path)||
+                    (!!a.closest('[class*="genre"],[class*="categor"],[data-genres]')&&parts.length<=2&&
+                    !/^(?:authors?|readers?|series|cycles?|books?|search|users?|login|news)${'$'}/i.test(parts[0]));
+            }
+            if(!accepted||/^(?:главная|войти|регистрация|поиск|показать все|показать ещё|далее|назад)${'$'}/i.test(title))continue;
+            var key=u.href.replace(/\/${'$'}/,'');if(seen[key])continue;seen[key]=true;
+            if(rows.length<1000)rows.push({title:title,url:key});
+        }
+        return JSON.stringify({genres:rows,indices:indices.slice(0,4),blocked:blocked,truncated:rows.length>=1000});
+    })();
+    """.trimIndent()
+}
+
+private data class AbDirectoryResult(val rows:List<AbNativeGenre>,val indices:List<String>,val blocked:Boolean,val truncated:Boolean)
+
+private class AbNativeGenreDirectoryTask(web:WebView,private val site:String="Bookinfo",
+    private val done:(List<AbNativeGenre>,String)->Unit):BookWebsiteTask(web) {
+    private val job=kotlinx.coroutines.SupervisorJob()
+    private val work=kotlinx.coroutines.CoroutineScope(Dispatchers.Main+job)
+    private var finished=false
+    private var token=0
+    private var attempts=0
+    private var busy=false
+    private var signature=""
+    private var stable=0
+    private var rows=emptyList<AbNativeGenre>()
+    private val visited=linkedSetOf<String>()
+    private val pending=java.util.ArrayDeque<String>()
+    private fun valid(url:String)=supportedBookUrl(url)!=null && bookSiteName(url)==site
+    init {
+        web.webViewClient=object:AbBookWebViewClient({finish("Браузер каталога закрыт. Повторите загрузку.")}) {
+            override fun onPageStarted(view:WebView?,url:String?,favicon:android.graphics.Bitmap?) {
+                token++;attempts=0;stable=0;signature="";busy=false
+                val id=token;handler.postDelayed({sample(id)},6000L)
+            }
+            override fun onPageFinished(view:WebView?,url:String?) {schedule(token)}
+            override fun onReceivedError(view:WebView?,request:android.webkit.WebResourceRequest?,error:android.webkit.WebResourceError?) {
+                if(request?.isForMainFrame==true)finish("Не удалось открыть каталог $site. Повторите загрузку.")
+            }
+            override fun onReceivedHttpError(view:WebView?,request:android.webkit.WebResourceRequest?,response:android.webkit.WebResourceResponse?) {
+                if(request?.isForMainFrame==true)finish("$site: HTTP ${response?.statusCode ?: 0}")
+            }
+        }
+        handler.postDelayed({finish("$site: каталог загружен не полностью или не ответил. Можно повторить.")},45000L)
+        load(if(site=="Bookinfo")AB_BOOKINFO_GENRES else AbBookSources.home(site))
+    }
+    private fun load(address:String) {
+        if(!valid(address)||!visited.add(address)){finish("Не удалось открыть индекс разделов $site.");return}
+        if(site==AbBookSources.AZBYKA)AbAzbykaPages.load(web,address,work,{active&&!finished}){finish(it)}
+        else web.loadUrl(address)
+    }
+    private fun schedule(id:Int){handler.postDelayed({sample(id)},800L)}
+    private fun sample(id:Int) {
+        if(!active||finished||id!=token||busy)return
+        if(!valid(web.url.orEmpty())){finish("$site перенаправил каталог на другой источник.");return}
+        attempts++;busy=true
+        var answered=false
+        val timeout=Runnable{if(!answered&&active&&!finished&&id==token)finish("Не удалось прочитать каталог $site.")}
+        handler.postDelayed(timeout,8000L)
+        web.evaluateJavascript(abSourceDirectoryJs(site)) {raw ->
+            answered=true;handler.removeCallbacks(timeout)
+            if(!active||finished||id!=token)return@evaluateJavascript
+            work.launch {
+                try {
+                    val parsed=withContext(Dispatchers.Default) {
+                        val json=JSONObject(decodeJsString(raw));val array=json.optJSONArray("genres") ?: JSONArray()
+                        val found=(0 until minOf(array.length(),1000)).mapNotNull {i ->
+                            val item=array.optJSONObject(i) ?: return@mapNotNull null
+                            val title=item.optString("title").trim().take(140)
+                            val url=item.optString("url")
+                            if(title.isBlank()||!valid(url))null else AbNativeGenre(title,url,item.optInt("count",-1).takeIf{it>=0},site)
+                        }.distinctBy{it.url}
+                        val links=json.optJSONArray("indices") ?: JSONArray()
+                        AbDirectoryResult(found,(0 until minOf(links.length(),4)).map{links.optString(it)}.filter{valid(it)},
+                            json.optBoolean("blocked"),json.optBoolean("truncated"))
+                    }
+                    if(!active||finished||id!=token)return@launch
+                    busy=false
+                    if(parsed.blocked){finish("$site запросил проверку доступа. Повторите позже.");return@launch}
+                    rows=(rows+parsed.rows).distinctBy{it.url}.take(1000)
+                    parsed.indices.filter{it !in visited&&!pending.contains(it)}.forEach{pending.add(it)}
+                    val mark=parsed.rows.joinToString("|"){it.url};stable=if(mark==signature)stable+1 else 0;signature=mark
+                    if(parsed.truncated)finish("$site: показаны первые 1000 разделов.")
+                    else if((stable>=2&&attempts>=3)||attempts>=12) {
+                        if(pending.isNotEmpty()&&visited.size<5)load(pending.removeFirst())
+                        else finish(if(rows.isEmpty())"Не удалось прочитать разделы $site. Обновите каталог или откройте сайт." else "")
+                    } else {web.evaluateJavascript("window.scrollTo(0,document.body.scrollHeight);",null);schedule(id)}
+                }catch(cancelled:kotlinx.coroutines.CancellationException){throw cancelled}
+                catch(_:Exception){if(active&&!finished&&id==token){busy=false;if(attempts<12)schedule(id)else finish("Не удалось разобрать каталог $site.")}}
+            }
+        }
+    }
+    private fun finish(message:String) {
+        if(!active||finished)return
+        finished=true;handler.removeCallbacksAndMessages(null);job.cancel();done(rows,message)
+    }
+    override fun close(){job.cancel();super.close()}
+}
+
+@Composable
+private fun AbNativeGenres(theme:AbTheme,pick:(AbNativeGenre)->Unit) {
+    val context=androidx.compose.ui.platform.LocalContext.current
+    var visible by remember {mutableStateOf(false)}
+    var loading by remember {mutableStateOf(false)}
+    var request by remember {mutableStateOf(0)}
+    var reports by remember {mutableStateOf<Map<String,Pair<List<AbNativeGenre>,String>>>(emptyMap())}
+    var query by remember {mutableStateOf("")}
+    var selected by remember {mutableStateOf(0)}
+    var limit by remember {mutableStateOf(40)}
+    fun close(){visible=false;loading=false;request++}
+    AbGenreAction("Все жанры · 4 источника",theme,icon=AbIcon.BOOKS){visible=true;query="";limit=40;if(reports.size<AbBookSources.all.size){loading=true;request++}}
+    if(visible) {
+        val site=if(loading)AbBookSources.searchOrder.firstOrNull{it !in reports} else null
+        if(site!=null) key(request,site) {
+            val id=request
+            Box(Modifier.fillMaxWidth().height(1.dp).clipToBounds()) {
+                HiddenBookWebView(onFailure={if(id==request&&visible){reports=reports+(site to (emptyList<AbNativeGenre>() to it))}}) {web ->
+                    AbNativeGenreDirectoryTask(web,site){found,error ->if(id==request&&visible){reports=reports+(site to (found to error))}}
+                }
+            }
+        }
+        LaunchedEffect(loading,reports.size){if(loading&&reports.size==AbBookSources.all.size)loading=false}
+        val sites=listOf("Все")+AbBookSources.searchOrder
+        val rows=remember(reports,selected,query) {
+            (if(selected==0)AbBookSources.searchOrder.flatMap{reports[it]?.first.orEmpty()}
+                else reports[sites[selected]]?.first.orEmpty()).filter{it.title.contains(query.trim(),true)}
+                .sortedWith(compareBy<AbNativeGenre>{it.title.lowercase(java.util.Locale.ROOT)}.thenBy{it.site})
+        }
+        AbDialog("Все жанры и разделы",theme,{close()}) {
+            AbChips(sites,selected,theme){selected=it;limit=40}
+            AbTextField(query,"Найти жанр",theme,{query=it;limit=40})
+            if(loading)Text("Читаем: ${site ?: "завершение"}…",color=theme.muted,fontSize=12.sp)
+            Text("Разделов: ${rows.size}",color=theme.muted,fontSize=12.sp)
+            LazyColumn(Modifier.fillMaxWidth().height(300.dp),verticalArrangement=Arrangement.spacedBy(6.dp)) {
+                items(rows.take(limit),key={it.site+it.url}) {genre ->
+                    Column(Modifier.fillMaxWidth().abGlass(theme,12,field=true).clickable{close();pick(genre)}.padding(12.dp)) {
+                        Text(genre.title,color=theme.text,fontSize=14.sp)
+                        Text(genre.site+(genre.count?.let{" · $it книг"} ?: ""),color=theme.muted,fontSize=11.sp)
+                    }
+                }
+                if(limit<rows.size)item{AbButton("Ещё разделы",theme){limit=(limit+40).coerceAtMost(4000)}}
+            }
+            reports.filter{selected==0||it.key==sites[selected]}.forEach{(source,result) ->
+                if(result.second.isNotBlank())Text(source+": "+result.second,color=theme.muted,fontSize=11.sp)
+            }
+            AbButton(if(loading)"Остановить загрузку" else "Обновить каталоги",theme){
+                request++;if(loading)loading=false else {reports=emptyMap();loading=true}
+            }
+            AbButton("Открыть выбранный сайт",theme) {
+                val address=if(selected==0||sites[selected]=="Bookinfo")AB_BOOKINFO_GENRES else AbBookSources.home(sites[selected])
+                try{context.startActivity(Intent(Intent.ACTION_VIEW,Uri.parse(address)))}
+                catch(_:android.content.ActivityNotFoundException){Toast.makeText(context,"Не найден браузер",Toast.LENGTH_SHORT).show()}
+            }
+        }
+    }
+}
+

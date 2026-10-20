@@ -1,0 +1,19 @@
+// Run from the existing project:
+// ./gradlew --init-script audiobook-4.0.init.gradle :app:assembleDebug
+// The Android plugin finalises the DSL after build.gradle has supplied its values.
+gradle.beforeProject { project ->
+    if (project.path == ':app') {
+        project.plugins.withId('com.android.application') {
+            project.extensions.getByName('androidComponents').finalizeDsl { androidDsl ->
+                androidDsl.defaultConfig.versionName = '4.0'
+                def previousCode = androidDsl.defaultConfig.versionCode ?: 1
+                androidDsl.defaultConfig.versionCode = previousCode + 1
+                // Explicit flavour versions also need the same release name.
+                androidDsl.productFlavors.all { flavor ->
+                    if (flavor.versionName != null) flavor.versionName = '4.0'
+                    if (flavor.versionCode != null) flavor.versionCode = flavor.versionCode + 1
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,204 @@
+python3 check.py
+Kotlin delimiter/string check passed (not compilation)
+Both Kotlin files structurally checked; version, support details and compile-error opt-in preserved
+Extracted actual JavaScript classifier, catalogue, category browser and audio analyzer
+Extracted external classifier, public search and book verification scripts
+Extracted Azbyka catalogue, page and M3U parser scripts
+Extracted fourth-source route, search-form, player and external-playlist adapters
+
+python3 check_online_source.py
+PASS: fourth-source registry, sequential renderer, completion/error reports, URL entry, public discovery and UI source labels
+PASS: bounded/cancellable background search parsing and explicit same-source external-playlist loading; redirect/byte/time limits; never crawl arbitrary audio URLs
+PASS: prior 20/600 pagination/background merge, player/timer, manifests and branding preserved; Java change only adds the source suffix to its cached pattern
+
+python3 check_native_genres.py
+PASS: bounded real-source category roots/cache/index traversal, same-category pagination, sibling root/click isolation, stale callback guards; no unbounded recursive crawl
+PASS: folded extra genre groups and native/public evidence share alias table; normalized lookup indexes built once per script
+PASS: 20-book demand/600-book cap/background indexed merge, parser role guards, audio service and download/delete backends retained
+
+python3 check_genre_directory.py
+PASS: actual /genres directory, user-triggered bounded fetch and parser, background JSON processing, filtered 20-row picker, close/retry guards; direct site/category address and provenance retained on pagination/back/retry; no Google discovery for a selected native category
+
+python3 check_genre_pages.py
+PASS: 20-row demand, partial-last-page increments, cached-buffer fast path, resumable source cursors, no automatic next-page call; initial source coverage preserved
+PASS: one bottom load-more button, loading tap guard, exact genre window/scroll/source queue restored; new genre starts at 20
+PASS: player, indexed ANR fix, permissions, branding and unrelated extracted parsers unchanged; Kotlin/Android runtime not executed
+
+python3 check_search_content.py
+PASS: ANR path uses background/cancellable indexed merge; no quadratic main-thread genre merge; raw/display batches and history reveal are bounded
+PASS: contextual loading/error card, current URL copy/browser/retry, bounded known-source fallback, detail-page audio wait and original playback service
+Kotlin/Android build, full manifest merge and live site loading were not executed.
+
+python3 check_search_return.py
+PASS: bounded immutable result history captured before clearing card data; query/genre/cycle/pagination/scroll restored; callbacks invalidated; back does not restart search or audio
+PASS: no startup report read/dialog; pending startup automatically uses conservative mode; manual diagnostics include current health, copy/share and dismiss controls; crash recording retained
+PASS: UI/debug launcher labels and support copy text updated; unique branding resource; service, deletion, housekeeping and HTTP size probing unchanged
+No Kotlin compilation, manifest merge or Android navigation/share tests performed.
+
+python3 check_playback.py
+PASS: chapter lookups contain no disk/provider calls; polling timer removed; index built from IO scan
+PASS: every chapter/download entrypoint receives the index; no implicit disk fallback remains
+PASS: enqueue/status queries run on IO; pending/cancelled downloads have explicit lifecycle handling
+PASS: local resolution preserves playlist ordering, metadata and existing content/file addresses; no disk/network work in UI resolver
+PASS: restored URL playlists resolved on worker; obsolete scans cannot replace a newer/stopped playlist; local-only requests skip scan
+PASS: Android content URI handling and play/pause during preparation retained; buffering is observable
+PASS: timer units, schedule and fade preserved; active duration and sensitive threshold retained; sensor mode restored
+PASS: running/paused/failed partial MP3s filtered from complete downloads; successful jobs remain playable
+PASS: bounded playback trace included in report; Azbyka/player scripts preserved; player and catalog-link roles deliberately updated
+Structural regression checks only. Android build and runtime playback not tested.
+
+python3 check_folders.py
+PASS: deletion is scoped to the public app root, rejects aliases and unreadable listings, retains unknown/audio files, saved references and downloads; legacy-only deletion requires a valid ownership marker
+PASS: previews do not export library files; explicit downloads and saved books keep durable covers; linked libraries no longer create filesystem shadow folders; in-flight writers reserve their titles
+PASS: one debounced background worker, deferred retry for recent files, event-based scheduling rather than progress polling; no audio control commands in housekeeping
+PASS: preparation preserved except media attributes; timers, start-track, wake lock, deletion backend, housekeeping and debug service/permission attributes preserved (labels updated)
+Static regression checks only; no Kotlin compilation or Android filesystem/device execution.
+
+python3 check_delete.py
+PASS: async deletion, explicit progress/failure, duplicate tap protection, success only after verification, library refresh on all completed/cancelled operations
+PASS: bounded Android 11+ consent batches, one URI per Android 10 recovery grant, reattempt and verification after consent, folder fallback and refusal handling
+PASS: unreadable is not treated as absent; deletion addresses exact chapters; no directory recursion or parent-tree deletion; wrong physical folders rejected, hidden paths require book-name plus chapter match
+PASS: pending jobs awaited, cancellation scoped to selected book, current selection stopped only for that book, cleanup lease held throughout backend work/consent; online links and collections preserved
+PASS: start-track, wake-lock configuration, timer, folder housekeeping and service/permission attributes unchanged; media attributes and product labels intentionally updated
+Static source regression checks, not Kotlin compilation, system-consent interaction or deletion on Android.
+
+python3 check_download_audio.py
+PASS: pending UI state precedes enqueue; preparation/error/waiting/progress/completion are observable, unknown totals are explicit, missing jobs require three successful polls
+PASS: byte metadata bounded/background/header-only; valid range total used; malformed/HTML/compressed responses rejected; UI size rendering does not stat files
+PASS: player/session/focus use media speech attributes; legacy focus retained; ringer changes only logged; no system sound/DND mode is altered
+No Gradle project/Android SDK supplied: no APK compilation, device or Redmi/MIUI runtime validation.
+
+python3 check_recovery.py
+PASS: debug overlay includes wake/media foreground permissions and service configuration; LogSender removals retained
+PASS: wake held during preparation/playback, released on pause/stop/destruction; UI retains book independently of native player
+PASS: Android receives every command; restart respects play/pause/error/stop and does not replay a completed empty queue
+PASS: cold screen restore never starts sound or overwrites newer selection; deletion is scoped to its target book
+PASS: screen transitions/lifecycle/PID recorded; report inspects installed APK; crash handler restored after WebView creation
+Static/XML checks, not manifest merge, Kotlin compilation, device sleep or Android lifecycle runtime tests.
+
+node test-online-source.cjs
+PASS: Only exact source hosts and current article/book routes qualify
+PASS: DLE POST search preserves real action, hidden mode and CSRF fields
+PASS: GET search uses the actual query parameter and preserves the literal query
+PASS: Login, newsletter and off-site forms are not submitted
+PASS: Discovered search-page link can be followed without inventing an endpoint
+PASS: Home-page access check yields an explicit blocked state
+PASS: Unknown search markup returns a recoverable missing state
+PASS: Short-story card yields book, cover, explicit author and genre; metadata links excluded
+PASS: Observed category routes supply source genre while explicit conflicting metadata wins
+PASS: Schema search records retain author and skip non-book utility URLs
+PASS: Source title suffix and author prefix removed only when the author is known
+PASS: Search page is confirmed by actual URL rather than home-page books
+PASS: Explicit no-results and access-check states are reported
+PASS: Playerjs inline playlist reads real signed MP3s and durations
+PASS: Nested player folders preserve chapter order
+PASS: JWPlayer and jPlayer audio data supported without executing page code
+PASS: Executable expressions and ad/recommendation player initializers excluded
+PASS: Extended constructor reader is scoped to the new source
+PASS: Plain JSON player data, deduplication and invalid media handling
+PASS: External list remains a descriptor and is never treated as an MP3 chapter
+PASS: Ready audio element takes priority over pending external-list reference
+PASS: External JSON playlist resolves relative chapter paths against the actual list URL
+PASS: External JSON supports BOM and M3U supports titles and durations
+PASS: HLS manifests, malformed lists and images do not become playable MP3 lists
+PASS: Large explicit playlist is bounded
+PASS: Full analyzer combines native heading, author, cover and playable chapters
+PASS: Public discovery recognizes the fourth host and rejects lookalikes
+27 new-source fixture scenarios passed; no live source or Android runtime validation.
+
+node test-genre-directory.cjs
+PASS: All source headings, including unknown categories, retained without the preset list
+PASS: Entire category label/count in anchor and thousands separators cleaned
+PASS: Plain category list and relative genre paths retained; missing counts stay unknown
+PASS: Category headings can include posters without becoming individual books
+PASS: Navigation, login, search, external destinations and book previews excluded
+PASS: Duplicates use real canonical URLs and preserve source spelling
+PASS: More than three or fifteen source categories retained
+PASS: Directory safety bound is explicit and does not render unlimited rows
+PASS: Blocked page returns an access condition instead of claiming an empty working directory
+PASS: Native section accepts an unknown source subgenre and keeps genre-page provenance
+PASS: Native section pagination still remains inside its own category
+11 source-directory fixture scenarios passed; no live Bookinfo HTML or Android build.
+
+node test-native-genres.cjs
+PASS: Screenshot section: Тру-крайм with heading and count
+PASS: Screenshot section: Тру-крайм when the entire title/count is link text
+PASS: Screenshot section: На иностранных языках with heading and count
+PASS: Screenshot section: На иностранных языках when the entire title/count is link text
+PASS: Screenshot section: Аудиоспектакли with heading and count
+PASS: Screenshot section: Аудиоспектакли when the entire title/count is link text
+PASS: Detectives joins exact parent, thriller, historical detective and true-crime categories
+PASS: Count decorations, punctuation, case and ё normalize consistently
+PASS: Genre directories discovered under alternate menu labels and deduplicated
+PASS: No guessed URL when the site contains no matching category
+PASS: Search links, external URLs, book titles and recommendations are not category roots
+PASS: Desktop and mobile same-site category links work without accepting lookalike hosts
+PASS: Category card with explicit native subgenre: Исторический детектив → Детективы
+PASS: Category card with explicit native subgenre: Тру-крайм → Детективы
+PASS: Category card with explicit native subgenre: Бытовое фэнтези → Фэнтези
+PASS: Category card with explicit native subgenre: Постапокалипсис → Фантастика
+PASS: Category card with explicit native subgenre: Военная история → История
+PASS: Category card with explicit native subgenre: Современные любовные романы → Романы
+PASS: Category card with explicit native subgenre: Практическая психология → Саморазвитие
+PASS: Category card with explicit native subgenre: Ужасы, мистика, хоррор → Ужасы и мистика
+PASS: Category card with explicit native subgenre: True Crime → Тру-крайм
+PASS: Category card with explicit native subgenre: Радиоспектакль → Аудиоспектакли
+PASS: Category card with explicit native subgenre: Книги на иностранных языках → На иностранных языках
+PASS: Romantic fantasy can belong to both parents without duplicate rows
+PASS: Explicit conflicting and unknown genres still override title words
+PASS: Unknown labels remain unknown; no guessed genre from title-like prose
+PASS: Every selectable canonical group is discoverable and accepts its own source metadata
+PASS: Source-specific Bookinfo alias uses observed link rather than a constructed path
+PASS: Discovery output is bounded and duplicate URLs cannot grow the root queue
+PASS: Public evidence classification shares native subgenre labels and added sections
+30 native-category fixture tests passed; no live-site or Android execution.
+
+node test-catalog.cjs
+PASS: Bookinfo: route categories, exact genre tags and recommendation exclusion
+PASS: Knigoblud: UUIDs classified by source labels; titles never determine genre
+PASS: JSON-LD explicit categories override ambiguous Bookinfo URL category
+PASS: Multiple metadata genres include book once; unknown explicit category is excluded
+PASS: Source-specific aliases classify categories consistently
+PASS: Series detail block gets explicit Roman volume and excludes related series
+PASS: Series membership without URL is retained without inventing a destination
+PASS: ItemList reading positions retained on explicit UUID series pages only
+PASS: Numbers in titles, invalid Roman numerals and search rankings do not become volume numbers
+PASS: JSON-LD recommendations cannot reappear in category results
+PASS: Category discovery still excludes keyword-search links and book-card titles
+PASS: Pagination stays inside the same category
+PASS: Audio analyzer keeps playlist alongside series and genre metadata
+PASS: Load-more interaction still collects additional volumes and ignores disabled buttons
+14 parser fixture tests passed. Android compilation/runtime not tested.
+
+node test-public.cjs
+PASS: Google Books uses title, author and bibliographic categories
+PASS: Open Library supplies genre when Google returns no metadata
+PASS: Another author and another volume are rejected
+PASS: Ambiguous authorless titles cannot inherit whichever result arrives first
+PASS: Author order and ё/e spelling differences are tolerated without title substring matching
+PASS: Generic Fiction and a genre word in the book title do not establish a category
+PASS: Search snippets require an explicit genre field with matching book and author
+PASS: Authorless snippet evidence needs two independent domains
+PASS: Google query/search navigation cannot masquerade as a metadata source
+PASS: Series classification uses its own matched identity, not a different book title
+PASS: Google result links are decoded; actual audiobook hosts and categories retained
+PASS: Bing backup result parser supports h2 and excludes author indexes from candidates
+PASS: Captcha/access checks produce a blocked state instead of empty successful results
+PASS: Actual book identity comes from h1/schema while audio playlist is still available
+14 external-source fixtures passed. No live network or Android build claimed.
+
+node test-player-reader.cjs
+PASS: Original JSON init remains playable
+PASS: Whitespace, comments, single quotes, unquoted keys and trailing commas are data, not failures
+PASS: JSON.parse payload is decoded without evaluating page code
+PASS: Empty/malformed first player does not hide a later valid player
+PASS: Bad URLs/null records and duplicate chapters are excluded
+PASS: Explicit player JSON and current-page audio/source nodes work
+PASS: Recommendation and advert audio do not become book chapters
+PASS: Full analyzer retains a recovered book playlist
+PASS: Screenshot regression: UUID genre link must not become a book with the volume cover
+PASS: A genuine book titled Фантастика remains a book
+Player/catalog fixture tests completed; no live site or Android WebView tested.
+
+PASS: actual Java index identity, URL, volume, author compatibility, same-site editions, author upgrade and Unicode cases
+PASS: 40,000 insert/lookups on actual index, distinct titles and same-title/different-author stress, 0.803 s (desktop JVM, not Android)

@@ -1,0 +1,149 @@
+private fun abGenreLinkJs(name: String): String {
+    val labels=when(name) {
+        "Фэнтези"->listOf("фэнтези","фентези")
+        "Фантастика"->listOf("фантастика","научная фантастика")
+        "Детективы"->listOf("детективы","детектив")
+        "История"->listOf("история","историческая литература")
+        "Романы"->listOf("романы","любовные романы","романтика")
+        "Саморазвитие"->listOf("саморазвитие","саморазвитие и личностный рост")
+        else->listOf(name.lowercase(java.util.Locale.ROOT))
+    }
+    val aliases=JSONArray(labels).toString()
+    return """
+    (function() {
+        var aliases=$aliases, matches=[], index='';
+        function text(node) {return String(node.innerText||node.textContent||'').toLowerCase()
+            .replace(/ё/g,'е').replace(/^\s*(?:жанр|категория)\s*[:–—-]\s*/i,'')
+            .replace(/\s*\(?\d[\d\s.,]*\)?\s*${'$'}/,'').replace(/\s+/g,' ').trim();}
+        function absolute(raw) {try {return new URL(raw,location.href).href;} catch(e) {return '';}}
+        function sameSite(url) {try {return new URL(url).hostname.replace(/^(www|mob)\./,'')===
+            location.hostname.replace(/^(www|mob)\./,'');} catch(e) {return false;}}
+        var anchors=document.querySelectorAll('a[href]');
+        for(var i=0;i<anchors.length;i++) {
+            var a=anchors[i], href=absolute(a.getAttribute('href')), label=text(a);
+            if(!href||!sameSite(href)||href===location.href) continue;
+            var u=new URL(href), parts=u.pathname.split('/').filter(Boolean);
+            if(/(?:search|poisk)/i.test(u.pathname)||u.searchParams.has('q')||u.searchParams.has('search')) continue;
+            if((label==='жанры'||label==='категории')&&!index) index=href;
+            var rank=aliases.indexOf(label);
+            if(rank<0) continue;
+            var parent=a.parentElement;
+            var signature=String(a.className||'')+' '+String(parent?parent.className:'')+' '+String(a.getAttribute('itemprop')||'');
+            var inMenu=!!a.closest('nav, header, [class*="menu"], [class*="genre"], [class*="categor"]');
+            var explicit=/genre|categor|жанр/i.test(signature);
+            var bookCard=a.closest('article, [class*="book-card"], [class*="book_item"], [class*="book-item"]');
+            var categoryPath=parts.length===1||/^(?:genre|genres|category|categories|zhanr|zhanry)${'$'}/i.test(parts[0]||'');
+            if(!categoryPath&&!inMenu&&!explicit) continue;
+            if(bookCard&&!explicit) continue;
+            if(u.hash&&!categoryPath) continue;
+            matches.push({url:href,label:label,rank:rank});
+        }
+        matches.sort(function(a,b){return a.rank-b.rank;});
+        return JSON.stringify({url:matches.length?matches[0].url:'',index:index});
+    })();
+    """.trimIndent()
+}
+
+private data class AbGenrePage(val url: String,val root: String,val clicks: Int=0)
+
+private class AbGenreTask(web: WebView,private val name: String,private val site: String,
+    private val page: AbGenrePage?,private val visited: Set<String>,
+    private val prefs: android.content.SharedPreferences,
+    private val result:(List<BookLink>,List<String>,String,String,Boolean,String)->Unit):BookWebsiteTask(web) {
+    private val home=if(site=="Bookinfo") "https://bookinfo.net/" else "https://mob.knigoblud.club/"
+    private val cacheKey="genre_category_"+site+"_"+name
+    private var root=page?.root.orEmpty().ifBlank {prefs.getString(cacheKey,"").orEmpty()}
+        .takeIf {supportedBookUrl(it)!=null && bookSiteName(it)==site}.orEmpty()
+    private var discovering=root.isBlank()
+    private var followedIndex=false
+    private var token=0
+    private var attempts=0
+    private var finished=false
+    private var signature=""
+    private var stable=0
+    private var lastBooks=emptyList<BookLink>()
+    private var lastNext=emptyList<String>()
+    private var hasMore=false
+    private var clicked=0
+    private var beforeClick=""
+
+    init {
+        web.webViewClient=object:WebViewClient() {
+            override fun onPageStarted(view: WebView?,url: String?,favicon: android.graphics.Bitmap?) {
+                val id=++token
+                attempts=0;signature="";stable=0;lastBooks=emptyList();lastNext=emptyList()
+                handler.postDelayed({if(active&&!finished&&id==token) finish("Категория на $site не ответила")},22000L)
+            }
+            override fun onPageFinished(view: WebView?,url: String?) {schedule(token,1200L)}
+            override fun onReceivedError(view: WebView?,request: android.webkit.WebResourceRequest?,error: android.webkit.WebResourceError?) {
+                if(request?.isForMainFrame==true) finish("Не удалось открыть категорию на $site")
+            }
+        }
+        web.loadUrl(if(discovering) home else page?.url?.ifBlank {root} ?: root)
+    }
+
+    private fun schedule(id: Int,wait: Long=800L) {handler.postDelayed({sample(id)},wait)}
+    private fun sample(id: Int) {
+        if(!active||finished||id!=token) return
+        attempts++
+        web.evaluateJavascript(if(discovering) abGenreLinkJs(name) else bookCatalogJs(root)) {raw->
+            if(!active||finished||id!=token) return@evaluateJavascript
+            try {
+                val json=JSONObject(decodeJsString(raw))
+                if(discovering) {
+                    val found=json.optString("url")
+                    val index=json.optString("index")
+                    if(supportedBookUrl(found)!=null && bookSiteName(found)==site) {
+                        root=found;discovering=false
+                        prefs.edit().putString(cacheKey,root).apply()
+                        web.loadUrl(root)
+                    } else if(!followedIndex && supportedBookUrl(index)!=null && bookSiteName(index)==site) {
+                        followedIndex=true;web.loadUrl(index)
+                    } else if(attempts<10) schedule(id)
+                    else finish("На $site не найдена категория «$name»")
+                } else {
+                    val currentPath=Uri.parse(web.url.orEmpty()).path.orEmpty().trimEnd('/')
+                    val rootPath=Uri.parse(root).path.orEmpty().trimEnd('/')
+                    if(bookSiteName(web.url.orEmpty())!=site || (currentPath!=rootPath &&
+                        (!currentPath.startsWith(rootPath+"/") || !Regex("(?:/page)?/\\d+").matches(currentPath.removePrefix(rootPath))))) {
+                        finish("$site перенаправил запрос за пределы категории");return@evaluateJavascript
+                    }
+                    val books=parseBookLinks(json.optJSONArray("links") ?: JSONArray(),strict=false)
+                    val current=books.joinToString("|"){it.url}
+                    if(beforeClick.isNotBlank() && current==beforeClick) {
+                        if(attempts<18) schedule(id) else finish("$site не добавил книги категории")
+                        return@evaluateJavascript
+                    }
+                    beforeClick=""
+                    stable=if(current==signature) stable+1 else 0
+                    signature=current
+                    lastBooks=books
+                    val urls=json.optJSONArray("nextUrls") ?: JSONArray()
+                    val currentUrl=web.url.orEmpty().substringBefore('#').trimEnd('/')
+                    lastNext=(0 until urls.length()).map{urls.optString(it)}.filter {
+                        supportedBookUrl(it)!=null && bookSiteName(it)==site &&
+                            it.substringBefore('#').trimEnd('/') !in visited && it.substringBefore('#').trimEnd('/')!=currentUrl
+                    }.distinct()
+                    hasMore=json.optBoolean("hasNextButton")
+                    if(books.isNotEmpty() && stable>=1 && clicked<(page?.clicks ?: 0) && hasMore) {
+                        beforeClick=current;stable=0;clicked++;attempts=0
+                        web.evaluateJavascript(clickNextCatalogPageJs()) {ok->
+                            if(active&&!finished&&id==token) {
+                                if(ok=="true") schedule(id,1200L) else {hasMore=false;finish("")}
+                            }
+                        }
+                    } else if(books.isNotEmpty() && stable>=1) finish("")
+                    else if(attempts<10) {web.evaluateJavascript("window.scrollTo(0, document.body.scrollHeight);",null);schedule(id)}
+                    else finish("В категории «$name» на $site не удалось прочитать книги")
+                }
+            } catch(_:Exception) {if(attempts<10) schedule(id) else finish("Не удалось прочитать категорию на $site")}
+        }
+    }
+
+    private fun finish(error: String) {
+        if(!active||finished) return
+        finished=true
+        handler.removeCallbacksAndMessages(null)
+        result(lastBooks,lastNext,root,web.url.orEmpty(),hasMore,error)
+    }
+}

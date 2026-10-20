@@ -1,0 +1,19 @@
+@Composable
+fun HiddenBookWebView(onFailure:(String)->Unit={},start: (WebView) -> BookWebsiteTask) {
+    val failed by androidx.compose.runtime.rememberUpdatedState(onFailure)
+    val alive=remember{booleanArrayOf(true)}
+    val holder=remember{arrayOfNulls<BookWebsiteTask>(1)}
+    DisposableEffect(Unit) {
+        alive[0]=true
+        onDispose {alive[0]=false;holder[0]?.close();holder[0]=null}
+    }
+    AbDetachedBrowser(onFailure={if(alive[0])failed(it)}) {
+        settings.javaScriptEnabled=true
+        settings.domStorageEnabled=true
+        settings.loadsImagesAutomatically=false
+        importantForAccessibility=android.view.View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
+        val task=start(this)
+        holder[0]=task
+        AbWebViews.onClose(this){task.close()}
+    }
+}
