@@ -1,0 +1,10 @@
+__pycache__/
+*.py[cod]
+java-build/
+.gradle/
+build/
+node_modules/
+local.properties
+*.jks
+*.keystore
+.DS_Store
