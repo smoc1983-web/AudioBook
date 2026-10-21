@@ -1,11 +1,11 @@
 name: Build Audiobook APK
 on:
   push:
-    branches: [main, integration/verified-sources]
+    branches: [main]
     paths-ignore: ['docs/**', 'README.md', 'FILES.json']
   workflow_dispatch:
 concurrency:
-  group: audiobook-preview-release
+  group: audiobook-preview-release-${{ github.ref }}
   cancel-in-progress: false
 jobs:
   build:
