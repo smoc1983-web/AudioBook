@@ -10,7 +10,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 35
     env:
       RUN_LIVE_SOURCES: "1"
     permissions:
@@ -49,7 +49,34 @@ jobs:
       - name: Android SDK
         run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;35.0.0"'
       - name: Tests and isolated Preview APK
-        run: gradle :app:testDebugUnitTest :app:assembleDebug --stacktrace
+        run: gradle :app:testDebugUnitTest :app:assembleDebug :app:assembleDebugAndroidTest --stacktrace
+      - name: Enable Android emulator acceleration
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android/sdk/ndk
+          df -h
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Actual Android 36 startup and recovery tests
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 36
+          emulator-boot-timeout: 300
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -memory 2048
+          script: bash scripts/test-android-startup.sh
+      - name: Save Android runtime evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-startup-test-reports
+          path: |
+            startup-evidence/
+            app/build/reports/androidTests/connected/
+            app/build/outputs/androidTest-results/connected/
       - name: Package verified update
         env:
           GH_TOKEN: ${{ github.token }}

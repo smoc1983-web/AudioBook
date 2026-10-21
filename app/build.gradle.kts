@@ -8,6 +8,7 @@ android {
         versionCode=100000+(System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull() ?: 0)
         versionName="4.2-preview."+(System.getenv("GITHUB_RUN_NUMBER") ?: "local")
         buildConfigField("String","LIBRARY_DIRECTORY","\"AudioBooks-Preview\"")
+        testInstrumentationRunner="androidx.test.runner.AndroidJUnitRunner"
     }
     buildFeatures { compose=true;buildConfig=true }
     signingConfigs {
@@ -39,6 +40,10 @@ dependencies {
     implementation("org.jsoup:jsoup:1.18.3")
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.json:json:20240303")
+    androidTestImplementation("androidx.test:core:1.6.1")
+    androidTestImplementation("androidx.test:runner:1.6.2")
+    androidTestImplementation("androidx.test.ext:junit:1.2.1")
+    androidTestImplementation("androidx.test.uiautomator:uiautomator:2.3.0")
 }
 
 tasks.withType<org.gradle.api.tasks.testing.Test>().configureEach { testLogging { showStandardStreams=true; events("passed","failed","skipped") } }

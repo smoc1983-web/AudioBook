@@ -276,11 +276,13 @@ class MainActivity : ComponentActivity() {
 
     private fun startupFailed(error: Throwable) {
         appStarted=false
+        AbLaunchState.failed(this)
         AbCrashReport.record(this,error,"Подготовка главного экрана")
-        showStartup(true)
+        android.util.Log.e("AudiobookStartup","Main screen startup failed",error)
+        showStartup(true,error)
     }
 
-    private fun showStartup(recover: Boolean) {
+    private fun showStartup(recover: Boolean,error: Throwable?=null) {
         val panel=android.widget.LinearLayout(this).apply {
             orientation=android.widget.LinearLayout.VERTICAL
             setBackgroundColor(android.graphics.Color.rgb(7,20,37))
@@ -294,9 +296,10 @@ class MainActivity : ComponentActivity() {
         }
         panel.addView(label(AB_PRODUCT_NAME,26f))
         panel.addView(label(if(recover)
-            "Не удалось открыть главный экран. Попробуйте запуск без фоновой загрузки. Диагностика и отправка логов доступны в настройках приложения."
+            "Не удалось открыть главный экран. Отчёт об ошибке и обновления доступны прямо здесь."
             else "Запускаем приложение…",16f))
         if(recover) {
+            if(error!=null)panel.addView(label(error.javaClass.simpleName+": "+error.message.orEmpty().take(500),13f))
             fun button(value: String,click:()->Unit)=android.widget.Button(this).apply {
                 text=value
                 setOnClickListener{click()}
@@ -305,8 +308,44 @@ class MainActivity : ComponentActivity() {
             }
             button("Открыть без фоновой загрузки"){startApp(true)}
             button("Повторить обычный запуск"){startApp(false)}
+            button("Диагностика и отчёт TXT"){showStartupReport()}
+            button("Обновления Preview") {
+                startActivity(Intent(this,PreviewUpdatesActivity::class.java))
+            }
         }
-        setContentView(panel)
+        setContentView(android.widget.ScrollView(this).apply {
+            isFillViewport=true
+            setBackgroundColor(android.graphics.Color.rgb(7,20,37))
+            addView(panel)
+        })
+    }
+
+    private fun showStartupReport() {
+        // This route must remain usable when Compose cannot start.
+        Thread({
+            val report=try {AbCrashReport.read(applicationContext,true)?.second ?: "Сохранённого отчёта нет."}
+                catch(error:Exception){"Не удалось собрать отчёт: "+error.javaClass.simpleName}
+            runOnUiThread {
+                if(isFinishing || isDestroyed)return@runOnUiThread
+                val text=android.widget.TextView(this).apply {
+                    this.text=report;textSize=12f;setPadding(20,16,20,16);setTextIsSelectable(true)
+                }
+                android.app.AlertDialog.Builder(this).setTitle("Диагностика запуска")
+                    .setView(android.widget.ScrollView(this).apply{addView(text)})
+                    .setPositiveButton("Отправить TXT") {_,_ ->
+                        Thread({
+                            try {
+                                val uri=AbDiagnosticReportFiles.create(applicationContext,report)
+                                runOnUiThread {if(!isFinishing && !isDestroyed)try {
+                                    AbDiagnosticReportFiles.share(this,uri)
+                                }catch(_:Exception){Toast.makeText(this,"Не удалось открыть отправку файла",Toast.LENGTH_LONG).show()}}
+                            }catch(_:Exception){runOnUiThread{Toast.makeText(this,"Не удалось создать отчёт",Toast.LENGTH_LONG).show()}}
+                        },"startup-report-file").start()
+                    }
+                    .setNeutralButton("Скопировать"){_,_->AbCrashReport.copy(this,report)}
+                    .setNegativeButton("Закрыть",null).show()
+            }
+        },"startup-report").start()
     }
 
     override fun onStart() {
@@ -593,7 +632,7 @@ private fun AudioBookSplashScreen(
 // A committed marker survives abrupt process termination. The token prevents
 // a previous activity instance from clearing the next instance's startup.
 private object AbLaunchState {
-    private const val REVISION="4.1-verified-sources-1"
+    private const val REVISION="4.2-startup-recovery-1"
     private fun prefs(context: Context)=context.applicationContext.getSharedPreferences("audiobook_startup",Context.MODE_PRIVATE)
     @Synchronized fun needsRecovery(context: Context): Boolean {
         val store=prefs(context)
@@ -1484,6 +1523,114 @@ fun getListeningHistory(
         .take(5)
 }
 
+/** Ephemeral screen state; persistent/saveable values retain their existing stores. */
+@androidx.compose.runtime.Stable
+private class AbAppUiState(prefs: android.content.SharedPreferences) {
+    var appSkin by mutableStateOf( abReadGlassSkin(prefs) )
+    var customBackgroundUri by mutableStateOf( prefs.getString( "custom_background_uri", null ) )
+    var currentUrl by mutableStateOf("")
+    var unifiedSources by mutableStateOf(AbBookSources.searchOrder)
+    var unifiedQuery by mutableStateOf("")
+    var unifiedSearchId by mutableStateOf(0)
+    var searchReports by mutableStateOf<Map<String, SiteSearchResult>>(emptyMap())
+    var detectedCycle by mutableStateOf<BookCycle?>(null)
+    var selectedCycle by mutableStateOf<BookCycle?>(null)
+    var cycleBrowsing by mutableStateOf(false)
+    var cycleLoading by mutableStateOf(false)
+    var cycleRequestId by mutableStateOf(0)
+    var searchSessionActive by mutableStateOf(false)
+    var searchScreenId by mutableStateOf(0)
+    var searchReturns by mutableStateOf<List<AbSearchReturn>>(emptyList())
+    var searchScrollTarget by mutableStateOf(0 to 0)
+    var selectedGenre by mutableStateOf("")
+    var selectedNativeGenre by mutableStateOf<AbNativeGenre?>(null)
+    var genreQuery by mutableStateOf("")
+    var genreResultTarget by mutableStateOf(AB_GENRE_PAGE)
+    var genreDeferredPending by mutableStateOf(emptySet<String>())
+    var genreRequestId by mutableStateOf(0)
+    var genrePending by mutableStateOf<Set<String>>(emptySet())
+    var genrePages by mutableStateOf<Map<String,AbGenrePage>>(emptyMap())
+    var genreNext by mutableStateOf<Map<String,AbGenrePage>>(emptyMap())
+    var genreReports by mutableStateOf<Map<String,SiteSearchResult>>(emptyMap())
+    var genreVisited by mutableStateOf<Map<String,Set<String>>>(emptyMap())
+    var genreExternalId by mutableStateOf(0)
+    var genreExternalBatch by mutableStateOf(0)
+    var genreExternalLoading by mutableStateOf(false)
+    var genreExternalMore by mutableStateOf(false)
+    var genreExternalBooks by mutableStateOf(emptyList<BookLink>())
+    var genreExternalVisited by mutableStateOf(emptySet<String>())
+    var genreExternalStatus by mutableStateOf("")
+    var genreMergeJob by mutableStateOf<kotlinx.coroutines.Job?>(null)
+    var genreMergeVersion by mutableStateOf(0)
+    var genreMerging by mutableStateOf(false)
+    var unifiedMergeJob by mutableStateOf<kotlinx.coroutines.Job?>(null)
+    var unifiedMergeVersion by mutableStateOf(0)
+    var unifiedMerging by mutableStateOf(false)
+    var loadId by mutableStateOf(0)
+    var status by mutableStateOf("Вставьте ссылку")
+    var pageTitle by mutableStateOf("")
+    var bookLinks by mutableStateOf<List<BookLink>>(emptyList())
+    var player by mutableStateOf<PlayerData?>(null)
+    var insideBook by mutableStateOf(false)
+    var bookOpening by mutableStateOf<AbBookOpen?>(null)
+    var bookPageLoading by mutableStateOf(false)
+    var bookPageError by mutableStateOf("")
+    var bookOpenId by mutableStateOf(0)
+    var resumeAfterLoad by mutableStateOf(false)
+    var currentBookAuthor by mutableStateOf("")
+    var currentCoverUrl by mutableStateOf("")
+    var coverRefresh by mutableStateOf(0)
+    var localPlayback by mutableStateOf<PlaybackControl?>(null)
+    var playingBook by mutableStateOf("")
+    var playingFiles by mutableStateOf<List<File>>(emptyList())
+    var currentTrackIndex by mutableStateOf(-1)
+    var currentPosition by mutableStateOf(0)
+    var currentDuration by mutableStateOf(0)
+    var playerChaptersExpanded by mutableStateOf(false)
+    var playerSettingsExpanded by mutableStateOf(false)
+    var isPlaying by mutableStateOf(false)
+    var sleepSeconds by mutableStateOf(0)
+    var playbackSpeed by mutableStateOf( prefs.getFloat( "playback_speed", 1.0f ) )
+    var rewindAfterPauseSec by mutableStateOf( prefs.getInt( "rewind_after_pause_sec", 5 ) )
+    var shakeToExtend by mutableStateOf( prefs.getBoolean( "sleep_shake", true ) )
+    var schedEnabled by mutableStateOf( prefs.getBoolean( "sleep_sched_enabled", false ) )
+    var schedFrom by mutableStateOf( prefs.getInt( "sleep_sched_from", 22 ) )
+    var schedTo by mutableStateOf( prefs.getInt( "sleep_sched_to", 6 ) )
+    var schedMinutes by mutableStateOf( prefs.getInt( "sleep_sched_minutes", 30 ) )
+    var bookmarksVersion by mutableStateOf(0)
+    var bookmarksExpanded by mutableStateOf(false)
+    var userDataVersion by mutableStateOf(0)
+    var coverRetentionVersion by mutableStateOf(0)
+    var eqSettings by mutableStateOf(EqSettings(0, 0))
+    var eqPerBook by mutableStateOf(false)
+    var eqAvailable by mutableStateOf(true)
+    var eqBookTitle by mutableStateOf("")
+    var libraryTab by mutableStateOf(0)
+    var selectedShelf by mutableStateOf("")
+    var shelfPickerBook by mutableStateOf("")
+    var shelfDeleteConfirm by mutableStateOf("")
+    var newShelfName by mutableStateOf("")
+    var onlinePlayback by mutableStateOf<PlaybackControl?>(null)
+    var onlineTrackTitle by mutableStateOf("")
+    var onlineIsPlaying by mutableStateOf(false)
+    var onlineIsLoading by mutableStateOf(false)
+    var onlineTrackIndex by mutableStateOf(-1)
+    var onlinePosition by mutableStateOf(0)
+    var onlineDuration by mutableStateOf(0)
+    var onlineBookTitle by mutableStateOf("")
+    var deleteConfirmationBook by mutableStateOf("")
+    var chaptersExpandedBook by mutableStateOf("")
+    var downloadStatusUnavailable by mutableStateOf(false)
+    var downloadBytesCurrent by mutableStateOf(0L)
+    var downloadBytesTotal by mutableStateOf(0L)
+    var downloadPercent by mutableStateOf(0)
+    var dlFinishedBytes by mutableStateOf(0L)
+    var dlFinishedCount by mutableStateOf(0)
+    var dlMaxPercent by mutableStateOf(0)
+    var coverRepairRunning by mutableStateOf(false)
+    var coverRepairStatus by mutableStateOf("")
+}
+
 @Composable
 fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browserGeneration: Int = 0,
     automaticCatalogs: Boolean = true) {
@@ -1499,11 +1646,11 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
             )
         }
 
-    var appSkin by remember {
-        mutableStateOf(
-            abReadGlassSkin(prefs)
-        )
-    }
+    // Keep mutable state in one observed holder, rather than 100+ local delegates.
+    // Large Composer/register frames were rejected by Android's DEX verifier.
+    val uiState=remember(prefs) {AbAppUiState(prefs)}
+    with(uiState) {
+
 
     LaunchedEffect(prefs) {
         // Migrate only appearance; a gallery background is an independent preference.
@@ -1520,14 +1667,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
         AbGlassWidgets.refreshAll(context)
     }
 
-    var customBackgroundUri by remember {
-        mutableStateOf(
-            prefs.getString(
-                "custom_background_uri",
-                null
-            )
-        )
-    }
+
 
     val customBackgroundLauncher =
         rememberLauncherForActivityResult(
@@ -1565,72 +1705,64 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
         mutableStateOf("")
     }
 
-    var currentUrl by remember { mutableStateOf("") }
+
     var selectedSearchSource by androidx.compose.runtime.saveable.rememberSaveable {
         mutableStateOf(prefs.getString("search_source","").orEmpty().takeIf{it in AbBookSources.searchOrder}.orEmpty())
     }
     // A request owns this immutable source list until it completes or is cancelled.
-    var unifiedSources by remember {mutableStateOf(AbBookSources.searchOrder)}
-    var unifiedQuery by remember { mutableStateOf("") }
-    var unifiedSearchId by remember { mutableStateOf(0) }
-    var searchReports by remember { mutableStateOf<Map<String, SiteSearchResult>>(emptyMap()) }
-    var detectedCycle by remember { mutableStateOf<BookCycle?>(null) }
-    var selectedCycle by remember { mutableStateOf<BookCycle?>(null) }
-    var cycleBrowsing by remember { mutableStateOf(false) }
-    var cycleLoading by remember { mutableStateOf(false) }
-    var cycleRequestId by remember { mutableStateOf(0) }
-    var searchSessionActive by remember {mutableStateOf(false)}
-    var searchScreenId by remember {mutableStateOf(0)}
-    var searchReturns by remember {mutableStateOf<List<AbSearchReturn>>(emptyList())}
+
+
+
+
+
+
+
+
+
+
+
+
     val searchListState=androidx.compose.foundation.lazy.rememberLazyListState()
-    var searchScrollTarget by remember {mutableStateOf(0 to 0)}
+
     // Runs in the app composition: switching tabs does not reset the results viewport.
     LaunchedEffect(searchScreenId) {searchListState.scrollToItem(searchScrollTarget.first,searchScrollTarget.second)}
-    var selectedGenre by remember {mutableStateOf("")}
-    var selectedNativeGenre by remember {mutableStateOf<AbNativeGenre?>(null)}
-    var genreQuery by remember {mutableStateOf("")}
-    var genreResultTarget by remember {mutableStateOf(AB_GENRE_PAGE)}
-    var genreDeferredPending by remember {mutableStateOf(emptySet<String>())}
-    var genreRequestId by remember {mutableStateOf(0)}
-    var genrePending by remember {mutableStateOf<Set<String>>(emptySet())}
-    var genrePages by remember {mutableStateOf<Map<String,AbGenrePage>>(emptyMap())}
-    var genreNext by remember {mutableStateOf<Map<String,AbGenrePage>>(emptyMap())}
-    var genreReports by remember {mutableStateOf<Map<String,SiteSearchResult>>(emptyMap())}
-    var genreVisited by remember {mutableStateOf<Map<String,Set<String>>>(emptyMap())}
-    var genreExternalId by remember {mutableStateOf(0)}
-    var genreExternalBatch by remember {mutableStateOf(0)}
-    var genreExternalLoading by remember {mutableStateOf(false)}
-    var genreExternalMore by remember {mutableStateOf(false)}
-    var genreExternalBooks by remember {mutableStateOf(emptyList<BookLink>())}
-    var genreExternalVisited by remember {mutableStateOf(emptySet<String>())}
-    var genreExternalStatus by remember {mutableStateOf("")}
-    var genreMergeJob by remember {mutableStateOf<kotlinx.coroutines.Job?>(null)}
-    var genreMergeVersion by remember {mutableStateOf(0)}
-    var genreMerging by remember {mutableStateOf(false)}
-    var unifiedMergeJob by remember {mutableStateOf<kotlinx.coroutines.Job?>(null)}
-    var unifiedMergeVersion by remember {mutableStateOf(0)}
-    var unifiedMerging by remember {mutableStateOf(false)}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     fun cancelSearchMerges() {
         genreMergeVersion++;genreMergeJob?.cancel();genreMerging=false
         unifiedMergeVersion++;unifiedMergeJob?.cancel();unifiedMerging=false
     }
 
 
-    var loadId by remember {
-        mutableStateOf(0)
-    }
 
-    var status by remember {
-        mutableStateOf("Вставьте ссылку")
-    }
 
-    var pageTitle by remember {
-        mutableStateOf("")
-    }
 
-    var bookLinks by remember {
-        mutableStateOf<List<BookLink>>(emptyList())
-    }
+
+
+
+
 
     fun genreNeedsMore()=selectedGenre.isNotBlank() && bookLinks.size<genreResultTarget
     fun genreNeedsInitialSources()=genrePending.any{it !in genreReports}
@@ -1638,35 +1770,27 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
         (genreMerging || ((genreNeedsMore() || genreNeedsInitialSources()) && genrePending.isNotEmpty()) ||
             (genreNeedsMore() && genreExternalLoading))
 
-    var player by remember {
-        mutableStateOf<PlayerData?>(null)
-    }
 
-    var insideBook by remember {
-        mutableStateOf(false)
-    }
-    var bookOpening by remember {mutableStateOf<AbBookOpen?>(null)}
-    var bookPageLoading by remember {mutableStateOf(false)}
-    var bookPageError by remember {mutableStateOf("")}
+
+
+
+
+
 
     val librarySync = rememberLibrarySync(libraryAccessVersion, appPage)
     val libraryBooks by librarySync.books
     val downloadedIndex=librarySync.downloadedIndex
     val modernWork=androidx.compose.runtime.rememberCoroutineScope()
     LaunchedEffect(Unit) {PlaybackService.restoreScreenState(context.applicationContext)}
-    var bookOpenId by remember {mutableStateOf(0)}
 
-    var resumeAfterLoad by remember { mutableStateOf(false) }
 
-    var currentBookAuthor by remember { mutableStateOf("") }
 
-    var currentCoverUrl by remember {
-        mutableStateOf("")
-    }
 
-    var coverRefresh by remember {
-        mutableStateOf(0)
-    }
+
+
+
+
+
 
     /*
      * =========================================================
@@ -1674,134 +1798,59 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
      * =========================================================
      */
 
-    var localPlayback by remember {
-        mutableStateOf<PlaybackControl?>(null)
-    }
 
-    var playingBook by remember {
-        mutableStateOf("")
-    }
 
-    var playingFiles by remember {
-        mutableStateOf<List<File>>(emptyList())
-    }
 
-    var currentTrackIndex by remember {
-        mutableStateOf(-1)
-    }
 
-    var currentPosition by remember {
-        mutableStateOf(0)
-    }
 
-    var currentDuration by remember {
-        mutableStateOf(0)
-    }
 
-    var playerChaptersExpanded by remember {
-        mutableStateOf(false)
-    }
 
-    var playerSettingsExpanded by remember {
-        mutableStateOf(false)
-    }
 
-    var isPlaying by remember {
-        mutableStateOf(false)
-    }
 
-    var sleepSeconds by remember {
-        mutableStateOf(0)
-    }
 
-    var playbackSpeed by remember {
-        mutableStateOf(
-            prefs.getFloat(
-                "playback_speed",
-                1.0f
-            )
-        )
-    }
+
+
+
+
+
+
+
+
+
+
+
 
     /*
      * Откат после паузы (секунд, 0 = выключено).
      * Если пауза длилась 30+ секунд, воспроизведение
      * продолжается на несколько секунд раньше.
      */
-    var rewindAfterPauseSec by remember {
-        mutableStateOf(
-            prefs.getInt(
-                "rewind_after_pause_sec",
-                5
-            )
-        )
-    }
+
 
     /*
      * Таймер сна: последняя выбранная длительность (для продления
      * встряхиванием), автозапуск по расписанию.
      */
-    var shakeToExtend by remember {
-        mutableStateOf(
-            prefs.getBoolean(
-                "sleep_shake",
-                true
-            )
-        )
-    }
 
-    var schedEnabled by remember {
-        mutableStateOf(
-            prefs.getBoolean(
-                "sleep_sched_enabled",
-                false
-            )
-        )
-    }
 
-    var schedFrom by remember {
-        mutableStateOf(
-            prefs.getInt(
-                "sleep_sched_from",
-                22
-            )
-        )
-    }
 
-    var schedTo by remember {
-        mutableStateOf(
-            prefs.getInt(
-                "sleep_sched_to",
-                6
-            )
-        )
-    }
 
-    var schedMinutes by remember {
-        mutableStateOf(
-            prefs.getInt(
-                "sleep_sched_minutes",
-                30
-            )
-        )
-    }
 
-    var bookmarksVersion by remember {
-        mutableStateOf(0)
-    }
 
-    var bookmarksExpanded by remember {
-        mutableStateOf(false)
-    }
+
+
+
+
+
+
+
 
     /*
      * Избранное, полки и очередь хранятся в SharedPreferences;
      * счётчик заставляет экран перечитать их после изменений.
      */
-    var userDataVersion by remember {
-        mutableStateOf(0)
-    }
-    var coverRetentionVersion by remember {mutableStateOf(0)}
+
+
 
     /*
      * Эквалайзер: настройки текущей книги и признак того, что они
@@ -1818,21 +1867,13 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
         } else null
     }
 
-    var eqSettings by remember {
-        mutableStateOf(EqSettings(0, 0))
-    }
 
-    var eqPerBook by remember {
-        mutableStateOf(false)
-    }
 
-    var eqAvailable by remember {
-        mutableStateOf(true)
-    }
 
-    var eqBookTitle by remember {
-        mutableStateOf("")
-    }
+
+
+
+
 
     /*
      * Длительности скачанных глав (мс) - для расчёта времени
@@ -1843,25 +1884,15 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
             mutableStateMapOf<String, Int>()
         }
 
-    var libraryTab by remember {
-        mutableStateOf(0)
-    }
 
-    var selectedShelf by remember {
-        mutableStateOf("")
-    }
 
-    var shelfPickerBook by remember {
-        mutableStateOf("")
-    }
 
-    var shelfDeleteConfirm by remember {
-        mutableStateOf("")
-    }
 
-    var newShelfName by remember {
-        mutableStateOf("")
-    }
+
+
+
+
+
 
     /*
      * =========================================================
@@ -1869,9 +1900,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
      * =========================================================
      */
 
-    var onlinePlayback by remember {
-        mutableStateOf<PlaybackControl?>(null)
-    }
+
 
     fun changePlaybackSpeed(newSpeed: Float) {
         playbackSpeed = newSpeed
@@ -1883,33 +1912,19 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
     }
 
 
-    var onlineTrackTitle by remember {
-        mutableStateOf("")
-    }
 
-    var onlineIsPlaying by remember {
-        mutableStateOf(false)
-    }
 
-    var onlineIsLoading by remember {
-        mutableStateOf(false)
-    }
 
-    var onlineTrackIndex by remember {
-        mutableStateOf(-1)
-    }
 
-    var onlinePosition by remember {
-        mutableStateOf(0)
-    }
 
-    var onlineDuration by remember {
-        mutableStateOf(0)
-    }
 
-    var onlineBookTitle by remember {
-        mutableStateOf("")
-    }
+
+
+
+
+
+
+
 
 
     fun enableChapterSleepTimer() {
@@ -1924,17 +1939,13 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
         PlaybackService.setSleepTimer(context, 0)
     }
 
-    var deleteConfirmationBook by remember {
-        mutableStateOf("")
-    }
+
 
     /*
      * Какая книга сейчас показывает
      * раскрытый список глав.
      */
-    var chaptersExpandedBook by remember {
-        mutableStateOf("")
-    }
+
 
     val trackStates =
         remember {
@@ -1967,19 +1978,19 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
 
     val downloadMeasures=remember{mutableStateMapOf<String,AbDownloadStatus>()}
     val downloadMissingCounts=remember{mutableMapOf<Long,Int>()}
-    var downloadStatusUnavailable by remember{mutableStateOf(false)}
-    var downloadBytesCurrent by remember { mutableStateOf(0L) }
-    var downloadBytesTotal by remember { mutableStateOf(0L) }
-    var downloadPercent by remember { mutableStateOf(0) }
+
+
+
+
 
     /*
      * Накопительная статистика текущей серии загрузок.
      * Хранится вне LaunchedEffect, т.к. он перезапускается
      * при каждом изменении числа активных загрузок.
      */
-    var dlFinishedBytes by remember { mutableStateOf(0L) }
-    var dlFinishedCount by remember { mutableStateOf(0) }
-    var dlMaxPercent by remember { mutableStateOf(0) }
+
+
+
 
     /*
      * =========================================================
@@ -2821,8 +2832,8 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
 
     val downloadStarts=remember{mutableStateMapOf<String,AbStartingDownload>()}
     val coverRequests=remember {mutableSetOf<String>()}
-    var coverRepairRunning by remember {mutableStateOf(false)}
-    var coverRepairStatus by remember {mutableStateOf("")}
+
+
     fun repairModernCovers() {
         if(coverRepairRunning) return
         val books=libraryBooks
@@ -3441,6 +3452,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
         }
         AbModernApp(modernData, modernActions, librarySync, prefs,foreground,browserGeneration,automaticCatalogs)
     }
+    } // with(uiState)
 }
 
 /*
@@ -12411,7 +12423,7 @@ internal object AbPlaybackTrace {
 
 private object AbCrashReport {
     private const val FILE="audiobook-last-crash.txt"
-    private const val REVISION="4.1-verified-sources-1"
+    private const val REVISION="4.2-startup-recovery-1"
     private const val FIRST_RUN="first_run_"+REVISION
     private val reporting=java.util.concurrent.atomic.AtomicBoolean(false)
     @Volatile var screen="Запуск приложения"
