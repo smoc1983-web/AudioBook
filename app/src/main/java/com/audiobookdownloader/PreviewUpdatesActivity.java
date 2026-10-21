@@ -99,8 +99,15 @@ public final class PreviewUpdatesActivity extends Activity {
         });
     }
     private void install(){
+        run(()->{
+            updater.verifyApk(updater.target(),null);
+            runOnUiThread(()->{if(!isDestroyed()&&!isFinishing())launchInstaller();});
+            return "APK проверен. Подтвердите установку в Android.";
+        });
+    }
+    private void launchInstaller(){
         try{
-            File file=updater.target();updater.verifyApk(file,null);
+            File file=updater.target();
             if(Build.VERSION.SDK_INT>=26&&!getPackageManager().canRequestPackageInstalls()){
                 waitingForPermission=true;
                 startActivity(new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,Uri.parse("package:"+getPackageName())));return;

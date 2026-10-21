@@ -5,6 +5,7 @@ import java.net.URI;
 import java.security.MessageDigest;
 import java.util.Locale;
 import org.json.JSONObject;
+import org.json.JSONArray;
 
 /** Update channel metadata is untrusted. Android also verifies the downloaded APK's signer. */
 public final class PreviewUpdateRules {
@@ -22,6 +23,17 @@ public final class PreviewUpdateRules {
             throw new IOException("Некорректное описание обновления");
     }
     public boolean isNewer(long installed) { return versionCode>installed; }
+    public static JSONObject selectRelease(JSONArray releases) throws Exception {
+        JSONObject selected=null;long greatest=0;
+        for(int i=0;i<releases.length();i++){
+            JSONObject candidate=releases.getJSONObject(i);String tag=candidate.optString("tag_name");
+            if(candidate.optBoolean("draft")||!tag.matches("preview-v[0-9]{1,10}"))continue;
+            long version=Long.parseLong(tag.substring("preview-v".length()));
+            if(version>greatest){selected=candidate;greatest=version;}
+        }
+        if(selected==null)throw new IOException("Первая сборка Preview ещё не опубликована");
+        return selected;
+    }
     public static boolean acceptsUrl(URI uri) {
         if (!"https".equalsIgnoreCase(uri.getScheme()) || uri.getUserInfo()!=null ||
             (uri.getPort()!=-1 && uri.getPort()!=443)) return false;

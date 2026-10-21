@@ -7,6 +7,9 @@ identity=subprocess.check_output([str(build_tools/'aapt'),'dump','badging',str(a
 m=re.search(r"package: name='([^']+)' versionCode='(\d+)' versionName='([^']+)'",identity)
 assert m and m[1]=='com.audiobookdownloader.preview', 'Refusing to publish the stable package'
 version=int(m[2]);assert version==100000+int(os.environ['GITHUB_RUN_NUMBER'])
+manifest_tree=subprocess.check_output([str(build_tools/'aapt'),'dump','xmltree',str(apk),'AndroidManifest.xml'],text=True)
+assert 'com.audiobookdownloader.preview.updates' in manifest_tree
+assert 'com.audiobookdownloader.preview.diagnostic_reports' in manifest_tree
 certificate=subprocess.check_output([str(build_tools/'apksigner'),'verify','--verbose','--print-certs',str(apk)],text=True)
 fingerprint=re.search(r'Signer #1 certificate SHA-256 digest: ([0-9a-f]+)',certificate)[1]
 # Compare with the latest published identity before exposing a newly signed APK.
@@ -17,6 +20,7 @@ for release in old:
         if asset:
             previous=json.loads(subprocess.check_output(['gh','api','-H','Accept: application/octet-stream',f"repos/{os.environ['GITHUB_REPOSITORY']}/releases/assets/{asset['id']}?download=1"],text=True))
             assert previous['certificateSha256']==fingerprint, 'Preview signing identity changed; refusing publication'
+            assert version>=previous['versionCode'], 'Version code regressed; refusing publication'
         break
 out=Path('dist');out.mkdir(exist_ok=True)
 shutil.copyfile(apk,out/'Audiobook-Preview.apk')

@@ -36,6 +36,12 @@ public class PreviewUpdateRulesTest {
     @Test public void hashIsStandardSha256() throws Exception {
         assertEquals("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",PreviewUpdateRules.sha256("abc".getBytes(java.nio.charset.StandardCharsets.UTF_8)));
     }
+    @Test public void newestChannelVersionWinsRegardlessOfReleaseOrder() throws Exception {
+        org.json.JSONArray releases=new org.json.JSONArray("[{tag_name:'stable-v9'},"+
+            "{tag_name:'preview-v100010'},{tag_name:'preview-v999999',draft:true},"+
+            "{tag_name:'preview-v100012'},{tag_name:'preview-v100011'},{tag_name:'preview-vbroken'}]");
+        assertEquals("preview-v100012",PreviewUpdateRules.selectRelease(releases).getString("tag_name"));
+    }
     @Test public void runtimeIdentityIsIsolatedFromStable() {
         assertEquals(PreviewUpdateRules.PACKAGE,BuildConfig.APPLICATION_ID);
         assertEquals("AudioBooks-Preview",BuildConfig.LIBRARY_DIRECTORY);

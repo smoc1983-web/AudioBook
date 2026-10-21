@@ -89,26 +89,19 @@ final class PreviewUpdater {
     }
     Release latest() throws Exception {
         JSONArray releases=new JSONArray(read(API+"/releases?per_page=30","application/vnd.github+json",2*1024*1024));
-        Release newest=null;
-        for(int i=0;i<releases.length();i++){
-            JSONObject release=releases.getJSONObject(i);
-            if(release.optBoolean("draft")||!release.optString("tag_name").startsWith("preview-v"))continue;
-            JSONArray assets=release.getJSONArray("assets");String metadata=null,apk=null;
-            for(int j=0;j<assets.length();j++){
-                JSONObject asset=assets.getJSONObject(j);
-                long id=asset.getLong("id");if(id<=0)continue;
-                String url=API+"/releases/assets/"+id+"?download=1";
-                if("preview-update.json".equals(asset.getString("name")))metadata=url;
-                if("Audiobook-Preview.apk".equals(asset.getString("name")))apk=url;
-            }
-            if(metadata==null||apk==null)continue;
-            PreviewUpdateRules info=new PreviewUpdateRules(new JSONObject(read(metadata,"application/octet-stream",65536)));
-            if(newest==null||info.versionCode>newest.info.versionCode)newest=new Release(info,apk);
-            // Releases are published in build order; inspect at most the newest complete Preview release.
-            break;
+        JSONObject selected=PreviewUpdateRules.selectRelease(releases);
+        long greatest=Long.parseLong(selected.getString("tag_name").substring("preview-v".length()));
+        JSONArray assets=selected.getJSONArray("assets");String metadata=null,apk=null;
+        for(int j=0;j<assets.length();j++){
+            JSONObject asset=assets.getJSONObject(j);long id=asset.getLong("id");if(id<=0)continue;
+            String url=API+"/releases/assets/"+id+"?download=1";
+            if("preview-update.json".equals(asset.getString("name")))metadata=url;
+            if("Audiobook-Preview.apk".equals(asset.getString("name")))apk=url;
         }
-        if(newest==null)throw new IOException("Первая сборка Preview ещё не опубликована");
-        return newest;
+        if(metadata==null||apk==null)throw new IOException("Обновление ещё не полностью опубликовано");
+        PreviewUpdateRules info=new PreviewUpdateRules(new JSONObject(read(metadata,"application/octet-stream",65536)));
+        if(info.versionCode!=greatest)throw new IOException("Версия файла не совпадает с выпуском Preview");
+        return new Release(info,apk);
     }
     static long code(PackageInfo info){return Build.VERSION.SDK_INT>=28?info.getLongVersionCode():info.versionCode;}
     private static Signature[] signatures(PackageInfo p){
@@ -127,7 +120,7 @@ final class PreviewUpdater {
             throw new IOException("Подпись APK отличается от установленной Preview. Установка отменена.");
     }
     File download(Release release,Progress progress) throws Exception {
-        File target=target(), temp=new File(target.getParentFile(),"update.part");
+        File target=target(), temp=new File(target.getParentFile(),"update.part.apk");
         if(!target.getParentFile().isDirectory()&&!target.getParentFile().mkdirs())throw new IOException("Не удалось создать папку обновлений");
         HttpURLConnection c=open(release.url,"application/octet-stream");
         try {
