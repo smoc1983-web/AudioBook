@@ -1,131 +1,20 @@
-name: Build Audiobook APK
+name: Inspect screenshot audiobook sources
 on:
   push:
-    branches: [main]
-    paths-ignore: ['docs/**', 'README.md', 'FILES.json']
-  workflow_dispatch:
-concurrency:
-  group: audiobook-preview-runtime-v3-${{ github.ref }}
-  cancel-in-progress: false
+    branches: [integration/screenshot-source-audit]
+permissions:
+  contents: read
 jobs:
-  build:
+  inspect:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
-    permissions:
-      contents: write
-      actions: read
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-      - uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.9'
-      - name: Signing workspace
-        run: echo "PREVIEW_KEYSTORE=$RUNNER_TEMP/audiobook-preview-signing/preview.keystore" >> "$GITHUB_ENV"
-      - uses: actions/cache@v4
-        with:
-          path: ${{ runner.temp }}/audiobook-preview-signing
-          key: audiobook-preview-signing-v1
-      - name: Preserve Preview signing identity
-        env:
-          GH_TOKEN: ${{ github.token }}
-          KEYSTORE_BASE64: ${{ secrets.AUDIOBOOK_PREVIEW_KEYSTORE_BASE64 }}
-        run: bash scripts/preview-signing.sh
-      - name: Private signing recovery backup (never shipped to the app)
-        uses: actions/upload-artifact@v4
-        with:
-          name: preview-signing-recovery
-          retention-days: 90
-          path: ${{ env.PREVIEW_KEYSTORE }}
-      - name: Restored source adapters and playlist regressions
-        run: |
-          node current/test-catalog.cjs
-          node current/test-native-genres.cjs
-          node current/test-online-source.cjs
-          node current/test-online-player-load.cjs
-          node current/test-php-playlist.cjs
-          node current/tests/test-author-search.cjs
-          node current/tests/test-source-directory.cjs
-      - name: Record current source availability
-        run: python scripts/audit-book-sources.py
-      - name: Android SDK
-        run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;35.0.0"'
-      - name: Tests and isolated Preview APK
-        run: gradle :app:testDebugUnitTest :app:assembleDebug :app:assembleDebugAndroidTest --stacktrace
-      - name: Enable Android emulator acceleration
-        run: |
-          gradle --stop
-          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android/sdk/ndk
-          df -h
-          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
-          sudo udevadm control --reload-rules
-          sudo udevadm trigger --name-match=kvm
-      - name: Actual Android 36 startup and recovery tests
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 36
-          emulator-boot-timeout: 300
-          target: aosp_atd
-          arch: x86_64
-          profile: pixel_6
-          disable-animations: false
-          emulator-options: -no-window -gpu software -feature -Vulkan -no-snapshot -noaudio -no-boot-anim -camera-back none -memory 2048 -cores 2
-          script: bash scripts/test-android-startup.sh
-      - name: Save Android runtime evidence
+      - run: python scripts/inspect-screenshot-sources.py
+      - uses: actions/upload-artifact@v4
         if: always()
-        uses: actions/upload-artifact@v4
         with:
-          name: android-startup-test-reports
-          path: |
-            startup-evidence/
-            source-evidence/
-            app/build/reports/androidTests/connected/
-            app/build/outputs/androidTest-results/connected/
-      - name: Package verified update
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: python scripts/preview-release.py
-      - name: Publish private in-app update channel
-        if: github.ref == 'refs/heads/main'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          tag="$(cat dist/tag.txt)"
-          if ! gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release create "$tag" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --draft --prerelease --title "Audiobook Preview $tag" --notes "Отдельное приложение com.audiobookdownloader.preview. Установка параллельно стабильной версии. Обновление доступно в настройках Preview."
-          fi
-          gh release upload "$tag" dist/Audiobook-Preview.apk dist/preview-update.json --repo "$GITHUB_REPOSITORY" --clobber
-          gh release edit "$tag" --repo "$GITHUB_REPOSITORY" --draft=false --prerelease --latest=false
-      - uses: actions/upload-artifact@v4
-        with:
-          name: Audiobook-Preview
-          overwrite: true
-          path: |
-            dist/Audiobook-Preview.apk
-            dist/preview-update.json
-      - name: Split large APK for independent inspection
-        run: |
-          mkdir -p dist-inspection
-          split -b 24000000 -d dist/Audiobook-Preview.apk dist-inspection/Audiobook-Preview.apk.part-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: APK-inspection-part-00
-          path: dist-inspection/Audiobook-Preview.apk.part-00
-      - uses: actions/upload-artifact@v4
-        with:
-          name: APK-inspection-part-01
-          path: dist-inspection/Audiobook-Preview.apk.part-01
-      - name: Save source verification reports
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: source-test-reports
-          overwrite: true
-          path: |
-            app/build/test-results/testDebugUnitTest/
-            app/build/reports/tests/testDebugUnitTest/
+          name: screenshot-source-evidence
+          path: screenshot-source-evidence/
