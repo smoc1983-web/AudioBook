@@ -42,7 +42,11 @@ public final class PreviewUpdatesActivity extends Activity {
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);
         getWindow().setStatusBarColor(0xff171228);getWindow().setNavigationBarColor(0xff171228);
         ScrollView scroll=new ScrollView(this);scroll.setBackgroundColor(0xff171228);
-        LinearLayout root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setPadding(dp(22),dp(18),dp(22),dp(30));scroll.addView(root);setContentView(scroll);
+        LinearLayout root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setPadding(dp(22),dp(18),dp(22),dp(30));
+        root.setOnApplyWindowInsetsListener((view,insets)->{
+            view.setPadding(dp(22),dp(18)+insets.getSystemWindowInsetTop(),dp(22),dp(30)+insets.getSystemWindowInsetBottom());return insets;
+        });
+        scroll.addView(root);setContentView(scroll);
         button(root,"← Настройки",this::finish);
         text(root,"Обновления Preview",25).setTypeface(null,Typeface.BOLD);
         text(root,"Установлена "+BuildConfig.VERSION_NAME+" · "+BuildConfig.VERSION_CODE,14);
