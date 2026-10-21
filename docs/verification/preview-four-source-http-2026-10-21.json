@@ -1,0 +1,42 @@
+{
+  "checked_at": "2026-10-21T07:08:38.851867+00:00",
+  "scope": "Home-page availability only; not proof of search, download or playback",
+  "sources": [
+    {
+      "source": "Азбука веры",
+      "url": "https://azbyka.ru/audio/",
+      "status": 200,
+      "final_url": "https://azbyka.ru/audio/",
+      "title": "Православное аудио - аудиокниги, песни и молитвы слушать онлайн",
+      "access_challenge": false,
+      "has_html": true
+    },
+    {
+      "source": "Книгоблуд",
+      "url": "https://mob.knigoblud.club/",
+      "status": 200,
+      "final_url": "https://mob.knigoblud.club/",
+      "title": "Книгоблуд - клуб литературного наслаждения!",
+      "access_challenge": false,
+      "has_html": true
+    },
+    {
+      "source": "Bookinfo",
+      "url": "https://bookinfo.net/",
+      "status": 200,
+      "final_url": "https://bookinfo.net/",
+      "title": "Новые аудиокниги слушать онлайн | Bookinfo",
+      "access_challenge": false,
+      "has_html": true
+    },
+    {
+      "source": "Audiokniga-online.ru",
+      "url": "https://audiokniga-online.ru/",
+      "status": 200,
+      "final_url": "https://audiokniga-online.ru/",
+      "title": "Слушать аудиокниги онлайн, бесплатно. Личная библиотека аудиокниг",
+      "access_challenge": false,
+      "has_html": true
+    }
+  ]
+}
