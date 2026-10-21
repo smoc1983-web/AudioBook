@@ -216,6 +216,7 @@ class MainActivity : ComponentActivity() {
         AbCrashReport.install(this)
         val recover=AbLaunchState.needsRecovery(this)
         title=AB_PRODUCT_NAME
+        PreviewUpdatesActivity.checkInBackground(this)
         // Keep the fallback for a real startup failure; never open a report automatically.
         showStartup(false)
         readyJob=activityWork.launch {
@@ -338,7 +339,7 @@ class MainActivity : ComponentActivity() {
         AbCrashReport.install(this)
         if(appStarted)libraryAccessVersion++
     }
-    override fun onRequestPermissionsResult(requestCode: Int,permissions: Array<out String>,grantResults: IntArray) {
+    override fun onRequestPermissionsResult(requestCode: Int,permissions: Array<String>,grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode,permissions,grantResults)
         if(appStarted)libraryAccessVersion++
     }
@@ -592,7 +593,7 @@ private fun AudioBookSplashScreen(
 // A committed marker survives abrupt process termination. The token prevents
 // a previous activity instance from clearing the next instance's startup.
 private object AbLaunchState {
-    private const val REVISION="4.0-search-modes-1"
+    private const val REVISION="4.1-verified-sources-1"
     private fun prefs(context: Context)=context.applicationContext.getSharedPreferences("audiobook_startup",Context.MODE_PRIVATE)
     @Synchronized fun needsRecovery(context: Context): Boolean {
         val store=prefs(context)
@@ -2421,9 +2422,37 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
     }
 
     fun openWebsiteBook(book: BookLink, sourceUrl: String = book.url,rememberResults:Boolean=true) {
+        if(OpenAudioCatalog.fromPage(sourceUrl)!=null) {
+            if(rememberResults)rememberSearchResults()
+            cancelSearchMerges()
+            val request=++bookOpenId
+            bookOpening=AbBookOpen(book,sourceUrl);bookPageLoading=true;bookPageError=""
+            searchSessionActive=true;searchScreenId++;searchScrollTarget=0 to 0
+            unifiedQuery="";unifiedSearchId++;genrePending=emptySet();genreExternalLoading=false
+            cycleLoading=false;cycleBrowsing=false;detectedCycle=null;selectedGenre=""
+            player=null;bookLinks=emptyList();insideBook=true;currentUrl=sourceUrl
+            pageTitle=book.title;currentBookAuthor=book.author;currentCoverUrl=book.coverUrl
+            resumeAfterLoad=false;loadId=0;trackStates.clear();appPage=AppPage.SEARCH;status="Загружаю главы…"
+            modernWork.launch {
+                try {
+                    val loaded=withContext(Dispatchers.IO){VerifiedBooks.load(sourceUrl)}
+                    if(request!=bookOpenId)return@launch
+                    pageTitle=loaded.title;currentBookAuthor=loaded.author;currentCoverUrl=loaded.cover;player=loaded.data
+                    bookPageLoading=false;bookOpening=null;bookPageError="";status="Глав: ${loaded.data.tracks.size}"
+                    val title=cleanBookTitle(pageTitle)
+                    abRememberCatalog(prefs,BookLink(title,sourceUrl,loaded.cover,loaded.author))
+                    prefs.edit().putString(bookUrlKey(title),sourceUrl).putString(bookCoverKey(title),loaded.cover)
+                        .putString(abAuthorKey(title),loaded.author).putInt(bookTotalKey(title),loaded.data.tracks.size).apply()
+                    loaded.data.tracks.forEach{track->trackStates[track.title]=if(isTrackDownloaded(track,title,downloadedIndex))TrackState.DOWNLOADED else TrackState.READY}
+                }catch(cancel:kotlinx.coroutines.CancellationException){throw cancel}
+                catch(error:Exception){if(request==bookOpenId){bookPageLoading=false;bookPageError=error.message?:"Не удалось получить главы";status=bookPageError}}
+            }
+            return
+        }
+
         val selectedUrl=supportedBookUrl(sourceUrl)
         if(selectedUrl==null) {
-            status="Не удалось открыть выбранный источник: некорректная ссылка"
+            status="Этот источник удалён из поиска. Скачанные книги доступны в библиотеке. Найдите новое издание в каталоге."
             return
         }
         bookOpenId++
@@ -2509,7 +2538,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
         }
         val directUrl=supportedBookUrl(query)
         if(directUrl==null && (query.startsWith("http://",true) || query.startsWith("https://",true))) {
-            status="Поддерживаются ссылки на Книгоблуд, Bookinfo, azbyka.ru/audio и audiokniga-online.ru"
+            status="Поддерживаются ссылки archive.org/details/…"
             return
         }
         searchReturns=emptyList();searchScrollTarget=0 to 0
@@ -2547,7 +2576,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
         unifiedQuery = query
         unifiedSources=if(selectedSearchSource.isBlank())AbBookSources.searchOrder else listOf(selectedSearchSource)
         AbSourceTrace.recordSearch(context,query,emptyMap(),unifiedSources)
-        status=if(selectedSearchSource.isBlank())"Ищу по всем четырём источникам…" else "Ищу: $selectedSearchSource…"
+        status=if(selectedSearchSource.isBlank())"Ищу по доступным каталогам…" else "Ищу: $selectedSearchSource…"
     }
 
     /*
@@ -2722,6 +2751,11 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
     }
 
     fun openGenre(name: String,query: String="",native:AbNativeGenre?=null) {
+        searchText=name
+        selectedGenre=""
+        startCommonBookSearch()
+        return
+
         showSearchHome()
         selectedGenre=name;genreQuery=query.trim();searchText=genreQuery;searchSessionActive=true
         genreRequestId++;searchScreenId++
@@ -6623,7 +6657,7 @@ suspend fun downloadBookCover(
             val root =
                 File(
                     downloads,
-                    "AudioBooks"
+                    BuildConfig.LIBRARY_DIRECTORY
                 )
 
             if (
@@ -7062,7 +7096,7 @@ fun downloadTrack(
             ) + ".mp3"
 
         val folder =
-            "AudioBooks/" +
+            BuildConfig.LIBRARY_DIRECTORY + "/" +
                 safeFileName(
                     bookTitle
                 )
@@ -7330,7 +7364,7 @@ internal object AbLibraryHousekeeping {
 
 @Suppress("DEPRECATION")
 fun libraryRoot(): File = File(
-    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "AudioBooks"
+    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), BuildConfig.LIBRARY_DIRECTORY
 )
 
 fun libraryAudioPermission(): String? = when {
@@ -7461,7 +7495,7 @@ fun scanLibraryReport(context: Context? = null): LibraryScanResult {
         val columns=mutableListOf("_id","_data","_size","_display_name")
         if(Build.VERSION.SDK_INT>=29)columns.add("relative_path")
         val selection=if(Build.VERSION.SDK_INT>=29)"(_data LIKE ? OR relative_path LIKE ?)" else "_data LIKE ?"
-        val arguments=if(Build.VERSION.SDK_INT>=29)arrayOf(root.absolutePath+"/%","Download/AudioBooks/%") else arrayOf(root.absolutePath+"/%")
+        val arguments=if(Build.VERSION.SDK_INT>=29)arrayOf(root.absolutePath+"/%","Download/${BuildConfig.LIBRARY_DIRECTORY}/%") else arrayOf(root.absolutePath+"/%")
         context.contentResolver.query(collection,columns.toTypedArray(),selection,arguments,null)?.use {cursor ->
             val discovered=linkedMapOf<File,MutableList<File>>()
             while(cursor.moveToNext()) {
@@ -7489,7 +7523,7 @@ fun scanLibraryReport(context: Context? = null): LibraryScanResult {
     val restoredTree=if(savedTree.isBlank()) try {
         context.contentResolver.persistedUriPermissions.filter{it.isReadPermission}.map{it.uri}.singleOrNull {uri ->
             val id=android.provider.DocumentsContract.getTreeDocumentId(uri)
-            id.substringAfterLast('/').equals("AudioBooks",true)
+            id.substringAfterLast('/').equals(BuildConfig.LIBRARY_DIRECTORY,true)
         }?.toString().orEmpty()
     }catch(_:Exception){""} else ""
     val treeText=savedTree.ifBlank{restoredTree}
@@ -7595,7 +7629,7 @@ fun rememberLibrarySync(accessVersion: Int, page: AppPage): LibrarySyncState {
                 result.folderUnavailable -> "Нет доступа к выбранной папке или части её книг. Выберите папку снова."
                 result.books.isEmpty() && !hasLibraryAudioPermission(context) ->
                     "Для старых файлов нужен доступ к аудио или к папке библиотеки."
-                result.books.isEmpty() -> "Проверьте папку Download/AudioBooks или выберите папку со старыми книгами."
+                result.books.isEmpty() -> "Проверьте папку Download/AudioBooks-Preview или выберите папку со старыми книгами."
                 else -> "Библиотека синхронизирована: ${result.books.size} книг."
             }
         } catch (cancelled: kotlinx.coroutines.CancellationException) {
@@ -7672,7 +7706,7 @@ fun LibrarySyncControls(
             }.padding(vertical = 10.dp))
     }
     if (message.isNotBlank()) Text(message, color = textColor, fontSize = 13.sp)
-    Text("Если старые книги не появились, выберите папку Download/AudioBooks. После переустановки доступ к папке нужно выдать заново.",
+    Text("Если старые книги не появились, выберите папку Download/AudioBooks-Preview. После переустановки доступ к папке нужно выдать заново.",
         color = textColor, fontSize = 12.sp, modifier = Modifier.padding(vertical = 8.dp))
 }
 
@@ -8362,25 +8396,9 @@ data class BookSource(val site: String, val url: String, val coverUrl: String = 
 data class BookCycle(val title: String, val url: String = "", val order: Double? = null)
 data class SiteSearchResult(val books: List<BookLink>, val error: String = "")
 
-fun bookSiteName(url: String): String = when {
-    AbBookSources.isAzbyka(url) -> AbBookSources.AZBYKA
-    AbBookSources.isAudioOnline(url) -> AbBookSources.AUDIO_ONLINE
-    Uri.parse(url).host.orEmpty().endsWith("bookinfo.net", ignoreCase = true) -> "Bookinfo"
-    Uri.parse(url).host.orEmpty().endsWith("knigoblud.club", ignoreCase = true) -> "Книгоблуд"
-    else -> "Открыть"
-}
+fun bookSiteName(url: String): String = if(OpenAudioCatalog.fromPage(url)!=null) "Internet Archive" else "Архивная запись"
 
-fun supportedBookUrl(value: String): String? {
-    val candidate = if (value.startsWith("http://", true) || value.startsWith("https://", true)) value
-        else if (Regex("(?i)^(?:www\\.|mob\\.)?(?:bookinfo\\.net|knigoblud\\.club|azbyka\\.ru|audiokniga-online\\.ru)(?:/|$)").containsMatchIn(value))
-            "https://$value" else return null
-    val uri = Uri.parse(candidate)
-    val host = uri.host.orEmpty().lowercase(java.util.Locale.ROOT)
-    return candidate.takeIf {
-        AbBookSources.isAzbyka(candidate) || AbBookSources.isAudioOnline(candidate) || host == "bookinfo.net" || host.endsWith(".bookinfo.net") ||
-            host == "knigoblud.club" || host.endsWith(".knigoblud.club")
-    }
-}
+fun supportedBookUrl(value: String): String? = OpenAudioCatalog.fromPage(value.trim())?.page
 
 fun bookSources(book: BookLink): List<BookSource> =
     (book.sources.ifEmpty { listOf(BookSource(bookSiteName(book.url), book.url, book.coverUrl)) })
@@ -8810,31 +8828,12 @@ class BookSearchTask(
 @Composable
 fun UnifiedBookSearch(query: String, prefs: android.content.SharedPreferences,
     sources:List<String> = AbBookSources.searchOrder,onResult: (String, SiteSearchResult) -> Unit) {
-    val requested=sources.filter{it in AbBookSources.searchOrder}.distinct()
-    var completed by remember(query,requested) {mutableStateOf(emptySet<String>())}
-    val report by androidx.compose.runtime.rememberUpdatedState(onResult)
-    // Native search may match authors/annotations absent from a short result card.
-    // Azbyka scans a sitemap and already applies its own metadata filter.
-    // Genre discovery still verifies metadata separately before accepting books.
-    val site=requested.firstOrNull{it !in completed}
-    // Sequential renderers bound memory use during searches and scrolling.
-    if(site!=null) key(query,requested,site) {
-        HiddenBookWebView(onFailure={error ->
-            completed=completed+site;report(site,SiteSearchResult(emptyList(),error))
-        }) {web ->
-            if(site==AbBookSources.AZBYKA) {
-                AbAzbykaSearchTask(web,query) {result ->
-                    completed=completed+site
-                    report(site,result)
-                }
-            } else if(site==AbBookSources.AUDIO_ONLINE) {
-                AbOnlineSearchTask(web,query) {result ->completed=completed+site;report(site,result)}
-            } else BookSearchTask(web,site,query,prefs.getString("bookinfo_search_endpoint","").orEmpty()) {result,endpoint ->
-                if(site=="Bookinfo"&&endpoint.isNotBlank())prefs.edit().putString("bookinfo_search_endpoint",endpoint).apply()
-                completed=completed+site
-                report(site,result)
-            }
-        }
+    val result by androidx.compose.runtime.rememberUpdatedState(onResult)
+    val requested=sources.filter{it in VerifiedBooks.sources}.distinct()
+    val russian=prefs.getBoolean("catalog_russian",true)
+    LaunchedEffect(query,requested,russian) {
+        requested.map{site->async(Dispatchers.IO){site to VerifiedBooks.search(site,query,russian)}}.awaitAll()
+            .forEach{(site,report)->result(site,report)}
     }
 }
 
@@ -9256,7 +9255,7 @@ fun bookCatalogJs(catalogUrl: String = "", cycle: BookCycle? = null): String {
 }
 
 // Product name is separate from diagnostic/build revision.
-private const val AB_PRODUCT_NAME="Audiobook"
+private const val AB_PRODUCT_NAME="Audiobook Preview"
 private val LocalAbCoverDataVersion=androidx.compose.runtime.compositionLocalOf {0}
 private data class AbTheme(
     val id: Int, val name: String, val light: Boolean,
@@ -9926,6 +9925,7 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
     }
     val history=remember(prefs,data.version) {getListeningHistory(prefs).map {bookRefFor(prefs,it)}}
     var showSources by remember {mutableStateOf(false)}
+    var russian by remember {mutableStateOf(prefs.getBoolean("catalog_russian",true))}
     val listState=data.searchListState
     var shownResults by androidx.compose.runtime.saveable.rememberSaveable(data.query,data.genre,data.cycle?.url) {mutableStateOf(AB_RESULTS_PAGE)}
     val visibleCount=if(data.genre.isNotBlank())data.genreVisibleCount.coerceIn(AB_GENRE_PAGE,AB_SEARCH_LIMIT)
@@ -9945,7 +9945,11 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
                 AbButton("Общий поиск",theme,Modifier.weight(1f),primary=data.searchSource.isBlank()) {actions.searchScope("")}
                 AbButton("Источники · ${AbBookSources.searchOrder.size}",theme,Modifier.weight(1f),primary=data.searchSource.isNotBlank()) {showSources=true}
             }
-            Text(if(data.searchSource.isBlank())"Режим: все четыре источника" else "Режим: только ${data.searchSource}",
+            AbButton(if(russian)"Язык: русский" else "Язык: все",theme) {
+                russian=!russian;prefs.edit().putBoolean("catalog_russian",russian).apply()
+                onLoadCatalogue();if(data.query.isNotBlank())actions.search()
+            }
+            Text(if(data.searchSource.isBlank())"Режим: все источники" else "Режим: только ${data.searchSource}",
                 color=theme.muted,fontSize=11.sp,modifier=Modifier.padding(top=5.dp))
         }
         if(data.searching) item { Row(verticalAlignment=Alignment.CenterVertically) {
@@ -10025,7 +10029,7 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
                 AbGenreAction(if(moreGenres) "Свернуть жанры" else "Другие жанры",theme,
                     icon=if(moreGenres) AbIcon.UP else AbIcon.DOWN){moreGenres=!moreGenres}
                 Spacer(Modifier.height(12.dp))
-                AbNativeGenres(theme,actions.nativeGenre)
+                Text("Русскоязычные и зарубежные аудиокниги",color=theme.muted,fontSize=12.sp)
             }
             if(history.isNotEmpty()) item {
                 AbHeading("Продолжить слушать",theme,"Все",{actions.navigate(AppPage.LIBRARY)})
@@ -10047,7 +10051,7 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
     }
     if(showSources) AbDialog("Источники поиска",theme,{showSources=false}) {
         Text("Выберите все сайты или один источник. Если запрос уже введён, поиск начнётся сразу.",color=theme.muted,fontSize=13.sp)
-        AbButton((if(data.searchSource.isBlank())"✓ " else "")+"Все четыре источника",theme,primary=data.searchSource.isBlank()) {
+        AbButton((if(data.searchSource.isBlank())"✓ " else "")+"Все источники",theme,primary=data.searchSource.isBlank()) {
             showSources=false;actions.searchScope("")
         }
         AbBookSources.searchOrder.forEach { site ->
@@ -10134,17 +10138,8 @@ private class AbHomeTask(web: WebView,private val home: String,
 @Composable
 private fun AbDiscoveryLoaders(reports:Map<String,SiteSearchResult>,sources:List<String> = AbBookSources.searchOrder,
     onResult:(String,SiteSearchResult)->Unit) {
-    val latestResult by androidx.compose.runtime.rememberUpdatedState(onResult)
-    Box(Modifier.fillMaxWidth().height(1.dp).clipToBounds()) {
-        // Fetch one site at a time to limit renderer memory on older phones.
-        val next=sources.map{it to AbBookSources.home(it)}
-            .firstOrNull { !reports.containsKey(it.first) }
-        if(next!=null) key(next.first) {HiddenBookWebView(onFailure={
-            latestResult(next.first,SiteSearchResult(emptyList(),it))
-        }) {web ->
-            AbHomeTask(web,next.second) {latestResult(next.first,it)}
-        }}
-    }
+    UnifiedBookSearch("",androidx.compose.ui.platform.LocalContext.current.getSharedPreferences("audiobook_downloader",Context.MODE_PRIVATE),
+        sources.filter{it !in reports},onResult)
 }
 
 @Composable
@@ -10926,6 +10921,11 @@ private fun AbSettingsDialog(data: AbScreenData,prefs: android.content.SharedPre
                 catch(_:Exception){Toast.makeText(context,"Откройте настройки звука телефона вручную",Toast.LENGTH_LONG).show()}
             }
         }
+        if(section==AbSettingsSection.HOME) {
+            AbButton("Обновления Preview · "+BuildConfig.VERSION_NAME,theme) {
+                context.startActivity(Intent(context,PreviewUpdatesActivity::class.java))
+            }
+        }
         if(section==AbSettingsSection.DIAGNOSTICS) {
             AbHeading("Диагностика",theme)
             AbButton("Диагностика и логи",theme,onClick=onCrashReport)
@@ -11274,7 +11274,7 @@ private object AbCoverStore {
             val metadata=JSONObject().put("format","AudioBookMetadata").put("version",1)
                 .put("title",title).put("url",ref.url).put("cover",ref.cover)
             if(keep) abWriteBookMetadata(File(File(context.filesDir,"book-covers"),abCoverFileId(title)+".json"),metadata)
-            // Browsing an online book must not create a directory in Download/AudioBooks.
+            // Browsing an online book must not create a directory in Download/AudioBooks-Preview.
             if(publicFolder) abWriteBookMetadata(File(folder,"book_metadata.json"),metadata)
             val path=local?.coverFilePath?.ifBlank {File(folder,"cover.jpg").path} ?: File(folder,"cover.jpg").path
             val bitmap=load(context,"download:${abCoverIdentity(title)}:${ref.url}:${ref.cover}:${local?.coverUri}:${local?.coverRevision}",local?.coverUri.orEmpty(),
@@ -12411,7 +12411,7 @@ internal object AbPlaybackTrace {
 
 private object AbCrashReport {
     private const val FILE="audiobook-last-crash.txt"
-    private const val REVISION="4.0-search-modes-1"
+    private const val REVISION="4.1-verified-sources-1"
     private const val FIRST_RUN="first_run_"+REVISION
     private val reporting=java.util.concurrent.atomic.AtomicBoolean(false)
     @Volatile var screen="Запуск приложения"
@@ -14094,16 +14094,10 @@ private object AbBookSources {
     const val AUDIO_ONLINE="Audiokniga-online.ru"
     const val SITEMAP="https://azbyka.ru/audio/karta-sajta"
     const val PSYCHOLOGY="https://azbyka.ru/audio/metka/psixologiya"
-    val all=listOf("Книгоблуд","Bookinfo",AZBYKA,AUDIO_ONLINE)
-    val searchOrder=listOf(AZBYKA,"Книгоблуд","Bookinfo",AUDIO_ONLINE)
-    fun home(site: String): String=when(site) {
-        AZBYKA -> "https://azbyka.ru/audio/"
-        "Bookinfo" -> "https://bookinfo.net/"
-        AUDIO_ONLINE -> "https://audiokniga-online.ru/"
-        else -> "https://mob.knigoblud.club/"
-    }
-    fun genres(name: String): List<String> =
-        if(name=="Саморазвитие") listOf(AZBYKA,"Книгоблуд","Bookinfo",AUDIO_ONLINE) else listOf("Книгоблуд","Bookinfo",AUDIO_ONLINE)
+    val all=VerifiedBooks.sources
+    val searchOrder=VerifiedBooks.sources
+    fun home(site:String):String="https://archive.org/details/"+if(site==VerifiedBooks.sources.first())"librivoxaudio" else "audio_bookspoetry"
+    fun genres(name:String):List<String> = searchOrder
     fun isAudioOnline(value:String):Boolean=try {
         val uri=Uri.parse(value)
         uri.scheme in listOf("http","https") && uri.userInfo==null &&

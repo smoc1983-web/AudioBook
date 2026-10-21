@@ -77,18 +77,18 @@ class PlaybackService : Service() {
     companion object {
         private const val CHANNEL_ID = "audiobook_playback"
         private const val NOTIFICATION_ID = 7001
-        const val ACTION_TOGGLE = "com.audiobookdownloader.TOGGLE"
-        const val ACTION_PREVIOUS = "com.audiobookdownloader.PREVIOUS"
-        const val ACTION_NEXT = "com.audiobookdownloader.NEXT"
-        const val ACTION_REWIND = "com.audiobookdownloader.REWIND_30"
-        const val ACTION_FORWARD = "com.audiobookdownloader.FORWARD_30"
-        const val ACTION_STOP = "com.audiobookdownloader.STOP"
-        const val ACTION_PLAY = "com.audiobookdownloader.PLAY"
-        const val ACTION_PAUSE = "com.audiobookdownloader.PAUSE"
-        private const val ACTION_START = "com.audiobookdownloader.START_PLAYLIST"
-        private const val ACTION_SEEK = "com.audiobookdownloader.SEEK"
-        private const val ACTION_SLEEP = "com.audiobookdownloader.SLEEP"
-        private const val ACTION_SETTINGS = "com.audiobookdownloader.SETTINGS"
+        const val ACTION_TOGGLE = BuildConfig.APPLICATION_ID + ".TOGGLE"
+        const val ACTION_PREVIOUS = BuildConfig.APPLICATION_ID + ".PREVIOUS"
+        const val ACTION_NEXT = BuildConfig.APPLICATION_ID + ".NEXT"
+        const val ACTION_REWIND = BuildConfig.APPLICATION_ID + ".REWIND_30"
+        const val ACTION_FORWARD = BuildConfig.APPLICATION_ID + ".FORWARD_30"
+        const val ACTION_STOP = BuildConfig.APPLICATION_ID + ".STOP"
+        const val ACTION_PLAY = BuildConfig.APPLICATION_ID + ".PLAY"
+        const val ACTION_PAUSE = BuildConfig.APPLICATION_ID + ".PAUSE"
+        private const val ACTION_START = BuildConfig.APPLICATION_ID + ".START_PLAYLIST"
+        private const val ACTION_SEEK = BuildConfig.APPLICATION_ID + ".SEEK"
+        private const val ACTION_SLEEP = BuildConfig.APPLICATION_ID + ".SLEEP"
+        private const val ACTION_SETTINGS = BuildConfig.APPLICATION_ID + ".SETTINGS"
         private const val EXTRA_SOURCE = "source_type"
         private const val EXTRA_POSITION = "position_long"
         private const val EXTRA_REQUEST = "request_file"
@@ -556,7 +556,7 @@ class PlaybackService : Service() {
         val array = JSONArray()
         playlist.forEach { array.put(JSONObject().put("t", it.title).put("s", it.src).put("d", it.durationMs)) }
         val cover = File(File(File(Environment.getExternalStoragePublicDirectory(
-            Environment.DIRECTORY_DOWNLOADS), "AudioBooks"), safeFileName(bookTitle)), "cover.jpg")
+            Environment.DIRECTORY_DOWNLOADS), BuildConfig.LIBRARY_DIRECTORY), safeFileName(bookTitle)), "cover.jpg")
         playbackPrefs.edit().putString("widget_playlist", array.toString())
             .putInt("widget_track_count",playlist.size)
             .putString("widget_source_type", sourceType).putString("widget_book", bookTitle)
@@ -1119,7 +1119,7 @@ class PlaybackService : Service() {
     private fun findCover(): File? {
         return try {
             val downloads = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-            val root = File(downloads, "AudioBooks")
+            val root = File(downloads, BuildConfig.LIBRARY_DIRECTORY)
             val direct = File(File(root, safeFileName(bookTitle)), "cover.jpg")
 
             if (direct.exists() && direct.length() > 0L) {

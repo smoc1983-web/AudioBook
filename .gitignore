@@ -13,3 +13,8 @@ local.properties
 /releases/Audiobook-Black-Themes-Library-Genres.zip
 /releases/Audiobook-Liquid-Glass-Vivid.zip
 /releases/Audiobook-Widgets-5-Themes.zip
+
+# Update packaging contains APKs; signing keys must remain outside Git.
+/dist/
+*.p12
+*.pfx
