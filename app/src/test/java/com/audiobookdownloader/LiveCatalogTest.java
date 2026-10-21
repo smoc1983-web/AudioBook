@@ -21,12 +21,12 @@ public class LiveCatalogTest {
                         try{
                             List<OpenAudioCatalog.Track> tracks=OpenAudioCatalog.resolve(item);assertFalse(tracks.isEmpty());
                             String url=tracks.get(0).url;HttpURLConnection c=(HttpURLConnection)new URL(url).openConnection();
-                            c.setConnectTimeout(15000);c.setReadTimeout(18000);c.setRequestProperty("Range","bytes=0-131071");c.setRequestProperty("User-Agent","OpenAudio-Android/1.0");
+                            c.setConnectTimeout(15000);c.setReadTimeout(18000);c.setRequestProperty("Range","bytes=0-399999");c.setRequestProperty("User-Agent","OpenAudio-Android/1.0");
                             Path path=Files.createTempFile("audio-acceptance-",".mp3");
                             try{
                                 int status=c.getResponseCode();assertTrue("Audio HTTP "+status,status==200||status==206);
-                                try(InputStream in=c.getInputStream();OutputStream out=Files.newOutputStream(path)){byte[] bytes=new byte[8192];int total=0,n;while(total<131072&&(n=in.read(bytes,0,Math.min(bytes.length,131072-total)))>0){out.write(bytes,0,n);total+=n;}assertTrue("Empty audio",total>1000);}
-                                Process decoder=new ProcessBuilder("ffmpeg","-v","error","-i",path.toString(),"-t","2","-f","null","-").redirectError(ProcessBuilder.Redirect.DISCARD).redirectOutput(ProcessBuilder.Redirect.DISCARD).start();
+                                try(InputStream in=c.getInputStream();OutputStream out=Files.newOutputStream(path)){byte[] bytes=new byte[8192];int total=0,n;while(total<400000&&(n=in.read(bytes,0,Math.min(bytes.length,400000-total)))>0){out.write(bytes,0,n);total+=n;}assertTrue("Empty audio",total>1000);}
+                                Process decoder=new ProcessBuilder("ffmpeg","-v","error","-i",path.toString(),"-t","2","-f","null","-").redirectErrorStream(true).redirectOutput(new File("/dev/null")).start();
                                 assertTrue(decoder.waitFor(20,java.util.concurrent.TimeUnit.SECONDS));assertEquals("Offline decoding failed",0,decoder.exitValue());
                                 System.out.println("VERIFIED "+source+" search="+items.size()+" audio="+tracks.size()+" HTTP="+status+" downloaded="+Files.size(path)+" offline_decoded_seconds=2");success=true;break;
                             }finally{c.disconnect();Files.deleteIfExists(path);}
