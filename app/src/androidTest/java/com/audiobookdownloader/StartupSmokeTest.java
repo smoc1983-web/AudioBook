@@ -129,7 +129,14 @@ public class StartupSmokeTest {
             });
             visible(By.text(java.util.regex.Pattern.compile("ДИАГНОСТИКА И ОТЧЁТ TXT",java.util.regex.Pattern.CASE_INSENSITIVE|java.util.regex.Pattern.UNICODE_CASE)),"Native diagnostics missing").click();
             visible(By.text("Диагностика запуска"),"Native report cannot open");
-            visible(By.text(java.util.regex.Pattern.compile("ЗАКРЫТЬ",java.util.regex.Pattern.CASE_INSENSITIVE|java.util.regex.Pattern.UNICODE_CASE)),"Report cannot close").click();
+            UiObject2 closeReport=visible(By.res("android","button2"),"Report close action missing");
+            long closeDeadline=android.os.SystemClock.uptimeMillis()+5000;
+            while(closeReport.getVisibleBounds().height()<32&&android.os.SystemClock.uptimeMillis()<closeDeadline){
+                android.os.SystemClock.sleep(100);closeReport=visible(By.res("android","button2"),"Report close action disappeared");
+            }
+            assertTrue("Native report close button clipped",closeReport.getVisibleBounds().height()>=32);
+            closeReport.click();
+            assertTrue("Native report did not dismiss",device.wait(Until.gone(By.text("Диагностика запуска")),5000));
             visible(By.text(java.util.regex.Pattern.compile("ОБНОВЛЕНИЯ PREVIEW",java.util.regex.Pattern.CASE_INSENSITIVE|java.util.regex.Pattern.UNICODE_CASE)),"Native updater entry missing").click();
             visible(By.text("Обновления Preview"),"Updater cannot open without Compose");
             device.pressBack();

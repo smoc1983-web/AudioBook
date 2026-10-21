@@ -602,6 +602,7 @@ class PlaybackService : Service() {
             catch(error:Exception) {trace("Не удалось включить wake mode MediaPlayer: "+error.javaClass.simpleName)}
             player.setAudioAttributes(mediaAttributes)
             if (item.src.startsWith("content://")) player.setDataSource(this, android.net.Uri.parse(item.src))
+            else if(isNetworkAudio(item.src))player.setDataSource(this,android.net.Uri.parse(item.src),abAudioRequestHeaders(this,item.src,bookTitle))
             else player.setDataSource(item.src)
             player.setOnPreparedListener { prepared ->
                 if (token != generation || prepared !== mediaPlayer || stopped) return@setOnPreparedListener

@@ -330,7 +330,12 @@ class MainActivity : ComponentActivity() {
                     this.text=report;textSize=12f;setPadding(20,16,20,16);setTextIsSelectable(true)
                 }
                 android.app.AlertDialog.Builder(this).setTitle("Диагностика запуска")
-                    .setView(android.widget.ScrollView(this).apply{addView(text)})
+                    .setView(android.widget.LinearLayout(this).apply {
+                        orientation=android.widget.LinearLayout.VERTICAL
+                        addView(android.widget.ScrollView(this@MainActivity).apply{addView(text)},
+                            android.widget.LinearLayout.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                                (resources.displayMetrics.heightPixels*0.55f).toInt()))
+                    })
                     .setPositiveButton("Отправить TXT") {_,_ ->
                         Thread({
                             try {
@@ -7152,6 +7157,7 @@ fun downloadTrack(
                 Context.DOWNLOAD_SERVICE
             ) as DownloadManager
 
+        abAudioRequestHeaders(context,track.src,bookTitle).forEach{(name,value)->request.addRequestHeader(name,value)}
         manager.enqueue(
             request
         )
@@ -8669,6 +8675,8 @@ private class AbOpenPageTask(web:WebView,private val address:String,
                 }
                 if(!abSameBookSource(address,web.url.orEmpty())) {rejectRedirect();return@launch}
                 val root=JSONObject(decodeJsString(raw))
+                web.context.applicationContext.getSharedPreferences("audiobook_downloader",Context.MODE_PRIVATE)
+                    .edit().putString("source_http_agent",web.settings.userAgentString).apply()
                 val title=root.optString("title")
                 if(Regex("(?i)just a moment|checking your browser|access denied|captcha").containsMatchIn(title)) {
                     finish(null,"Сайт требует проверку в браузере. Откройте ссылку в обычном браузере и повторите позже.")

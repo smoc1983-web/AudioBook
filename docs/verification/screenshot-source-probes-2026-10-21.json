@@ -1,0 +1,264 @@
+{
+  "checked_at": "2026-10-21",
+  "method": "Anonymous public home/search/detail probes in isolated GitHub Actions; no complete audio downloads",
+  "workflow_runs": [
+    39638152985,
+    39638944180,
+    39640234099
+  ],
+  "sources": {
+    "knigavuhe": {
+      "home": {
+        "url": "https://knigavuhe.org/",
+        "status": 200,
+        "final": "https://m.knigavuhe.org/",
+        "type": "text/html",
+        "bytes": 55513,
+        "seconds": 1.73
+      },
+      "search": {
+        "url": "https://m.knigavuhe.org/search/?q=%D0%93%D0%BE%D0%B3%D0%BE%D0%BB%D1%8C",
+        "status": 200,
+        "final": "https://m.knigavuhe.org/search/?q=%D0%93%D0%BE%D0%B3%D0%BE%D0%BB%D1%8C",
+        "type": "text/html",
+        "bytes": 50388,
+        "seconds": 1.05
+      }
+    },
+    "izibuk": {
+      "home": {
+        "url": "https://izib.uk/",
+        "status": 200,
+        "final": "https://pda.izib.uk/",
+        "type": "text/html",
+        "bytes": 19453,
+        "seconds": 3.65
+      },
+      "search": {
+        "url": "https://pda.izib.uk/search?q=%D0%93%D0%BE%D0%B3%D0%BE%D0%BB%D1%8C",
+        "status": 200,
+        "final": "https://pda.izib.uk/search?q=%D0%93%D0%BE%D0%B3%D0%BE%D0%BB%D1%8C",
+        "type": "text/html",
+        "bytes": 23980,
+        "seconds": 0.55
+      }
+    },
+    "lis10book": {
+      "home": {
+        "url": "https://lis10book.com/",
+        "status": 200,
+        "final": "https://lis10book.com/",
+        "type": "text/html",
+        "bytes": 6845,
+        "seconds": 0.86
+      }
+    },
+    "uknig": {
+      "home": {
+        "url": "https://uknig.com/",
+        "status": 200,
+        "final": "https://uknig.com/",
+        "type": "text/html",
+        "bytes": 170861,
+        "seconds": 1.18
+      },
+      "search": {
+        "url": "https://uknig.com/?q=%D0%93%D0%BE%D0%B3%D0%BE%D0%BB%D1%8C",
+        "status": 200,
+        "final": "https://uknig.com/?q=%D0%93%D0%BE%D0%B3%D0%BE%D0%BB%D1%8C",
+        "type": "text/html",
+        "bytes": 219747,
+        "seconds": 1.4
+      }
+    },
+    "poleknig": {
+      "home": {
+        "url": "https://poleknig.com/",
+        "status": 200,
+        "final": "https://poleknig.com/",
+        "type": "text/html",
+        "bytes": 104268,
+        "seconds": 1.09
+      },
+      "search": {
+        "url": "https://poleknig.com/?q=%D0%93%D0%BE%D0%B3%D0%BE%D0%BB%D1%8C",
+        "status": 200,
+        "final": "https://poleknig.com/?q=%D0%93%D0%BE%D0%B3%D0%BE%D0%BB%D1%8C",
+        "type": "text/html",
+        "bytes": 112433,
+        "seconds": 0.95
+      }
+    },
+    "audioknigivse": {
+      "home": {
+        "url": "https://audioknigivse.ru/",
+        "status": 200,
+        "final": "https://audioknigivse.ru/",
+        "type": "text/html",
+        "bytes": 64647,
+        "seconds": 1.42
+      },
+      "search": {
+        "url": "https://audioknigivse.ru/",
+        "status": 200,
+        "final": "https://audioknigivse.ru/",
+        "type": "text/html",
+        "bytes": 36539,
+        "seconds": 3.58
+      }
+    },
+    "otrub": {
+      "home": {
+        "url": "https://otrub.in/",
+        "status": 200,
+        "final": "https://m.otrub.in/",
+        "type": "text/html",
+        "bytes": 17156,
+        "seconds": 1.99
+      },
+      "search": {
+        "url": "https://m.otrub.in/search?q=%D0%93%D0%BE%D0%B3%D0%BE%D0%BB%D1%8C",
+        "status": 200,
+        "final": "https://m.otrub.in/search.html?q=%D0%93%D0%BE%D0%B3%D0%BE%D0%BB%D1%8C",
+        "type": "text/html",
+        "bytes": 20199,
+        "seconds": 1.67
+      }
+    },
+    "akniga": {
+      "home": {
+        "url": "https://akniga.org/",
+        "status": 200,
+        "final": "https://akniga.org/",
+        "type": "text/html",
+        "bytes": 179185,
+        "seconds": 1.85
+      },
+      "search": {
+        "url": "https://akniga.org/search/books?q=%D0%93%D0%BE%D0%B3%D0%BE%D0%BB%D1%8C",
+        "status": 200,
+        "final": "https://akniga.org/search/books?q=%D0%93%D0%BE%D0%B3%D0%BE%D0%BB%D1%8C",
+        "type": "text/html",
+        "bytes": 155668,
+        "seconds": 0.97
+      }
+    },
+    "slushkinvsem": {
+      "home": {
+        "url": "https://slushkinvsem.ru/",
+        "status": 200,
+        "final": "https://slushkinvsem.ru/",
+        "type": "text/html",
+        "bytes": 274,
+        "seconds": 0.87
+      }
+    },
+    "audioboo": {
+      "home": {
+        "url": "https://audioboo.org/",
+        "error": "HTTP Error 403: Forbidden",
+        "seconds": 0.87
+      }
+    },
+    "audioknigi-pro": {
+      "home": {
+        "url": "https://audioknigi.pro/",
+        "status": 200,
+        "final": "https://audioknigi.pro/",
+        "type": "text/html",
+        "bytes": 107396,
+        "seconds": 1.09
+      },
+      "search": {
+        "url": "https://audioknigi.pro/",
+        "status": 200,
+        "final": "https://audioknigi.pro/",
+        "type": "text/html",
+        "bytes": 73359,
+        "seconds": 1.71
+      }
+    },
+    "baza-knig": {
+      "home": {
+        "url": "https://baza-knig.info/",
+        "status": 200,
+        "final": "https://baza-knig.info/",
+        "type": "text/html",
+        "bytes": 73219,
+        "seconds": 1.36
+      },
+      "search": {
+        "url": "https://baza-knig.info/search?text=%D0%93%D0%BE%D0%B3%D0%BE%D0%BB%D1%8C",
+        "status": 200,
+        "final": "https://baza-knig.info/search?text=%D0%93%D0%BE%D0%B3%D0%BE%D0%BB%D1%8C",
+        "type": "text/html",
+        "bytes": 104386,
+        "seconds": 1.19
+      }
+    },
+    "baza-rip": {
+      "home": {
+        "url": "https://baza-knig.rip/",
+        "status": 200,
+        "final": "https://baza-knig.top/",
+        "type": "text/html",
+        "bytes": 61447,
+        "seconds": 1.71
+      },
+      "search": {
+        "url": "https://baza-knig.top/",
+        "status": 200,
+        "final": "https://baza-knig.top/",
+        "type": "text/html",
+        "bytes": 179557,
+        "seconds": 2.45
+      }
+    }
+  },
+  "extra_public_descriptors": [
+    {
+      "url": "https://akniga.org/application/tmp/templates/cache/ak/20ddd5fd793b0d13cd4ebb5a40177449.js?v=610",
+      "status": 200,
+      "final": "https://akniga.org/application/tmp/templates/cache/ak/20ddd5fd793b0d13cd4ebb5a40177449.js?v=610",
+      "type": "application/javascript",
+      "bytes": 1287577,
+      "seconds": 1.28
+    },
+    {
+      "url": "https://m.knigavuhe.org/book/solomennye-kukly/",
+      "status": 200,
+      "final": "https://m.knigavuhe.org/book/solomennye-kukly/",
+      "type": "text/html",
+      "bytes": 50566,
+      "seconds": 1.05
+    },
+    {
+      "url": "https://9giiu0g54k8c.redirectto.cc/s01/1/2/4/5/8/9/124589.pl.txt",
+      "status": 200,
+      "final": "https://9giiu0g54k8c.redirectto.cc/s01/1/2/4/5/8/9/124589.pl.txt",
+      "type": "text/plain",
+      "bytes": 1623,
+      "seconds": 0.67
+    },
+    {
+      "url": "https://audioknigi.pro/engine/ajax/controller.php?mod=audio_secure_playlist&id=62903",
+      "error": "HTTP Error 403: Forbidden",
+      "seconds": 0.76
+    },
+    {
+      "url": "https://audioknigi.pro/templates/default/javascript/ak-playlist-codec.js?v=1",
+      "status": 200,
+      "final": "https://audioknigi.pro/templates/default/javascript/ak-playlist-codec.js?v=1",
+      "type": "application/javascript",
+      "bytes": 7023,
+      "seconds": 0.71
+    }
+  ],
+  "limitations": [
+    "An HTTP 200 or parser fixture is not proof of successful full playback/download.",
+    "Lis10Book challenge, Audioboo HTTP 403, Slushkinvsem JavaScript gate are not labelled stable.",
+    "Akniga current-page player needs actual network playback confirmation.",
+    "Protected/removed editions are not replaced with unrelated audio.",
+    "Audioknigi.pro unauthenticated direct playlist request returned 403; only normal page-provided data/fallback is read."
+  ]
+}

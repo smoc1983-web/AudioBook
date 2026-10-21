@@ -29,8 +29,8 @@
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/StartupSmokeTest.java",
-      "bytes": 17114,
-      "sha256": "ab322db5f17aeede73934d3c89a3347950dd6242d85e5cc6007a139e3468df46"
+      "bytes": 17641,
+      "sha256": "0c92fb3f8fd8bead55c51ffafa60790b76638f7e872d55e51621865413689b5f"
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/TestBitmapExports.java",
@@ -66,6 +66,16 @@
       "path": "app/src/main/java/com/audiobookdownloader/AudioBookWidget.kt",
       "bytes": 1242,
       "sha256": "f4884b78652eb3e73cb2ed07ba1fae907f6c2c6422d90aa8f38031a69311ddc5"
+    },
+    {
+      "path": "app/src/main/java/com/audiobookdownloader/BookAudioHeaders.java",
+      "bytes": 1301,
+      "sha256": "b5a51d8fd22539acd75d46d7500e06ccf1fe36dd7ee24f85e042979838ac2007"
+    },
+    {
+      "path": "app/src/main/java/com/audiobookdownloader/BookAudioRequests.kt",
+      "bytes": 888,
+      "sha256": "b806353a320e96cf5e072695e9c3ccda31a4352e34cb5e7676ff82ae1327303a"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/CylinderPageMesh.java",
@@ -158,6 +168,11 @@
       "sha256": "f63644087b19dc5e5f03dbe6764f22fcd82dcc70619ff9226015b69a2984432e"
     },
     {
+      "path": "app/src/test/java/com/audiobookdownloader/BookAudioHeadersTest.java",
+      "bytes": 1636,
+      "sha256": "f343a685b1207a2c41ffcdebbcb38bec1c35debfce58bb402ad143f9d87e8d18"
+    },
+    {
       "path": "app/src/test/java/com/audiobookdownloader/CylinderPageMeshTest.java",
       "bytes": 2834,
       "sha256": "abbd5d1aae790c46bed5dd6c5d26a3488a581274e9182367411fa6320651a8a0"
@@ -194,13 +209,13 @@
     },
     {
       "path": "current/MainActivity.kt",
-      "bytes": 710459,
-      "sha256": "309da01d68a29f8137d2a6150cf367aa84c00c45fe7dd2a5e27a1beeb35570ff"
+      "bytes": 711177,
+      "sha256": "e7e709d40d94db9dd394b45c84bb5afb110902570b0e60933d390db93eaceaea"
     },
     {
       "path": "current/PlaybackService.kt",
-      "bytes": 59203,
-      "sha256": "a4e29405ae0069b0e230d426c83a805df2ddc0306fe92b8add4e762d14acbeed"
+      "bytes": 59354,
+      "sha256": "3cb82a7ae5909edc364f526250dac73be03a1a7538830556433e621ebe1f2347"
     },
     {
       "path": "current/README.txt",
@@ -984,8 +999,8 @@
     },
     {
       "path": "docs/SCREENSHOT-SOURCES.md",
-      "bytes": 6964,
-      "sha256": "12fa7c26319b927030b95980dc787564b64e167345aebf7267eba9edbceb9496"
+      "bytes": 8542,
+      "sha256": "a74524fc4cddc9b8e5047f084ad849b20c609082a172fe687f016addaa4d4f4a"
     },
     {
       "path": "docs/SOURCE-REPLACEMENT.md",
@@ -1141,6 +1156,11 @@
       "path": "docs/verification/preview-four-source-http-2026-10-21.json",
       "bytes": 1492,
       "sha256": "92d35a513a2e0e5d28d0440c7897f94ad5801be087b1d49da044641a6214915f"
+    },
+    {
+      "path": "docs/verification/screenshot-source-probes-2026-10-21.json",
+      "bytes": 7780,
+      "sha256": "6e2553603b78bbf08d9469bfc618d3aa7113d7712b15439c8fb19bd9e55c811b"
     },
     {
       "path": "docs/verification/sensor-injection-100023.txt",
