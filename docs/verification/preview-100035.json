@@ -1,0 +1,17 @@
+{
+  "packageName": "com.audiobookdownloader.preview",
+  "versionCode": 100035,
+  "versionName": "4.2-preview.35",
+  "size": 36503824,
+  "sha256": "7229fc2673ba1765d78511a92254a8bc1e9acb8394e071c54fdfaa7e82f1f37a",
+  "certificateSha256": "3a4cecd14bb3e983843871766909c3f07b3dc64379800f3e270e4a27d39affb7",
+  "apk": "Audiobook-Preview.apk",
+  "commit": "98ae7b8bd27c8f126e54bcd9c5d21c993ac19f78",
+  "label": "Audiobook Preview",
+  "providers": [
+    "com.audiobookdownloader.preview.updates",
+    "com.audiobookdownloader.preview.diagnostic_reports",
+    "com.audiobookdownloader.preview.androidx-startup"
+  ],
+  "file": "Audiobook-Preview-4.2-preview.35.apk"
+}

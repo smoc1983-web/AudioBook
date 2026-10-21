@@ -1,5 +1,5 @@
 {
-  "revision": "4.2-thirteen-sources-1",
+  "revision": "4.2-preview.35-thirteen-sources",
   "storage": "GitHub export; see releases/ARCHIVE-PARTS.json for three multipart historical ZIPs",
   "files": [
     {
@@ -14,8 +14,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 7879,
-      "sha256": "fc8f14998a49f3ae4dcc589d01c032301f32c360ff73869eb2c6842fc92a9c2f"
+      "bytes": 7820,
+      "sha256": "a9b168bb50c194995f263d17369290f62966b476e16855ee75fa72d2df3d4c5d"
     },
     {
       "path": "app/build.gradle.kts",
@@ -974,8 +974,8 @@
     },
     {
       "path": "docs/HANDOFF.md",
-      "bytes": 14623,
-      "sha256": "c4f39c4fe9ceb4ebe59f992c9698e629a9aaf701c84f2799b7116e7f79e340ef"
+      "bytes": 15086,
+      "sha256": "a651ad9177921252bf0d88025c1e199b2691cf5557d9da7ce2bf27897427620f"
     },
     {
       "path": "docs/INSTALL.md",
@@ -1006,6 +1006,11 @@
       "path": "docs/SOURCE-REPLACEMENT.md",
       "bytes": 6295,
       "sha256": "0441c8a33a9bc0686777a799263f1a7d6dfc46d568f991c744f20e9c45f4ff5c"
+    },
+    {
+      "path": "docs/SOURCES-13.md",
+      "bytes": 2732,
+      "sha256": "f3339e912968a04337d003b4a8d9f5d34cef198ce6aa4d7d4f224e6a84cf58f2"
     },
     {
       "path": "docs/SOURCES-PAGE-TURN.md",
@@ -1098,6 +1103,11 @@
       "sha256": "e98a3110622d1e1a4fc62ac891a53a5693665737c6784b95cdd05dde9f65b94a"
     },
     {
+      "path": "docs/verification/checks-100035.json",
+      "bytes": 1936,
+      "sha256": "63f1d064e94091cbb7da3446ed28d0a1155523fa115445583c76c914572bca9b"
+    },
+    {
       "path": "docs/verification/curl-100027-left.png",
       "bytes": 39255,
       "sha256": "442770dfa67a441cc8ddb8b9a0f90fd85ce016ea86eacd8e54a066b1099eb828"
@@ -1163,6 +1173,11 @@
       "sha256": "aacb1c37d4a60f63d5231255a5a6c2c325580037ae14455acbbe8f1055d31d1e"
     },
     {
+      "path": "docs/verification/preview-100035.json",
+      "bytes": 660,
+      "sha256": "37ea42e5a3a02dcc5e31c470adc091639ba927a7c604b8c15e7dd36a24c26dbd"
+    },
+    {
       "path": "docs/verification/preview-four-source-http-2026-10-21.json",
       "bytes": 1492,
       "sha256": "92d35a513a2e0e5d28d0440c7897f94ad5801be087b1d49da044641a6214915f"
@@ -1171,6 +1186,11 @@
       "path": "docs/verification/preview-sixteen-source-http-2026-10-21.json",
       "bytes": 4964,
       "sha256": "4e8dbafc1b5bfcd693183cdf9b002c5f6fe16510770a04de0ac3076c977c7a9f"
+    },
+    {
+      "path": "docs/verification/preview-thirteen-source-http-2026-10-21.json",
+      "bytes": 4326,
+      "sha256": "8ec57dc0bb02f45c2fa722386661133cc8250c9fe6a688d7def89f8fe590dda2"
     },
     {
       "path": "docs/verification/screenshot-source-probes-2026-10-21.json",
@@ -1231,6 +1251,11 @@
       "path": "docs/verification/startup-sources-100034-android36.xml",
       "bytes": 844,
       "sha256": "8fa475b7bcc3464b72573fcfcd5eaa94bb291d9daa05fd31fd0a59dfffee2116"
+    },
+    {
+      "path": "docs/verification/startup-thirteen-sources-100035-android36.xml",
+      "bytes": 843,
+      "sha256": "11a6f01fccc756b572b72613432281628e576a0b53e79f326be2b9c28ca65b91"
     },
     {
       "path": "gradle.properties",
