@@ -1,14 +1,7 @@
 package com.audiobookdownloader
 
 internal object VerifiedBooks {
-    val sources=listOf("LibriVox · Internet Archive","Internet Archive")
-    fun id(site:String)=if(site==sources.first())"librivox" else "archive_books"
-    fun search(site:String,query:String,russian:Boolean):SiteSearchResult {
-        return try {
-            val items=OpenAudioCatalog.search(id(site),query,0,russian)
-            SiteSearchResult(items.map{BookLink(it.title,it.page,it.cover,it.author,listOf(BookSource(site,it.page,it.cover)))})
-        } catch(e:Exception){SiteSearchResult(emptyList(),e.message?:"Источник недоступен")}
-    }
+    // Compatibility only: already saved editions remain readable; not an active catalog.
     data class Loaded(val title:String,val author:String,val cover:String,val data:PlayerData)
     fun load(url:String):Loaded {
         val item=OpenAudioCatalog.fromPage(url)?:error("Нужна ссылка archive.org/details/...")

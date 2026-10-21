@@ -53,7 +53,7 @@ public class StartupSmokeTest {
         Configurator.getInstance().setWaitForIdleTimeout(0);
         device.wakeUp();
         device.executeShellCommand("wm dismiss-keyguard");
-        context.getSharedPreferences("audiobook_downloader",0).edit().clear().commit();
+        context.getSharedPreferences("audiobook_downloader",0).edit().clear().putString("search_source","Internet Archive").commit();
         context.getSharedPreferences("audiobook_startup",0).edit().clear().commit();
         new File(context.getFilesDir(),"audiobook-last-crash.txt").delete();
         if(Build.VERSION.SDK_INT>=33){
@@ -62,10 +62,36 @@ public class StartupSmokeTest {
         }
         try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(MainActivity.class)){
             visible(By.text("Жанры"),"Home failed on a fresh installation");
+            visible(By.text("Режим: все четыре источника"),"Removed saved source was not reset");
+            for(String url:new String[]{"https://azbyka.ru/audio/book.html","https://mob.knigoblud.club/audiobook/123","https://bookinfo.net/fentezi/author/book","https://audiokniga-online.ru/fjentezi/1487-book.html"})
+                assertNotNull("Original URL rejected: "+url,MainActivityKt.supportedBookUrl(url));
+            for(String url:new String[]{"https://archive.org/details/test","https://librivox.org/test","https://bookinfo.net.evil.invalid/book","https://user:password@bookinfo.net/book"})
+                assertNull("Unexpected search source accepted: "+url,MainActivityKt.supportedBookUrl(url));
             visible(By.text("Книги"),"Library navigation missing").click();
             visible(By.text("Моя библиотека"),"Library did not open");
             visible(By.text("Поиск"),"Search navigation missing").click();
             visible(By.text("Жанры"),"Cannot return home");
+            visible(By.text("Источники · 4"),"Four-source selector missing").click();
+            for(String source:new String[]{"Азбука веры","Книгоблуд","Bookinfo","Audiokniga-online.ru"})
+                visible(By.text(source),"Original source missing: "+source);
+            assertFalse("Removed catalog is offered",device.hasObject(By.text("Internet Archive")));
+            assertFalse("Removed catalog is offered",device.hasObject(By.text("LibriVox · Internet Archive")));
+            visible(By.text("Bookinfo"),"Bookinfo selection missing").click();
+            visible(By.text("Режим: только Bookinfo"),"Single-source selection did not apply");
+            scenario.recreate();
+            visible(By.text("Режим: только Bookinfo"),"Selected source did not survive recreation");
+            visible(By.text("Общий поиск"),"All-source action missing").click();
+            visible(By.text("Режим: все четыре источника"),"Cannot restore all-source search");
+            // Swipe the page body, away from sliders and nested horizontal rows.
+            int w=device.getDisplayWidth(), y=device.getDisplayHeight()/3;
+            device.swipe(w*4/5,y,w/5,y,24);
+            visible(By.text("Моя библиотека"),"Swipe left did not turn to library");
+            device.swipe(w*4/5,y,w/5,y,24);
+            visible(By.text("Выберите книгу"),"Second swipe did not turn to player");
+            device.swipe(w/5,y,w*4/5,y,24);
+            visible(By.text("Моя библиотека"),"Swipe right did not turn back to library");
+            device.swipe(w/5,y,w*4/5,y,24);
+            visible(By.text("Жанры"),"Swipe right did not return to search");
             scenario.recreate();
             visible(By.text("Жанры"),"Activity recreation failed");
             scenario.onActivity(activity->{

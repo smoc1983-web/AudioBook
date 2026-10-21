@@ -11,8 +11,6 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 35
-    env:
-      RUN_LIVE_SOURCES: "1"
     permissions:
       contents: write
       actions: read
@@ -44,8 +42,17 @@ jobs:
           name: preview-signing-recovery
           retention-days: 90
           path: ${{ env.PREVIEW_KEYSTORE }}
-      - name: Audio decoder for source acceptance
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+      - name: Restored source adapters and playlist regressions
+        run: |
+          node current/test-catalog.cjs
+          node current/test-native-genres.cjs
+          node current/test-online-source.cjs
+          node current/test-online-player-load.cjs
+          node current/test-php-playlist.cjs
+          node current/tests/test-author-search.cjs
+          node current/tests/test-source-directory.cjs
+      - name: Record current source availability
+        run: python scripts/audit-book-sources.py
       - name: Android SDK
         run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;35.0.0"'
       - name: Tests and isolated Preview APK
@@ -66,7 +73,7 @@ jobs:
           target: google_apis
           arch: x86_64
           profile: pixel_6
-          disable-animations: true
+          disable-animations: false
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -memory 2048
           script: bash scripts/test-android-startup.sh
       - name: Save Android runtime evidence
@@ -76,6 +83,7 @@ jobs:
           name: android-startup-test-reports
           path: |
             startup-evidence/
+            source-evidence/
             app/build/reports/androidTests/connected/
             app/build/outputs/androidTest-results/connected/
       - name: Package verified update

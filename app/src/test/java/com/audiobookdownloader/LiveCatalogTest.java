@@ -6,10 +6,10 @@ import java.net.*;
 import java.io.*;
 import java.nio.file.*;
 
-/** Runs the actual Android adapter on the JVM and decodes downloaded bytes offline. */
+/** Optional compatibility check for editions saved before the four-source restoration. */
 public class LiveCatalogTest {
     @Test public void liveSourcesSearchResolveDownloadAndDecode() throws Exception {
-        Assume.assumeTrue("1".equals(System.getenv("RUN_LIVE_SOURCES")));
+        Assume.assumeTrue("1".equals(System.getenv("RUN_SAVED_ARCHIVE_COMPATIBILITY")));
         String[] sources=OpenAudioCatalog.BOOKS;
         for(String source:sources){
             Exception last=null;boolean success=false;
