@@ -1,11 +1,11 @@
 {
-  "revision": "4.2-preview.10",
+  "revision": "4.2-preview.13-startup-fixed",
   "storage": "GitHub export; see releases/ARCHIVE-PARTS.json for three multipart historical ZIPs",
   "files": [
     {
       "path": ".github/workflows/build-apk.yml",
-      "bytes": 3390,
-      "sha256": "3bdefe95c5d279081bd4b046c4aa1659e0223442561a17bb3196fc7af5992378"
+      "bytes": 4651,
+      "sha256": "2dbf66bf3a56f8440dc5bdd79f17615413548f73ecaf5cc677c5c6b489aaff73"
     },
     {
       "path": ".gitignore",
@@ -14,13 +14,18 @@
     },
     {
       "path": "README.md",
-      "bytes": 5407,
-      "sha256": "42244c3f13de34bfff200f06a0050470d603b081ce6eb0301fe714d66d30b610"
+      "bytes": 5555,
+      "sha256": "8471148970eb9be66015b5d1329623e58da9833e4c8d81642136026714be0bf4"
     },
     {
       "path": "app/build.gradle.kts",
-      "bytes": 2308,
-      "sha256": "197db75309b43c8cd8a1a0aa77c910273bb473f33e3924970eab3b91c5477513"
+      "bytes": 2642,
+      "sha256": "28e2b8abc4730577b73727d86fd0ced892ece3abc4e439c6c447747e2fae837f"
+    },
+    {
+      "path": "app/src/androidTest/java/com/audiobookdownloader/StartupSmokeTest.java",
+      "bytes": 5622,
+      "sha256": "b68664a7972659db5b5053b31ce7f59559920438e09d9eee40e9a722a5dd0713"
     },
     {
       "path": "app/src/main/AndroidManifest.xml",
@@ -94,8 +99,8 @@
     },
     {
       "path": "current/MainActivity.kt",
-      "bytes": 703744,
-      "sha256": "4f8aa52e2e3f1b8583368a0dd66544a7e31e5fc20b63b58b519eadd216e620e4"
+      "bytes": 704350,
+      "sha256": "fea6db829e02dbd543b4f2b3e1a5f638c36a34af10ccd0ed1059dd6d16d0acb4"
     },
     {
       "path": "current/PlaybackService.kt",
@@ -719,13 +724,13 @@
     },
     {
       "path": "docs/BUILD-4.1.md",
-      "bytes": 2747,
-      "sha256": "bbc490152c5d2f83d8dfb070a4836c9c86812aea60ca04b22d7a5e5c3ee66e0c"
+      "bytes": 3054,
+      "sha256": "884a495152896c92c0292e51953eb70b410c0dde78d04196a9c76c7d29cca978"
     },
     {
       "path": "docs/BUILD-4.2-PREVIEW.md",
-      "bytes": 5270,
-      "sha256": "739057638ca9b6698bbaca48fec6f893933c57a0076025a0bc21a66fbcf12e0f"
+      "bytes": 5661,
+      "sha256": "1d58b0eeeb31ef1097a18f5ad18b9ac9f6ed2c555a40d7826688d6c7e702d5e8"
     },
     {
       "path": "docs/CHANGELOG.md",
@@ -734,8 +739,8 @@
     },
     {
       "path": "docs/HANDOFF.md",
-      "bytes": 5050,
-      "sha256": "0b6fb62df4ab1b63e180200977df0cfad303ba89f8f0c265858e35b1280e8e83"
+      "bytes": 6670,
+      "sha256": "c9083912ef6fff1375da3795f8d01717387badc49bd294b2e517f76dd74f979e"
     },
     {
       "path": "docs/INSTALL.md",
@@ -749,13 +754,18 @@
     },
     {
       "path": "docs/PREVIEW-UPDATES.md",
-      "bytes": 8018,
-      "sha256": "419f5620724fd8a7b77f662f3a05cb7a126f7dc0bc22c0ab1cf8d01b2d6eca48"
+      "bytes": 8565,
+      "sha256": "8bbd47774e168d847ab8789da31bc0d86556ed496dfddb0207c94a5800558768"
     },
     {
       "path": "docs/SOURCE-REPLACEMENT.md",
       "bytes": 5861,
       "sha256": "5012082a33b5a52e5efe9febc4632025f0b560e201f489a5d88c023424b7d74a"
+    },
+    {
+      "path": "docs/STARTUP-RECOVERY.md",
+      "bytes": 9279,
+      "sha256": "61c37c23980d39d13e11b6d9719b1a1c4f47c8e84859e845ee4e12df4a1ac358"
     },
     {
       "path": "docs/TELEGRAM-POST.md",
@@ -813,6 +823,11 @@
       "sha256": "02f5ccd2c0c8885ee395b5e0a328bb81afed8be3bcb8b0348c6c8b51dade121d"
     },
     {
+      "path": "docs/tools/dex_registers.py",
+      "bytes": 1886,
+      "sha256": "596481353d7179ad9dde540c0c157590c8a68f9b29cf73ca11a72176fe06b3d2"
+    },
+    {
       "path": "docs/tools/inspect_preview_apk.py",
       "bytes": 3723,
       "sha256": "ff0f0674d4b24a0dd06e7f68f47935e4beaa5294cbf79e4401bde71acdf368f0"
@@ -826,6 +841,26 @@
       "path": "docs/verification/preview-100010.json",
       "bytes": 660,
       "sha256": "201ecc273855f12d890ef8f66fd195c0abfc85012906a87484387d6579ceda0b"
+    },
+    {
+      "path": "docs/verification/preview-100013.json",
+      "bytes": 660,
+      "sha256": "3d509e3f613c0057ea48d2a2a082211ac10f42456e1eac4c4f328f5c3034f3a9"
+    },
+    {
+      "path": "docs/verification/startup-100010-android35-crash.txt",
+      "bytes": 7361,
+      "sha256": "5192e52b8cab15171611136cbb7be351e1df30ba40020a4886456067b0382855"
+    },
+    {
+      "path": "docs/verification/startup-100010-android35-window.xml",
+      "bytes": 3184,
+      "sha256": "f89f03d9e63a2491afbeac77ece02603b8e85f1b808783f8619e42fe4aa3376d"
+    },
+    {
+      "path": "docs/verification/startup-100013-android36-test.xml",
+      "bytes": 542,
+      "sha256": "93c9c5cf47eef5be56591a1146ecae17b69cc776628b27a27c7e7e92875b2ebb"
     },
     {
       "path": "gradle.properties",
@@ -9641,6 +9676,11 @@
       "path": "scripts/previous/patch_search_modes.py",
       "bytes": 9322,
       "sha256": "df56f88c6a84f3bdbbcff0c73bace14ff801c945555ef280ddd1ff67f0ed8426"
+    },
+    {
+      "path": "scripts/test-android-startup.sh",
+      "bytes": 752,
+      "sha256": "4362ee7400c642bf33bca4f1cb57b2666cf869b5feaba10bc3d284d6e123bd7b"
     },
     {
       "path": "settings.gradle.kts",

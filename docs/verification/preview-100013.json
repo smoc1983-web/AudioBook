@@ -1,0 +1,17 @@
+{
+  "packageName": "com.audiobookdownloader.preview",
+  "versionCode": 100013,
+  "versionName": "4.2-preview.13",
+  "size": 34427056,
+  "sha256": "ba2bd780c44b61501f126e51e644e394b4b29df408700be06c1a18a4165ae692",
+  "certificateSha256": "3a4cecd14bb3e983843871766909c3f07b3dc64379800f3e270e4a27d39affb7",
+  "apk": "Audiobook-Preview.apk",
+  "commit": "dec7d31c62413e609a23dff723f3dc0ace1afb3f",
+  "label": "Audiobook Preview",
+  "providers": [
+    "com.audiobookdownloader.preview.updates",
+    "com.audiobookdownloader.preview.diagnostic_reports",
+    "com.audiobookdownloader.preview.androidx-startup"
+  ],
+  "file": "Audiobook-Preview-4.2-preview.13.apk"
+}

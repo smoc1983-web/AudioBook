@@ -1,4 +1,8 @@
-# AudioBook 4.1 — подтверждённая APK-сборка
+# AudioBook 4.1 — историческая APK-сборка
+
+Эта запись подтверждает сборку и тесты каталогов, но запуск интерфейса на Android
+тогда не проверялся. Актуальный выпуск с обязательным Android-тестом:
+[STARTUP-RECOVERY.md](STARTUP-RECOVERY.md).
 
 Коммит приложения: 2f2ce293a5f8775414a90a39e1f38e9735fcfe58.
 Ветка: integration/verified-sources. applicationId: com.audiobookdownloader, versionCode: 2.

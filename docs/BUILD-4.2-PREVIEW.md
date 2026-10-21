@@ -1,4 +1,8 @@
-# Audiobook Preview 4.2 — готовая отдельная сборка
+# Audiobook Preview 4.2-preview.10 — историческая сборка с ошибкой запуска
+
+**Не устанавливать 100010:** после публикации подтверждён VerifyError на главном экране.
+Успешные сборка и JVM-тесты ниже не подтверждали запуск на Android.
+Исправление и проверка Android: [STARTUP-RECOVERY.md](STARTUP-RECOVERY.md).
 
 APK: **4.2-preview.10**, versionCode **100010**.
 Пакет: `com.audiobookdownloader.preview`. Подпись Preview отдельная от стабильного приложения.
