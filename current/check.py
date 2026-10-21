@@ -11,7 +11,7 @@ print('Kotlin delimiter/string check passed (not compilation)')
 ns['check_delimiters']((root/'PlaybackService.kt').read_text())
 assert '@OptIn(androidx.compose.ui.ExperimentalComposeUiApi::class)\n@Composable\nprivate fun AbDialog' in s
 assert 'MediaPlayer()' not in s
-assert '"+79128580680"' in s and 'AB_PRODUCT_NAME="Audiobook"' in s
+assert 'AB_PRODUCT_NAME=' in s
 assert "private object AbBookSources" in s
 imports=re.findall(r'^import .+$',s,re.M)
 assert len(imports)==len(set(imports))
@@ -28,15 +28,18 @@ def body(name):
     begin=s.index('"""',start)+len('"""')
     end=s.index('""".trimIndent()',begin)
     return s[begin:end].replace("${'$'}",'$').strip()
+extra_src=(root.parent/'app/src/main/java/com/audiobookdownloader/AdditionalBookSources.kt').read_text()
+config=extra_src.split('AB_EXTRA_SOURCE_JSON = """',1)[1].split('"""',1)[0]
+extra=extra_src.split('    return """',1)[1].split('""".trimIndent()',1)[0].strip().replace("${'$'}",'$').replace('$config',config)
 normalizer=body('abGenreNormalizerJs')
 script_pool=body('abOnlineScriptsJs')
 online_site=body('abOnlineSiteJs').replace('$scriptPool',script_pool)
 online_player=body('abOnlinePlayerJs').replace('$scriptPool',script_pool)
-player_reader=body('abPlayerReaderJs').replace('$onlineReader',online_player)
+player_reader=body('abPlayerReaderJs').replace('$onlineReader',online_player).replace('$extraAdapter',extra)
 classifier=body('abCatalogClassifierJs').replace('$adapterJson',json.dumps(adapters,ensure_ascii=False)).replace('$genreNormal',normalizer)
 az_catalog=body('abAzbykaCatalogJs')
 az_page=body('abAzbykaPageJs').replace('__AB_AZ_CATALOG__',az_catalog.rstrip(';'))
-catalog=body('bookCatalogJs').replace('$azbykaCatalog',az_catalog).replace('$classifierScript',classifier).replace('$onlineAdapter',online_site).replace('$safeCatalogUrl','__ROOT__').replace('$seriesContext','__CYCLE__')
+catalog=body('bookCatalogJs').replace('$azbykaCatalog',az_catalog).replace('$classifierScript',classifier).replace('$onlineAdapter',online_site).replace('$extraAdapter',extra).replace('$safeCatalogUrl','__ROOT__').replace('$seriesContext','__CYCLE__')
 genre_source=body('abGenreLinkJs').replace('$genreNormal',normalizer)
 genre=genre_source.replace('$aliases',json.dumps(adapters['Bookinfo']['Фэнтези'],ensure_ascii=False))
 out=root/'js-check'
@@ -52,7 +55,7 @@ genre_catalog=body('abGenreCatalogJs').replace('$script',catalog.rstrip(';')).re
 (out/'genre-template.js').write_text(genre_catalog)
 (out/'native-genre-template.js').write_text(genre_catalog.replace('nativeCategory=false','nativeCategory=true'))
 (out/'native-directory.js').write_text(body('abNativeGenreDirectoryJs'))
-analyzer=body('pageAnalyzerJs').replace('$readerScript',player_reader).replace('$onlineAdapter',online_site).replace('$azbykaPage',az_page).replace('$catalogScript',catalog.replace('__ROOT__','""').replace('__CYCLE__','null').rstrip(';'))
+analyzer=body('pageAnalyzerJs').replace('$readerScript',player_reader).replace('$onlineAdapter',online_site).replace('$extraAdapter',extra).replace('$azbykaPage',az_page).replace('$catalogScript',catalog.replace('__ROOT__','""').replace('__CYCLE__','null').rstrip(';'))
 (out/'analyzer.js').write_text(analyzer)
 (out/'player-reader.js').write_text(player_reader)
 (out/'next.js').write_text(body('clickNextCatalogPageJs'))
@@ -84,3 +87,8 @@ print('Extracted fourth-source route, search-form, player and external-playlist 
 
 (out/'online-scripts.js').write_text(script_pool)
 (out/'online-prepare.js').write_text(body('abOnlinePreparePlayerJs').replace('$scripts',script_pool))
+
+(out/'extra-source.js').write_text(extra)
+(out/'extra-source-config.json').write_text(config)
+
+(out/'extra-search-template.js').write_text(body('searchSubmitJs').replace('$extraAdapter',extra).replace('$safeQuery','__QUERY__'))

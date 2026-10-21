@@ -62,7 +62,7 @@ public class StartupSmokeTest {
         }
         try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(MainActivity.class)){
             visible(By.text("Жанры"),"Home failed on a fresh installation");
-            visible(By.text("Режим: все четыре источника"),"Removed saved source was not reset");
+            visible(By.text("Режим: включённые источники"),"Removed saved source was not reset");
             for(String url:new String[]{"https://azbyka.ru/audio/book.html","https://mob.knigoblud.club/audiobook/123","https://bookinfo.net/fentezi/author/book","https://audiokniga-online.ru/fjentezi/1487-book.html"})
                 assertNotNull("Original URL rejected: "+url,MainActivityKt.supportedBookUrl(url));
             for(String url:new String[]{"https://archive.org/details/test","https://librivox.org/test","https://bookinfo.net.evil.invalid/book","https://user:password@bookinfo.net/book"})
@@ -71,17 +71,24 @@ public class StartupSmokeTest {
             visible(By.text("Моя библиотека"),"Library did not open");
             visible(By.text("Поиск"),"Search navigation missing").click();
             visible(By.text("Жанры"),"Cannot return home");
-            visible(By.text("Источники · 4"),"Four-source selector missing").click();
+            visible(By.text("Источники · 16"),"Expanded source selector missing").click();
             for(String source:new String[]{"Азбука веры","Книгоблуд","Bookinfo","Audiokniga-online.ru"})
                 visible(By.text(source),"Original source missing: "+source);
             assertFalse("Removed catalog is offered",device.hasObject(By.text("Internet Archive")));
             assertFalse("Removed catalog is offered",device.hasObject(By.text("LibriVox · Internet Archive")));
+            UiObject2 azbykaSwitch=visible(By.desc("Общий поиск: Азбука веры"),"Source inclusion switch missing");
+            azbykaSwitch.click();
+            assertFalse("Source switch did not persist",context.getSharedPreferences("audiobook_downloader",0).getStringSet("search_enabled_sources",java.util.Collections.emptySet()).contains("Азбука веры"));
             visible(By.text("Bookinfo"),"Bookinfo selection missing").click();
             visible(By.text("Режим: только Bookinfo"),"Single-source selection did not apply");
             scenario.recreate();
             visible(By.text("Режим: только Bookinfo"),"Selected source did not survive recreation");
+            assertEquals("Selected subset changed after recreation",12,context.getSharedPreferences("audiobook_downloader",0).getStringSet("search_enabled_sources",java.util.Collections.emptySet()).size());
+            for(String url:new String[]{"https://m.knigavuhe.org/book/test/","https://pda.izib.uk/art137768","https://uknig.com/books/718702","https://poleknig.com/books/125017","https://m.otrub.in/taras-bulba.html","https://akniga.org/gogol-nikolay-shinel-4","https://audioknigi.pro/audioknigi/62903-book.html","https://baza-knig.info/audio-124589-book"})
+                assertNotNull("Additional source URL rejected: "+url,MainActivityKt.supportedBookUrl(url));
+            context.getSharedPreferences("audiobook_downloader",0).edit().remove("search_enabled_sources").commit();
             visible(By.text("Общий поиск"),"All-source action missing").click();
-            visible(By.text("Режим: все четыре источника"),"Cannot restore all-source search");
+            visible(By.text("Режим: включённые источники"),"Cannot restore all-source search");
             // Short drags must return to the same page, without sending navigation/playback commands.
             int cancelW=device.getDisplayWidth(),cancelY=device.getDisplayHeight()*3/4;
             device.swipe(cancelW*4/5,cancelY,cancelW*4/5-cancelW/20,cancelY,24);

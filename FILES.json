@@ -1,11 +1,11 @@
 {
-  "revision": "4.2-preview.27-cylindrical-crescent",
+  "revision": "4.2-screenshot-sources-1",
   "storage": "GitHub export; see releases/ARCHIVE-PARTS.json for three multipart historical ZIPs",
   "files": [
     {
       "path": ".github/workflows/build-apk.yml",
-      "bytes": 5567,
-      "sha256": "22ed25b1715c0033da6f242167d811fba6bd6f6e08621991a53549696015bb9d"
+      "bytes": 5658,
+      "sha256": "cd236e350f619a5c9112bc953e66091c06dbb598145e5e6943d584a399bfa308"
     },
     {
       "path": ".gitignore",
@@ -29,8 +29,8 @@
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/StartupSmokeTest.java",
-      "bytes": 15930,
-      "sha256": "f152dc940e9f2e9462fabcf37837e987ed27777db3ea27495ebd4af099d3e0da"
+      "bytes": 17114,
+      "sha256": "ab322db5f17aeede73934d3c89a3347950dd6242d85e5cc6007a139e3468df46"
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/TestBitmapExports.java",
@@ -56,6 +56,11 @@
       "path": "app/src/main/java/com/audiobookdownloader/AbPageTurn.kt",
       "bytes": 9258,
       "sha256": "8e3d0831227b5610ba6e4174e1724ebd8d2de5906e9ffb15fd94cd809081d3b1"
+    },
+    {
+      "path": "app/src/main/java/com/audiobookdownloader/AdditionalBookSources.kt",
+      "bytes": 18770,
+      "sha256": "db941f432acfbe52faafbf9633e7632b6748fcb9f6630a2c630a3234c992612b"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/AudioBookWidget.kt",
@@ -148,6 +153,11 @@
       "sha256": "2b21f1f67b8fb2625fee62f2201977c4643d2cf894c4642dfce277861850241e"
     },
     {
+      "path": "app/src/test/java/com/audiobookdownloader/AdditionalBookSourcesTest.kt",
+      "bytes": 2350,
+      "sha256": "f63644087b19dc5e5f03dbe6764f22fcd82dcc70619ff9226015b69a2984432e"
+    },
+    {
       "path": "app/src/test/java/com/audiobookdownloader/CylinderPageMeshTest.java",
       "bytes": 2834,
       "sha256": "abbd5d1aae790c46bed5dd6c5d26a3488a581274e9182367411fa6320651a8a0"
@@ -184,8 +194,8 @@
     },
     {
       "path": "current/MainActivity.kt",
-      "bytes": 706293,
-      "sha256": "19772238a18aecc121ba060d6146b503536dfc477ca2b86847cc45fe807cc050"
+      "bytes": 710459,
+      "sha256": "309da01d68a29f8137d2a6150cf367aa84c00c45fe7dd2a5e27a1beeb35570ff"
     },
     {
       "path": "current/PlaybackService.kt",
@@ -379,8 +389,8 @@
     },
     {
       "path": "current/check.py",
-      "bytes": 5983,
-      "sha256": "07bd8840509a8c754a9ab049da2210e41f5698c1068369928a25fb87012e391f"
+      "bytes": 6581,
+      "sha256": "13334c8adea18f465da4265169081a4c819ad48b7bbb370e9a9aa824f942bf3e"
     },
     {
       "path": "current/check_black_update.py",
@@ -469,8 +479,8 @@
     },
     {
       "path": "current/js-check/analyzer.js",
-      "bytes": 125729,
-      "sha256": "05fbabb8db8585d041c21a0b89ef700ce824606dcb70eb08c0858d07a7bd5efb"
+      "bytes": 177548,
+      "sha256": "6665dd6110867325151466904aed67bc55fd8415a8bf8fdb9eb7489282ae8b1d"
     },
     {
       "path": "current/js-check/azbyka-catalog.js",
@@ -489,13 +499,13 @@
     },
     {
       "path": "current/js-check/catalog-template.js",
-      "bytes": 70001,
-      "sha256": "8b7d8c0efe14fdb90177abd63e39c5fd5d9234764ad334fb95aa0bd951b414ca"
+      "bytes": 87132,
+      "sha256": "55a44e119421449e3a1b47ba1e0f6f42cf3aecd99cff587b63a7165e8b4df6d7"
     },
     {
       "path": "current/js-check/catalog.js",
-      "bytes": 69966,
-      "sha256": "68f07b171713359456b0f0d3238fe5a35192e96c4e7a251736ff3f04e73786a4"
+      "bytes": 87097,
+      "sha256": "8a4622ee4254bfe796141160339b292c475e5a5950b9601faaf2b67cbfab5f69"
     },
     {
       "path": "current/js-check/classifier.js",
@@ -504,8 +514,23 @@
     },
     {
       "path": "current/js-check/external-page.js",
-      "bytes": 127493,
-      "sha256": "7a3cf107b3446a0d325b7a9ac396c488c535151b0bab26eeceb504617d5ef53e"
+      "bytes": 179312,
+      "sha256": "691665176cd65f72bd22ebb61887f0caee0caf485e2b7223c68b7b3f94f156f6"
+    },
+    {
+      "path": "current/js-check/extra-search-template.js",
+      "bytes": 25465,
+      "sha256": "9a5f48e4882e7be9bc38cbb0d0cc33105f0e891aaa1461ac15bac50d59b0bd94"
+    },
+    {
+      "path": "current/js-check/extra-source-config.json",
+      "bytes": 4825,
+      "sha256": "8145987f38b4f375c901e93446313eb9bf54b589ad4584ee2fb8fa827b635809"
+    },
+    {
+      "path": "current/js-check/extra-source.js",
+      "bytes": 17059,
+      "sha256": "6ab97a8b999d5aa2194e4cd727b011ca035a251abca1c40b7768b4a2ebd2eea1"
     },
     {
       "path": "current/js-check/genre-adapters.json",
@@ -529,8 +554,8 @@
     },
     {
       "path": "current/js-check/genre-template.js",
-      "bytes": 103631,
-      "sha256": "155ba77dbd4728d074d0e29f231b6a77b4940ab86e84de5534962bb888295d11"
+      "bytes": 120762,
+      "sha256": "d1127559b18d510b31654599ae80a4529668f23410ac365f79061d9fcf508859"
     },
     {
       "path": "current/js-check/native-directory.js",
@@ -539,8 +564,8 @@
     },
     {
       "path": "current/js-check/native-genre-template.js",
-      "bytes": 103630,
-      "sha256": "5a4fb27a9fe1c091e2fe31a53ce5ad77465334bff006a9fdd8834b3b6a2f128b"
+      "bytes": 120761,
+      "sha256": "98ffb457d982e23fd116c69bdb78ec06a9df01c955101266f0de0dc73bddad34"
     },
     {
       "path": "current/js-check/next.js",
@@ -564,8 +589,8 @@
     },
     {
       "path": "current/js-check/online-results-template.js",
-      "bytes": 82313,
-      "sha256": "da318f510b809801f01839169238bd5db3e7562d99e3dbefc97b85defa28ec61"
+      "bytes": 99444,
+      "sha256": "de5b7a3982f123426efd501593ccc230058d58810267e74d7d8a48bcab8eedbc"
     },
     {
       "path": "current/js-check/online-scripts.js",
@@ -584,8 +609,8 @@
     },
     {
       "path": "current/js-check/player-reader.js",
-      "bytes": 19476,
-      "sha256": "5ba04abec11aac1208aaebc2290ce9848ed0fbee86dc180ffa5e2fe362b0efad"
+      "bytes": 36773,
+      "sha256": "84085125225070d7d01e69ab9ad76eb711ccbc34b21f61c36d1cda4f043cde86"
     },
     {
       "path": "current/js-check/public-classifier.js",
@@ -658,14 +683,114 @@
       "sha256": "0c48c530ad3354e4839e034957a4f460b09a8cddada8eff92d5e69efbe855195"
     },
     {
+      "path": "current/tests/fixtures/screenshot-sources/akniga-catalog.html",
+      "bytes": 2874,
+      "sha256": "04efb354c799dd40f0739e1436e6e7181717566bf83a537334b97431eada0415"
+    },
+    {
+      "path": "current/tests/fixtures/screenshot-sources/audioknigi-pro-catalog.html",
+      "bytes": 2575,
+      "sha256": "2c21a65e2d8312d6cd09c633dd6bb628ebfae996139c22e2d19143bac6871830"
+    },
+    {
+      "path": "current/tests/fixtures/screenshot-sources/audioknigi-pro-player.html",
+      "bytes": 246,
+      "sha256": "18dce8e37f920c1804053a12b3df8ee0283d61613d1674160026042c34638e28"
+    },
+    {
+      "path": "current/tests/fixtures/screenshot-sources/audioknigivse-catalog.html",
+      "bytes": 1216,
+      "sha256": "3b638128da483f3f4dfd4a0b931fb76e58fa697b881e16bc981b4e518b8b1983"
+    },
+    {
+      "path": "current/tests/fixtures/screenshot-sources/audioknigivse-player.html",
+      "bytes": 153,
+      "sha256": "215840c9ab744c00c765cf6ad6105b7a2261de1fc1b199f07f8244836f92d070"
+    },
+    {
+      "path": "current/tests/fixtures/screenshot-sources/baza-knig-catalog.html",
+      "bytes": 1261,
+      "sha256": "d59fc696685189776e71f5c2a8e9ae89c99497ac465f45c3da43e7f257f40072"
+    },
+    {
+      "path": "current/tests/fixtures/screenshot-sources/baza-knig-player.html",
+      "bytes": 319,
+      "sha256": "9060749fc9b424e513c706cfb518a51923379f1a0e9ba005792ca66dcf0f52f2"
+    },
+    {
+      "path": "current/tests/fixtures/screenshot-sources/baza-playlist.json",
+      "bytes": 1623,
+      "sha256": "d681f253b3db8abb493a4b829d7569bb5311f44d599477df4e0f507ad26160d8"
+    },
+    {
+      "path": "current/tests/fixtures/screenshot-sources/izibuk-catalog.html",
+      "bytes": 3488,
+      "sha256": "160dc067d1f847a89ad3ffe5c3a2bdff78689c8cbacb545a3cd710a00c7be848"
+    },
+    {
+      "path": "current/tests/fixtures/screenshot-sources/izibuk-player.html",
+      "bytes": 759,
+      "sha256": "6bd4fec24b87940c42c0908e75fd03209029cabbe9b814c58d5d179d59033a87"
+    },
+    {
+      "path": "current/tests/fixtures/screenshot-sources/knigavuhe-blocked.html",
+      "bytes": 72,
+      "sha256": "0f00726c2bda8f4d3053a688832b89a1d431b4e994eb414f7cf7c630355a6c36"
+    },
+    {
+      "path": "current/tests/fixtures/screenshot-sources/knigavuhe-catalog.html",
+      "bytes": 4151,
+      "sha256": "ac138d1b2ca7cb7cb5bca935ea16c1dbe9e66074a8d96916dbbdd9ca7f1a9b73"
+    },
+    {
+      "path": "current/tests/fixtures/screenshot-sources/knigavuhe-player.html",
+      "bytes": 793,
+      "sha256": "f266052e4456a87e94c32b679bdee87b022c8a4600ebb23d6380a7f0bb93c06b"
+    },
+    {
+      "path": "current/tests/fixtures/screenshot-sources/otrub-catalog.html",
+      "bytes": 3021,
+      "sha256": "cd2e73d839ef0949cca98fe3eeb072dbea7f608234231002db680eb49b41cff3"
+    },
+    {
+      "path": "current/tests/fixtures/screenshot-sources/otrub-player.html",
+      "bytes": 1398,
+      "sha256": "85f5f0ab481d037527e3b25b4f0f576ad944e3f77fd40b5a08d8d7eb7ea44c80"
+    },
+    {
+      "path": "current/tests/fixtures/screenshot-sources/poleknig-blocked.html",
+      "bytes": 110,
+      "sha256": "6085f6afab94c5f8ea55f6c89cd258a99a859018e5595a39636a6f8d4e3f0dbb"
+    },
+    {
+      "path": "current/tests/fixtures/screenshot-sources/poleknig-catalog.html",
+      "bytes": 7094,
+      "sha256": "3eed0a6622cec2b283fcec6eccd4f222382cae66faf4e46b019b0b4b37f35aae"
+    },
+    {
+      "path": "current/tests/fixtures/screenshot-sources/uknig-catalog.html",
+      "bytes": 12659,
+      "sha256": "f16d0ab3007324715454ffcc74ae0ce27771134242ffcd5810d9e544a4fc78b5"
+    },
+    {
+      "path": "current/tests/fixtures/screenshot-sources/uknig-player.html",
+      "bytes": 241,
+      "sha256": "ef16221a248d9853d19548680fab2f9dab589f5e1617bee0329ccdbd78e197ca"
+    },
+    {
+      "path": "current/tests/test-additional-sources.cjs",
+      "bytes": 6056,
+      "sha256": "e52e734414e0854d9e582470dcddb30d5859408b8539526946f47330f712a163"
+    },
+    {
       "path": "current/tests/test-author-search.cjs",
       "bytes": 5744,
       "sha256": "5e38e99087834a8f135d0fd15abcd46d5f4410cb93714d69c6844fc5b635c177"
     },
     {
       "path": "current/tests/test-source-directory.cjs",
-      "bytes": 2902,
-      "sha256": "3bf9366a2bb019763c5db1ce15a06cc0045bae759f04efe8de973af1ecd297dc"
+      "bytes": 3013,
+      "sha256": "138223189521b95b6832dc4dcd0aed926305b8d5c669a88114dd38b435d01c0a"
     },
     {
       "path": "current/validation.txt",
@@ -834,8 +959,8 @@
     },
     {
       "path": "docs/HANDOFF.md",
-      "bytes": 12388,
-      "sha256": "b40e951f9b74ee6a7168aba4eaef562419f0f84789ccc60cb43ddd97d4d3f8e5"
+      "bytes": 12408,
+      "sha256": "c5516e5b4daf0a8adf5ba2a9cf061a66fdfcf8c961895dfbfade598ccf175518"
     },
     {
       "path": "docs/INSTALL.md",
@@ -856,6 +981,11 @@
       "path": "docs/PREVIEW-UPDATES.md",
       "bytes": 8565,
       "sha256": "8bbd47774e168d847ab8789da31bc0d86556ed496dfddb0207c94a5800558768"
+    },
+    {
+      "path": "docs/SCREENSHOT-SOURCES.md",
+      "bytes": 6964,
+      "sha256": "12fa7c26319b927030b95980dc787564b64e167345aebf7267eba9edbceb9496"
     },
     {
       "path": "docs/SOURCE-REPLACEMENT.md",
@@ -926,6 +1056,11 @@
       "path": "docs/previous/native_directory_update.txt",
       "bytes": 12981,
       "sha256": "02f5ccd2c0c8885ee395b5e0a328bb81afed8be3bcb8b0348c6c8b51dade121d"
+    },
+    {
+      "path": "docs/screenshot-source-registry.json",
+      "bytes": 4826,
+      "sha256": "df248aa6f74ae64bd461e2c15bbe7ec3de358ecb644493987be3152890500695"
     },
     {
       "path": "docs/tools/dex_registers.py",
@@ -9844,8 +9979,8 @@
     },
     {
       "path": "scripts/audit-book-sources.py",
-      "bytes": 2199,
-      "sha256": "ab04bb6ffa494590618d4721ea505167c2a1c695e7c59972495187e15bfc24c2"
+      "bytes": 2587,
+      "sha256": "b2b67d79c4f73518cd8e98ec10ef6e07efda6664675aaad07d484dd8d56c5d2b"
     },
     {
       "path": "scripts/preview-release.py",

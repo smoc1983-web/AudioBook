@@ -2,7 +2,7 @@ const fs=require('fs'),assert=require('assert');
 const {makeDocument}=require(require('path').join(__dirname, '../../history/audiobook-search/fixture-dom.cjs'));
 const main=fs.readFileSync(require('path').join(__dirname,'../MainActivity.kt'),'utf8');
 const start=main.indexOf('private fun abSourceDirectoryJs('),a=main.indexOf('"""',start)+3,b=main.indexOf('""".trimIndent()',a);
-const template=main.slice(a,b).replaceAll("${'$'}",'$');
+const template=main.slice(a,b).replaceAll("${'$'}",'$').replace('$extraAdapter',fs.readFileSync(require('path').join(__dirname,'../js-check/extra-source.js'),'utf8'));
 let count=0;
 function run(site,url,html){return JSON.parse(makeDocument('<body>'+html+'</body>',url).evaluate(template.replaceAll('$source',JSON.stringify(site))));}
 function eq(a,b){assert.deepStrictEqual(a,b);count++;}

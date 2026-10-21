@@ -1,0 +1,173 @@
+[
+  {
+    "id": "knigavuhe",
+    "name": "Книга в Ухе",
+    "home": "https://m.knigavuhe.org/",
+    "hosts": [
+      "knigavuhe.org",
+      "www.knigavuhe.org",
+      "m.knigavuhe.org"
+    ],
+    "book": "^/book/[^/]+/?$",
+    "genre": "^/genre/[^/]+/?$",
+    "author": "^/author/[^/]+/?$",
+    "status": "Каталог и поиск проверены",
+    "enabled": true
+  },
+  {
+    "id": "izibuk",
+    "name": "Izibuk",
+    "home": "https://pda.izib.uk/",
+    "hosts": [
+      "izib.uk",
+      "www.izib.uk",
+      "pda.izib.uk"
+    ],
+    "book": "^/art[0-9]+/?$",
+    "genre": "^/genre[0-9]+/?$",
+    "author": "^/author[0-9]+/?$",
+    "status": "Каталог и поиск проверены",
+    "enabled": true
+  },
+  {
+    "id": "lis10book",
+    "name": "Lis10Book",
+    "home": "https://lis10book.com/",
+    "hosts": [
+      "lis10book.com",
+      "www.lis10book.com"
+    ],
+    "book": "^/(?:book|audiobook)/[^/]+/?$",
+    "genre": "^/genres/[^/]+/?$",
+    "author": "^/avtor/[^/]+/?$",
+    "status": "Сайт показывает проверку соединения; поиск не подтверждён",
+    "enabled": false
+  },
+  {
+    "id": "uknig",
+    "name": "Uknig",
+    "home": "https://uknig.com/",
+    "hosts": [
+      "uknig.com",
+      "www.uknig.com"
+    ],
+    "book": "^/books/[0-9]+/?$",
+    "genre": "^/genres/[^/]+/?$",
+    "author": "^/authors/[^/]+/?$",
+    "status": "Каталог и поиск проверены",
+    "enabled": true
+  },
+  {
+    "id": "poleknig",
+    "name": "Поле книг",
+    "home": "https://poleknig.com/",
+    "hosts": [
+      "poleknig.com",
+      "www.poleknig.com"
+    ],
+    "book": "^/books/[0-9]+/?$",
+    "genre": "^/genres/[^/]+/?$",
+    "author": "^/authors/[^/]+/?$",
+    "status": "Каталог и поиск проверены",
+    "enabled": true
+  },
+  {
+    "id": "audioknigivse",
+    "name": "Аудиокниги Все",
+    "home": "https://audioknigivse.ru/",
+    "hosts": [
+      "audioknigivse.ru",
+      "www.audioknigivse.ru"
+    ],
+    "book": "^/[^/]+/[0-9]+-[^/]+\\.html$",
+    "genre": "^/(?:audioknigi_[^/]+|genre/[^/]+|zhanr/[^/]+)/?$",
+    "author": "^/xfsearch/(?:avtor|author)/.+$",
+    "status": "Каталог и поиск проверены",
+    "enabled": true
+  },
+  {
+    "id": "otrub",
+    "name": "Отруб",
+    "home": "https://m.otrub.in/",
+    "hosts": [
+      "otrub.in",
+      "www.otrub.in",
+      "m.otrub.in"
+    ],
+    "book": "^/(?!search\\.html$|index\\.html$|rules\\.html$)[^/]+\\.html$",
+    "genre": "^/genres/[^/]+\\.html$",
+    "author": "^/authors/[^/]+\\.html$",
+    "status": "Каталог и поиск проверены",
+    "enabled": true
+  },
+  {
+    "id": "akniga",
+    "name": "Akniga",
+    "home": "https://akniga.org/",
+    "hosts": [
+      "akniga.org",
+      "www.akniga.org"
+    ],
+    "book": "^/(?!index|login|register|search|rules|about|authors|sections|performers|books|help|faq|top|new)[a-z0-9][a-z0-9-]*-[a-z0-9-]+/?$",
+    "genre": "^/section/[^/]+/?$",
+    "author": "^/author/[^/]+/?$",
+    "status": "Каталог и поиск проверены",
+    "enabled": true
+  },
+  {
+    "id": "slushkinvsem",
+    "name": "Слушкин Всем",
+    "home": "https://slushkinvsem.ru/",
+    "hosts": [
+      "slushkinvsem.ru",
+      "www.slushkinvsem.ru"
+    ],
+    "book": "^/[^/]+/[0-9]+-[^/]+\\.html$",
+    "genre": "^/(?:kniga_audio_[^/]+|blok)/?$",
+    "author": "^/xfsearch/(?:avtor|author)/.+$",
+    "status": "Сайт требует JavaScript; каталог и плеер требуют проверки",
+    "enabled": false
+  },
+  {
+    "id": "audioboo",
+    "name": "Audioboo",
+    "home": "https://audioboo.org/",
+    "hosts": [
+      "audioboo.org",
+      "www.audioboo.org"
+    ],
+    "book": "^/[^/]+/[0-9]+-[^/]+\\.html$",
+    "genre": "^/(?:genres?|zhanr)/[^/]+/?$",
+    "author": "^/xfsearch/(?:avtor|author)/.+$",
+    "status": "Последняя проверка: HTTP 403; поиск не подтверждён",
+    "enabled": false
+  },
+  {
+    "id": "audioknigi-pro",
+    "name": "Audioknigi.pro",
+    "home": "https://audioknigi.pro/",
+    "hosts": [
+      "audioknigi.pro",
+      "www.audioknigi.pro"
+    ],
+    "book": "^/audioknigi/[0-9]+-[^/]+\\.html$",
+    "genre": "^/zhanr/[^/]+/?$",
+    "author": "^/xfsearch/(?:avtor|author)/.+$",
+    "status": "Каталог и поиск проверены",
+    "enabled": true
+  },
+  {
+    "id": "baza-knig",
+    "name": "База книг",
+    "home": "https://baza-knig.info/",
+    "hosts": [
+      "baza-knig.info",
+      "www.baza-knig.info"
+    ],
+    "book": "^/audio-[0-9]+-[^/]+/?$",
+    "genre": "^/genre-[0-9]+-[^/]+/?$",
+    "author": "^/avtor-[0-9]+-[^/]+/?$",
+    "status": "Каталог и поиск проверены",
+    "enabled": true
+  }
+]

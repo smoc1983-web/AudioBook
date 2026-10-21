@@ -16,6 +16,11 @@ SOURCES = {
     "Audiokniga-online.ru": "https://audiokniga-online.ru/",
 }
 
+# The exact source registry is shared with the Android/JavaScript adapters.
+registry_text = Path("app/src/main/java/com/audiobookdownloader/AdditionalBookSources.kt").read_text()
+registry = json.loads(registry_text.split('AB_EXTRA_SOURCE_JSON = """', 1)[1].split('"""', 1)[0])
+SOURCES.update({source["name"]: source["home"] for source in registry})
+
 def inspect(item):
     name, address = item
     result = {"source": name, "url": address}
@@ -29,7 +34,7 @@ def inspect(item):
             result.update(status=response.status, final_url=response.geturl())
             title = re.search(r"<title[^>]*>(.*?)</title>", text, re.I | re.S)
             result["title"] = re.sub(r"\s+", " ", title[1]).strip() if title else ""
-            result["access_challenge"] = bool(re.search(r"just a moment|access denied|checking your browser|captcha", result["title"], re.I))
+            result["access_challenge"] = bool(re.search(r"just a moment|access denied|checking your browser|captcha|проверка соединения", result["title"], re.I))
             result["has_html"] = bool(re.search(r"<(?:html|body|main)\b", text, re.I))
     except (urllib.error.URLError, TimeoutError, OSError) as error:
         result["error"] = str(error)[:350]
