@@ -32,3 +32,12 @@ jobs:
           name: Audiobook-debug
           overwrite: true
           path: app/build/outputs/apk/debug/*.apk
+      - name: Save source verification reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: source-test-reports
+          overwrite: true
+          path: |
+            app/build/test-results/testDebugUnitTest/
+            app/build/reports/tests/testDebugUnitTest/

@@ -25,7 +25,7 @@ public final class OpenAudioCatalog {
         int offset=Math.max(0,page)*20;
         if(source.equals("audius"))return "https://api.audius.co/v1/tracks/"+(query.trim().isEmpty()?"trending?":"search?query="+encode(query.trim())+"&")+"limit=20&offset="+offset+"&app_name=ForTanya";
         if(source.equals("radio"))return "https://de1.api.radio-browser.info/json/stations/search?name="+encode(query.trim())+"&limit=20&offset="+offset+"&hidebroken=true&is_https=true&order=votes&reverse=true";
-        String collection=source.equals("librivox")?"collection:librivoxaudio":source.equals("archive_books")?"collection:audio_bookspoetry AND NOT collection:librivoxaudio":"(collection:audio_music OR collection:etree OR collection:opensource_audio)";
+        String collection=source.equals("librivox")?"collection:librivoxaudio":source.equals("archive_books")?"collection:audio_bookspoetry AND NOT collection:librivoxaudio":"(collection:audio_music OR collection:etree OR (collection:opensource_audio AND (subject:music OR subject:Music OR subject:музыка)))";
         String q="mediatype:audio AND "+collection+" AND NOT access-restricted-item:true AND (format:\"VBR MP3\" OR format:\"128Kbps MP3\" OR format:MP3)";
         if(russian)q+=" AND language:(rus OR Russian OR russian)";
         for(String term:query.trim().split("\\s+"))if(!term.isEmpty())q+=" AND \""+term.replace("\\","\\\\").replace("\"","\\\"")+"\"";
@@ -77,7 +77,7 @@ public final class OpenAudioCatalog {
         List<JSONObject> sorted=new ArrayList<>(chosen.values());sorted.sort(Comparator.comparing(OpenAudioCatalog::order));
         List<Track> tracks=new ArrayList<>();for(JSONObject f:sorted){String name=f.optString("name");StringBuilder path=new StringBuilder();for(String part:name.split("/")){if(path.length()>0)path.append('/');path.append(encode(part));}
             String url="https://archive.org/download/"+encode(id)+"/"+path;int seconds=0;try{seconds=(int)Double.parseDouble(f.optString("length","0"));}catch(Exception ignored){}
-            tracks.add(new Track(f.optString("title",name),url,url,seconds));}
+            tracks.add(new Track(String.format(Locale.ROOT,"%03d · %s",tracks.size()+1,f.optString("title",name)),url,url,seconds));}
         if(tracks.isEmpty())throw new IOException("В записи нет доступных MP3-файлов");return tracks;
     }
     public static Item fromPage(String value){try{URI u=URI.create(value);if(!https(value)||!u.getHost().equals("archive.org")||!u.getPath().startsWith("/details/"))return null;String id=u.getPath().substring(9).split("/")[0];if(!id.matches("[A-Za-z0-9_.-]+"))return null;return new Item(id,"archive_books",id,"","https://archive.org/services/img/"+encode(id),"https://archive.org/details/"+id,true);}catch(Exception e){return null;}}
