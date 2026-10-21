@@ -142,6 +142,7 @@ public class StartupSmokeTest {
         throw new AssertionError(message+": "+PlaybackService.Companion.getState().getValue());
     }
     @Test public void playerAddsCurrentBookAndRealSensorRestartsSleepCountdown() throws Exception {
+        assertEquals("com.audiobookdownloader.preview",context.getPackageName());
         Configurator.getInstance().setWaitForIdleTimeout(0);
         device.wakeUp();device.executeShellCommand("wm dismiss-keyguard");
         context.getSharedPreferences("audiobook_startup",0).edit().clear().commit();
@@ -181,6 +182,7 @@ public class StartupSmokeTest {
             assertTrue("Shaking paused playback",restarted.isPlaying());
             device.executeShellCommand("screencap -p /sdcard/Download/preview-sleep-shake-success.png");
             PlaybackService.Companion.stop(context,true,null);
+            playback(s->!s.getHasSelection(),"Service selection was not cleared between tests");
         }finally{
             context.stopService(new android.content.Intent(context,PlaybackService.class));
             audio.delete();

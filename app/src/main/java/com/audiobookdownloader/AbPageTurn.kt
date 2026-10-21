@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.*
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Density
@@ -102,7 +103,7 @@ internal fun AbPageTurn(page: AppPage, navigate: (AppPage) -> Unit, modifier: Mo
         if (current == null) content(displayed)
         else {
             // No sliding/fading of transparent screens: the next page stays still.
-            Box(Modifier.fillMaxSize()) { content(current.to) }
+            Box(Modifier.fillMaxSize().clearAndSetSemantics {}) { content(current.to) }
             val shape = remember(progress, current.forward) { CurlFront(progress, current.forward) }
             Box(Modifier.fillMaxSize().graphicsLayer { clip = true; this.shape = shape }) { content(current.from) }
             Canvas(Modifier.fillMaxSize().semantics { contentDescription = "Перелистывание страницы" }) {
