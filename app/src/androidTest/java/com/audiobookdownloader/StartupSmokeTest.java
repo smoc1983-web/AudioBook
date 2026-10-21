@@ -48,7 +48,7 @@ public class StartupSmokeTest {
         }
         return view;
     }
-    @Test public void mainNavigationRecreationAndNativeRecoveryRemainUsable() throws Exception {
+    @Test(timeout=180000) public void mainNavigationRecreationAndNativeRecoveryRemainUsable() throws Exception {
         assertEquals("com.audiobookdownloader.preview",context.getPackageName());
         Configurator.getInstance().setWaitForIdleTimeout(0);
         device.wakeUp();
@@ -84,22 +84,15 @@ public class StartupSmokeTest {
             visible(By.text("Режим: все четыре источника"),"Cannot restore all-source search");
             // Swipe the page body, away from sliders and nested horizontal rows.
             int w=device.getDisplayWidth(), y=device.getDisplayHeight()/3;
-            long down=android.os.SystemClock.uptimeMillis();
-            android.app.UiAutomation automation=InstrumentationRegistry.getInstrumentation().getUiAutomation();
-            android.view.MotionEvent event=android.view.MotionEvent.obtain(down,down,android.view.MotionEvent.ACTION_DOWN,w*4/5f,y,0);
-            event.setSource(android.view.InputDevice.SOURCE_TOUCHSCREEN);automation.injectInputEvent(event,true);event.recycle();
-            for(int step=1;step<=12;step++){
-                android.os.SystemClock.sleep(20);
-                event=android.view.MotionEvent.obtain(down,android.os.SystemClock.uptimeMillis(),android.view.MotionEvent.ACTION_MOVE,w*4/5f-w*.3f*step/12f,y,0);
-                event.setSource(android.view.InputDevice.SOURCE_TOUCHSCREEN);automation.injectInputEvent(event,true);event.recycle();
-            }
-            try {
-                visible(By.desc("Перелистывание страницы"),"Visible paper fold missing while finger is held");
-                device.executeShellCommand("screencap -p /sdcard/Download/preview-page-curl.png");
-            }finally{
-                event=android.view.MotionEvent.obtain(down,android.os.SystemClock.uptimeMillis(),android.view.MotionEvent.ACTION_UP,w/2f,y,0);
-                event.setSource(android.view.InputDevice.SOURCE_TOUCHSCREEN);automation.injectInputEvent(event,true);event.recycle();
-            }
+            android.util.Log.i("PreviewUITest","Starting slow page-curl gesture");
+            final int dragY=y;
+            Thread drag=new Thread(()->device.swipe(w*4/5,dragY,w/5,dragY,180),"page-curl-drag");
+            drag.start();
+            visible(By.desc("Перелистывание страницы"),"Visible paper fold missing during slow drag");
+            device.executeShellCommand("screencap -p /sdcard/Download/preview-page-curl.png");
+            drag.join(10000);
+            assertFalse("Page gesture did not finish",drag.isAlive());
+            android.util.Log.i("PreviewUITest","Slow page-curl gesture finished");
             visible(By.text("Моя библиотека"),"Swipe left did not turn to library");
             android.os.SystemClock.sleep(500);
             y=device.getDisplayHeight()*3/4; // Empty body, below the library sorting/filter rows.
@@ -141,7 +134,7 @@ public class StartupSmokeTest {
         device.executeShellCommand("screencap -p /sdcard/Download/preview-startup-failure.png");
         throw new AssertionError(message+": "+PlaybackService.Companion.getState().getValue());
     }
-    @Test public void playerAddsCurrentBookAndRealSensorRestartsSleepCountdown() throws Exception {
+    @Test(timeout=180000) public void playerAddsCurrentBookAndRealSensorRestartsSleepCountdown() throws Exception {
         assertEquals("com.audiobookdownloader.preview",context.getPackageName());
         Configurator.getInstance().setWaitForIdleTimeout(0);
         device.wakeUp();device.executeShellCommand("wm dismiss-keyguard");
@@ -174,8 +167,10 @@ public class StartupSmokeTest {
             Shelf shelf=MainActivityKt.loadShelves(context.getSharedPreferences("audiobook_downloader",0)).stream()
                 .filter(value->value.getName().equals("Из плеера")).findFirst().orElseThrow(()->new AssertionError("Collection not created"));
             assertTrue("Current book not saved in collection",shelf.getBooks().stream().anyMatch(book->book.getTitle().equals("Проверка таймера")));
+            android.util.Log.i("PreviewUITest","Collection saved; starting sleep countdown");
             PlaybackService.Companion.setSleepTimer(context,60,false);
             playback(s->s.getShakeListening()&&s.getSleepSeconds()<=57&&s.getSleepSeconds()>=54,"Timer/sensor did not start counting down");
+            android.util.Log.i("PreviewUITest","Countdown decreased; requesting real sensor injection");
             device.executeShellCommand("touch /sdcard/Download/preview-sleep-shake-ready");
             ServicePlaybackState restarted=playback(s->s.getSleepRestartedAt()>0,"Injected accelerometer shaking did not restart timer");
             assertTrue("Countdown did not return to selected minute",restarted.getSleepSeconds()>=58);

@@ -5,7 +5,7 @@ on:
     paths-ignore: ['docs/**', 'README.md', 'FILES.json']
   workflow_dispatch:
 concurrency:
-  group: audiobook-preview-release-${{ github.ref }}
+  group: audiobook-preview-runtime-v2-${{ github.ref }}
   cancel-in-progress: false
 jobs:
   build:

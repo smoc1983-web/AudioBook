@@ -12,15 +12,15 @@ adb shell rm -f /sdcard/Download/preview-sleep-shake-ready
 adb emu sensor status > startup-evidence/sensor-status.txt
 (
   for preview_attempt in $(seq 1 600); do
-    if adb shell test -f /sdcard/Download/preview-sleep-shake-ready; then
+    if timeout 5s adb shell test -f /sdcard/Download/preview-sleep-shake-ready; then
       for preview_pulse in $(seq 1 6); do
-        adb emu sensor set acceleration 14:0:9.80665
+        timeout 5s adb emu sensor set acceleration 14:0:9.80665
         sleep 0.10
-        adb emu sensor set acceleration 0:0:9.80665
+        timeout 5s adb emu sensor set acceleration 0:0:9.80665
         sleep 0.12
-        adb emu sensor set acceleration -14:0:9.80665
+        timeout 5s adb emu sensor set acceleration -14:0:9.80665
         sleep 0.10
-        adb emu sensor set acceleration 0:0:9.80665
+        timeout 5s adb emu sensor set acceleration 0:0:9.80665
         sleep 0.12
       done
       break
@@ -31,7 +31,7 @@ adb emu sensor status > startup-evidence/sensor-status.txt
 preview_sensor_pid=$!
 trap 'kill "$preview_sensor_pid" 2>/dev/null || true' EXIT
 result=0
-gradle :app:connectedDebugAndroidTest --stacktrace || result=$?
+timeout 10m gradle :app:connectedDebugAndroidTest --stacktrace || result=$?
 kill "$preview_sensor_pid" 2>/dev/null || true
 adb logcat -d -v threadtime > startup-evidence/logcat.txt
 adb shell run-as com.audiobookdownloader.preview cat files/audiobook-last-crash.txt > startup-evidence/startup-crash.txt || true
