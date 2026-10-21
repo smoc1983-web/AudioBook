@@ -14,7 +14,6 @@ jobs:
     env:
       RUN_LIVE_SOURCES: "1"
       GH_TOKEN: ${{ github.token }}
-      PREVIEW_KEYSTORE: ${{ runner.temp }}/audiobook-preview-signing/preview.keystore
     permissions:
       contents: write
       actions: read
@@ -27,6 +26,8 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
+      - name: Signing workspace
+        run: echo "PREVIEW_KEYSTORE=$RUNNER_TEMP/audiobook-preview-signing/preview.keystore" >> "$GITHUB_ENV"
       - uses: actions/cache@v4
         with:
           path: ${{ runner.temp }}/audiobook-preview-signing
