@@ -1,0 +1,17 @@
+{
+  "packageName": "com.audiobookdownloader.preview",
+  "versionCode": 100023,
+  "versionName": "4.2-preview.23",
+  "size": 34448759,
+  "sha256": "186337f9e9b7a7996b61665fdf105dba52c318c08739ce7cfc9dc1b3498164dd",
+  "certificateSha256": "3a4cecd14bb3e983843871766909c3f07b3dc64379800f3e270e4a27d39affb7",
+  "apk": "Audiobook-Preview.apk",
+  "commit": "4dc7784cd24f7ac905270e5f7ee996491de5599e",
+  "label": "Audiobook Preview",
+  "providers": [
+    "com.audiobookdownloader.preview.updates",
+    "com.audiobookdownloader.preview.diagnostic_reports",
+    "com.audiobookdownloader.preview.androidx-startup"
+  ],
+  "file": "/workspace/deliverables/Audiobook-Preview/Audiobook-Preview-4.2-preview.23.apk"
+}

@@ -1,11 +1,11 @@
 {
-  "revision": "4.2-preview.17-four-sources-page-turn",
+  "revision": "4.2-preview.23-book-curl-collection-sleep-shake",
   "storage": "GitHub export; see releases/ARCHIVE-PARTS.json for three multipart historical ZIPs",
   "files": [
     {
       "path": ".github/workflows/build-apk.yml",
-      "bytes": 5032,
-      "sha256": "cab5ae776969940a62e031e9cb444afe549fd8b0f28164adca4d3c999e762c32"
+      "bytes": 5049,
+      "sha256": "49d898635928ef26afc62df59fe9516b5761b700b53428efef8defecaa0be356"
     },
     {
       "path": ".gitignore",
@@ -14,8 +14,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 6157,
-      "sha256": "6c308faa5cee3a70b29ba07d48436e58cec3fc834db78ed4fba5a7fb7da07b94"
+      "bytes": 6694,
+      "sha256": "9ba8c35b4791c928c5f83ba6c668ddb2c808750d90ac790cfb5cc3f2b5f804e5"
     },
     {
       "path": "app/build.gradle.kts",
@@ -24,18 +24,18 @@
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/StartupSmokeTest.java",
-      "bytes": 8490,
-      "sha256": "55456b0fb373e7349cb3ce8484a336a2d13570eb19ed58128ebb20e1b6a212b2"
+      "bytes": 15444,
+      "sha256": "739487f0ac19977428636c7105fb45ef84356152ae8a7973dcba5f9f7c97c0e8"
     },
     {
       "path": "app/src/main/AndroidManifest.xml",
-      "bytes": 4370,
-      "sha256": "d4673ba599535d6e9db617a6eb2b904f960de24378c2e051b098e02d644a3e9b"
+      "bytes": 4407,
+      "sha256": "f568bb1353e5443f0ce6cff2123a75d0e575168f10c4c5e3978b4acbc4d4c9f0"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/AbPageTurn.kt",
-      "bytes": 4011,
-      "sha256": "ea7fd3e2b5f75f23c064a525bc6de620b0aab9b94c2095fcc0b465ef47ef7894"
+      "bytes": 7746,
+      "sha256": "ca0d02138bf489f8f91acc6f5cff3c46f96197f5928cb24a1e76fc26299c6f21"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/AudioBookWidget.kt",
@@ -63,14 +63,49 @@
       "sha256": "7f8a33364c159f6a498076493af2ff5bdde797c21d72af86e10b5e995c6690e6"
     },
     {
+      "path": "app/src/main/java/com/audiobookdownloader/SleepShakeDetector.java",
+      "bytes": 1753,
+      "sha256": "a04d1d1fd53cd2241d464b05f414572266d23c96abd63b1bfd200bde38559bd1"
+    },
+    {
       "path": "app/src/main/java/com/audiobookdownloader/VerifiedBooks.kt",
       "bytes": 934,
       "sha256": "59d7833be869f5fdc643a7cc915df69d49be5165481229e22bd6855a469fff95"
     },
     {
+      "path": "app/src/main/res/drawable/ab_launcher_background.xml",
+      "bytes": 527,
+      "sha256": "2de563870aa7dc7255e4c32924038e3a029b04e976cc3711eee3d20d95197d0d"
+    },
+    {
+      "path": "app/src/main/res/drawable/ab_launcher_foreground.xml",
+      "bytes": 1049,
+      "sha256": "e4becd6808823c6724a5efba27e49b3bd2ef3018cb2488cbc2620e02385305fa"
+    },
+    {
+      "path": "app/src/main/res/drawable/ab_launcher_monochrome.xml",
+      "bytes": 341,
+      "sha256": "2c3cec0eb3298a748eb5d3b7183fd367bc800929822841737bb4ba36dae96931"
+    },
+    {
       "path": "app/src/main/res/drawable/preview_icon.xml",
-      "bytes": 668,
-      "sha256": "2024854998fd7a68f9f402a0adfd05dc7daac943e44a342ab5f736f20cbdacf3"
+      "bytes": 1396,
+      "sha256": "b733c4ecaf5ca93af9c4b14cf8976251f9c6af21f6929698a1ecb4c64c7b3390"
+    },
+    {
+      "path": "app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml",
+      "bytes": 226,
+      "sha256": "0faa45d322e0fb636e41064d9cdf44225db054e096668c64dc3e4fc9e1fc8263"
+    },
+    {
+      "path": "app/src/main/res/mipmap-anydpi-v33/ic_launcher.xml",
+      "bytes": 293,
+      "sha256": "6e72515e21468e9170f6a495d4ad0aa29aa7db93ad87e77c9f22fe7acd644229"
+    },
+    {
+      "path": "app/src/main/res/mipmap-anydpi/ic_launcher.xml",
+      "bytes": 1396,
+      "sha256": "b733c4ecaf5ca93af9c4b14cf8976251f9c6af21f6929698a1ecb4c64c7b3390"
     },
     {
       "path": "app/src/main/res/xml/preview_update_paths.xml",
@@ -93,6 +128,11 @@
       "sha256": "c6c70d2e70e5af1011e9104f80b34c15a635e951227be3683ede33007d4fb50a"
     },
     {
+      "path": "app/src/test/java/com/audiobookdownloader/SleepShakeDetectorTest.java",
+      "bytes": 2415,
+      "sha256": "e22479f5abfa39937e011299c7b609e05377f862449f2351de9239e516534191"
+    },
+    {
       "path": "build.gradle.kts",
       "bytes": 217,
       "sha256": "61cd8e15a65a3ded440013250aa5c2bbc875158d0cf2db2e8fc5185ec3c69105"
@@ -104,13 +144,13 @@
     },
     {
       "path": "current/MainActivity.kt",
-      "bytes": 705375,
-      "sha256": "c8d2a7d6e5fccbfdfbf23792302f026cadd2de7e030c78dd13630cd892bdb960"
+      "bytes": 706293,
+      "sha256": "19772238a18aecc121ba060d6146b503536dfc477ca2b86847cc45fe807cc050"
     },
     {
       "path": "current/PlaybackService.kt",
-      "bytes": 59498,
-      "sha256": "b80ba17b2f269cae33ca965882fed6cc084173b93aaf7107c38f62fc3dc9482d"
+      "bytes": 59203,
+      "sha256": "a4e29405ae0069b0e230d426c83a805df2ddc0306fe92b8add4e762d14acbeed"
     },
     {
       "path": "current/README.txt",
@@ -728,6 +768,11 @@
       "sha256": "15af36f375433955a7ac267c84e93ca982d6fe358629c151712bf6baa9292a46"
     },
     {
+      "path": "design/launcher-2026-10-21/options.png",
+      "bytes": 1776758,
+      "sha256": "82a8ffde88107f8054dd770e769569bf437246b9300d1b9af540e4a51772e741"
+    },
+    {
       "path": "docs/BUILD-4.1.md",
       "bytes": 3054,
       "sha256": "884a495152896c92c0292e51953eb70b410c0dde78d04196a9c76c7d29cca978"
@@ -744,8 +789,8 @@
     },
     {
       "path": "docs/HANDOFF.md",
-      "bytes": 9135,
-      "sha256": "4537161dae3db83a7d0e092f5ea41638260b0288319abaf1a94838ff7cc1eff2"
+      "bytes": 10469,
+      "sha256": "2516a02610a20d2cbef1d4cfac70994d5d3954f82ad9976bbe2e5361fab7c896"
     },
     {
       "path": "docs/INSTALL.md",
@@ -756,6 +801,11 @@
       "path": "docs/ORIGINAL-FILES.json",
       "bytes": 362213,
       "sha256": "2aac2ecfad44df46e6261fa6b1523d4835ab5244e5cc516d9b00fecf96c86257"
+    },
+    {
+      "path": "docs/PLAYER-CURL-SLEEP.md",
+      "bytes": 13641,
+      "sha256": "27f7fb41474afd7594709b1b4a795394a85a05b537cda378272eb56103500cd3"
     },
     {
       "path": "docs/PREVIEW-UPDATES.md",
@@ -769,8 +819,8 @@
     },
     {
       "path": "docs/SOURCES-PAGE-TURN.md",
-      "bytes": 9328,
-      "sha256": "c1a844806e6a80b8a0e0f555a5a06ddcf38f1edd6ad71a94ad080520c010658d"
+      "bytes": 9621,
+      "sha256": "830e517846a277f569afe0506c05fce5a49d605e3a1e5503f4bcfbe84b474e6d"
     },
     {
       "path": "docs/STARTUP-RECOVERY.md",
@@ -863,9 +913,24 @@
       "sha256": "fc9a3189d014cbf25438bf04a1d826f8e341f181b90ef5335c4d5b6faac4b2df"
     },
     {
+      "path": "docs/verification/preview-100022.json",
+      "bytes": 702,
+      "sha256": "a59d64a6a01b20795bb73f968e0735ec6fe5644d98951732d7e0812df8433ce2"
+    },
+    {
+      "path": "docs/verification/preview-100023.json",
+      "bytes": 702,
+      "sha256": "f143ae350c7490528cfacb724a26cbfe2e5b135e3f9fcd59b6e1d72ea9403f88"
+    },
+    {
       "path": "docs/verification/preview-four-source-http-2026-10-21.json",
       "bytes": 1492,
       "sha256": "92d35a513a2e0e5d28d0440c7897f94ad5801be087b1d49da044641a6214915f"
+    },
+    {
+      "path": "docs/verification/sensor-injection-100023.txt",
+      "bytes": 72,
+      "sha256": "180a8377ad8cb59776d5cfac358fd64989ce85ef429c5f827d088ff895ece5e3"
     },
     {
       "path": "docs/verification/startup-100010-android35-crash.txt",
@@ -886,6 +951,16 @@
       "path": "docs/verification/startup-100017-android36-test.xml",
       "bytes": 544,
       "sha256": "a5962125e106fe4ffacee019ebac775635d8b2e70682bd12cf3c915c9748c06c"
+    },
+    {
+      "path": "docs/verification/startup-sensor-100022-android36-atd-test.xml",
+      "bytes": 689,
+      "sha256": "24f1f7ceecb575d88e585a3d7f240b73a1a92f056e6c0c4836360005bde62066"
+    },
+    {
+      "path": "docs/verification/startup-sensor-100023-android36-atd-test.xml",
+      "bytes": 689,
+      "sha256": "84c9512e7ccdc96f3d26b429e4ec4022198ff433ba630ed4ef3efd6d3f1b3de0"
     },
     {
       "path": "gradle.properties",
@@ -9709,8 +9784,8 @@
     },
     {
       "path": "scripts/test-android-startup.sh",
-      "bytes": 934,
-      "sha256": "778a5a8ff7faf3847a82e62eff39649b20716cee5472dc5968407f24f6bd87da"
+      "bytes": 2715,
+      "sha256": "8c97455ff8d6da208a0daad105b724b6af0d2931c07782fb6485f7c2b3c2617d"
     },
     {
       "path": "settings.gradle.kts",
