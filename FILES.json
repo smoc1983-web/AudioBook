@@ -1,7 +1,12 @@
 {
-  "revision": "4.0-search-modes-1",
+  "revision": "4.1-verified-sources-1",
   "storage": "GitHub export; see releases/ARCHIVE-PARTS.json for three multipart historical ZIPs",
   "files": [
+    {
+      "path": ".github/workflows/build-apk.yml",
+      "bytes": 1389,
+      "sha256": "2d9dc17e9580ace13b5a619dcb8c267d416737b0b1763b2c21487e76893bb4d7"
+    },
     {
       "path": ".gitignore",
       "bytes": 321,
@@ -9,8 +14,48 @@
     },
     {
       "path": "README.md",
-      "bytes": 4824,
-      "sha256": "833f9577288bc2c3b9c20b8fd8f61915f675678be96750295620e7110155f03f"
+      "bytes": 4550,
+      "sha256": "fe1435a3c26c5c8e674901266f2c4dfe08db9f37219af84e042ce1f9386e509e"
+    },
+    {
+      "path": "app/build.gradle.kts",
+      "bytes": 1686,
+      "sha256": "0c8ee99b211f99e60b0a6e4aa33c74e7d67c39751635093ca5d3e324488455e2"
+    },
+    {
+      "path": "app/src/main/AndroidManifest.xml",
+      "bytes": 3806,
+      "sha256": "be9483c21cbf573a899d4b697ce6c27cd612000c5d3c20c4724bfef6a5253d4a"
+    },
+    {
+      "path": "app/src/main/java/com/audiobookdownloader/AudioBookWidget.kt",
+      "bytes": 1242,
+      "sha256": "f4884b78652eb3e73cb2ed07ba1fae907f6c2c6422d90aa8f38031a69311ddc5"
+    },
+    {
+      "path": "app/src/main/java/com/audiobookdownloader/OpenAudioCatalog.java",
+      "bytes": 10817,
+      "sha256": "df7cc2f4de439e3bdc25eeb35b5676b36a4fc653d4e7a5a0bfd52c3f1ea4f726"
+    },
+    {
+      "path": "app/src/main/java/com/audiobookdownloader/VerifiedBooks.kt",
+      "bytes": 1414,
+      "sha256": "debbecb13e557eac92d1621b90606957d1448abbc91f5b6841c9316e99287841"
+    },
+    {
+      "path": "app/src/test/java/com/audiobookdownloader/LiveCatalogTest.java",
+      "bytes": 2947,
+      "sha256": "c46f1d977cb7727ae85d9f1e060165ebf93514aaf091518168f41db9d7dcea44"
+    },
+    {
+      "path": "app/src/test/java/com/audiobookdownloader/OpenAudioCatalogTest.java",
+      "bytes": 2880,
+      "sha256": "39348fedfbeb5f1a9acaf2ff6a3d606a26bc7f99d9b75b3e7c241eb0ddaec541"
+    },
+    {
+      "path": "build.gradle.kts",
+      "bytes": 217,
+      "sha256": "61cd8e15a65a3ded440013250aa5c2bbc875158d0cf2db2e8fc5185ec3c69105"
     },
     {
       "path": "current/INSTALL-Search-Modes.txt",
@@ -19,8 +64,8 @@
     },
     {
       "path": "current/MainActivity.kt",
-      "bytes": 703311,
-      "sha256": "6844a584400e8e84d6aa4009f09c20e4f9d383e54218a4b183b9fa2d55f77e5b"
+      "bytes": 703312,
+      "sha256": "d6e6ee0d93e666e9608436e8712064529f6e12d135dda5fef648a0c94f574855"
     },
     {
       "path": "current/PlaybackService.kt",
@@ -643,14 +688,19 @@
       "sha256": "15af36f375433955a7ac267c84e93ca982d6fe358629c151712bf6baa9292a46"
     },
     {
+      "path": "docs/BUILD-4.1.md",
+      "bytes": 2747,
+      "sha256": "bbc490152c5d2f83d8dfb070a4836c9c86812aea60ca04b22d7a5e5c3ee66e0c"
+    },
+    {
       "path": "docs/CHANGELOG.md",
       "bytes": 1982,
       "sha256": "e1cef10ed28682ac7d57a63141452add87367eacff845e6c9a00395267149989"
     },
     {
       "path": "docs/HANDOFF.md",
-      "bytes": 6892,
-      "sha256": "fc9b8e5b658b4a8c1602a3f9eb4c9d81b3601e0674f35f5cd8d0bd7afde96ebb"
+      "bytes": 4000,
+      "sha256": "b46fe6bcaeeade1025d070cad07d76e6713a8927aa6171123162bfae015f8425"
     },
     {
       "path": "docs/INSTALL.md",
@@ -661,6 +711,11 @@
       "path": "docs/ORIGINAL-FILES.json",
       "bytes": 362213,
       "sha256": "2aac2ecfad44df46e6261fa6b1523d4835ab5244e5cc516d9b00fecf96c86257"
+    },
+    {
+      "path": "docs/SOURCE-REPLACEMENT.md",
+      "bytes": 5861,
+      "sha256": "5012082a33b5a52e5efe9febc4632025f0b560e201f489a5d88c023424b7d74a"
     },
     {
       "path": "docs/TELEGRAM-POST.md",
@@ -688,6 +743,11 @@
       "sha256": "abd2ddd507f40e970f857b771e49d0a4fbc7a0c7c16309687d7419f7a525ea0a"
     },
     {
+      "path": "docs/previous/HANDOFF-4.0.md",
+      "bytes": 6892,
+      "sha256": "fc9b8e5b658b4a8c1602a3f9eb4c9d81b3601e0674f35f5cd8d0bd7afde96ebb"
+    },
+    {
       "path": "docs/previous/genre_cards_update.txt",
       "bytes": 1526,
       "sha256": "af7963b4401369d35263edeabfa804bb149c0c4327d0d8fd6a8a05a1a3d8f4fe"
@@ -711,6 +771,11 @@
       "path": "docs/previous/native_directory_update.txt",
       "bytes": 12981,
       "sha256": "02f5ccd2c0c8885ee395b5e0a328bb81afed8be3bcb8b0348c6c8b51dade121d"
+    },
+    {
+      "path": "gradle.properties",
+      "bytes": 212,
+      "sha256": "54e80429e98a222d8712887622f10d2c76d76ff7bf508ddfca33df2e7678f123"
     },
     {
       "path": "history/audiobook-4.0/MainActivity.kt",
@@ -9511,6 +9576,11 @@
       "path": "scripts/previous/patch_search_modes.py",
       "bytes": 9322,
       "sha256": "df56f88c6a84f3bdbbcff0c73bace14ff801c945555ef280ddd1ff67f0ed8426"
+    },
+    {
+      "path": "settings.gradle.kts",
+      "bytes": 269,
+      "sha256": "6b587680cfc428a03df2e5cf7ddaceba7336a5da2baf2660b4ed6dff87a00708"
     },
     {
       "path": "tools/restore_archives.py",
