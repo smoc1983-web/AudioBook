@@ -1,0 +1,17 @@
+{
+  "packageName": "com.audiobookdownloader.preview",
+  "versionCode": 100034,
+  "versionName": "4.2-preview.34",
+  "size": 36503835,
+  "sha256": "4fd35a6ac98dd2d5520de4da7b0afcdfdef5f09fb0752a86f26f1ee98526d845",
+  "certificateSha256": "3a4cecd14bb3e983843871766909c3f07b3dc64379800f3e270e4a27d39affb7",
+  "apk": "Audiobook-Preview.apk",
+  "commit": "e27e02e6cdf86552eddbd9ab243e53a912d68060",
+  "label": "Audiobook Preview",
+  "providers": [
+    "com.audiobookdownloader.preview.updates",
+    "com.audiobookdownloader.preview.diagnostic_reports",
+    "com.audiobookdownloader.preview.androidx-startup"
+  ],
+  "file": "Audiobook-Preview-4.2-preview.34.apk"
+}

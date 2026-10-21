@@ -1,0 +1,146 @@
+{
+  "checked_at": "2026-10-21T17:40:45.032159+00:00",
+  "scope": "Home-page availability only; not proof of search, download or playback",
+  "sources": [
+    {
+      "source": "Азбука веры",
+      "url": "https://azbyka.ru/audio/",
+      "status": 200,
+      "final_url": "https://azbyka.ru/audio/",
+      "title": "Православное аудио - аудиокниги, песни и молитвы слушать онлайн",
+      "access_challenge": false,
+      "has_html": true
+    },
+    {
+      "source": "Книгоблуд",
+      "url": "https://mob.knigoblud.club/",
+      "status": 200,
+      "final_url": "https://mob.knigoblud.club/",
+      "title": "Книгоблуд - клуб литературного наслаждения!",
+      "access_challenge": false,
+      "has_html": true
+    },
+    {
+      "source": "Bookinfo",
+      "url": "https://bookinfo.net/",
+      "status": 200,
+      "final_url": "https://bookinfo.net/",
+      "title": "Аудиокниги онлайн — слушать новинки | Bookinfo",
+      "access_challenge": false,
+      "has_html": true
+    },
+    {
+      "source": "Audiokniga-online.ru",
+      "url": "https://audiokniga-online.ru/",
+      "status": 200,
+      "final_url": "https://audiokniga-online.ru/",
+      "title": "Слушать аудиокниги онлайн, бесплатно. Личная библиотека аудиокниг",
+      "access_challenge": false,
+      "has_html": true
+    },
+    {
+      "source": "Книга в Ухе",
+      "url": "https://m.knigavuhe.org/",
+      "status": 200,
+      "final_url": "https://m.knigavuhe.org/",
+      "title": "Аудиокниги слушай онлайн - адрес Книга в Ухе запоминай!",
+      "access_challenge": false,
+      "has_html": true
+    },
+    {
+      "source": "Izibuk",
+      "url": "https://pda.izib.uk/",
+      "status": 200,
+      "final_url": "https://pda.izib.uk/",
+      "title": "ИзиБук - Топовые Аудиокниги Бесплатно!",
+      "access_challenge": false,
+      "has_html": true
+    },
+    {
+      "source": "Lis10Book",
+      "url": "https://lis10book.com/",
+      "status": 200,
+      "final_url": "https://lis10book.com/",
+      "title": "Проверка соединения — lis10book.com",
+      "access_challenge": true,
+      "has_html": true
+    },
+    {
+      "source": "Uknig",
+      "url": "https://uknig.com/",
+      "status": 200,
+      "final_url": "https://uknig.com/",
+      "title": "уКниг - лучшая библиотека аудиокниг",
+      "access_challenge": false,
+      "has_html": true
+    },
+    {
+      "source": "Поле книг",
+      "url": "https://poleknig.com/",
+      "status": 200,
+      "final_url": "https://poleknig.com/",
+      "title": "ПолеКниг | Лучшие аудиокниги в одном месте",
+      "access_challenge": false,
+      "has_html": true
+    },
+    {
+      "source": "Аудиокниги Все",
+      "url": "https://audioknigivse.ru/",
+      "status": 200,
+      "final_url": "https://audioknigivse.ru/",
+      "title": "Аудиокниги Все слушать онлайн бесплатно на сайте самые интересные аудиокниги.",
+      "access_challenge": false,
+      "has_html": true
+    },
+    {
+      "source": "Отруб",
+      "url": "https://m.otrub.in/",
+      "status": 200,
+      "final_url": "https://m.otrub.in/",
+      "title": "Отрубин - натуральные аудиокниги для наслаждения",
+      "access_challenge": false,
+      "has_html": true
+    },
+    {
+      "source": "Akniga",
+      "url": "https://akniga.org/",
+      "status": 200,
+      "final_url": "https://akniga.org/",
+      "title": "Аудиокниги слушать онлайн — Аудиокниги Клуб",
+      "access_challenge": false,
+      "has_html": true
+    },
+    {
+      "source": "Слушкин Всем",
+      "url": "https://slushkinvsem.ru/",
+      "status": 200,
+      "final_url": "https://slushkinvsem.ru/",
+      "title": "",
+      "access_challenge": false,
+      "has_html": true
+    },
+    {
+      "source": "Audioboo",
+      "url": "https://audioboo.org/",
+      "error": "HTTP Error 403: Forbidden"
+    },
+    {
+      "source": "Audioknigi.pro",
+      "url": "https://audioknigi.pro/",
+      "status": 200,
+      "final_url": "https://audioknigi.pro/",
+      "title": "Аудиокниги онлайн - слушать бесплатно на Audioknigi.Pro",
+      "access_challenge": false,
+      "has_html": true
+    },
+    {
+      "source": "База книг",
+      "url": "https://baza-knig.info/",
+      "status": 200,
+      "final_url": "https://baza-knig.info/",
+      "title": "Аудиокниги слушать онлайн бесплатно Baza-Knig.info",
+      "access_challenge": false,
+      "has_html": true
+    }
+  ]
+}

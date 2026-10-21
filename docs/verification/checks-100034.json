@@ -1,0 +1,81 @@
+{
+  "run": 39645389655,
+  "source": "e27e02e6cdf86552eddbd9ab243e53a912d68060",
+  "android": {
+    "api": 36,
+    "image": "aosp_atd",
+    "tests": 3,
+    "failures": 0,
+    "errors": 0,
+    "seconds": 39.476,
+    "cases": [
+      "texturedCylinderRendersBothDirectionsAndExportsFrames",
+      "mainNavigationRecreationAndNativeRecoveryRemainUsable",
+      "playerAddsCurrentBookAndRealSensorRestartsSleepCountdown"
+    ]
+  },
+  "jvm": [
+    {
+      "name": "com.audiobookdownloader.AdditionalBookSourcesTest",
+      "tests": "4",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.audiobookdownloader.BookAudioHeadersTest",
+      "tests": "4",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.audiobookdownloader.CylinderPageMeshTest",
+      "tests": "7",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.audiobookdownloader.LiveCatalogTest",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "1"
+    },
+    {
+      "name": "com.audiobookdownloader.OpenAudioCatalogTest",
+      "tests": "7",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.audiobookdownloader.PreviewUpdateRulesTest",
+      "tests": "6",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.audiobookdownloader.SleepShakeDetectorTest",
+      "tests": "8",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    }
+  ],
+  "javascript_fixtures": 163,
+  "sources": {
+    "total": 16,
+    "default_enabled": 13,
+    "pending_default_disabled": [
+      "Lis10Book",
+      "Слушкин Всем",
+      "Audioboo"
+    ]
+  },
+  "physical_S24_tested": false,
+  "live_full_audio_downloads_tested": false,
+  "AudioBookApp_dex_registers": 116
+}
