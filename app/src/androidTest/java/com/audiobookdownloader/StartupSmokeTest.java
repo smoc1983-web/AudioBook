@@ -24,7 +24,7 @@ public class StartupSmokeTest {
         String value=title.getText();
         // Fresh Google-API images can show an ANR while their own services settle.
         // Never dismiss an Audiobook failure or a generic/unknown app error.
-        if(value!=null && (value.startsWith("System UI ") || value.startsWith("Google Play services ") || value.startsWith("Phone ") || value.startsWith("Process system "))){
+        if(value!=null && (value.startsWith("System UI ") || value.startsWith("Google Play services ") || value.startsWith("Phone ") || value.startsWith("Process system ") || value.startsWith("Pixel Launcher "))){
             UiObject2 wait=device.findObject(By.res("android","aerr_wait"));
             if(wait!=null)wait.click();
         }

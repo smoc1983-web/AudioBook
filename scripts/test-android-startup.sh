@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 mkdir -p startup-evidence
-adb shell wm size 540x1200
-adb shell wm density 210
-adb shell am force-stop com.google.android.gms || true
+# Same logical 411dp-wide display, fewer pixels for software rendering on CI.
+adb shell wm size 360x800
+adb shell wm density 140
+# This app has no Play Services dependency; keep first-boot background setup from restarting.
+adb shell pm disable-user --user 0 com.google.android.gms || true
 adb shell input keyevent 82
 adb logcat -c
 result=0
