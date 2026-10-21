@@ -89,6 +89,7 @@ public class StartupSmokeTest {
             Thread drag=new Thread(()->device.swipe(w*4/5,dragY,w/5,dragY,180),"page-curl-drag");
             drag.start();
             visible(By.desc("Перелистывание страницы"),"Visible paper fold missing during slow drag");
+            renderWindow(scenario,"preview-page-curl-software.png");
             device.executeShellCommand("screencap -p /sdcard/Download/preview-page-curl.png");
             drag.join(10000);
             assertFalse("Page gesture did not finish",drag.isAlive());
@@ -122,6 +123,18 @@ public class StartupSmokeTest {
             visible(By.text("Жанры"),"Retry still cannot open home");
             device.executeShellCommand("screencap -p /sdcard/Download/preview-startup-success.png");
         }
+    }
+    private void renderWindow(ActivityScenario<MainActivity> scenario,String name) throws Exception {
+        scenario.onActivity(activity->{
+            android.view.View view=activity.getWindow().getDecorView();
+            android.graphics.Bitmap bitmap=android.graphics.Bitmap.createBitmap(view.getWidth(),view.getHeight(),android.graphics.Bitmap.Config.ARGB_8888);
+            try(java.io.FileOutputStream out=new java.io.FileOutputStream(new File(context.getFilesDir(),name))){
+                view.draw(new android.graphics.Canvas(bitmap));
+                bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG,100,out);
+            }catch(java.io.IOException error){throw new AssertionError(error);}
+            finally{bitmap.recycle();}
+        });
+        device.executeShellCommand("run-as com.audiobookdownloader.preview cat files/"+name+" > /sdcard/Download/"+name);
     }
     private ServicePlaybackState playback(java.util.function.Predicate<ServicePlaybackState> condition,String message) throws Exception {
         long deadline=android.os.SystemClock.uptimeMillis()+30000;
@@ -175,6 +188,7 @@ public class StartupSmokeTest {
             ServicePlaybackState restarted=playback(s->s.getSleepRestartedAt()>0,"Injected accelerometer shaking did not restart timer");
             assertTrue("Countdown did not return to selected minute",restarted.getSleepSeconds()>=58);
             assertTrue("Shaking paused playback",restarted.isPlaying());
+            renderWindow(scenario,"preview-player-software.png");
             device.executeShellCommand("screencap -p /sdcard/Download/preview-sleep-shake-success.png");
             PlaybackService.Companion.stop(context,true,null);
             playback(s->!s.getHasSelection(),"Service selection was not cleared between tests");

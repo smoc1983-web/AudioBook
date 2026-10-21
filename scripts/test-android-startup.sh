@@ -43,6 +43,8 @@ timeout 15s adb pull /sdcard/Download/preview-startup-failure.png startup-eviden
 timeout 15s adb pull /sdcard/Download/preview-startup-success.png startup-evidence/ || true
 timeout 15s adb pull /sdcard/Download/preview-page-curl.png startup-evidence/ || true
 timeout 15s adb pull /sdcard/Download/preview-sleep-shake-success.png startup-evidence/ || true
+timeout 15s adb pull /sdcard/Download/preview-page-curl-software.png startup-evidence/ || true
+timeout 15s adb pull /sdcard/Download/preview-player-software.png startup-evidence/ || true
 free -m > startup-evidence/host-memory.txt
 sudo dmesg -T | tail -100 > startup-evidence/host-kernel.txt || true
 exit "$result"
