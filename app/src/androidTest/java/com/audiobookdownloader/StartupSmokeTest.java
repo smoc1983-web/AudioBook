@@ -82,6 +82,12 @@ public class StartupSmokeTest {
             visible(By.text("Режим: только Bookinfo"),"Selected source did not survive recreation");
             visible(By.text("Общий поиск"),"All-source action missing").click();
             visible(By.text("Режим: все четыре источника"),"Cannot restore all-source search");
+            // Short drags must return to the same page, without sending navigation/playback commands.
+            int cancelW=device.getDisplayWidth(),cancelY=device.getDisplayHeight()*3/4;
+            device.swipe(cancelW*4/5,cancelY,cancelW*4/5-cancelW/20,cancelY,24);
+            android.os.SystemClock.sleep(600);
+            visible(By.text("Жанры"),"Short swipe did not return to home");
+            assertFalse("Cancelled curl remained on screen",device.hasObject(By.desc("Перелистывание страницы")));
             // Swipe the page body, away from sliders and nested horizontal rows.
             int w=device.getDisplayWidth(), y=device.getDisplayHeight()/3;
             android.util.Log.i("PreviewUITest","Starting slow page-curl gesture");
@@ -89,6 +95,7 @@ public class StartupSmokeTest {
             Thread drag=new Thread(()->device.swipe(w*4/5,dragY,w/5,dragY,180),"page-curl-drag");
             drag.start();
             visible(By.desc("Перелистывание страницы"),"Visible paper fold missing during slow drag");
+            visible(By.desc("Цилиндрический загиб"),"Actual captured page texture was not rendered");
             renderWindow(scenario,"preview-page-curl-software.png");
             device.executeShellCommand("screencap -p /sdcard/Download/preview-page-curl.png");
             drag.join(10000);
@@ -134,7 +141,7 @@ public class StartupSmokeTest {
             }catch(java.io.IOException error){throw new AssertionError(error);}
             finally{bitmap.recycle();}
         });
-        device.executeShellCommand("run-as com.audiobookdownloader.preview cat files/"+name+" > /sdcard/Download/"+name);
+        device.executeShellCommand("sh -c 'run-as com.audiobookdownloader.preview cat files/"+name+" > /sdcard/Download/"+name+"'");
     }
     private ServicePlaybackState playback(java.util.function.Predicate<ServicePlaybackState> condition,String message) throws Exception {
         long deadline=android.os.SystemClock.uptimeMillis()+30000;

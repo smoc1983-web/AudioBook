@@ -1,0 +1,15 @@
+Audiobook cylindrical page turn, 2026.
+New implementation in CylinderPageMesh.java, PageCurlRenderer.java and AbPageTurn.kt.
+
+Geometry reference: android-pagecurl, Copyright 2012 Harri Smatt,
+https://github.com/harism/android-pagecurl
+revision 7a2c8f152bb4f1b0de3b1aa72b3cb79e1fe8e3bd, Apache License 2.0.
+Its cylindrical orthographic paper model informed this new grid renderer.
+Upstream Java code, demo images and demo icon are not copied.
+
+Compose integration reference: Page Curl by oleksandrbalan,
+https://github.com/oleksandrbalan/pagecurl
+revision a390c64508abfc45379070a40591ba3ed0cc686e, Apache License 2.0.
+Its page reverse/shadow approach was studied; no library binary is bundled.
+
+Also evaluated: https://github.com/eschao/android-PageFlip (Apache-2.0).

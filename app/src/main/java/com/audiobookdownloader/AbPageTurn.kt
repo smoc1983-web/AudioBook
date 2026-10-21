@@ -1,48 +1,73 @@
 package com.audiobookdownloader
 
+import android.graphics.Bitmap
+import android.graphics.Matrix
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.*
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.layer.drawLayer
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.rememberGraphicsLayer
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.LayoutDirection
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlin.math.abs
-import kotlin.math.sin
 
 private data class BookTurn(val from: AppPage, val to: AppPage, val forward: Boolean)
 
-/** A stationary destination under an opaque sheet with a curved, shaded reverse side. */
+/** Real textured cylindrical curl, following android-pagecurl's paper geometry principle. */
 @Composable
 internal fun AbPageTurn(page: AppPage, navigate: (AppPage) -> Unit, modifier: Modifier = Modifier,
     sheetColor: Color = Color(0xffd7e6ee), content: @Composable (AppPage) -> Unit) {
     val tabs = remember { listOf(AppPage.SEARCH, AppPage.LIBRARY, AppPage.PLAYER, AppPage.COLLECTIONS) }
     val latestNavigate by rememberUpdatedState(navigate)
+    val latestPage by rememberUpdatedState(page)
     var displayed by remember { mutableStateOf(page) }
     var turn by remember { mutableStateOf<BookTurn?>(null) }
     var progress by remember { mutableFloatStateOf(0f) }
     var width by remember { mutableFloatStateOf(1f) }
+    var height by remember { mutableFloatStateOf(1f) }
+    var touchY by remember { mutableFloatStateOf(.5f) }
+    var dragY by remember { mutableFloatStateOf(0f) }
     var settling by remember { mutableStateOf(false) }
     var animation by remember { mutableStateOf<Job?>(null) }
     val scope = rememberCoroutineScope()
     val threshold = 64f * LocalDensity.current.density
-    val latestPage by rememberUpdatedState(page)
+    val sourceLayer = rememberGraphicsLayer()
+    val renderer = remember { PageCurlRenderer() }
+    var snapshot by remember(turn) { mutableStateOf<Bitmap?>(null) }
+    var captureFailed by remember(turn) { mutableStateOf(false) }
+
+    // Record the actual Compose RenderNode: View.draw(Canvas(bitmap)) loses hardware layers.
+    LaunchedEffect(turn) {
+        val request = turn ?: return@LaunchedEffect
+        withFrameNanos { }
+        try {
+            val captured = sourceLayer.toImageBitmap().asAndroidBitmap()
+            snapshot = if (request.forward) captured.copy(Bitmap.Config.ARGB_8888, false)
+                else Bitmap.createBitmap(captured, 0, 0, captured.width, captured.height,
+                    Matrix().apply { setScale(-1f, 1f) }, true)
+        } catch (error: Exception) {
+            android.util.Log.w("AudiobookPageCurl", "Page texture capture unavailable", error)
+            captureFailed = true
+        }
+    }
 
     fun finish(commit: Boolean) {
         val request = turn ?: return
@@ -50,11 +75,8 @@ internal fun AbPageTurn(page: AppPage, navigate: (AppPage) -> Unit, modifier: Mo
         settling = true
         animation = scope.launch {
             try {
-                animate(progress, if (commit) 1f else 0f, animationSpec = tween(420)) { value, _ -> progress = value }
-                if (commit) {
-                    displayed = request.to
-                    latestNavigate(request.to)
-                }
+                animate(progress, if (commit) 1f else 0f, animationSpec = tween(if (commit) 540 else 280)) { value, _ -> progress = value }
+                if (commit) { displayed = request.to; latestNavigate(request.to) }
                 turn = null
                 progress = 0f
             } finally { settling = false }
@@ -64,97 +86,67 @@ internal fun AbPageTurn(page: AppPage, navigate: (AppPage) -> Unit, modifier: Mo
         if (page != displayed) {
             animation?.cancel()
             turn = BookTurn(displayed, page, tabs.indexOf(page) > tabs.indexOf(displayed))
-            progress = 0f
-            // Navigation buttons use the same visible sheet turn as a swipe.
+            touchY = .82f; dragY = 0f; progress = 0f
             settling = true
             try {
-                animate(0f, 1f, animationSpec = tween(520)) { value, _ -> progress = value }
-                displayed = page
-                turn = null
-                progress = 0f
+                animate(0f, 1f, animationSpec = tween(640)) { value, _ -> progress = value }
+                displayed = page; turn = null; progress = 0f
             } finally { settling = false }
         }
     }
-    Box(modifier.clipToBounds().onSizeChanged { width = it.width.toFloat().coerceAtLeast(1f) }
-        .pointerInput(threshold) {
-            var distance = 0f
-            var accepted = false
-            var startedOn = latestPage
-            detectHorizontalDragGestures(
-                onDragStart = { distance = 0f; accepted = !settling; startedOn = latestPage },
-                onDragCancel = { if (accepted) finish(false) },
-                onDragEnd = {
-                    if (accepted && latestPage == startedOn) finish(abs(distance) >= threshold || progress >= .28f)
-                },
-                onHorizontalDrag = { change, amount ->
-                    if (accepted && !settling && latestPage == startedOn) {
+    Box(modifier.clipToBounds().onSizeChanged {
+        width = it.width.toFloat().coerceAtLeast(1f); height = it.height.toFloat().coerceAtLeast(1f)
+    }.pointerInput(threshold) {
+        var distance = 0f
+        var accepted = false
+        var startedOn = latestPage
+        var startY = 0f
+        detectHorizontalDragGestures(
+            onDragStart = {
+                distance = 0f; accepted = !settling; startedOn = latestPage
+                startY = it.y; touchY = (it.y / height).coerceIn(0f, 1f); dragY = 0f
+            },
+            onDragCancel = { if (accepted) finish(false) },
+            onDragEnd = {
+                if (accepted && latestPage == startedOn) finish(abs(distance) >= threshold || progress >= .16f)
+            },
+            onHorizontalDrag = { change, amount ->
+                if (accepted && !settling && latestPage == startedOn) {
+                    distance += amount
+                    val forward = distance < 0f
+                    val index = tabs.indexOf(startedOn) + if (forward) 1 else -1
+                    if (index in tabs.indices) {
                         change.consume()
-                        distance += amount
-                        val forward = distance < 0f
-                        val index = tabs.indexOf(startedOn) + if (forward) 1 else -1
-                        if (index in tabs.indices) {
-                            turn = BookTurn(startedOn, tabs[index], forward)
-                            progress = (abs(distance) / width).coerceIn(0f, .98f)
-                        } else { turn = null; progress = 0f }
-                    }
-                })
-        }) {
+                        turn = BookTurn(startedOn, tabs[index], forward)
+                        // The held edge moves by the finger's distance; settling rolls the rest off-screen.
+                        progress = (abs(distance) / (width * 2f)).coerceIn(0f, .98f)
+                        dragY = ((change.position.y - startY) / height).coerceIn(-.3f, .3f)
+                    } else { turn = null; progress = 0f }
+                }
+            })
+    }) {
         val current = turn
-        if (current == null) content(displayed)
-        else {
-            // No sliding/fading of transparent screens: the next page stays still.
+        if (current != null) {
             Box(Modifier.fillMaxSize().clearAndSetSemantics {}) { content(current.to) }
-            val shape = remember(progress, current.forward) { CurlFront(progress, current.forward) }
-            Box(Modifier.fillMaxSize().graphicsLayer { clip = true; this.shape = shape }) { content(current.from) }
-            Canvas(Modifier.fillMaxSize().semantics { contentDescription = "Перелистывание страницы" }) {
-                val fold = curlFold(size, progress)
-                val edge = size.width * (1f - progress)
-                val bend = curlBend(size, progress)
-                // Mirror all paper geometry for a right swipe.
-                drawContext.canvas.save()
-                if (!current.forward) { drawContext.canvas.translate(size.width, 0f); drawContext.canvas.scale(-1f, 1f) }
-                val shadow = Path().apply {
-                    addRect(androidx.compose.ui.geometry.Rect(edge - bend * .2f, 0f, edge + bend * 1.3f, size.height))
-                }
-                drawPath(shadow, Brush.horizontalGradient(listOf(Color.Transparent, Color.Black.copy(alpha=.42f), Color.Transparent),
-                    edge-bend*.2f, edge+bend*1.3f))
-                drawPath(fold, Brush.horizontalGradient(listOf(sheetColor.copy(alpha=1f), Color.White.copy(alpha=.98f), sheetColor.copy(alpha=1f)),
-                    edge-bend*.18f, edge+bend))
-                val crease = Path().apply {
-                    moveTo(edge, 0f)
-                    cubicTo(edge-bend*.55f, size.height*.24f, edge-bend*.55f, size.height*.76f, edge, size.height)
-                }
-                drawPath(crease, Color.White.copy(alpha=.75f), style=androidx.compose.ui.graphics.drawscope.Stroke(1.5f))
-                drawContext.canvas.restore()
+        }
+        Box(Modifier.fillMaxSize().drawWithContent {
+            if (current == null || snapshot == null) {
+                sourceLayer.record { this@drawWithContent.drawContent() }
+                // If a device cannot capture a RenderNode, retain a usable live page and navigation.
+                drawLayer(sourceLayer)
             }
+        }) { content(displayed) }
+        if (current != null) {
+            val bitmap = snapshot
+            Canvas(Modifier.fillMaxSize().semantics { contentDescription = "Перелистывание страницы" }) {
+                if (bitmap != null) drawIntoCanvas { canvas ->
+                    renderer.draw(canvas.nativeCanvas, bitmap, size.width, size.height,
+                        progress, touchY, dragY, sheetColor.toArgb(), current.forward)
+                }
+            }
+            if (bitmap != null) Box(Modifier.fillMaxSize().semantics { contentDescription = "Цилиндрический загиб" })
+            // No synthetic success marker for capture failures; Android tests must see a real texture.
+            if (captureFailed) Box(Modifier.semantics { contentDescription = "Снимок страницы недоступен" })
         }
-    }
-}
-
-private fun curlBend(size: Size, progress: Float): Float =
-    (sin(progress.coerceIn(0f,1f) * Math.PI).toFloat() * size.width * .24f).coerceAtLeast(.01f)
-
-private class CurlFront(private val progress: Float, private val forward: Boolean): Shape {
-    override fun createOutline(size: Size, layoutDirection: LayoutDirection, density: Density): Outline {
-        val edge = size.width * (1f-progress)
-        val bend = curlBend(size,progress)
-        val path = Path().apply {
-            moveTo(0f,0f); lineTo(edge,0f)
-            cubicTo(edge-bend*.55f,size.height*.24f,edge-bend*.55f,size.height*.76f,edge,size.height)
-            lineTo(0f,size.height);close()
-        }
-        if (!forward) path.transform(Matrix().apply { translate(size.width,0f); scale(-1f,1f) })
-        return Outline.Generic(path)
-    }
-}
-
-private fun curlFold(size: Size, progress: Float): Path {
-    val edge=size.width*(1f-progress)
-    val bend=curlBend(size,progress)
-    return Path().apply {
-        moveTo(edge,0f)
-        cubicTo(edge-bend*.55f,size.height*.24f,edge-bend*.55f,size.height*.76f,edge,size.height)
-        cubicTo(edge+bend*.55f,size.height*.87f,edge+bend*1.15f,size.height*.13f,edge,0f)
-        close()
     }
 }

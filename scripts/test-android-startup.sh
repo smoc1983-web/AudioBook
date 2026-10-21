@@ -45,6 +45,11 @@ timeout 15s adb pull /sdcard/Download/preview-page-curl.png startup-evidence/ ||
 timeout 15s adb pull /sdcard/Download/preview-sleep-shake-success.png startup-evidence/ || true
 timeout 15s adb pull /sdcard/Download/preview-page-curl-software.png startup-evidence/ || true
 timeout 15s adb pull /sdcard/Download/preview-player-software.png startup-evidence/ || true
+for preview_direction in left right; do
+  for preview_frame in 0 1 2 3; do
+    timeout 15s adb pull "/sdcard/Download/curl-cylinder-${preview_direction}-${preview_frame}.png" startup-evidence/ || true
+  done
+done
 free -m > startup-evidence/host-memory.txt
 sudo dmesg -T | tail -100 > startup-evidence/host-kernel.txt || true
 exit "$result"

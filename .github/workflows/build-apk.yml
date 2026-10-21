@@ -108,6 +108,18 @@ jobs:
           path: |
             dist/Audiobook-Preview.apk
             dist/preview-update.json
+      - name: Split large APK for independent inspection
+        run: |
+          mkdir -p dist-inspection
+          split -b 24000000 -d dist/Audiobook-Preview.apk dist-inspection/Audiobook-Preview.apk.part-
+      - uses: actions/upload-artifact@v4
+        with:
+          name: APK-inspection-part-00
+          path: dist-inspection/Audiobook-Preview.apk.part-00
+      - uses: actions/upload-artifact@v4
+        with:
+          name: APK-inspection-part-01
+          path: dist-inspection/Audiobook-Preview.apk.part-01
       - name: Save source verification reports
         if: always()
         uses: actions/upload-artifact@v4
