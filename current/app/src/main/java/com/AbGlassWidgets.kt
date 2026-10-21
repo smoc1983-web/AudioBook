@@ -49,8 +49,8 @@ import kotlin.math.sqrt
 internal data class AbWidgetRoute(val serial: Long = 0, val target: String = "")
 
 internal object AbWidgetRoutes {
-    const val PLAYER = "com.audiobookdownloader.widget.OPEN_PLAYER"
-    const val TIMER = "com.audiobookdownloader.widget.OPEN_TIMER"
+    const val PLAYER = BuildConfig.APPLICATION_ID + ".widget.OPEN_PLAYER"
+    const val TIMER = BuildConfig.APPLICATION_ID + ".widget.OPEN_TIMER"
     private val counter = AtomicLong()
     private val mutable = MutableStateFlow(AbWidgetRoute())
     val requests = mutable.asStateFlow()

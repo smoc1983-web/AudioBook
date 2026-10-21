@@ -216,6 +216,7 @@ class MainActivity : ComponentActivity() {
         AbCrashReport.install(this)
         val recover=AbLaunchState.needsRecovery(this)
         title=AB_PRODUCT_NAME
+        PreviewUpdatesActivity.checkInBackground(this)
         // Keep the fallback for a real startup failure; never open a report automatically.
         showStartup(false)
         readyJob=activityWork.launch {
@@ -6656,7 +6657,7 @@ suspend fun downloadBookCover(
             val root =
                 File(
                     downloads,
-                    "AudioBooks"
+                    BuildConfig.LIBRARY_DIRECTORY
                 )
 
             if (
@@ -7095,7 +7096,7 @@ fun downloadTrack(
             ) + ".mp3"
 
         val folder =
-            "AudioBooks/" +
+            BuildConfig.LIBRARY_DIRECTORY + "/" +
                 safeFileName(
                     bookTitle
                 )
@@ -7363,7 +7364,7 @@ internal object AbLibraryHousekeeping {
 
 @Suppress("DEPRECATION")
 fun libraryRoot(): File = File(
-    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "AudioBooks"
+    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), BuildConfig.LIBRARY_DIRECTORY
 )
 
 fun libraryAudioPermission(): String? = when {
@@ -7494,7 +7495,7 @@ fun scanLibraryReport(context: Context? = null): LibraryScanResult {
         val columns=mutableListOf("_id","_data","_size","_display_name")
         if(Build.VERSION.SDK_INT>=29)columns.add("relative_path")
         val selection=if(Build.VERSION.SDK_INT>=29)"(_data LIKE ? OR relative_path LIKE ?)" else "_data LIKE ?"
-        val arguments=if(Build.VERSION.SDK_INT>=29)arrayOf(root.absolutePath+"/%","Download/AudioBooks/%") else arrayOf(root.absolutePath+"/%")
+        val arguments=if(Build.VERSION.SDK_INT>=29)arrayOf(root.absolutePath+"/%","Download/${BuildConfig.LIBRARY_DIRECTORY}/%") else arrayOf(root.absolutePath+"/%")
         context.contentResolver.query(collection,columns.toTypedArray(),selection,arguments,null)?.use {cursor ->
             val discovered=linkedMapOf<File,MutableList<File>>()
             while(cursor.moveToNext()) {
@@ -7522,7 +7523,7 @@ fun scanLibraryReport(context: Context? = null): LibraryScanResult {
     val restoredTree=if(savedTree.isBlank()) try {
         context.contentResolver.persistedUriPermissions.filter{it.isReadPermission}.map{it.uri}.singleOrNull {uri ->
             val id=android.provider.DocumentsContract.getTreeDocumentId(uri)
-            id.substringAfterLast('/').equals("AudioBooks",true)
+            id.substringAfterLast('/').equals(BuildConfig.LIBRARY_DIRECTORY,true)
         }?.toString().orEmpty()
     }catch(_:Exception){""} else ""
     val treeText=savedTree.ifBlank{restoredTree}
@@ -7628,7 +7629,7 @@ fun rememberLibrarySync(accessVersion: Int, page: AppPage): LibrarySyncState {
                 result.folderUnavailable -> "Нет доступа к выбранной папке или части её книг. Выберите папку снова."
                 result.books.isEmpty() && !hasLibraryAudioPermission(context) ->
                     "Для старых файлов нужен доступ к аудио или к папке библиотеки."
-                result.books.isEmpty() -> "Проверьте папку Download/AudioBooks или выберите папку со старыми книгами."
+                result.books.isEmpty() -> "Проверьте папку Download/AudioBooks-Preview или выберите папку со старыми книгами."
                 else -> "Библиотека синхронизирована: ${result.books.size} книг."
             }
         } catch (cancelled: kotlinx.coroutines.CancellationException) {
@@ -7705,7 +7706,7 @@ fun LibrarySyncControls(
             }.padding(vertical = 10.dp))
     }
     if (message.isNotBlank()) Text(message, color = textColor, fontSize = 13.sp)
-    Text("Если старые книги не появились, выберите папку Download/AudioBooks. После переустановки доступ к папке нужно выдать заново.",
+    Text("Если старые книги не появились, выберите папку Download/AudioBooks-Preview. После переустановки доступ к папке нужно выдать заново.",
         color = textColor, fontSize = 12.sp, modifier = Modifier.padding(vertical = 8.dp))
 }
 
@@ -9254,7 +9255,7 @@ fun bookCatalogJs(catalogUrl: String = "", cycle: BookCycle? = null): String {
 }
 
 // Product name is separate from diagnostic/build revision.
-private const val AB_PRODUCT_NAME="Audiobook"
+private const val AB_PRODUCT_NAME="Audiobook Preview"
 private val LocalAbCoverDataVersion=androidx.compose.runtime.compositionLocalOf {0}
 private data class AbTheme(
     val id: Int, val name: String, val light: Boolean,
@@ -10920,6 +10921,11 @@ private fun AbSettingsDialog(data: AbScreenData,prefs: android.content.SharedPre
                 catch(_:Exception){Toast.makeText(context,"Откройте настройки звука телефона вручную",Toast.LENGTH_LONG).show()}
             }
         }
+        if(section==AbSettingsSection.HOME) {
+            AbButton("Обновления Preview · "+BuildConfig.VERSION_NAME,theme) {
+                context.startActivity(Intent(context,PreviewUpdatesActivity::class.java))
+            }
+        }
         if(section==AbSettingsSection.DIAGNOSTICS) {
             AbHeading("Диагностика",theme)
             AbButton("Диагностика и логи",theme,onClick=onCrashReport)
@@ -11268,7 +11274,7 @@ private object AbCoverStore {
             val metadata=JSONObject().put("format","AudioBookMetadata").put("version",1)
                 .put("title",title).put("url",ref.url).put("cover",ref.cover)
             if(keep) abWriteBookMetadata(File(File(context.filesDir,"book-covers"),abCoverFileId(title)+".json"),metadata)
-            // Browsing an online book must not create a directory in Download/AudioBooks.
+            // Browsing an online book must not create a directory in Download/AudioBooks-Preview.
             if(publicFolder) abWriteBookMetadata(File(folder,"book_metadata.json"),metadata)
             val path=local?.coverFilePath?.ifBlank {File(folder,"cover.jpg").path} ?: File(folder,"cover.jpg").path
             val bitmap=load(context,"download:${abCoverIdentity(title)}:${ref.url}:${ref.cover}:${local?.coverUri}:${local?.coverRevision}",local?.coverUri.orEmpty(),

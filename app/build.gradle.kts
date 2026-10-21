@@ -2,8 +2,21 @@ plugins { id("com.android.application"); id("org.jetbrains.kotlin.android"); id(
 android {
     namespace="com.audiobookdownloader"
     compileSdk=36
-    defaultConfig { applicationId="com.audiobookdownloader";minSdk=23;targetSdk=36;versionCode=2;versionName="4.1" }
-    buildFeatures { compose=true }
+    defaultConfig {
+        applicationId="com.audiobookdownloader.preview"
+        minSdk=23;targetSdk=36
+        versionCode=100000+(System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull() ?: 0)
+        versionName="4.2-preview."+(System.getenv("GITHUB_RUN_NUMBER") ?: "local")
+        buildConfigField("String","LIBRARY_DIRECTORY","\"AudioBooks-Preview\"")
+    }
+    buildFeatures { compose=true;buildConfig=true }
+    signingConfigs {
+        create("preview") {
+            System.getenv("PREVIEW_KEYSTORE")?.let { storeFile=file(it) }
+            storePassword="android";keyAlias="audiobook-preview";keyPassword="android"
+        }
+    }
+    buildTypes { getByName("debug") { if(System.getenv("PREVIEW_KEYSTORE")!=null) signingConfig=signingConfigs.getByName("preview") } }
     compileOptions { sourceCompatibility=JavaVersion.VERSION_17;targetCompatibility=JavaVersion.VERSION_17 }
     kotlinOptions { jvmTarget="17" }
     sourceSets {
