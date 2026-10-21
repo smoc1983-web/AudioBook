@@ -41,7 +41,7 @@ def inspect(item):
  except Exception as e:return key,{'home':{'url':url,'error':str(e)}}
  result={'home':home};forms=home.get('forms',[])
  for form in forms:
-  fields=form['fields'];q=next((x for x in fields if x['name'] in ['q','story','query','search','search_string','s'] and x['type'] not in ['hidden','checkbox']),None)
+  fields=form['fields'];q=next((x for x in fields if x['name'] in ['q','story','query','search','search_string','s','text'] and x['type'] not in ['hidden','checkbox']),None)
   if not q:continue
   address=urllib.parse.urljoin(home.get('final',url),form['action'] or home.get('final',url));target=urllib.parse.urlsplit(address)
   if target.hostname!=urllib.parse.urlsplit(home.get('final',url)).hostname:continue
@@ -53,3 +53,18 @@ def inspect(item):
 with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:results=dict(pool.map(inspect,SOURCES))
 (OUT/'report.json').write_text(json.dumps(results,ensure_ascii=False,indent=2))
 for k,v in results.items():print(k,json.dumps({kind:{x:y for x,y in val.items() if x not in ['links','forms','scripts']} for kind,val in v.items()},ensure_ascii=False))
+# A small public book page per responding source, selected from observed search links.
+DETAILS=json.loads(Path('scripts/screenshot-source-details.json').read_text())
+def inspect_detail(item):
+ key,url=item['key'],item['url'];opener=urllib.request.build_opener(PublicRedirect(),urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
+ try:
+  detail=fetch(opener,url,key+'-detail');extra=[]
+  for index,script in enumerate([x for x in detail.get('scripts',[]) if re.search(r'player|audio|book|app\.',x,re.I)][:4]):
+   address=urllib.parse.urljoin(detail.get('final',url),script)
+   try:extra.append(fetch(opener,address,key+'-asset-'+str(index)))
+   except Exception as e:extra.append({'url':address,'error':str(e)})
+  return key,{'detail':detail,'assets':extra}
+ except Exception as e:return key,{'detail':{'error':str(e)}}
+with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:detail_results=dict(pool.map(inspect_detail,DETAILS))
+(OUT/'details-report.json').write_text(json.dumps(detail_results,ensure_ascii=False,indent=2))
+for k,v in detail_results.items():print(k,'detail',v['detail'].get('status'),v['detail'].get('error',''))
