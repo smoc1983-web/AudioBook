@@ -8,6 +8,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      RUN_LIVE_SOURCES: "1"
     permissions:
       contents: read
     steps:
@@ -19,6 +21,8 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
+      - name: Audio decoder for source acceptance
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
       - name: Android SDK
         run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;35.0.0"'
       - name: Tests and APK
