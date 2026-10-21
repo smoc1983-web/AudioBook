@@ -27,6 +27,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlin.math.abs
@@ -62,11 +63,13 @@ internal fun AbPageTurn(page: AppPage, navigate: (AppPage) -> Unit, modifier: Mo
         val request = turn ?: return@LaunchedEffect
         withFrameNanos { }
         try {
-            val captured = sourceLayer.toImageBitmap().asAndroidBitmap()
-            snapshot = if (request.forward) captured.copy(Bitmap.Config.ARGB_8888, false)
-                else Bitmap.createBitmap(captured, 0, 0, captured.width, captured.height,
-                    Matrix().apply { setScale(-1f, 1f) }, true)
+            val readback: Bitmap? = sourceLayer.toImageBitmap().asAndroidBitmap()
+            val captured = requireNotNull(readback) { "Graphics driver returned no page image" }
+                .copy(Bitmap.Config.ARGB_8888, false)
+            snapshot = if (request.forward) captured else Bitmap.createBitmap(captured,
+                0, 0, captured.width, captured.height, Matrix().apply { setScale(-1f, 1f) }, true)
         } catch (error: Exception) {
+            if (error is CancellationException) throw error
             android.util.Log.w("AudiobookPageCurl", "GPU readback unavailable; trying software content capture", error)
             captureFailed = true
         }
