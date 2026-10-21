@@ -18,8 +18,26 @@ import static org.junit.Assert.*;
 public class StartupSmokeTest {
     private final Context context=InstrumentationRegistry.getInstrumentation().getTargetContext();
     private final UiDevice device=UiDevice.getInstance(InstrumentationRegistry.getInstrumentation());
+    private void dismissUnrelatedSystemAnr() {
+        UiObject2 title=device.findObject(By.res("android","alertTitle"));
+        if(title==null)return;
+        String value=title.getText();
+        // Fresh Google-API images can show an ANR while their own services settle.
+        // Never dismiss an Audiobook failure or a generic/unknown app error.
+        if(value!=null && (value.startsWith("System UI ") || value.startsWith("Google Play services ") || value.startsWith("Phone "))){
+            UiObject2 wait=device.findObject(By.res("android","aerr_wait"));
+            if(wait!=null)wait.click();
+        }
+    }
     private UiObject2 visible(BySelector selector,String message) throws Exception {
-        UiObject2 view=device.wait(Until.findObject(selector),60000);
+        long deadline=android.os.SystemClock.uptimeMillis()+60000;
+        UiObject2 view=null;
+        while(android.os.SystemClock.uptimeMillis()<deadline){
+            dismissUnrelatedSystemAnr();
+            view=device.findObject(selector);
+            if(view!=null)break;
+            android.os.SystemClock.sleep(200);
+        }
         if(view==null){
             File report=new File(context.getFilesDir(),"audiobook-last-crash.txt");
             String details=report.isFile()?new String(Files.readAllBytes(report.toPath()),StandardCharsets.UTF_8):"No saved stack";

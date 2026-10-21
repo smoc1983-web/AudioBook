@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 mkdir -p startup-evidence
+adb shell wm size 540x1200
+adb shell wm density 210
+adb shell am force-stop com.google.android.gms || true
+adb shell input keyevent 82
 adb logcat -c
 result=0
 gradle :app:connectedDebugAndroidTest --stacktrace || result=$?
