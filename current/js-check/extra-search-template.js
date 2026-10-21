@@ -226,7 +226,11 @@
         function walk(o,d){if(!o||d>6)return;if(Array.isArray(o)){o.slice(0,100).forEach(function(x){walk(x,d+1);});return;}if(typeof o!=='object')return;if(/^(?:Book|Audiobook)$/.test(String(o['@type']||''))){if(o.name)name=o.name;if(o.author){var a=Array.isArray(o.author)?o.author[0]:o.author;if(typeof a==='string')info.author=a;else if(a.name)info.author=a.name;}if(!image&&o.image)image=address(typeof o.image==='string'?o.image:o.image.url);}if(o['@graph'])walk(o['@graph'],d+1);}
         for(var i=0;i<schema.length&&i<30;i++)try{walk(JSON.parse(schema[i].textContent),0);}catch(e){}
         info.title=title(name||document.title,info.author);info.cover=image||cover(scope);info.error=unavailable();
-        if(/get_mp3_trial\/|ознакомительный фрагмент|фрагмент аудиокниги/i.test(scope.innerHTML||''))info.title+=' (ознакомительный фрагмент)';
+        // Uknig places its Playerjs initializer outside .book-details. Inspect explicit player scripts too.
+        var trial=/get_mp3_trial\/|ознакомительный фрагмент|фрагмент аудиокниги/i.test(scope.innerHTML||''),scripts=document.scripts||[];
+        for(var si=0;si<scripts.length&&si<160&&!trial;si++){var script=scripts[si],value=String(script.text||script.textContent||'');
+            if(!excluded(script)&&value.length<=1000000&&/new\s+(?:Playerjs|PlayerJS)\s*\(/.test(value)&&/get_mp3_trial\/|фрагмент аудиокниги/i.test(value))trial=true;}
+        if(trial)info.title+=' (ознакомительный фрагмент)';
         return info;
     }
     function directory(){var rows=[],indices=[],seen=Object.create(null),a=document.querySelectorAll('a[href]');

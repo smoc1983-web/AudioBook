@@ -28,6 +28,7 @@ for(const c of sources.filter(c=>sample[c.id])){
 for(const [id,count] of [['knigavuhe',1],['izibuk',4],['otrub',4],['uknig',1],['audioknigivse',1],['audioknigi-pro',1]])test('Observed public player data: '+id,()=>{
  const c=sources.find(x=>x.id===id),r=run('JSON.stringify(('+reader+')())',fixture(id+'-player.html'),page(c));assert.equal(r.playlist.length,count);assert(r.playlist.every(t=>/^https:\/\//.test(t.src)));if(id==='izibuk'||id==='otrub')assert.equal(r.playlist[0].duration,1817);
 });
+test('Trial outside the metadata card is visibly labelled as a fragment',()=>{const c=sources.find(x=>x.id==='uknig'),html='<div class="book-details"><h1>Мёртвые души</h1></div>'+fixture('uknig-player.html');const r=run(analyzer,html,page(c));assert(r.title.includes('ознакомительный фрагмент'));assert.equal(r.player.playlist.length,1);assert(r.player.playlist[0].src.includes('get_mp3_trial/'));});
 test('Rights-holder removal and blocked book return no playable substitute',()=>{
  for(const id of ['knigavuhe','poleknig']){const c=sources.find(x=>x.id===id),html=fixture(id+'-blocked.html')+'<aside><audio src="https://ads.invalid/ad.mp3"></audio></aside>';assert.equal(run('JSON.stringify(('+reader+')())',html,page(c)),null);const r=run(analyzer,html,page(c));assert(r.sourceError);assert.equal(r.player,null);}
 });

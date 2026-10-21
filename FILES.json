@@ -59,8 +59,8 @@
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/AdditionalBookSources.kt",
-      "bytes": 18770,
-      "sha256": "db941f432acfbe52faafbf9633e7632b6748fcb9f6630a2c630a3234c992612b"
+      "bytes": 19255,
+      "sha256": "12d3bcd5a8ffc76fa5eddde97e5a5caabcb07f917324b92d023c9cf5ec3b14d8"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/AudioBookWidget.kt",
@@ -494,8 +494,8 @@
     },
     {
       "path": "current/js-check/analyzer.js",
-      "bytes": 177548,
-      "sha256": "6665dd6110867325151466904aed67bc55fd8415a8bf8fdb9eb7489282ae8b1d"
+      "bytes": 179003,
+      "sha256": "819ca292c2299afcb133808b2171c256ddfe8738af7e45f5a34237796edc1ec9"
     },
     {
       "path": "current/js-check/azbyka-catalog.js",
@@ -514,13 +514,13 @@
     },
     {
       "path": "current/js-check/catalog-template.js",
-      "bytes": 87132,
-      "sha256": "55a44e119421449e3a1b47ba1e0f6f42cf3aecd99cff587b63a7165e8b4df6d7"
+      "bytes": 87617,
+      "sha256": "5f5286d3f61c7b1a24a9dc3421660abaf52cc03f90da1c071e7776dfd8732a1f"
     },
     {
       "path": "current/js-check/catalog.js",
-      "bytes": 87097,
-      "sha256": "8a4622ee4254bfe796141160339b292c475e5a5950b9601faaf2b67cbfab5f69"
+      "bytes": 87582,
+      "sha256": "00bd56a2c01c0a2922f86627d030352da823ce19dec7fd2d243da09dafd02a75"
     },
     {
       "path": "current/js-check/classifier.js",
@@ -529,13 +529,13 @@
     },
     {
       "path": "current/js-check/external-page.js",
-      "bytes": 179312,
-      "sha256": "691665176cd65f72bd22ebb61887f0caee0caf485e2b7223c68b7b3f94f156f6"
+      "bytes": 180767,
+      "sha256": "6bc515a8d356ba67272928af9072cc441152af437333986ec0fba481abdaa206"
     },
     {
       "path": "current/js-check/extra-search-template.js",
-      "bytes": 25465,
-      "sha256": "9a5f48e4882e7be9bc38cbb0d0cc33105f0e891aaa1461ac15bac50d59b0bd94"
+      "bytes": 25950,
+      "sha256": "c134841dd652982c8b65a42b67c0c907b77ae555bf1ac17bd5ba718dc33113d4"
     },
     {
       "path": "current/js-check/extra-source-config.json",
@@ -544,8 +544,8 @@
     },
     {
       "path": "current/js-check/extra-source.js",
-      "bytes": 17059,
-      "sha256": "6ab97a8b999d5aa2194e4cd727b011ca035a251abca1c40b7768b4a2ebd2eea1"
+      "bytes": 17544,
+      "sha256": "8d2b41a1e528f53880272c57541111a4010c8780b3c1868302c4f5bf760a2c50"
     },
     {
       "path": "current/js-check/genre-adapters.json",
@@ -569,8 +569,8 @@
     },
     {
       "path": "current/js-check/genre-template.js",
-      "bytes": 120762,
-      "sha256": "d1127559b18d510b31654599ae80a4529668f23410ac365f79061d9fcf508859"
+      "bytes": 121247,
+      "sha256": "788f2704a93ef6ad26c8cefe698df6573888efd605ed943fb10d8b04e101373f"
     },
     {
       "path": "current/js-check/native-directory.js",
@@ -579,8 +579,8 @@
     },
     {
       "path": "current/js-check/native-genre-template.js",
-      "bytes": 120761,
-      "sha256": "98ffb457d982e23fd116c69bdb78ec06a9df01c955101266f0de0dc73bddad34"
+      "bytes": 121246,
+      "sha256": "8196febd01cd5dadf21e28585ad9f8283f18fb0dd1c9bcc803f4a7e080697e1f"
     },
     {
       "path": "current/js-check/next.js",
@@ -604,8 +604,8 @@
     },
     {
       "path": "current/js-check/online-results-template.js",
-      "bytes": 99444,
-      "sha256": "de5b7a3982f123426efd501593ccc230058d58810267e74d7d8a48bcab8eedbc"
+      "bytes": 99929,
+      "sha256": "e315cb5cf12bcd3229feed6cceb7760247d5969f0d68215f9284f96f9492ce5d"
     },
     {
       "path": "current/js-check/online-scripts.js",
@@ -624,8 +624,8 @@
     },
     {
       "path": "current/js-check/player-reader.js",
-      "bytes": 36773,
-      "sha256": "84085125225070d7d01e69ab9ad76eb711ccbc34b21f61c36d1cda4f043cde86"
+      "bytes": 37258,
+      "sha256": "c972ead109ab26409ce21ff01d694e8ee5ee3d70e75290becbb93b36d036d551"
     },
     {
       "path": "current/js-check/public-classifier.js",
@@ -794,8 +794,8 @@
     },
     {
       "path": "current/tests/test-additional-sources.cjs",
-      "bytes": 6056,
-      "sha256": "e52e734414e0854d9e582470dcddb30d5859408b8539526946f47330f712a163"
+      "bytes": 6491,
+      "sha256": "f823faf2554386affea7873ee0e090c5b3ff5d9d3a4f8a1a9d3b5c978f320ecc"
     },
     {
       "path": "current/tests/test-author-search.cjs",
@@ -975,7 +975,7 @@
     {
       "path": "docs/HANDOFF.md",
       "bytes": 12408,
-      "sha256": "c5516e5b4daf0a8adf5ba2a9cf061a66fdfcf8c961895dfbfade598ccf175518"
+      "sha256": "dd6e28a8387ae42be525d4b0f7778f7f62c88169572c37e95386894c7b12e051"
     },
     {
       "path": "docs/INSTALL.md",
@@ -999,8 +999,8 @@
     },
     {
       "path": "docs/SCREENSHOT-SOURCES.md",
-      "bytes": 8542,
-      "sha256": "a74524fc4cddc9b8e5047f084ad849b20c609082a172fe687f016addaa4d4f4a"
+      "bytes": 8780,
+      "sha256": "e52096a8da08a8889d328451e23e00c2feede425bba4e8e56f91d068de8a0a2a"
     },
     {
       "path": "docs/SOURCE-REPLACEMENT.md",
