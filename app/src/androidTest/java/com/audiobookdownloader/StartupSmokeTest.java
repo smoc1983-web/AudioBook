@@ -86,10 +86,14 @@ public class StartupSmokeTest {
             int w=device.getDisplayWidth(), y=device.getDisplayHeight()/3;
             device.swipe(w*4/5,y,w/5,y,24);
             visible(By.text("Моя библиотека"),"Swipe left did not turn to library");
+            android.os.SystemClock.sleep(500);
+            y=device.getDisplayHeight()*3/4; // Empty body, below the library sorting/filter rows.
             device.swipe(w*4/5,y,w/5,y,24);
             visible(By.text("Выберите книгу"),"Second swipe did not turn to player");
+            android.os.SystemClock.sleep(500);
             device.swipe(w/5,y,w*4/5,y,24);
             visible(By.text("Моя библиотека"),"Swipe right did not turn back to library");
+            android.os.SystemClock.sleep(500);
             device.swipe(w/5,y,w*4/5,y,24);
             visible(By.text("Жанры"),"Swipe right did not return to search");
             scenario.recreate();
