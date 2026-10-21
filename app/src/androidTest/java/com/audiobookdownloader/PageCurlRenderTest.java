@@ -33,9 +33,7 @@ public class PageCurlRenderTest {
                 int colored=0;for(int y=0;y<640;y+=20)for(int x=0;x<360;x+=20)if(frame.getPixel(x,y)!=0xff06382d)colored++;
                 assertTrue("Page texture disappeared",colored>40);
                 String name="curl-cylinder-"+(forward?"left-":"right-")+index+".png";
-                try(FileOutputStream out=new FileOutputStream(new File(context.getFilesDir(),name))){assertTrue(frame.compress(Bitmap.CompressFormat.PNG,100,out));}
-                String output=UiDevice.getInstance(InstrumentationRegistry.getInstrumentation()).executeShellCommand("sh -c 'run-as com.audiobookdownloader.preview cat files/"+name+" > /sdcard/Download/"+name+"'");
-                assertTrue("Export failed: "+output,output.trim().isEmpty());
+                TestBitmapExports.write(context,frame,name);
                 frame.recycle();if(!forward)input.recycle();
             }
         }

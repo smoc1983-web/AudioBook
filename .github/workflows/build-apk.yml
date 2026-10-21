@@ -70,11 +70,11 @@ jobs:
         with:
           api-level: 36
           emulator-boot-timeout: 300
-          target: aosp_atd
+          target: google_apis
           arch: x86_64
           profile: pixel_6
           disable-animations: false
-          emulator-options: -no-window -gpu swiftshader_indirect -feature -Vulkan -no-snapshot -noaudio -no-boot-anim -camera-back none -memory 2048
+          emulator-options: -no-window -gpu software -feature -Vulkan -no-snapshot -noaudio -no-boot-anim -camera-back none -memory 2048 -cores 2
           script: bash scripts/test-android-startup.sh
       - name: Save Android runtime evidence
         if: always()

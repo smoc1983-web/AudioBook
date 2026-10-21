@@ -14,6 +14,8 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.compose.ui.graphics.Canvas as ComposeCanvas
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.graphics.nativeCanvas
@@ -53,6 +55,7 @@ internal fun AbPageTurn(page: AppPage, navigate: (AppPage) -> Unit, modifier: Mo
     val renderer = remember { PageCurlRenderer() }
     var snapshot by remember(turn) { mutableStateOf<Bitmap?>(null) }
     var captureFailed by remember(turn) { mutableStateOf(false) }
+    var softwareAttempted by remember(turn) { mutableStateOf(false) }
 
     // Record the actual Compose RenderNode: View.draw(Canvas(bitmap)) loses hardware layers.
     LaunchedEffect(turn) {
@@ -64,7 +67,7 @@ internal fun AbPageTurn(page: AppPage, navigate: (AppPage) -> Unit, modifier: Mo
                 else Bitmap.createBitmap(captured, 0, 0, captured.width, captured.height,
                     Matrix().apply { setScale(-1f, 1f) }, true)
         } catch (error: Exception) {
-            android.util.Log.w("AudiobookPageCurl", "Page texture capture unavailable", error)
+            android.util.Log.w("AudiobookPageCurl", "GPU readback unavailable; trying software content capture", error)
             captureFailed = true
         }
     }
@@ -131,9 +134,27 @@ internal fun AbPageTurn(page: AppPage, navigate: (AppPage) -> Unit, modifier: Mo
         }
         Box(Modifier.fillMaxSize().drawWithContent {
             if (current == null || snapshot == null) {
-                sourceLayer.record { this@drawWithContent.drawContent() }
-                // If a device cannot capture a RenderNode, retain a usable live page and navigation.
-                drawLayer(sourceLayer)
+                if (drawContext.canvas.nativeCanvas.isHardwareAccelerated) {
+                    sourceLayer.record { this@drawWithContent.drawContent() }
+                    drawLayer(sourceLayer)
+                } else drawContent() // Software screenshots/printing cannot replay an Android RenderNode.
+            }
+            if (current != null && snapshot == null && captureFailed && !softwareAttempted) {
+                softwareAttempted = true
+                // Draw the Compose subtree directly, allowing child layers to choose their software path.
+                // This also supports devices/drivers that cannot read back a RenderNode texture.
+                val original = drawContext.canvas
+                try {
+                    val image = Bitmap.createBitmap(size.width.toInt().coerceAtLeast(1),
+                        size.height.toInt().coerceAtLeast(1), Bitmap.Config.ARGB_8888)
+                    drawContext.canvas = ComposeCanvas(image.asImageBitmap())
+                    drawContent()
+                    snapshot = if (current.forward) image else Bitmap.createBitmap(image, 0, 0,
+                        image.width, image.height, Matrix().apply { setScale(-1f, 1f) }, true)
+                    android.util.Log.i("AudiobookPageCurl", "Software page texture captured: ${image.width}x${image.height}")
+                } catch (error: Exception) {
+                    android.util.Log.w("AudiobookPageCurl", "Software content capture unavailable", error)
+                } finally { drawContext.canvas = original }
             }
         }) { content(displayed) }
         if (current != null) {
@@ -146,7 +167,7 @@ internal fun AbPageTurn(page: AppPage, navigate: (AppPage) -> Unit, modifier: Mo
             }
             if (bitmap != null) Box(Modifier.fillMaxSize().semantics { contentDescription = "Цилиндрический загиб" })
             // No synthetic success marker for capture failures; Android tests must see a real texture.
-            if (captureFailed) Box(Modifier.semantics { contentDescription = "Снимок страницы недоступен" })
+            if (captureFailed && softwareAttempted && bitmap == null) Box(Modifier.semantics { contentDescription = "Снимок страницы недоступен" })
         }
     }
 }

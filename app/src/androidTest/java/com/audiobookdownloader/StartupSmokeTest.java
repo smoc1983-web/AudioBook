@@ -135,13 +135,12 @@ public class StartupSmokeTest {
         scenario.onActivity(activity->{
             android.view.View view=activity.getWindow().getDecorView();
             android.graphics.Bitmap bitmap=android.graphics.Bitmap.createBitmap(view.getWidth(),view.getHeight(),android.graphics.Bitmap.Config.ARGB_8888);
-            try(java.io.FileOutputStream out=new java.io.FileOutputStream(new File(context.getFilesDir(),name))){
+            try {
                 view.draw(new android.graphics.Canvas(bitmap));
-                bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG,100,out);
+                TestBitmapExports.write(context,bitmap,name);
             }catch(java.io.IOException error){throw new AssertionError(error);}
             finally{bitmap.recycle();}
         });
-        device.executeShellCommand("sh -c 'run-as com.audiobookdownloader.preview cat files/"+name+" > /sdcard/Download/"+name+"'");
     }
     private ServicePlaybackState playback(java.util.function.Predicate<ServicePlaybackState> condition,String message) throws Exception {
         long deadline=android.os.SystemClock.uptimeMillis()+30000;
