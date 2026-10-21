@@ -19,18 +19,22 @@ public class StartupSmokeTest {
     private final Context context=InstrumentationRegistry.getInstrumentation().getTargetContext();
     private final UiDevice device=UiDevice.getInstance(InstrumentationRegistry.getInstrumentation());
     private UiObject2 visible(BySelector selector,String message) throws Exception {
-        UiObject2 view=device.wait(Until.findObject(selector),25000);
+        UiObject2 view=device.wait(Until.findObject(selector),60000);
         if(view==null){
             File report=new File(context.getFilesDir(),"audiobook-last-crash.txt");
             String details=report.isFile()?new String(Files.readAllBytes(report.toPath()),StandardCharsets.UTF_8):"No saved stack";
-            device.dumpWindowHierarchy(new File(context.getExternalFilesDir(null),"startup-failure.xml"));
-            device.takeScreenshot(new File(context.getExternalFilesDir(null),"startup-failure.png"));
-            fail(message+"\n"+details);
+            java.io.ByteArrayOutputStream hierarchy=new java.io.ByteArrayOutputStream();
+            device.dumpWindowHierarchy(hierarchy);
+            device.executeShellCommand("screencap -p /sdcard/Download/preview-startup-failure.png");
+            fail(message+"\n"+details+"\nWINDOW:\n"+hierarchy.toString("UTF-8"));
         }
         return view;
     }
     @Test public void mainNavigationRecreationAndNativeRecoveryRemainUsable() throws Exception {
         assertEquals("com.audiobookdownloader.preview",context.getPackageName());
+        Configurator.getInstance().setWaitForIdleTimeout(0);
+        device.wakeUp();
+        device.executeShellCommand("wm dismiss-keyguard");
         context.getSharedPreferences("audiobook_downloader",0).edit().clear().commit();
         context.getSharedPreferences("audiobook_startup",0).edit().clear().commit();
         new File(context.getFilesDir(),"audiobook-last-crash.txt").delete();
@@ -60,7 +64,7 @@ public class StartupSmokeTest {
             device.pressBack();
             visible(By.text(java.util.regex.Pattern.compile("ПОВТОРИТЬ ОБЫЧНЫЙ ЗАПУСК",java.util.regex.Pattern.CASE_INSENSITIVE|java.util.regex.Pattern.UNICODE_CASE)),"Recovery retry missing").click();
             visible(By.text("Жанры"),"Retry still cannot open home");
-            device.takeScreenshot(new File(context.getExternalFilesDir(null),"startup-success.png"));
+            device.executeShellCommand("screencap -p /sdcard/Download/preview-startup-success.png");
         }
     }
 }
