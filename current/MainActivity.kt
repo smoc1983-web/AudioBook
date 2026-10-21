@@ -338,7 +338,7 @@ class MainActivity : ComponentActivity() {
         AbCrashReport.install(this)
         if(appStarted)libraryAccessVersion++
     }
-    override fun onRequestPermissionsResult(requestCode: Int,permissions: Array<out String>,grantResults: IntArray) {
+    override fun onRequestPermissionsResult(requestCode: Int,permissions: Array<String>,grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode,permissions,grantResults)
         if(appStarted)libraryAccessVersion++
     }
