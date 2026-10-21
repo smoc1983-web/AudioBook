@@ -631,7 +631,7 @@ private fun AudioBookSplashScreen(
 // A committed marker survives abrupt process termination. The token prevents
 // a previous activity instance from clearing the next instance's startup.
 private object AbLaunchState {
-    private const val REVISION="4.2-four-sources-page-turn-1"
+    private const val REVISION="4.2-book-curl-sleep-shake-1"
     private fun prefs(context: Context)=context.applicationContext.getSharedPreferences("audiobook_startup",Context.MODE_PRIVATE)
     @Synchronized fun needsRecovery(context: Context): Boolean {
         val store=prefs(context)
@@ -9832,7 +9832,12 @@ private fun AbModernApp(data: AbScreenData, actions: AbActions, sync: LibrarySyn
     Box(Modifier.fillMaxSize().background(theme.background)) {
         AbThemeBackdrop(theme,data.backgroundUri,Modifier.fillMaxSize())
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
-            if(data.page!=AppPage.PLAYER) {
+            AbPageTurn(data.page,actions.navigate,Modifier.weight(1f).fillMaxWidth(),
+                sheetColor=if(theme.light)Color(0xffe3edf1) else Color(0xffa7c4d0)) { shownPage ->
+                Box(Modifier.fillMaxSize().background(theme.background)) {
+                    AbThemeBackdrop(theme,data.backgroundUri,Modifier.fillMaxSize())
+                    Column(Modifier.fillMaxSize()) {
+            if(shownPage!=AppPage.PLAYER) {
                 Row(Modifier.fillMaxWidth().padding(start=20.dp,end=10.dp,top=8.dp,bottom=4.dp),
                     verticalAlignment=Alignment.CenterVertically) {
                     Row(Modifier.weight(1f).clickable(onClick=actions.home),verticalAlignment=Alignment.CenterVertically) {
@@ -9847,7 +9852,7 @@ private fun AbModernApp(data: AbScreenData, actions: AbActions, sync: LibrarySyn
                     AbIconButton(AbIcon.SETTINGS,"Настройки",theme,onClick={settings=AbSettingsSection.HOME})
                 }
             }
-            AbPageTurn(data.page,actions.navigate,Modifier.weight(1f).fillMaxWidth()) { shownPage ->
+            Box(Modifier.weight(1f).fillMaxWidth()) {
                 pages.SaveableStateProvider(shownPage.name) {
                 when(shownPage) {
                     AppPage.SEARCH -> AbSearchScreen(data,actions,sync.books.value,prefs,theme,
@@ -9858,11 +9863,14 @@ private fun AbModernApp(data: AbScreenData, actions: AbActions, sync: LibrarySyn
                     AppPage.COLLECTIONS -> AbCollectionsScreen(data,actions,sync.books.value,prefs,theme,
                         onMenu={menuBook=it})
                     AppPage.PLAYER -> AbPlayerScreen(data,actions,sync.books.value,prefs,theme,
-                        onSettings={settings=it},onMenu={menuBook=it})
+                        onSettings={settings=it},onMenu={menuBook=it},onShelf={shelfBook=it})
                 }
                 }
             }
-            if(state.hasSelection && data.page!=AppPage.PLAYER) AbMiniPlayer(data,actions,sync.books.value,prefs,theme)
+            if(state.hasSelection && shownPage!=AppPage.PLAYER) AbMiniPlayer(data,actions,sync.books.value,prefs,theme)
+                    }
+                }
+            }
             AbBottomNavigation(data.page,theme,actions.navigate)
         }
     }
@@ -10500,7 +10508,7 @@ private fun AbCollectionsScreen(data: AbScreenData,actions: AbActions,books: Lis
 @Composable
 private fun AbPlayerScreen(data: AbScreenData,actions: AbActions,books: List<LibraryBook>,
     prefs: android.content.SharedPreferences,theme: AbTheme,
-    onSettings:(AbSettingsSection)->Unit,onMenu:(BookRef)->Unit) {
+    onSettings:(AbSettingsSection)->Unit,onMenu:(BookRef)->Unit,onShelf:(BookRef)->Unit) {
     val context=androidx.compose.ui.platform.LocalContext.current
     val state=data.playback
     var tab by androidx.compose.runtime.saveable.rememberSaveable {mutableStateOf(0)}
@@ -10646,6 +10654,7 @@ private fun AbPlayerScreen(data: AbScreenData,actions: AbActions,books: List<Lib
                         Toast.makeText(context,if(ok) "Закладка сохранена" else "Рядом уже есть закладка",Toast.LENGTH_SHORT).show()
                     }
                 }
+                AbButton("В коллекцию",theme,Modifier.fillMaxWidth()) {onShelf(ref)}
                 Text(if(isNetworkAudio(state.tracks.getOrNull(state.trackIndex)?.src.orEmpty()))
                     "Глава из интернета" else "Глава на устройстве · без интернета",
                     color=theme.muted,fontSize=10.sp,modifier=Modifier.fillMaxWidth().padding(top=5.dp),
@@ -10902,8 +10911,10 @@ private fun AbSettingsDialog(data: AbScreenData,prefs: android.content.SharedPre
         }
         if(section==AbSettingsSection.SHAKE) {
             AbHeading("Продлить таймер встряхиванием",theme)
-            Text("Пока работает минутный таймер, встряхните телефон несколько раз: отсчёт начнётся заново с выбранной длительности.",
+            Text("Во время воспроизведения с минутным таймером сделайте два отчётливых встряхивания. Отсчёт начнётся заново с выбранной длительности, в том числе при выключенном экране.",
                 color=theme.muted,fontSize=12.sp)
+            Text(if(data.playback.shakeListening) "Датчик движения включён"
+                else "Датчик включается во время воспроизведения с минутным таймером.",color=theme.muted,fontSize=12.sp)
             AbOptions(listOf("Вкл","Выкл"),if(prefs.getBoolean("sleep_shake",true)) 0 else 1,theme){updateFlag("sleep_shake",it==0)}
         }
         if(section==AbSettingsSection.APPEARANCE) {
@@ -12432,7 +12443,7 @@ internal object AbPlaybackTrace {
 
 private object AbCrashReport {
     private const val FILE="audiobook-last-crash.txt"
-    private const val REVISION="4.2-four-sources-page-turn-1"
+    private const val REVISION="4.2-book-curl-sleep-shake-1"
     private const val FIRST_RUN="first_run_"+REVISION
     private val reporting=java.util.concurrent.atomic.AtomicBoolean(false)
     @Volatile var screen="Запуск приложения"

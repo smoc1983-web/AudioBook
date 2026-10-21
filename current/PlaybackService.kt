@@ -54,7 +54,9 @@ data class ServicePlaybackState(
     val sleepSeconds: Int = 0,
     val sleepChapterTarget: String = "",
     val error: String = "",
-    val playbackNote: String = ""
+    val playbackNote: String = "",
+    val shakeListening: Boolean = false,
+    val sleepRestartedAt: Long = 0L
 ) {
     // A retained book is still selectable after the native player is released.
     val hasSelection:Boolean get()=bookTitle.isNotBlank()&&trackIndex in tracks.indices
@@ -271,10 +273,8 @@ class PlaybackService : Service() {
     private var sleepRestartSeconds = 0
     private var sleepChapterTarget = ""
     private var shakeRegistered = false
-    private var lastShakeAt = 0L
-    private var shakeWindowStart = 0L
-    private var strongShakeHits = 0
-    private var shakeAboveThreshold = false
+    private val shakeDetector = SleepShakeDetector()
+    private var sleepRestartedAt = 0L
     private var lastPersistAt = 0L
     private var lastNotificationAt = 0L
     private var coverBook = ""
@@ -348,34 +348,15 @@ class PlaybackService : Service() {
     private val shakeListener = object : SensorEventListener {
         override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
         override fun onSensorChanged(event: SensorEvent?) {
-            if (event == null || event.values.size < 3 || stopped || sleepEndAt <= 0L ||
+            if (event == null || event.values.size < 3 || stopped || !isPlaying || sleepEndAt <= 0L ||
                 sleepRestartSeconds <= 0 || !playbackPrefs.getBoolean("sleep_shake", true)) return
-            val x = event.values[0] / SensorManager.GRAVITY_EARTH
-            val y = event.values[1] / SensorManager.GRAVITY_EARTH
-            val z = event.values[2] / SensorManager.GRAVITY_EARTH
-            val now = SystemClock.elapsedRealtime()
-            val force = x * x + y * y + z * z
-            if (!force.isFinite()) return
-            if (force < 3.24f) {
-                shakeAboveThreshold = false
-                return
-            }
-            // Count separate impulses, not multiple samples of the same peak.
-            if (shakeAboveThreshold) return
-            shakeAboveThreshold = true
-            if (now - shakeWindowStart > 1200L) {
-                shakeWindowStart = now
-                strongShakeHits = 0
-            }
-            strongShakeHits++
-            if (strongShakeHits >= 3 && now - lastShakeAt > 3000L) {
-                lastShakeAt = now
-                strongShakeHits = 0
+            if (shakeDetector.sample(event.timestamp,event.values[0],event.values[1],event.values[2])) {
                 val seconds = sleepRestartSeconds
-                trace("Встряхивание: продление таймера")
+                trace("Встряхивание: перезапуск таймера; было ${remainingSleepSeconds()} с; снова $seconds с; модель=${Build.MODEL}")
+                sleepRestartedAt = SystemClock.elapsedRealtime()
                 setTimer(seconds, false)
                 Toast.makeText(this@PlaybackService,
-                    "🌙 Таймер сна: новый отсчёт " + seconds / 60 + " мин", Toast.LENGTH_SHORT).show()
+                    "Таймер сна: новый отсчёт " + seconds / 60 + " мин", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -902,9 +883,7 @@ class PlaybackService : Service() {
         sleepEndAt = if (!chapter && seconds > 0) SystemClock.elapsedRealtime() + seconds.toLong() * 1000L else 0L
         sleepRestartSeconds = if (!chapter && seconds > 0) seconds else 0
         trace(if(chapter) "Таймер до конца главы" else "Таймер: "+seconds+" секунд")
-        strongShakeHits = 0
-        shakeWindowStart = 0L
-        shakeAboveThreshold = false
+        shakeDetector.resetMotion()
         if (!chapter && seconds > 60) playbackPrefs.edit().putInt("last_sleep_seconds", seconds).apply()
         updateVolume()
         updateShakeListener()
@@ -929,13 +908,13 @@ class PlaybackService : Service() {
     private fun updateShakeListener() {
         val wanted = !stopped && isPlaying && sleepEndAt > 0L && playbackPrefs.getBoolean("sleep_shake", true)
         if (wanted == shakeRegistered) return
-        strongShakeHits = 0
-        shakeWindowStart = 0L
-        shakeAboveThreshold = false
+        shakeDetector.resetMotion()
         if (wanted) {
-            val sensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
-            if (sensor != null) shakeRegistered = sensorManager.registerListener(shakeListener, sensor,
-                SensorManager.SENSOR_DELAY_NORMAL)
+            val sensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER,true)
+                ?: sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
+            shakeRegistered = sensor != null && sensorManager.registerListener(shakeListener,sensor,20_000,0,handler)
+            trace(if(shakeRegistered) "Датчик встряхивания включён: ${sensor?.name}; wakeUp=${sensor?.isWakeUpSensor}; 50 Гц; без пакетирования"
+                else "Датчик встряхивания недоступен или Android отказал в регистрации")
         } else {
             sensorManager.unregisterListener(shakeListener)
             shakeRegistered = false
@@ -1035,7 +1014,8 @@ class PlaybackService : Service() {
         val wasActive=mutableState.value.isPlaying || mutableState.value.isLoading
         mutableState.value = ServicePlaybackState(bookTitle, sourceType, playlist, trackIndex,
             positionMs, durationMs, isPlaying, isLoading, mediaPlayer != null || isLoading,
-            playbackSpeed, eqAvailable, remainingSleepSeconds(), sleepChapterTarget, errorMessage, playbackNote)
+            playbackSpeed, eqAvailable, remainingSleepSeconds(), sleepChapterTarget, errorMessage, playbackNote,
+            shakeListening=shakeRegistered, sleepRestartedAt=sleepRestartedAt)
         if(wasActive && !isPlaying && !isLoading)AbLibraryHousekeeping.request(applicationContext)
         AbGlassWidgets.publish(applicationContext,mutableState.value)
         if (refreshNotification && !stopped) {

@@ -84,7 +84,22 @@ public class StartupSmokeTest {
             visible(By.text("Режим: все четыре источника"),"Cannot restore all-source search");
             // Swipe the page body, away from sliders and nested horizontal rows.
             int w=device.getDisplayWidth(), y=device.getDisplayHeight()/3;
-            device.swipe(w*4/5,y,w/5,y,24);
+            long down=android.os.SystemClock.uptimeMillis();
+            android.app.UiAutomation automation=InstrumentationRegistry.getInstrumentation().getUiAutomation();
+            android.view.MotionEvent event=android.view.MotionEvent.obtain(down,down,android.view.MotionEvent.ACTION_DOWN,w*4/5f,y,0);
+            event.setSource(android.view.InputDevice.SOURCE_TOUCHSCREEN);automation.injectInputEvent(event,true);event.recycle();
+            for(int step=1;step<=12;step++){
+                android.os.SystemClock.sleep(20);
+                event=android.view.MotionEvent.obtain(down,android.os.SystemClock.uptimeMillis(),android.view.MotionEvent.ACTION_MOVE,w*4/5f-w*.3f*step/12f,y,0);
+                event.setSource(android.view.InputDevice.SOURCE_TOUCHSCREEN);automation.injectInputEvent(event,true);event.recycle();
+            }
+            try {
+                visible(By.desc("Перелистывание страницы"),"Visible paper fold missing while finger is held");
+                device.executeShellCommand("screencap -p /sdcard/Download/preview-page-curl.png");
+            }finally{
+                event=android.view.MotionEvent.obtain(down,android.os.SystemClock.uptimeMillis(),android.view.MotionEvent.ACTION_UP,w/2f,y,0);
+                event.setSource(android.view.InputDevice.SOURCE_TOUCHSCREEN);automation.injectInputEvent(event,true);event.recycle();
+            }
             visible(By.text("Моя библиотека"),"Swipe left did not turn to library");
             android.os.SystemClock.sleep(500);
             y=device.getDisplayHeight()*3/4; // Empty body, below the library sorting/filter rows.
@@ -115,4 +130,61 @@ public class StartupSmokeTest {
             device.executeShellCommand("screencap -p /sdcard/Download/preview-startup-success.png");
         }
     }
+    private ServicePlaybackState playback(java.util.function.Predicate<ServicePlaybackState> condition,String message) throws Exception {
+        long deadline=android.os.SystemClock.uptimeMillis()+30000;
+        while(android.os.SystemClock.uptimeMillis()<deadline){
+            dismissUnrelatedSystemAnr();
+            ServicePlaybackState value=PlaybackService.Companion.getState().getValue();
+            if(condition.test(value))return value;
+            android.os.SystemClock.sleep(150);
+        }
+        device.executeShellCommand("screencap -p /sdcard/Download/preview-startup-failure.png");
+        throw new AssertionError(message+": "+PlaybackService.Companion.getState().getValue());
+    }
+    @Test public void playerAddsCurrentBookAndRealSensorRestartsSleepCountdown() throws Exception {
+        Configurator.getInstance().setWaitForIdleTimeout(0);
+        device.wakeUp();device.executeShellCommand("wm dismiss-keyguard");
+        context.getSharedPreferences("audiobook_startup",0).edit().clear().commit();
+        context.getSharedPreferences("audiobook_downloader",0).edit().clear().putBoolean("sleep_shake",true).commit();
+        if(Build.VERSION.SDK_INT>=33){
+            InstrumentationRegistry.getInstrumentation().getUiAutomation().grantRuntimePermission(context.getPackageName(),"android.permission.READ_MEDIA_AUDIO");
+            InstrumentationRegistry.getInstrumentation().getUiAutomation().grantRuntimePermission(context.getPackageName(),"android.permission.POST_NOTIFICATIONS");
+        }
+        File audio=new File(context.getFilesDir(),"test-sleep.wav");
+        int samples=22050*120;
+        java.nio.ByteBuffer wav=java.nio.ByteBuffer.allocate(44+samples*2).order(java.nio.ByteOrder.LITTLE_ENDIAN);
+        wav.put("RIFF".getBytes(StandardCharsets.US_ASCII)).putInt(36+samples*2).put("WAVEfmt ".getBytes(StandardCharsets.US_ASCII));
+        wav.putInt(16).putShort((short)1).putShort((short)1).putInt(22050).putInt(44100).putShort((short)2).putShort((short)16);
+        wav.put("data".getBytes(StandardCharsets.US_ASCII)).putInt(samples*2);
+        for(int i=0;i<samples;i++)wav.putShort((short)(Math.sin(i*2*Math.PI*220/22050)*60));
+        Files.write(audio.toPath(),wav.array());
+        try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(MainActivity.class)){
+            visible(By.text("Жанры"),"Home unavailable for service test");
+            PlaybackService.Companion.play(context,"Проверка таймера", "local",java.util.Collections.singletonList(new ServiceTrack("Глава 1",audio.getAbsolutePath(),120000)),0,0);
+            playback(ServicePlaybackState::isPlaying,"Local WAV did not start");
+            visible(By.text("Плеер"),"Player navigation missing").click();
+            // The whole player remains vertically scrollable; collection action is above chapter tabs.
+            for(int i=0;i<3&&!device.hasObject(By.text("В коллекцию"));i++)
+                device.swipe(device.getDisplayWidth()/2,device.getDisplayHeight()*3/4,device.getDisplayWidth()/2,device.getDisplayHeight()/2,20);
+            visible(By.text("В коллекцию"),"Direct player collection action missing").click();
+            visible(By.text("Добавить в коллекцию"),"Player collection picker did not open");
+            visible(By.clazz("android.widget.EditText"),"New collection field missing").setText("Из плеера");
+            visible(By.text("Создать и добавить"),"Cannot create collection from player").click();
+            Shelf shelf=MainActivityKt.loadShelves(context.getSharedPreferences("audiobook_downloader",0)).stream()
+                .filter(value->value.getName().equals("Из плеера")).findFirst().orElseThrow(()->new AssertionError("Collection not created"));
+            assertTrue("Current book not saved in collection",shelf.getBooks().stream().anyMatch(book->book.getTitle().equals("Проверка таймера")));
+            PlaybackService.Companion.setSleepTimer(context,60,false);
+            playback(s->s.getShakeListening()&&s.getSleepSeconds()<=57&&s.getSleepSeconds()>=54,"Timer/sensor did not start counting down");
+            device.executeShellCommand("touch /sdcard/Download/preview-sleep-shake-ready");
+            ServicePlaybackState restarted=playback(s->s.getSleepRestartedAt()>0,"Injected accelerometer shaking did not restart timer");
+            assertTrue("Countdown did not return to selected minute",restarted.getSleepSeconds()>=58);
+            assertTrue("Shaking paused playback",restarted.isPlaying());
+            device.executeShellCommand("screencap -p /sdcard/Download/preview-sleep-shake-success.png");
+            PlaybackService.Companion.stop(context,true,null);
+        }finally{
+            context.stopService(new android.content.Intent(context,PlaybackService.class));
+            audio.delete();
+        }
+    }
+
 }
