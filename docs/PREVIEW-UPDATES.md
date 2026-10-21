@@ -40,7 +40,9 @@ Preview отключено, чтобы зашифрованный доступ �
 
 ## Канал сборки и подпись
 
-Workflow `build-apk.yml` запускает тесты и собирает Preview. VersionCode равен
+Workflow `build-apk.yml` автоматически запускает тесты и собирает Preview после push
+в main. Ручной workflow_dispatch допускает сборку рабочей ветки без публикации.
+Обновления публикуются только из main. VersionCode равен
 100000 + GITHUB_RUN_NUMBER; имя — 4.2-preview.<номер>. После проверки APK workflow
 публикует **закрытый prerelease** `preview-v<versionCode>` с двумя файлами:
 `Audiobook-Preview.apk` и `preview-update.json`. Исходники не становятся публичными.
@@ -72,3 +74,7 @@ CI: source unit tests, live catalogue/audio decoding tests, Preview policy tests
 или старой версии, неверного размера/hash, путей вне разрешённых адресов и запрет
 передачи GitHub-ключа на CDN. Установка, возврат из системных настроек разрешения
 и воспроизведение двух приложений требуют проверки на реальном телефоне.
+
+Локальная сборка без PREVIEW_KEYSTORE использует стандартный Android debug-ключ.
+Для установки поверх Preview из GitHub укажите PREVIEW_KEYSTORE на сохранённый
+ключ Preview; иначе обновлятор правильно откажет из-за другой подписи.
