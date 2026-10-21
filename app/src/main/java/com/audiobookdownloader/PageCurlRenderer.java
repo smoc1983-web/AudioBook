@@ -2,6 +2,8 @@ package com.audiobookdownloader;
 
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.BitmapShader;
+import android.graphics.Shader;
 import android.graphics.Paint;
 import android.graphics.Path;
 
@@ -12,8 +14,19 @@ public final class PageCurlRenderer {
     private final Paint reverse=new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint shadow=new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Path outline=new Path();
+    private Bitmap cachedBitmap;
+    private final float[] uv=new float[(CylinderPageMesh.COLUMNS+1)*(CylinderPageMesh.ROWS+1)*2];
     public void draw(Canvas canvas,Bitmap bitmap,float width,float height,float progress,float touchY,float dragY,int paperRgb,boolean forward){
         mesh.update(width,height,progress,touchY,dragY,paperRgb);
+        if(cachedBitmap!=bitmap){
+            cachedBitmap=bitmap;
+            texture.setShader(new BitmapShader(bitmap,Shader.TileMode.CLAMP,Shader.TileMode.CLAMP));
+            for(int y=0;y<=CylinderPageMesh.ROWS;y++)for(int x=0;x<=CylinderPageMesh.COLUMNS;x++){
+                int i=(y*(CylinderPageMesh.COLUMNS+1)+x)*2;
+                uv[i]=bitmap.getWidth()*x/(float)CylinderPageMesh.COLUMNS;
+                uv[i+1]=bitmap.getHeight()*y/(float)CylinderPageMesh.ROWS;
+            }
+        }
         int saved=canvas.save();
         if(!forward){canvas.translate(width,0);canvas.scale(-1,1);}
         try{
@@ -26,11 +39,16 @@ public final class PageCurlRenderer {
             outline.close();
             shadow.setColor(0x01000000);shadow.setShadowLayer(width*.035f,width*.008f,height*.004f,0x70000000);
             canvas.drawPath(outline,shadow);
-            canvas.drawBitmapMesh(bitmap,CylinderPageMesh.COLUMNS,CylinderPageMesh.ROWS,mesh.vertices,0,mesh.lighting,0,texture);
-            // The same tessellation gives paper thickness/lighting without allocating a second texture.
-            canvas.drawVertices(Canvas.VertexMode.TRIANGLES,mesh.vertices.length,mesh.vertices,0,null,0,
-                mesh.paper,0,mesh.triangles,0,mesh.triangles.length,reverse);
+            if(mesh.frontCount>0)canvas.drawVertices(Canvas.VertexMode.TRIANGLES,mesh.vertices.length,mesh.vertices,0,uv,0,
+                mesh.lighting,0,mesh.frontTriangles,0,mesh.frontCount,texture);
+            if(mesh.backCount>0){
+                canvas.drawVertices(Canvas.VertexMode.TRIANGLES,mesh.vertices.length,mesh.vertices,0,uv,0,
+                    mesh.lighting,0,mesh.backTriangles,0,mesh.backCount,texture);
+                canvas.drawVertices(Canvas.VertexMode.TRIANGLES,mesh.vertices.length,mesh.vertices,0,null,0,
+                    mesh.paper,0,mesh.backTriangles,0,mesh.backCount,reverse);
+            }
         }finally{canvas.restoreToCount(saved);}
     }
+    public void clearTexture(){cachedBitmap=null;texture.setShader(null);}
     private void point(int index){outline.lineTo(mesh.vertices[index*2],mesh.vertices[index*2+1]);}
 }

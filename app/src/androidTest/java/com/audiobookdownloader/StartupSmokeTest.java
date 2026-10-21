@@ -87,15 +87,15 @@ public class StartupSmokeTest {
             device.swipe(cancelW*4/5,cancelY,cancelW*4/5-cancelW/20,cancelY,24);
             android.os.SystemClock.sleep(600);
             visible(By.text("Жанры"),"Short swipe did not return to home");
-            assertFalse("Cancelled curl remained on screen",device.hasObject(By.desc("Перелистывание страницы")));
+            assertFalse("Cancelled curl remained on screen",device.hasObject(By.descStartsWith("Перелистывание страницы")));
             // Swipe the page body, away from sliders and nested horizontal rows.
             int w=device.getDisplayWidth(), y=device.getDisplayHeight()/3;
             android.util.Log.i("PreviewUITest","Starting slow page-curl gesture");
             final int dragY=y;
             Thread drag=new Thread(()->device.swipe(w*4/5,dragY,w/5,dragY,180),"page-curl-drag");
             drag.start();
-            visible(By.desc("Перелистывание страницы"),"Visible paper fold missing during slow drag");
-            visible(By.desc("Цилиндрический загиб"),"Actual captured page texture was not rendered");
+            visible(By.descStartsWith("Перелистывание страницы"),"Visible paper fold missing during slow drag");
+            visible(By.desc("Перелистывание страницы · цилиндрический загиб"),"Actual captured page texture was not rendered");
             renderWindow(scenario,"preview-page-curl-software.png");
             device.executeShellCommand("screencap -p /sdcard/Download/preview-page-curl.png");
             drag.join(10000);

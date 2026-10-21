@@ -39,6 +39,15 @@ public class CylinderPageMeshTest {
             for(float v:mesh.vertices)assertTrue(!Float.isNaN(v)&&!Float.isInfinite(v));
         }
     }
+    @Test public void reverseFaceRendersAfterFrontWithoutDroppingTriangles(){
+        mesh.update(400,800,0,.5f,0,0xffeeeeee);
+        assertEquals(mesh.triangles.length,mesh.frontCount);assertEquals(0,mesh.backCount);
+        mesh.update(400,800,.3f,.2f,0,0xffeeeeee);
+        assertTrue(mesh.frontCount>0&&mesh.backCount>0);
+        assertEquals(mesh.triangles.length,mesh.frontCount+mesh.backCount);
+        mesh.update(400,800,1,.5f,0,0xffeeeeee);
+        assertEquals(0,mesh.frontCount);assertEquals(mesh.triangles.length,mesh.backCount);
+    }
     @Test public void meshBuffersAreReusedAndTrianglesStayInBounds(){
         float[] first=mesh.vertices;mesh.update(100,100,.4f,.2f,.1f,0xffeeeeee);assertSame(first,mesh.vertices);
         for(short i:mesh.triangles)assertTrue(i>=0&&i<mesh.lighting.length);

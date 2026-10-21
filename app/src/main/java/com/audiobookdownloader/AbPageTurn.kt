@@ -60,7 +60,7 @@ internal fun AbPageTurn(page: AppPage, navigate: (AppPage) -> Unit, modifier: Mo
 
     // Record the actual Compose RenderNode: View.draw(Canvas(bitmap)) loses hardware layers.
     LaunchedEffect(turn) {
-        val request = turn ?: return@LaunchedEffect
+        val request = turn ?: run { renderer.clearTexture(); return@LaunchedEffect }
         withFrameNanos { }
         try {
             val readback: Bitmap? = sourceLayer.toImageBitmap().asAndroidBitmap()
@@ -162,13 +162,13 @@ internal fun AbPageTurn(page: AppPage, navigate: (AppPage) -> Unit, modifier: Mo
         }) { content(displayed) }
         if (current != null) {
             val bitmap = snapshot
-            Canvas(Modifier.fillMaxSize().semantics { contentDescription = "Перелистывание страницы" }) {
+            Canvas(Modifier.fillMaxSize().semantics { contentDescription =
+                if (bitmap != null) "Перелистывание страницы · цилиндрический загиб" else "Перелистывание страницы" }) {
                 if (bitmap != null) drawIntoCanvas { canvas ->
                     renderer.draw(canvas.nativeCanvas, bitmap, size.width, size.height,
                         progress, touchY, dragY, sheetColor.toArgb(), current.forward)
                 }
             }
-            if (bitmap != null) Box(Modifier.fillMaxSize().semantics { contentDescription = "Цилиндрический загиб" })
             // No synthetic success marker for capture failures; Android tests must see a real texture.
             if (captureFailed && softwareAttempted && bitmap == null) Box(Modifier.semantics { contentDescription = "Снимок страницы недоступен" })
         }

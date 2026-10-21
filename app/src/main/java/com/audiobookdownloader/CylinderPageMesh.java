@@ -6,11 +6,15 @@ package com.audiobookdownloader;
  * Coordinates and buffers are reused; the only bitmap belongs to one transition.
  */
 public final class CylinderPageMesh {
-    public static final int COLUMNS=64, ROWS=48;
+    public static final int COLUMNS=64, ROWS=96;
     public final float[] vertices=new float[(COLUMNS+1)*(ROWS+1)*2];
     public final int[] lighting=new int[(COLUMNS+1)*(ROWS+1)];
     public final int[] paper=new int[(COLUMNS+1)*(ROWS+1)];
     public final short[] triangles=new short[COLUMNS*ROWS*6];
+    public final short[] frontTriangles=new short[COLUMNS*ROWS*6];
+    public final short[] backTriangles=new short[COLUMNS*ROWS*6];
+    public int frontCount,backCount;
+    private final float[] angles=new float[(COLUMNS+1)*(ROWS+1)];
     public CylinderPageMesh(){
         int k=0;
         for(int y=0;y<ROWS;y++)for(int x=0;x<COLUMNS;x++){
@@ -41,6 +45,7 @@ public final class CylinderPageMesh {
                 if(radius>.0001&&u<arc){theta=u/radius;mapped=radius*Math.sin(theta);}
                 else{theta=Math.PI;mapped=arc-u;}
             }
+            angles[i]=(float)theta;
             double delta=mapped-u;
             vertices[i*2]=(float)(x+nx*delta);
             vertices[i*2+1]=(float)(y+ny*delta);
@@ -51,6 +56,17 @@ public final class CylinderPageMesh {
             int alpha=(int)Math.round(205*back);
             int r=(int)(red*light),g=(int)(green*light),b=(int)(blue*light);
             paper[i]=(alpha<<24)|(r<<16)|(g<<8)|b;
+        }
+        // The reverse must cover the stationary/front face regardless of grid row order.
+        // Each cylindrical face is one-to-one in orthographic projection; two batches suffice.
+        frontCount=0;backCount=0;
+        for(int i=0;i<triangles.length;i+=3){
+            short a=triangles[i],b=triangles[i+1],c=triangles[i+2];
+            if(angles[a]+angles[b]+angles[c]>Math.PI*1.5){
+                backTriangles[backCount++]=a;backTriangles[backCount++]=b;backTriangles[backCount++]=c;
+            }else{
+                frontTriangles[frontCount++]=a;frontTriangles[frontCount++]=b;frontTriangles[frontCount++]=c;
+            }
         }
     }
 }
