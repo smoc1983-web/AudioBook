@@ -1,0 +1,17 @@
+{
+  "packageName": "com.audiobookdownloader.preview",
+  "versionCode": 100027,
+  "versionName": "4.2-preview.27",
+  "size": 36487461,
+  "sha256": "716e269d06f3a6a2e5851ddc0a7f34273354752995db696cf94189ac4a3db959",
+  "certificateSha256": "3a4cecd14bb3e983843871766909c3f07b3dc64379800f3e270e4a27d39affb7",
+  "apk": "Audiobook-Preview.apk",
+  "commit": "2847eb38fdadceb80cdca063fc9ac9e12759ff5e",
+  "label": "Audiobook Preview",
+  "providers": [
+    "com.audiobookdownloader.preview.updates",
+    "com.audiobookdownloader.preview.diagnostic_reports",
+    "com.audiobookdownloader.preview.androidx-startup"
+  ],
+  "file": "/workspace/deliverables/Audiobook-Preview/Audiobook-Preview-4.2-preview.27.apk"
+}

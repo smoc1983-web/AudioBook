@@ -1,0 +1,52 @@
+{
+  "run": 39602729609,
+  "source": "2847eb38fdadceb80cdca063fc9ac9e12759ff5e",
+  "android": {
+    "api": 36,
+    "image": "aosp_atd",
+    "tests": 3,
+    "failures": 0,
+    "errors": 0,
+    "seconds": 34.522,
+    "capture": "actual Compose subtree on software Canvas; GPU readback unavailable on ATD"
+  },
+  "jvm": [
+    {
+      "name": "com.audiobookdownloader.CylinderPageMeshTest",
+      "tests": "7",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.audiobookdownloader.LiveCatalogTest",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "1"
+    },
+    {
+      "name": "com.audiobookdownloader.OpenAudioCatalogTest",
+      "tests": "7",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.audiobookdownloader.PreviewUpdateRulesTest",
+      "tests": "6",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.audiobookdownloader.SleepShakeDetectorTest",
+      "tests": "8",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    }
+  ],
+  "javascript_fixtures": 120,
+  "physical_S24_tested": false
+}

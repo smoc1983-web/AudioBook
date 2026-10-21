@@ -1,0 +1,10 @@
+10-21 12:54:16.246  2221  2221 I AudiobookPageCurl: Software page texture captured: 360x740
+10-21 12:54:17.045  2221  2221 I AudiobookPageCurl: Software page texture captured: 360x740
+10-21 12:54:20.374  2221  2221 I AudiobookPageCurl: Software page texture captured: 360x740
+10-21 12:54:21.214  2221  2240 I PreviewUITest: Starting slow page-curl gesture
+10-21 12:54:21.405  2221  2221 I AudiobookPageCurl: Software page texture captured: 360x740
+10-21 12:54:25.242  2221  2240 I PreviewUITest: Slow page-curl gesture finished
+10-21 12:54:26.684  2221  2221 I AudiobookPageCurl: Software page texture captured: 360x740
+10-21 12:54:28.254  2221  2221 I AudiobookPageCurl: Software page texture captured: 360x740
+10-21 12:54:29.940  2221  2221 I AudiobookPageCurl: Software page texture captured: 360x740
+10-21 12:54:39.233  2221  2221 I AudiobookPageCurl: Software page texture captured: 360x740

@@ -1,11 +1,11 @@
 {
-  "revision": "4.2-preview.23-book-curl-collection-sleep-shake",
+  "revision": "4.2-preview.27-cylindrical-crescent",
   "storage": "GitHub export; see releases/ARCHIVE-PARTS.json for three multipart historical ZIPs",
   "files": [
     {
       "path": ".github/workflows/build-apk.yml",
-      "bytes": 5049,
-      "sha256": "49d898635928ef26afc62df59fe9516b5761b700b53428efef8defecaa0be356"
+      "bytes": 5567,
+      "sha256": "22ed25b1715c0033da6f242167d811fba6bd6f6e08621991a53549696015bb9d"
     },
     {
       "path": ".gitignore",
@@ -14,8 +14,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 6694,
-      "sha256": "9ba8c35b4791c928c5f83ba6c668ddb2c808750d90ac790cfb5cc3f2b5f804e5"
+      "bytes": 7057,
+      "sha256": "581d875529fa4a45fe7989c6ee24e73acdaab3593c4f9bccedebd99216fd4682"
     },
     {
       "path": "app/build.gradle.kts",
@@ -23,9 +23,19 @@
       "sha256": "28e2b8abc4730577b73727d86fd0ced892ece3abc4e439c6c447747e2fae837f"
     },
     {
+      "path": "app/src/androidTest/java/com/audiobookdownloader/PageCurlRenderTest.java",
+      "bytes": 2468,
+      "sha256": "073891d2340f22d1ce62f20373b8499cb586331e0915ee656a50f079fc049fef"
+    },
+    {
       "path": "app/src/androidTest/java/com/audiobookdownloader/StartupSmokeTest.java",
-      "bytes": 15444,
-      "sha256": "739487f0ac19977428636c7105fb45ef84356152ae8a7973dcba5f9f7c97c0e8"
+      "bytes": 15930,
+      "sha256": "f152dc940e9f2e9462fabcf37837e987ed27777db3ea27495ebd4af099d3e0da"
+    },
+    {
+      "path": "app/src/androidTest/java/com/audiobookdownloader/TestBitmapExports.java",
+      "bytes": 1311,
+      "sha256": "131f80a450f1b780088794dcfbe378de9e2bdbbe3f1ace7b9d49e50ab8a91b10"
     },
     {
       "path": "app/src/main/AndroidManifest.xml",
@@ -33,9 +43,19 @@
       "sha256": "f568bb1353e5443f0ce6cff2123a75d0e575168f10c4c5e3978b4acbc4d4c9f0"
     },
     {
+      "path": "app/src/main/assets/licenses/Apache-2.0.txt",
+      "bytes": 11358,
+      "sha256": "c95bae1d1ce0235ecccd3560b772ec1efb97f348a79f0fbe0a634f0c2ccefe2c"
+    },
+    {
+      "path": "app/src/main/assets/licenses/PAGE-CURL-NOTICE.txt",
+      "bytes": 767,
+      "sha256": "df6ed8e64e61c42f9000456ab021ac621166607a8af3d58b5620749af8d83efd"
+    },
+    {
       "path": "app/src/main/java/com/audiobookdownloader/AbPageTurn.kt",
-      "bytes": 7746,
-      "sha256": "ca0d02138bf489f8f91acc6f5cff3c46f96197f5928cb24a1e76fc26299c6f21"
+      "bytes": 9258,
+      "sha256": "8e3d0831227b5610ba6e4174e1724ebd8d2de5906e9ffb15fd94cd809081d3b1"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/AudioBookWidget.kt",
@@ -43,9 +63,19 @@
       "sha256": "f4884b78652eb3e73cb2ed07ba1fae907f6c2c6422d90aa8f38031a69311ddc5"
     },
     {
+      "path": "app/src/main/java/com/audiobookdownloader/CylinderPageMesh.java",
+      "bytes": 4042,
+      "sha256": "bc75781fce8fcfc096467218b6688e1e6e668f9e354e6423a9afb5059ae36bcf"
+    },
+    {
       "path": "app/src/main/java/com/audiobookdownloader/OpenAudioCatalog.java",
       "bytes": 10817,
       "sha256": "df7cc2f4de439e3bdc25eeb35b5676b36a4fc653d4e7a5a0bfd52c3f1ea4f726"
+    },
+    {
+      "path": "app/src/main/java/com/audiobookdownloader/PageCurlRenderer.java",
+      "bytes": 3182,
+      "sha256": "c1f4d153a92df20018600263d118749006923d60b0d50a095b243923cc6da54b"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/PreviewUpdateRules.java",
@@ -73,24 +103,29 @@
       "sha256": "59d7833be869f5fdc643a7cc915df69d49be5165481229e22bd6855a469fff95"
     },
     {
+      "path": "app/src/main/res/drawable-nodpi/ab_launcher_crescent_art.png",
+      "bytes": 2017550,
+      "sha256": "6156f804c1b8ee4d0e3ac2413c84b555e34a6f0712fa462d91ebd8106080b09b"
+    },
+    {
       "path": "app/src/main/res/drawable/ab_launcher_background.xml",
-      "bytes": 527,
-      "sha256": "2de563870aa7dc7255e4c32924038e3a029b04e976cc3711eee3d20d95197d0d"
+      "bytes": 108,
+      "sha256": "2cb3100cdd934e43da250e74c1cf2f44365ca53d98e7eaf7d1a5c7f21cb9df36"
     },
     {
       "path": "app/src/main/res/drawable/ab_launcher_foreground.xml",
-      "bytes": 1049,
-      "sha256": "e4becd6808823c6724a5efba27e49b3bd2ef3018cb2488cbc2620e02385305fa"
+      "bytes": 207,
+      "sha256": "deeeb57e5080b58595798b17f286318a14d59c29a6815b49b61c3804c409db1b"
     },
     {
       "path": "app/src/main/res/drawable/ab_launcher_monochrome.xml",
-      "bytes": 341,
-      "sha256": "2c3cec0eb3298a748eb5d3b7183fd367bc800929822841737bb4ba36dae96931"
+      "bytes": 396,
+      "sha256": "962734a32d21cff18a9a21e7839d17210b05e140c9fbc3b481f0e0043f52f3c0"
     },
     {
       "path": "app/src/main/res/drawable/preview_icon.xml",
-      "bytes": 1396,
-      "sha256": "b733c4ecaf5ca93af9c4b14cf8976251f9c6af21f6929698a1ecb4c64c7b3390"
+      "bytes": 366,
+      "sha256": "3178521933f64f6646bb495c0c1797b2f1e63a5c586fd68d1b2e8cf1bc55f628"
     },
     {
       "path": "app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml",
@@ -111,6 +146,11 @@
       "path": "app/src/main/res/xml/preview_update_paths.xml",
       "bytes": 121,
       "sha256": "2b21f1f67b8fb2625fee62f2201977c4643d2cf894c4642dfce277861850241e"
+    },
+    {
+      "path": "app/src/test/java/com/audiobookdownloader/CylinderPageMeshTest.java",
+      "bytes": 2834,
+      "sha256": "abbd5d1aae790c46bed5dd6c5d26a3488a581274e9182367411fa6320651a8a0"
     },
     {
       "path": "app/src/test/java/com/audiobookdownloader/LiveCatalogTest.java",
@@ -788,9 +828,14 @@
       "sha256": "e1cef10ed28682ac7d57a63141452add87367eacff845e6c9a00395267149989"
     },
     {
+      "path": "docs/CYLINDRICAL-PAGE-CURL.md",
+      "bytes": 14252,
+      "sha256": "46003ce9dc7348253efd8de01bbf413ff0cce20213a558bf83fb919109ab6d3a"
+    },
+    {
       "path": "docs/HANDOFF.md",
-      "bytes": 10469,
-      "sha256": "2516a02610a20d2cbef1d4cfac70994d5d3954f82ad9976bbe2e5361fab7c896"
+      "bytes": 12388,
+      "sha256": "b40e951f9b74ee6a7168aba4eaef562419f0f84789ccc60cb43ddd97d4d3f8e5"
     },
     {
       "path": "docs/INSTALL.md",
@@ -804,8 +849,8 @@
     },
     {
       "path": "docs/PLAYER-CURL-SLEEP.md",
-      "bytes": 13641,
-      "sha256": "27f7fb41474afd7594709b1b4a795394a85a05b537cda378272eb56103500cd3"
+      "bytes": 13850,
+      "sha256": "405d789a7c56f4bd220eed71ce72597ae2e634e12e87197cad2f6f5a34a4cf19"
     },
     {
       "path": "docs/PREVIEW-UPDATES.md",
@@ -893,6 +938,36 @@
       "sha256": "ff0f0674d4b24a0dd06e7f68f47935e4beaa5294cbf79e4401bde71acdf368f0"
     },
     {
+      "path": "docs/verification/checks-100027.json",
+      "bytes": 1184,
+      "sha256": "eddc8415698dac2e43e3eccfe35c5bdd2a354ded3d62399caec56c4758785b42"
+    },
+    {
+      "path": "docs/verification/curl-100027-left.png",
+      "bytes": 39255,
+      "sha256": "442770dfa67a441cc8ddb8b9a0f90fd85ce016ea86eacd8e54a066b1099eb828"
+    },
+    {
+      "path": "docs/verification/curl-100027-right.png",
+      "bytes": 38640,
+      "sha256": "7ce23a931d378c1571a8c2eb511090f8cb0540c597673fa266c0c54027584c80"
+    },
+    {
+      "path": "docs/verification/page-capture-100027.png",
+      "bytes": 584960,
+      "sha256": "7f14bb5751dc5cb8070d4716e8d1c6bf5e9b0cf9bdde673160d403cf87d9a407"
+    },
+    {
+      "path": "docs/verification/page-capture-100027.txt",
+      "bytes": 896,
+      "sha256": "89c62377b3e59fcd491a8ed133a8232177afd2622d981ac0b05dc426dfb3d770"
+    },
+    {
+      "path": "docs/verification/player-100027.png",
+      "bytes": 575957,
+      "sha256": "3a112b36833bd2cebc0e4a634e7169a55d8d8f6b2c3c84d8c25872c26927baca"
+    },
+    {
       "path": "docs/verification/preview-100009.json",
       "bytes": 658,
       "sha256": "6a67239010956d01b6b71a124b875ce4ac594267cd2c6b465ad81db9f1dd9c2f"
@@ -923,12 +998,22 @@
       "sha256": "f143ae350c7490528cfacb724a26cbfe2e5b135e3f9fcd59b6e1d72ea9403f88"
     },
     {
+      "path": "docs/verification/preview-100027.json",
+      "bytes": 702,
+      "sha256": "8f98479a7c995a1c734015ce6176c45f2b0b8da1bfc13d8af076c30a4accb43f"
+    },
+    {
       "path": "docs/verification/preview-four-source-http-2026-10-21.json",
       "bytes": 1492,
       "sha256": "92d35a513a2e0e5d28d0440c7897f94ad5801be087b1d49da044641a6214915f"
     },
     {
       "path": "docs/verification/sensor-injection-100023.txt",
+      "bytes": 72,
+      "sha256": "180a8377ad8cb59776d5cfac358fd64989ce85ef429c5f827d088ff895ece5e3"
+    },
+    {
+      "path": "docs/verification/sensor-injection-100027.txt",
       "bytes": 72,
       "sha256": "180a8377ad8cb59776d5cfac358fd64989ce85ef429c5f827d088ff895ece5e3"
     },
@@ -951,6 +1036,11 @@
       "path": "docs/verification/startup-100017-android36-test.xml",
       "bytes": 544,
       "sha256": "a5962125e106fe4ffacee019ebac775635d8b2e70682bd12cf3c915c9748c06c"
+    },
+    {
+      "path": "docs/verification/startup-curl-sensor-100027-android36.xml",
+      "bytes": 834,
+      "sha256": "6913efd29247b05ef14af50f6cafca6b5d7e9c6458c2fe8e5331b46d9424b1ff"
     },
     {
       "path": "docs/verification/startup-sensor-100022-android36-atd-test.xml",
@@ -9784,8 +9874,8 @@
     },
     {
       "path": "scripts/test-android-startup.sh",
-      "bytes": 2715,
-      "sha256": "8c97455ff8d6da208a0daad105b724b6af0d2931c07782fb6485f7c2b3c2617d"
+      "bytes": 2928,
+      "sha256": "2964c113aa4f4c566fecc8b7c63636903d1b66d6718a47263c482c501aab99f3"
     },
     {
       "path": "settings.gradle.kts",
