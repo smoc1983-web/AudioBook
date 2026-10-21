@@ -69,8 +69,8 @@
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/BookAudioHeaders.java",
-      "bytes": 1301,
-      "sha256": "b5a51d8fd22539acd75d46d7500e06ccf1fe36dd7ee24f85e042979838ac2007"
+      "bytes": 1308,
+      "sha256": "4510b326ff5e429bb8899d742ad00c18546654ccde0c19fab5a0b9759db3083c"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/BookAudioRequests.kt",

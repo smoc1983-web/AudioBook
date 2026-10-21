@@ -15,7 +15,7 @@ public final class BookAudioHeaders {
                 uri.getHost()!=null&&uri.getRawUserInfo()==null ? uri : null;
         } catch(Exception ignored) { return null; }
     }
-    private static boolean safe(String value) { return value!=null&&!value.isBlank()&&value.length()<=16384&&value.indexOf('\r')<0&&value.indexOf('\n')<0; }
+    private static boolean safe(String value) { return value!=null&&!value.trim().isEmpty()&&value.length()<=16384&&value.indexOf('\r')<0&&value.indexOf('\n')<0; }
     public static Map<String,String> build(String audio,String page,String agent,String targetCookies) {
         if(http(audio)==null)return Collections.emptyMap();
         Map<String,String> result=new LinkedHashMap<>();
