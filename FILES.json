@@ -1,5 +1,5 @@
 {
-  "revision": "4.2-preview.34-screenshot-sources",
+  "revision": "4.2-thirteen-sources-1",
   "storage": "GitHub export; see releases/ARCHIVE-PARTS.json for three multipart historical ZIPs",
   "files": [
     {
@@ -14,8 +14,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 7813,
-      "sha256": "9312d11b9cd84b344e68311b0d050e3d7b93958e12d70261d27fb979354b63e2"
+      "bytes": 7879,
+      "sha256": "fc8f14998a49f3ae4dcc589d01c032301f32c360ff73869eb2c6842fc92a9c2f"
     },
     {
       "path": "app/build.gradle.kts",
@@ -29,8 +29,8 @@
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/StartupSmokeTest.java",
-      "bytes": 17641,
-      "sha256": "0c92fb3f8fd8bead55c51ffafa60790b76638f7e872d55e51621865413689b5f"
+      "bytes": 18912,
+      "sha256": "1352394d36f607c984b4706cf8a7ace7cba9c5d7d12200fcd657f457643ae8e6"
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/TestBitmapExports.java",
@@ -59,8 +59,8 @@
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/AdditionalBookSources.kt",
-      "bytes": 19255,
-      "sha256": "12d3bcd5a8ffc76fa5eddde97e5a5caabcb07f917324b92d023c9cf5ec3b14d8"
+      "bytes": 17942,
+      "sha256": "b648d6e2cf4bbc4685d1e18492abfd18715f710c00e5cedf938da49da59127af"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/AudioBookWidget.kt",
@@ -164,8 +164,8 @@
     },
     {
       "path": "app/src/test/java/com/audiobookdownloader/AdditionalBookSourcesTest.kt",
-      "bytes": 2350,
-      "sha256": "f63644087b19dc5e5f03dbe6764f22fcd82dcc70619ff9226015b69a2984432e"
+      "bytes": 2551,
+      "sha256": "f78586c607e25b31259da4a67ca699bc5d4ac550b28936756c9b8fe4c1ad9b42"
     },
     {
       "path": "app/src/test/java/com/audiobookdownloader/BookAudioHeadersTest.java",
@@ -209,8 +209,8 @@
     },
     {
       "path": "current/MainActivity.kt",
-      "bytes": 711177,
-      "sha256": "e7e709d40d94db9dd394b45c84bb5afb110902570b0e60933d390db93eaceaea"
+      "bytes": 711970,
+      "sha256": "b7a63cdd695c083e59aabd3ee98d21ffc575869ca3535feb1be8aa24ff4ccf18"
     },
     {
       "path": "current/PlaybackService.kt",
@@ -494,8 +494,8 @@
     },
     {
       "path": "current/js-check/analyzer.js",
-      "bytes": 179003,
-      "sha256": "819ca292c2299afcb133808b2171c256ddfe8738af7e45f5a34237796edc1ec9"
+      "bytes": 175064,
+      "sha256": "7d108ec3556faa36bbce28b131f79d9dcb585654765900ccd350291bd9df6f6c"
     },
     {
       "path": "current/js-check/azbyka-catalog.js",
@@ -514,13 +514,13 @@
     },
     {
       "path": "current/js-check/catalog-template.js",
-      "bytes": 87617,
-      "sha256": "5f5286d3f61c7b1a24a9dc3421660abaf52cc03f90da1c071e7776dfd8732a1f"
+      "bytes": 86304,
+      "sha256": "ac3b73cb629040b0d33a027c3fbd7399af324d1fd3df7abcc47af7500572feb0"
     },
     {
       "path": "current/js-check/catalog.js",
-      "bytes": 87582,
-      "sha256": "00bd56a2c01c0a2922f86627d030352da823ce19dec7fd2d243da09dafd02a75"
+      "bytes": 86269,
+      "sha256": "049076fe521f1bdf93659dab3d8cb48747a067bf359163fe332176c93f47f828"
     },
     {
       "path": "current/js-check/classifier.js",
@@ -529,23 +529,23 @@
     },
     {
       "path": "current/js-check/external-page.js",
-      "bytes": 180767,
-      "sha256": "6bc515a8d356ba67272928af9072cc441152af437333986ec0fba481abdaa206"
+      "bytes": 176828,
+      "sha256": "8429cd07c9163a5d45eec74da22e54fce712805640e07da4e6fda46c659b665b"
     },
     {
       "path": "current/js-check/extra-search-template.js",
-      "bytes": 25950,
-      "sha256": "c134841dd652982c8b65a42b67c0c907b77ae555bf1ac17bd5ba718dc33113d4"
+      "bytes": 24637,
+      "sha256": "94df8d1bd1ab2f30ef1042539b576da001006a0cdaccdefdc780a5c906127da4"
     },
     {
       "path": "current/js-check/extra-source-config.json",
-      "bytes": 4825,
-      "sha256": "8145987f38b4f375c901e93446313eb9bf54b589ad4584ee2fb8fa827b635809"
+      "bytes": 3512,
+      "sha256": "0353bfcfe83881e8d6abebccd424788ad1a94ed55f4a50aa7d7567a6718eba9f"
     },
     {
       "path": "current/js-check/extra-source.js",
-      "bytes": 17544,
-      "sha256": "8d2b41a1e528f53880272c57541111a4010c8780b3c1868302c4f5bf760a2c50"
+      "bytes": 16231,
+      "sha256": "4fbd7123e3aac24e6f68f7b7c4a9d8d8a50507d1c9929bff0f0f33336fe88ba0"
     },
     {
       "path": "current/js-check/genre-adapters.json",
@@ -569,8 +569,8 @@
     },
     {
       "path": "current/js-check/genre-template.js",
-      "bytes": 121247,
-      "sha256": "788f2704a93ef6ad26c8cefe698df6573888efd605ed943fb10d8b04e101373f"
+      "bytes": 119934,
+      "sha256": "6e5efc4c894031291250fda80a53ef01989fac62ded81ecb40c390925c98bf7f"
     },
     {
       "path": "current/js-check/native-directory.js",
@@ -579,8 +579,8 @@
     },
     {
       "path": "current/js-check/native-genre-template.js",
-      "bytes": 121246,
-      "sha256": "8196febd01cd5dadf21e28585ad9f8283f18fb0dd1c9bcc803f4a7e080697e1f"
+      "bytes": 119933,
+      "sha256": "754ffca62f370085eff97cf1d5831d96b45a62c8b0f79fd8cc8a5aeb899055f8"
     },
     {
       "path": "current/js-check/next.js",
@@ -604,8 +604,8 @@
     },
     {
       "path": "current/js-check/online-results-template.js",
-      "bytes": 99929,
-      "sha256": "e315cb5cf12bcd3229feed6cceb7760247d5969f0d68215f9284f96f9492ce5d"
+      "bytes": 98616,
+      "sha256": "a1ed83f79a879d5d0c1f04940389d3a512ab6a14f9232088ba8d3f2f18d2ef97"
     },
     {
       "path": "current/js-check/online-scripts.js",
@@ -624,8 +624,8 @@
     },
     {
       "path": "current/js-check/player-reader.js",
-      "bytes": 37258,
-      "sha256": "c972ead109ab26409ce21ff01d694e8ee5ee3d70e75290becbb93b36d036d551"
+      "bytes": 35945,
+      "sha256": "591c3d1424f0aff6cc607498b2bf56128e2aed250eba84662d89c9785c7773ea"
     },
     {
       "path": "current/js-check/public-classifier.js",
@@ -794,8 +794,8 @@
     },
     {
       "path": "current/tests/test-additional-sources.cjs",
-      "bytes": 6491,
-      "sha256": "f823faf2554386affea7873ee0e090c5b3ff5d9d3a4f8a1a9d3b5c978f320ecc"
+      "bytes": 6925,
+      "sha256": "d75cf1512fb54c7b6caee1c460a38c270e2127b0112fabf8cc4caf73e80a9be8"
     },
     {
       "path": "current/tests/test-author-search.cjs",
@@ -974,8 +974,8 @@
     },
     {
       "path": "docs/HANDOFF.md",
-      "bytes": 13533,
-      "sha256": "d3daccd1637ff6dfc0ebc2b73f676cb5642dee45427f61bc1db5e785c938b06c"
+      "bytes": 14623,
+      "sha256": "c4f39c4fe9ceb4ebe59f992c9698e629a9aaf701c84f2799b7116e7f79e340ef"
     },
     {
       "path": "docs/INSTALL.md",
@@ -1074,8 +1074,8 @@
     },
     {
       "path": "docs/screenshot-source-registry.json",
-      "bytes": 4826,
-      "sha256": "df248aa6f74ae64bd461e2c15bbe7ec3de358ecb644493987be3152890500695"
+      "bytes": 3513,
+      "sha256": "d64f7e6ab24e0bc2cb336a19b0afa45cb7908a910670227ed6eff406b6895184"
     },
     {
       "path": "docs/tools/dex_registers.py",

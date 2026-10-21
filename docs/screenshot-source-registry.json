@@ -30,20 +30,6 @@
     "enabled": true
   },
   {
-    "id": "lis10book",
-    "name": "Lis10Book",
-    "home": "https://lis10book.com/",
-    "hosts": [
-      "lis10book.com",
-      "www.lis10book.com"
-    ],
-    "book": "^/(?:book|audiobook)/[^/]+/?$",
-    "genre": "^/genres/[^/]+/?$",
-    "author": "^/avtor/[^/]+/?$",
-    "status": "Сайт показывает проверку соединения; поиск не подтверждён",
-    "enabled": false
-  },
-  {
     "id": "uknig",
     "name": "Uknig",
     "home": "https://uknig.com/",
@@ -113,34 +99,6 @@
     "author": "^/author/[^/]+/?$",
     "status": "Каталог и поиск проверены",
     "enabled": true
-  },
-  {
-    "id": "slushkinvsem",
-    "name": "Слушкин Всем",
-    "home": "https://slushkinvsem.ru/",
-    "hosts": [
-      "slushkinvsem.ru",
-      "www.slushkinvsem.ru"
-    ],
-    "book": "^/[^/]+/[0-9]+-[^/]+\\.html$",
-    "genre": "^/(?:kniga_audio_[^/]+|blok)/?$",
-    "author": "^/xfsearch/(?:avtor|author)/.+$",
-    "status": "Сайт требует JavaScript; каталог и плеер требуют проверки",
-    "enabled": false
-  },
-  {
-    "id": "audioboo",
-    "name": "Audioboo",
-    "home": "https://audioboo.org/",
-    "hosts": [
-      "audioboo.org",
-      "www.audioboo.org"
-    ],
-    "book": "^/[^/]+/[0-9]+-[^/]+\\.html$",
-    "genre": "^/(?:genres?|zhanr)/[^/]+/?$",
-    "author": "^/xfsearch/(?:avtor|author)/.+$",
-    "status": "Последняя проверка: HTTP 403; поиск не подтверждён",
-    "enabled": false
   },
   {
     "id": "audioknigi-pro",

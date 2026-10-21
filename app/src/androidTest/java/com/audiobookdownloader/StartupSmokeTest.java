@@ -53,7 +53,8 @@ public class StartupSmokeTest {
         Configurator.getInstance().setWaitForIdleTimeout(0);
         device.wakeUp();
         device.executeShellCommand("wm dismiss-keyguard");
-        context.getSharedPreferences("audiobook_downloader",0).edit().clear().putString("search_source","Internet Archive").commit();
+        context.getSharedPreferences("audiobook_downloader",0).edit().clear().putString("search_source","Lis10Book")
+            .putStringSet("search_enabled_sources",new java.util.HashSet<>(java.util.Arrays.asList("Азбука веры","Книгоблуд","Bookinfo","Audiokniga-online.ru","Книга в Ухе","Izibuk","Uknig","Поле книг","Аудиокниги Все","Отруб","Akniga","Audioknigi.pro","База книг","Lis10Book","Слушкин Всем","Audioboo"))).commit();
         context.getSharedPreferences("audiobook_startup",0).edit().clear().commit();
         new File(context.getFilesDir(),"audiobook-last-crash.txt").delete();
         if(Build.VERSION.SDK_INT>=33){
@@ -63,18 +64,23 @@ public class StartupSmokeTest {
         try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(MainActivity.class)){
             visible(By.text("Жанры"),"Home failed on a fresh installation");
             visible(By.text("Режим: включённые источники"),"Removed saved source was not reset");
+            assertEquals("Removed single-source selection was not cleaned","",context.getSharedPreferences("audiobook_downloader",0).getString("search_source",""));
+            java.util.Set<String> retainedSources=context.getSharedPreferences("audiobook_downloader",0).getStringSet("search_enabled_sources",java.util.Collections.emptySet());
+            assertEquals("Other enabled sources changed",13,retainedSources.size());
+            for(String removed:new String[]{"Lis10Book","Слушкин Всем","Audioboo"})assertFalse("Removed saved source remained enabled",retainedSources.contains(removed));
             for(String url:new String[]{"https://azbyka.ru/audio/book.html","https://mob.knigoblud.club/audiobook/123","https://bookinfo.net/fentezi/author/book","https://audiokniga-online.ru/fjentezi/1487-book.html"})
                 assertNotNull("Original URL rejected: "+url,MainActivityKt.supportedBookUrl(url));
-            for(String url:new String[]{"https://archive.org/details/test","https://librivox.org/test","https://bookinfo.net.evil.invalid/book","https://user:password@bookinfo.net/book"})
+            for(String url:new String[]{"https://lis10book.com/book/test/","https://slushkinvsem.ru/book/1-test.html","https://audioboo.org/book/1-test.html","https://archive.org/details/test","https://librivox.org/test","https://bookinfo.net.evil.invalid/book","https://user:password@bookinfo.net/book"})
                 assertNull("Unexpected search source accepted: "+url,MainActivityKt.supportedBookUrl(url));
             visible(By.text("Книги"),"Library navigation missing").click();
             visible(By.text("Моя библиотека"),"Library did not open");
             visible(By.text("Поиск"),"Search navigation missing").click();
             visible(By.text("Жанры"),"Cannot return home");
-            visible(By.text("Источники · 16"),"Expanded source selector missing").click();
+            visible(By.text("Источники · 13"),"Expanded source selector missing").click();
             for(String source:new String[]{"Азбука веры","Книгоблуд","Bookinfo","Audiokniga-online.ru"})
                 visible(By.text(source),"Original source missing: "+source);
             assertFalse("Removed catalog is offered",device.hasObject(By.text("Internet Archive")));
+            for(String removed:new String[]{"Lis10Book","Слушкин Всем","Audioboo"})assertFalse("Removed source is offered",device.hasObject(By.text(removed)));
             assertFalse("Removed catalog is offered",device.hasObject(By.text("LibriVox · Internet Archive")));
             UiObject2 azbykaSwitch=visible(By.desc("Общий поиск: Азбука веры"),"Source inclusion switch missing");
             azbykaSwitch.click();

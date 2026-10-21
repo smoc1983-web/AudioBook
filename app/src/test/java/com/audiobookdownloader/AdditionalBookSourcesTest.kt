@@ -4,13 +4,17 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class AdditionalBookSourcesTest {
-    @Test fun registryHasUniqueNamesAndConservativeDefaults() {
-        assertEquals(12,AbExtraSources.names.size)
-        assertEquals(12,AbExtraSources.names.toSet().size)
+    @Test fun registryRetainsNineAdditionalSourcesAndExcludesRemovedHosts() {
+        assertEquals(9,AbExtraSources.names.size)
+        assertEquals(9,AbExtraSources.names.toSet().size)
         assertEquals(9,AbExtraSources.defaults.size)
         for(name in AbExtraSources.names){assertEquals(name,AbExtraSources.name(AbExtraSources.home(name)));assertTrue(AbExtraSources.status(name).isNotBlank())}
-        assertFalse("Unverified challenge site must not block global search", "Lis10Book" in AbExtraSources.defaults)
-        assertFalse("HTTP 403 must not be labelled available", "Audioboo" in AbExtraSources.defaults)
+        for((name,url) in listOf("Lis10Book" to "https://lis10book.com/", "Слушкин Всем" to "https://slushkinvsem.ru/", "Audioboo" to "https://audioboo.org/")) {
+            assertFalse(name in AbExtraSources.names)
+            assertEquals("",AbExtraSources.home(name))
+            assertEquals("",AbExtraSources.name(url))
+            assertFalse(AbExtraSources.book(url+"book/test/"))
+        }
     }
     @Test fun urlIdentityRejectsCredentialsImpostorsAndOtherPorts() {
         for(name in AbExtraSources.names){val host=java.net.URI(AbExtraSources.home(name)).host

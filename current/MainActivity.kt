@@ -636,7 +636,7 @@ private fun AudioBookSplashScreen(
 // A committed marker survives abrupt process termination. The token prevents
 // a previous activity instance from clearing the next instance's startup.
 private object AbLaunchState {
-    private const val REVISION="4.2-screenshot-sources-1"
+    private const val REVISION="4.2-thirteen-sources-1"
     private fun prefs(context: Context)=context.applicationContext.getSharedPreferences("audiobook_startup",Context.MODE_PRIVATE)
     @Synchronized fun needsRecovery(context: Context): Boolean {
         val store=prefs(context)
@@ -1711,7 +1711,14 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
 
 
     var selectedSearchSource by androidx.compose.runtime.saveable.rememberSaveable {
-        mutableStateOf(prefs.getString("search_source","").orEmpty().takeIf{it in AbBookSources.searchOrder}.orEmpty())
+        mutableStateOf(AbBookSources.selection(prefs))
+    }
+    // Android may restore rememberSaveable from an Activity created before an APK update.
+    LaunchedEffect(selectedSearchSource) {
+        if(selectedSearchSource.isNotBlank()&&selectedSearchSource !in AbBookSources.searchOrder) {
+            selectedSearchSource=""
+            prefs.edit().putString("search_source","").apply()
+        }
     }
     // A request owns this immutable source list until it completes or is cancelled.
 
@@ -12487,7 +12494,7 @@ internal object AbPlaybackTrace {
 
 private object AbCrashReport {
     private const val FILE="audiobook-last-crash.txt"
-    private const val REVISION="4.2-screenshot-sources-1"
+    private const val REVISION="4.2-thirteen-sources-1"
     private const val FIRST_RUN="first_run_"+REVISION
     private val reporting=java.util.concurrent.atomic.AtomicBoolean(false)
     @Volatile var screen="Запуск приложения"
@@ -14175,8 +14182,17 @@ private object AbBookSources {
     val searchOrder=all
     fun enabled(prefs:android.content.SharedPreferences):List<String> {
         val saved=prefs.getStringSet("search_enabled_sources",null)
-        val choices=saved ?: (original.toSet()+AbExtraSources.defaults)
-        return searchOrder.filter{it in choices}.ifEmpty{original}
+        val defaults=original.toSet()+AbExtraSources.defaults
+        val retained=saved?.intersect(searchOrder.toSet())
+        val choices=retained?.takeIf{it.isNotEmpty()} ?: defaults
+        if(saved!=null&&saved!=choices)prefs.edit().putStringSet("search_enabled_sources",choices).apply()
+        return searchOrder.filter{it in choices}
+    }
+    fun selection(prefs:android.content.SharedPreferences):String {
+        val saved=prefs.getString("search_source","").orEmpty()
+        val selected=saved.takeIf{it in searchOrder}.orEmpty()
+        if(saved!=selected)prefs.edit().putString("search_source",selected).apply()
+        return selected
     }
     fun home(site: String): String=when(site) {
         AZBYKA -> "https://azbyka.ru/audio/"
