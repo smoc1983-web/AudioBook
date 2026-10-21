@@ -70,7 +70,7 @@ jobs:
         with:
           api-level: 36
           emulator-boot-timeout: 300
-          target: google_apis
+          target: aosp_atd
           arch: x86_64
           profile: pixel_6
           disable-animations: false
