@@ -1,0 +1,45 @@
+{
+  "tool": "Android SDK build-tools 35 apksigner, real PKCS12",
+  "cases": [
+    {
+      "case": "same-store-and-key-password",
+      "passed": true
+    },
+    {
+      "case": "discover-extracted-old-apk-next-to-candidate",
+      "passed": true
+    },
+    {
+      "case": "different-certificate-refused",
+      "passed": true
+    },
+    {
+      "case": "wrong-store-password",
+      "passed": true
+    },
+    {
+      "case": "wrong-key-password",
+      "passed": true
+    },
+    {
+      "case": "unchanged-version-rejected",
+      "passed": true
+    },
+    {
+      "case": "wrong-package-rejected",
+      "passed": true
+    },
+    {
+      "case": "different-store-and-key-passwords",
+      "passed": true
+    },
+    {
+      "case": "hidden-terminal-input-and-empty-key-password",
+      "passed": true
+    }
+  ],
+  "original_fixture_key_unchanged": true,
+  "user_private_key_available": false,
+  "user_key_signing_tested": false,
+  "fixture_keys_exported": false
+}

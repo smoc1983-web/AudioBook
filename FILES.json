@@ -1,5 +1,5 @@
 {
-  "revision": "4.2-preview.38-media-widgets-and-stable-candidate",
+  "revision": "4.2-preview.38-pkcs12-phone-signing-fix",
   "storage": "GitHub export; see releases/ARCHIVE-PARTS.json for three multipart historical ZIPs",
   "files": [
     {
@@ -14,8 +14,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 9248,
-      "sha256": "258a66543fd9eb609e82f250ebbaf8f7ff3862353edfa2ef162edf2b02cd9131"
+      "bytes": 9507,
+      "sha256": "b6c2d6a5d890cece976126ee9a9a3b485ddbd837977f717a0055d9498f41e842"
     },
     {
       "path": "app/build.gradle.kts",
@@ -1014,8 +1014,8 @@
     },
     {
       "path": "docs/HANDOFF.md",
-      "bytes": 17296,
-      "sha256": "fadd185cfe2330b67d0542e971bd7ebf7c2285243b3ceb35edbd1d5a3f730278"
+      "bytes": 19156,
+      "sha256": "2d9f9cf1adbab71c2aa4000685501cc339cb73512832fb21e8319cc65850aa17"
     },
     {
       "path": "docs/INSTALL.md",
@@ -1064,8 +1064,8 @@
     },
     {
       "path": "docs/STABLE-INSTALL.md",
-      "bytes": 6007,
-      "sha256": "45e790861158c90cf023d26808caf9be41eacc575309bdd2e5de8cb7347bb4cb"
+      "bytes": 6255,
+      "sha256": "9aa6b94c90f90e458494cb0d729a4d970cf64a2bbed8ef2c9812471ed8083da1"
     },
     {
       "path": "docs/STARTUP-RECOVERY.md",
@@ -1186,6 +1186,11 @@
       "path": "docs/verification/page-capture-100027.txt",
       "bytes": 896,
       "sha256": "89c62377b3e59fcd491a8ed133a8232177afd2622d981ac0b05dc426dfb3d770"
+    },
+    {
+      "path": "docs/verification/phone-signing-pkcs12.json",
+      "bytes": 965,
+      "sha256": "3e1c4817bae35c325496f1a8ec3ef3d5b54156f8ced7f80964e2cd6317a51096"
     },
     {
       "path": "docs/verification/player-100027.png",
@@ -10169,13 +10174,18 @@
     },
     {
       "path": "scripts/sign-phone-update.sh",
-      "bytes": 3443,
-      "sha256": "6693e7057d60231290175d35af2af070d9b4c3048d3d333830ff897c557f437b"
+      "bytes": 8563,
+      "sha256": "0e89a50bdd8bbaee2306d36cd4238a6f1b2f11fab106e3027e77b0c47719355c"
     },
     {
       "path": "scripts/test-android-startup.sh",
       "bytes": 3064,
       "sha256": "0db4f46bdf4f281a402335e600df85b9eb3c16cd7a75a62b042a4a4cf8f839ca"
+    },
+    {
+      "path": "scripts/tests/test-phone-signing.py",
+      "bytes": 9133,
+      "sha256": "abb61d84f1841ff2b417005a066cbca64e176ed8e8ceebd09c0bacef78f588bd"
     },
     {
       "path": "settings.gradle.kts",
