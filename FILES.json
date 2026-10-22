@@ -1,5 +1,5 @@
 {
-  "revision": "4.2-media-widgets-phone-signing",
+  "revision": "4.2-preview.38-media-widgets-and-stable-candidate",
   "storage": "GitHub export; see releases/ARCHIVE-PARTS.json for three multipart historical ZIPs",
   "files": [
     {
@@ -14,8 +14,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 7820,
-      "sha256": "a9b168bb50c194995f263d17369290f62966b476e16855ee75fa72d2df3d4c5d"
+      "bytes": 9248,
+      "sha256": "258a66543fd9eb609e82f250ebbaf8f7ff3862353edfa2ef162edf2b02cd9131"
     },
     {
       "path": "app/build.gradle.kts",
@@ -1014,13 +1014,18 @@
     },
     {
       "path": "docs/HANDOFF.md",
-      "bytes": 15086,
-      "sha256": "a651ad9177921252bf0d88025c1e199b2691cf5557d9da7ce2bf27897427620f"
+      "bytes": 17296,
+      "sha256": "fadd185cfe2330b67d0542e971bd7ebf7c2285243b3ceb35edbd1d5a3f730278"
     },
     {
       "path": "docs/INSTALL.md",
       "bytes": 2189,
       "sha256": "e290dfa6745ef7c7fddad3085c9b919b71b47ec8955a15977eecd34652fe68ff"
+    },
+    {
+      "path": "docs/MEDIA-WIDGETS-STABLE.md",
+      "bytes": 7300,
+      "sha256": "b57b996aa1eb0062ffb56bd133ddc31eb5428838edcb9d126a92d49ebbe677c0"
     },
     {
       "path": "docs/ORIGINAL-FILES.json",
@@ -1059,8 +1064,8 @@
     },
     {
       "path": "docs/STABLE-INSTALL.md",
-      "bytes": 5355,
-      "sha256": "0e167d8b2a0b09423cb2799cda7e524184902b528455bd4d7a7b3f0355c98e85"
+      "bytes": 6007,
+      "sha256": "45e790861158c90cf023d26808caf9be41eacc575309bdd2e5de8cb7347bb4cb"
     },
     {
       "path": "docs/STARTUP-RECOVERY.md",
@@ -1134,8 +1139,8 @@
     },
     {
       "path": "docs/tools/inspect_preview_apk.py",
-      "bytes": 3723,
-      "sha256": "ff0f0674d4b24a0dd06e7f68f47935e4beaa5294cbf79e4401bde71acdf368f0"
+      "bytes": 6085,
+      "sha256": "37d707c7c0822e2d91ba784535bf0739962c14f7072ebc33e2e07a14128bc1a9"
     },
     {
       "path": "docs/verification/checks-100027.json",
@@ -1153,6 +1158,11 @@
       "sha256": "63f1d064e94091cbb7da3446ed28d0a1155523fa115445583c76c914572bca9b"
     },
     {
+      "path": "docs/verification/checks-100038.json",
+      "bytes": 4651,
+      "sha256": "8a89d585155182b69ef37fa8fa5798819eac65f905e193ce3cee554d308881e4"
+    },
+    {
       "path": "docs/verification/curl-100027-left.png",
       "bytes": 39255,
       "sha256": "442770dfa67a441cc8ddb8b9a0f90fd85ce016ea86eacd8e54a066b1099eb828"
@@ -1161,6 +1171,11 @@
       "path": "docs/verification/curl-100027-right.png",
       "bytes": 38640,
       "sha256": "7ce23a931d378c1571a8c2eb511090f8cb0540c597673fa266c0c54027584c80"
+    },
+    {
+      "path": "docs/verification/media-widgets-100038-android36.xml",
+      "bytes": 984,
+      "sha256": "33028e6ad4f87a748aed60b8784fa400594709263e6bc30f289cf70e897d7951"
     },
     {
       "path": "docs/verification/page-capture-100027.png",
@@ -1223,6 +1238,11 @@
       "sha256": "37ea42e5a3a02dcc5e31c470adc091639ba927a7c604b8c15e7dd36a24c26dbd"
     },
     {
+      "path": "docs/verification/preview-100038.json",
+      "bytes": 660,
+      "sha256": "fbd3e956d0230ccf092665e766a22795527678aecaebc0208225bb8d16d85c48"
+    },
+    {
       "path": "docs/verification/preview-four-source-http-2026-10-21.json",
       "bytes": 1492,
       "sha256": "92d35a513a2e0e5d28d0440c7897f94ad5801be087b1d49da044641a6214915f"
@@ -1256,6 +1276,11 @@
       "path": "docs/verification/sensor-injection-100034.txt",
       "bytes": 96,
       "sha256": "4515ff27dd55e7e5ec045624acc6e985aee59fe7feca178fe3add48911d152b8"
+    },
+    {
+      "path": "docs/verification/stable-candidate-100038.json",
+      "bytes": 451,
+      "sha256": "99e9aa04f1551dfc1eb129dcf4a4090f534c54b7ada6d413c7c32c254d05cf98"
     },
     {
       "path": "docs/verification/startup-100010-android35-crash.txt",
@@ -1301,6 +1326,21 @@
       "path": "docs/verification/startup-thirteen-sources-100035-android36.xml",
       "bytes": 843,
       "sha256": "11a6f01fccc756b572b72613432281628e576a0b53e79f326be2b9c28ca65b91"
+    },
+    {
+      "path": "docs/verification/widget-preview-100038-0.png",
+      "bytes": 14689,
+      "sha256": "996a87a16b9fae2aaab133128bdd7fcc342479fb3baf6f1e52b2b1239461dd63"
+    },
+    {
+      "path": "docs/verification/widget-preview-100038-1.png",
+      "bytes": 24552,
+      "sha256": "2ab116003f4d2ce879de78eee4b090e1cd256718729abac5a01a124213602d7f"
+    },
+    {
+      "path": "docs/verification/widget-preview-100038-2.png",
+      "bytes": 32776,
+      "sha256": "200150888bfebc3a4bc228dd6457b52f860fd81db00d61229c46dc0fc81ec79a"
     },
     {
       "path": "gradle.properties",

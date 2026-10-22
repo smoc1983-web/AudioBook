@@ -1,0 +1,17 @@
+{
+  "packageName": "com.audiobookdownloader.preview",
+  "versionCode": 100038,
+  "versionName": "4.2-preview.38",
+  "size": 36512624,
+  "sha256": "59ccb56dfce4777895bdee59f0bd9b99d2ef57def52c23b63f52959af0479757",
+  "certificateSha256": "3a4cecd14bb3e983843871766909c3f07b3dc64379800f3e270e4a27d39affb7",
+  "apk": "Audiobook-Preview.apk",
+  "commit": "d63d970dc16107e601a40d9d0fb8a1ef07e7ed0d",
+  "label": "Audiobook Preview",
+  "providers": [
+    "com.audiobookdownloader.preview.updates",
+    "com.audiobookdownloader.preview.diagnostic_reports",
+    "com.audiobookdownloader.preview.androidx-startup"
+  ],
+  "file": "Audiobook-Preview-4.2-preview.38.apk"
+}

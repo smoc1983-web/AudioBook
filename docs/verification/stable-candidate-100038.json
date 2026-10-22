@@ -1,0 +1,14 @@
+{
+  "packageName": "com.audiobookdownloader",
+  "versionCode": 100038,
+  "versionName": "4.2.38",
+  "libraryDirectory": "Download/AudioBooks",
+  "size": 32123838,
+  "sha256": "c8a49e136fba90f914273f6d2e3f11fde8eac03214e521205601250490e4610b",
+  "signed": false,
+  "installable": false,
+  "originalSignerRequired": true,
+  "originalPhoneIDE": "Code on the Go",
+  "realUserUpgradeTested": false,
+  "commit": "d63d970dc16107e601a40d9d0fb8a1ef07e7ed0d"
+}

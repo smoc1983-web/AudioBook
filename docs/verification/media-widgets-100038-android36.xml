@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuite name="com.audiobookdownloader.PageCurlRenderTest" tests="4" failures="0" errors="0" skipped="0" time="38.305" timestamp="2026-10-22T09:10:21" hostname="localhost">
+  <properties>
+    <property name="device" value="emulator-5554 - 16" />
+    <property name="flavor" value="" />
+    <property name="project" value=":app" />
+  </properties>
+  <testcase name="texturedCylinderRendersBothDirectionsAndExportsFrames" classname="com.audiobookdownloader.PageCurlRenderTest" time="0.445" />
+  <testcase name="mainNavigationRecreationAndNativeRecoveryRemainUsable" classname="com.audiobookdownloader.StartupSmokeTest" time="23.937" />
+  <testcase name="playerAddsCurrentBookAndRealSensorRestartsSleepCountdown" classname="com.audiobookdownloader.StartupSmokeTest" time="12.621" />
+  <testcase name="previewsHaveIntrinsicHeightAndRenderAllNineThemes" classname="com.audiobookdownloader.WidgetPreviewTest" time="0.454" />
+</testsuite>
