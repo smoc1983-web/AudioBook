@@ -1,8 +1,8 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="ab_widget_compact_label">Audiobook Preview · Компактный 4×1</string>
-    <string name="ab_widget_cover_label">Audiobook Preview · Обложка 2×2</string>
-    <string name="ab_widget_player_label">Audiobook Preview · Плеер 4×2</string>
+    <string name="ab_widget_compact_label">Audiobook · Компактный 4×1</string>
+    <string name="ab_widget_cover_label">Audiobook · Обложка 2×2</string>
+    <string name="ab_widget_player_label">Audiobook · Плеер 4×2</string>
     <string name="ab_widget_compact_description">Текущая книга, воспроизведение и переключение глав. Пять тем Liquid Glass.</string>
     <string name="ab_widget_cover_description">Обложка, воспроизведение и прогресс главы. Пять тем Liquid Glass.</string>
     <string name="ab_widget_player_description">Книга, время, прогресс, главы и переход к таймеру сна. Пять тем Liquid Glass.</string>

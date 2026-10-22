@@ -13,9 +13,9 @@ class AudioBookWidget : AbGlassWidgetProvider() {
         }
         fun refreshAll(context:Context) = AbGlassWidgets.refreshAll(context)
         fun saveCoverForWidget(context:Context,title:String,bitmap:Bitmap) {
-            val key=MessageDigest.getInstance("SHA-256").digest(safeFileName(cleanBookTitle(title)).lowercase(java.util.Locale.ROOT).replace(Regex("\\s+")," ").trim().toByteArray()).joinToString(""){"%02x".format(it)}
-            val folder=File(context.filesDir,"book-covers").apply{mkdirs()}
-            val target=File(folder,"$key.jpg");val temp=File.createTempFile("cover-",".jpg",folder)
+            val target=AbBookArtwork.durable(context,title)
+            val folder=target.parentFile!!.apply{mkdirs()}
+            val temp=File.createTempFile("cover-",".jpg",folder)
             temp.outputStream().use{bitmap.compress(Bitmap.CompressFormat.JPEG,88,it)}
             if(!temp.renameTo(target)){temp.copyTo(target,overwrite=true);temp.delete()}
         }

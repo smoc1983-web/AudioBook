@@ -125,7 +125,7 @@ internal object AbGlassWidgets {
     private var lastUpdate = 0L
     private var nextEmptyScan = 0L
     @Volatile private var latest: AbWidgetSnapshot? = null
-    private val components = listOf(AbCompactWidget::class.java, AbCoverWidget::class.java, AbPlayerWidget::class.java)
+    private val components = listOf(AbCompactWidget::class.java, AbCoverWidget::class.java, AbPlayerWidget::class.java, AudioBookWidget::class.java)
 
     fun preferences(context: Context) = context.applicationContext.getSharedPreferences("audiobook_glass_widgets",Context.MODE_PRIVATE)
     fun owns(context: Context, id: Int): Boolean = try {
@@ -196,7 +196,8 @@ internal object AbGlassWidgets {
         val manager=AppWidgetManager.getInstance(context)
         if(Build.VERSION.SDK_INT>=26 && manager.isRequestPinAppWidgetSupported) {
             try {
-                if(manager.requestPinAppWidget(ComponentName(context,components[kind.coerceIn(0,2)]),null,null))return
+                val extras=Bundle().apply {putParcelable(AppWidgetManager.EXTRA_APPWIDGET_PREVIEW,previewKind(context,kind))}
+                if(manager.requestPinAppWidget(ComponentName(context,components[kind.coerceIn(0,2)]),extras,null))return
             } catch (_: Exception) { }
         }
         Toast.makeText(context,"Зажмите пустое место на главном экране Android → Виджеты → Audiobook",Toast.LENGTH_LONG).show()
@@ -235,13 +236,25 @@ internal object AbGlassWidgets {
     private fun render(context: Context, id: Int, state: AbWidgetSnapshot, themeOverride: Int? = null): RemoteViews {
         val manager=AppWidgetManager.getInstance(context)
         val provider=manager.getAppWidgetInfo(id)?.provider ?: throw IllegalArgumentException("Виджет удалён")
-        val kind=components.indexOfFirst {provider==ComponentName(context,it)}
-        require(kind>=0)
+        val providerIndex=components.indexOfFirst {provider==ComponentName(context,it)}
+        require(providerIndex>=0)
         val selected=themeOverride ?: preferences(context).getInt("theme_$id",0)
+        return renderKind(context,providerIndex.coerceAtMost(2),id,state,selected,manager.getAppWidgetOptions(id))
+    }
+
+    /** Real RemoteViews, also used by Samsung's pin sheet and by the in-app catalogue. */
+    fun previewKind(context: Context,kind: Int): RemoteViews = renderKind(context,kind.coerceIn(0,2),0,
+        AbWidgetSnapshot("Ваша аудиокнига","Глава 1",0,12,206000,1084000),0,Bundle())
+
+    fun previewKindAsync(context: Context,kind: Int,done: (RemoteViews?)->Unit) {
+        val app=context.applicationContext
+        worker.execute {done(try {previewKind(app,kind)}catch(_:Exception){null}catch(_:OutOfMemoryError){null})}
+    }
+
+    private fun renderKind(context: Context,kind: Int,id: Int,state: AbWidgetSnapshot,selected: Int,options: Bundle): RemoteViews {
         val appTheme=context.getSharedPreferences("audiobook_downloader",Context.MODE_PRIVATE).getInt("glass_theme",2)
         val palette=abWidgetPalettes.firstOrNull {it.id==(if(selected==0)appTheme else selected)} ?: abWidgetPalettes[1]
         val layout=when(kind) {0->R.layout.ab_widget_compact;1->R.layout.ab_widget_cover;else->R.layout.ab_widget_player}
-        val options=manager.getAppWidgetOptions(id)
         val defaultWidth=if(kind==1)170 else 340
         val defaultHeight=if(kind==0)72 else 190
         val width=options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH,defaultWidth).coerceIn(if(kind==1)130 else 250,640)
@@ -251,7 +264,7 @@ internal object AbGlassWidgets {
         views.setImageViewBitmap(R.id.ab_widget_cover,AbWidgetArt.cover(context,state.title,palette,kind==1))
         views.setTextViewText(R.id.ab_widget_title,if(state.selected)state.title else "Audiobook")
         val chapter=if(!state.selected)"Выберите книгу" else if(state.loading)"Загрузка главы…" else
-            "Глава ${state.index+1}"+(if(kind==0 || state.chapter.isBlank())"" else " · ${state.chapter}")
+            AbMediaPresentation.chapter(state.index,state.count,if(kind==0)"" else state.chapter)
         views.setTextViewText(R.id.ab_widget_chapter,chapter)
         views.setTextColor(R.id.ab_widget_title,palette.text)
         views.setTextColor(R.id.ab_widget_chapter,palette.muted)
@@ -347,12 +360,7 @@ private object AbWidgetArt {
     }
 
     fun cover(context: Context,title: String,palette: AbWidgetPalette,large: Boolean): Bitmap {
-        val prefs=context.getSharedPreferences("audiobook_downloader",Context.MODE_PRIVATE)
-        val identity=safeFileName(cleanBookTitle(title)).lowercase(Locale.ROOT).replace(Regex("\\s+")," ").trim()
-        val hash=MessageDigest.getInstance("SHA-256").digest(identity.toByteArray(Charsets.UTF_8)).joinToString("") {"%02x".format(it.toInt() and 255)}
-        val durable=File(File(context.filesDir,"book-covers"),"$hash.jpg")
-        val shared=if(prefs.getString("widget_book","")==title)File(prefs.getString("widget_cover_path","").orEmpty()) else null
-        val file=shared?.takeIf {it.isFile} ?: durable.takeIf {it.isFile}
+        val file=AbBookArtwork.find(context,title)
         val targetWidth=if(large)192 else 128;val targetHeight=if(large)276 else 184
         val key="${file?.path}:${file?.lastModified()}:${file?.length()}:${palette.id}:$large"
         covers.get(key)?.let {return it}

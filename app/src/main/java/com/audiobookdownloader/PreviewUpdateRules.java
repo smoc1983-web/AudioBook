@@ -9,7 +9,7 @@ import org.json.JSONArray;
 
 /** Update channel metadata is untrusted. Android also verifies the downloaded APK's signer. */
 public final class PreviewUpdateRules {
-    public static final String PACKAGE = "com.audiobookdownloader.preview";
+    public static final String PACKAGE = BuildConfig.APPLICATION_ID;
     public static final long MAX_APK = 200L * 1024 * 1024;
     public final long versionCode, size;
     public final String versionName, sha256, apk;
@@ -19,7 +19,7 @@ public final class PreviewUpdateRules {
         versionName=json.getString("versionName");sha256=json.getString("sha256").toLowerCase(Locale.ROOT);
         apk=json.getString("apk");
         if(versionCode<=0 || size<=0 || size>MAX_APK || !sha256.matches("[0-9a-f]{64}") ||
-            !"Audiobook-Preview.apk".equals(apk) || versionName.length()>100)
+            !BuildConfig.UPDATE_APK.equals(apk) || versionName.length()>100)
             throw new IOException("Некорректное описание обновления");
     }
     public boolean isNewer(long installed) { return versionCode>installed; }
@@ -27,11 +27,11 @@ public final class PreviewUpdateRules {
         JSONObject selected=null;long greatest=0;
         for(int i=0;i<releases.length();i++){
             JSONObject candidate=releases.getJSONObject(i);String tag=candidate.optString("tag_name");
-            if(candidate.optBoolean("draft")||!tag.matches("preview-v[0-9]{1,10}"))continue;
-            long version=Long.parseLong(tag.substring("preview-v".length()));
+            if(candidate.optBoolean("draft")||!tag.matches(java.util.regex.Pattern.quote(BuildConfig.UPDATE_PREFIX)+"[0-9]{1,10}"))continue;
+            long version=Long.parseLong(tag.substring(BuildConfig.UPDATE_PREFIX.length()));
             if(version>greatest){selected=candidate;greatest=version;}
         }
-        if(selected==null)throw new IOException("Первая сборка Preview ещё не опубликована");
+        if(selected==null)throw new IOException("Первая сборка этого канала ещё не опубликована");
         return selected;
     }
     public static boolean acceptsUrl(URI uri) {

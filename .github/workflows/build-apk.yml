@@ -122,6 +122,16 @@ jobs:
         with:
           name: APK-inspection-part-01
           path: dist-inspection/Audiobook-Preview.apk.part-01
+      - name: Prepare unsigned stable-compatible candidate (original AIDE signer required)
+        run: |
+          gradle :app:testReleaseUnitTest :app:assembleRelease -PaudiobookChannel=stable --stacktrace
+          mkdir -p dist-stable
+          cp app/build/outputs/apk/release/app-release-unsigned.apk dist-stable/Audiobook-stable-UNSIGNED.apk
+          cp docs/STABLE-INSTALL.md dist-stable/READ-ME.md
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Audiobook-stable-signing-candidate
+          path: dist-stable/
       - name: Save source verification reports
         if: always()
         uses: actions/upload-artifact@v4
@@ -131,3 +141,5 @@ jobs:
           path: |
             app/build/test-results/testDebugUnitTest/
             app/build/reports/tests/testDebugUnitTest/
+            app/build/test-results/testReleaseUnitTest/
+            app/build/reports/tests/testReleaseUnitTest/

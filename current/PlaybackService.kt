@@ -556,6 +556,10 @@ class PlaybackService : Service() {
         }
         releasePlayer()
         val token = ++generation
+        handler.postDelayed({
+            if (!stopped && token == generation && isLoading)
+                failPlayback("Глава не загрузилась за 30 секунд. Проверьте соединение и повторите воспроизведение.")
+        }, 30_000L)
         resumeAfterFocus = false
         pausedAt = 0L
         playWhenReady = autoPlay
@@ -1029,6 +1033,7 @@ class PlaybackService : Service() {
 
     private fun updateSessionState() {
         val playbackState = when {
+            errorMessage.isNotBlank() -> PlaybackState.STATE_ERROR
             isLoading -> PlaybackState.STATE_BUFFERING
             isPlaying -> PlaybackState.STATE_PLAYING
             mediaPlayer != null -> PlaybackState.STATE_PAUSED
@@ -1037,93 +1042,38 @@ class PlaybackService : Service() {
         val actions = PlaybackState.ACTION_PLAY or PlaybackState.ACTION_PAUSE or
             PlaybackState.ACTION_PLAY_PAUSE or PlaybackState.ACTION_SKIP_TO_PREVIOUS or
             PlaybackState.ACTION_SKIP_TO_NEXT or PlaybackState.ACTION_STOP or PlaybackState.ACTION_SEEK_TO
-        mediaSession.setPlaybackState(PlaybackState.Builder().setActions(actions)
-            .setState(playbackState, positionMs.toLong(), if (isPlaying) playbackSpeed else 0f).build())
+        val sessionState = PlaybackState.Builder().setActions(actions)
+            .setState(playbackState, positionMs.toLong(), if (isPlaying) playbackSpeed else 0f, SystemClock.elapsedRealtime())
+        if(errorMessage.isNotBlank())sessionState.setErrorMessage(errorMessage)
+        mediaSession.setPlaybackState(sessionState.build())
         AudioBookWidget.updateAll(this, bookTitle, trackTitle, isPlaying, positionMs, durationMs)
         val cover = loadCoverCached()
-        val key = "$bookTitle|$trackTitle|$durationMs|${cover != null}"
+        val title=AbMediaPresentation.bookTitle(bookTitle)
+        val chapter=AbMediaPresentation.chapter(trackIndex,playlist.size,trackTitle)
+        val key = "$title|$chapter|$durationMs|$coverBook"
         if (key != metadataKey) {
             metadataKey = key
-            val metadata = MediaMetadata.Builder().putString(MediaMetadata.METADATA_KEY_TITLE, trackTitle)
-                .putString(MediaMetadata.METADATA_KEY_ALBUM, bookTitle)
-                .putString(MediaMetadata.METADATA_KEY_ARTIST, bookTitle)
+            val metadata = MediaMetadata.Builder().putString(MediaMetadata.METADATA_KEY_TITLE, title)
+                .putString(MediaMetadata.METADATA_KEY_DISPLAY_TITLE,title)
+                .putString(MediaMetadata.METADATA_KEY_DISPLAY_SUBTITLE,chapter)
+                .putString(MediaMetadata.METADATA_KEY_ALBUM, title)
+                .putString(MediaMetadata.METADATA_KEY_ARTIST, chapter)
                 .putLong(MediaMetadata.METADATA_KEY_DURATION, durationMs.toLong())
-            if (cover != null) metadata.putBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART, cover)
+            if (cover != null) {
+                metadata.putBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART, cover)
+                metadata.putBitmap(MediaMetadata.METADATA_KEY_DISPLAY_ICON, cover)
+            }
             mediaSession.setMetadata(metadata.build())
         }
     }
 
     private fun loadCoverCached(): Bitmap? {
-        if (coverBook == bookTitle && coverBitmap != null) {
-            return coverBitmap
-        }
-
-        val file = findCover()
-
-        val bitmap = try {
-            if (file == null) {
-                null
-            } else {
-                val bounds = BitmapFactory.Options().apply {
-                    inJustDecodeBounds = true
-                }
-
-                BitmapFactory.decodeFile(file.absolutePath, bounds)
-
-                var sample = 1
-
-                while (
-                    bounds.outWidth / sample > 1024 ||
-                    bounds.outHeight / sample > 1024
-                ) {
-                    sample *= 2
-                }
-
-                BitmapFactory.decodeFile(
-                    file.absolutePath,
-                    BitmapFactory.Options().apply {
-                        inSampleSize = sample
-                    }
-                )
-            }
-        } catch (_: Exception) {
-            null
-        }
-
-        coverBook = bookTitle
-        coverBitmap = bitmap
-
-        return bitmap
-    }
-
-    @Suppress("DEPRECATION")
-    private fun findCover(): File? {
-        return try {
-            val downloads = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-            val root = File(downloads, BuildConfig.LIBRARY_DIRECTORY)
-            val direct = File(File(root, safeFileName(bookTitle)), "cover.jpg")
-
-            if (direct.exists() && direct.length() > 0L) {
-                direct
-            } else {
-                val wanted = safeFileName(bookTitle).lowercase()
-                root.listFiles()
-                    ?.asSequence()
-                    ?.filter { it.isDirectory }
-                    ?.map { File(it, "cover.jpg") }
-                    ?.firstOrNull {
-                        it.exists() &&
-                        it.length() > 0L &&
-                        (
-                            safeFileName(it.parentFile?.name ?: "").lowercase() == wanted ||
-                            wanted.contains(safeFileName(it.parentFile?.name ?: "").lowercase()) ||
-                            safeFileName(it.parentFile?.name ?: "").lowercase().contains(wanted)
-                        )
-                    }
-            }
-        } catch (_: Exception) {
-            null
-        }
+        val file=AbBookArtwork.find(this,bookTitle)
+        val identity="$bookTitle|${file?.path}|${file?.lastModified()}|${file?.length()}"
+        if(coverBook==identity && coverBitmap!=null)return coverBitmap
+        coverBitmap=AbBookArtwork.decode(file)
+        coverBook=identity
+        return coverBitmap
     }
 
     private fun servicePendingIntent(action: String, requestCode: Int): PendingIntent {
@@ -1177,9 +1127,10 @@ class PlaybackService : Service() {
         }
 
         return builder
-            .setSmallIcon(android.R.drawable.ic_media_play)
-            .setContentTitle(bookTitle)
-            .setContentText(trackTitle)
+            .setSmallIcon(R.drawable.ab_notification_book)
+            .setContentTitle(AbMediaPresentation.bookTitle(bookTitle))
+            .setContentText(AbMediaPresentation.chapter(trackIndex,playlist.size,trackTitle))
+            .setLargeIcon(loadCoverCached())
             .setContentIntent(openApp)
             .setOnlyAlertOnce(true)
             .setOngoing(isPlaying || isLoading)

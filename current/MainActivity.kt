@@ -308,7 +308,7 @@ class MainActivity : ComponentActivity() {
             button("Открыть без фоновой загрузки"){startApp(true)}
             button("Повторить обычный запуск"){startApp(false)}
             button("Диагностика и отчёт TXT"){showStartupReport()}
-            button("Обновления Preview") {
+            button("Обновления "+AB_PRODUCT_NAME) {
                 startActivity(Intent(this,PreviewUpdatesActivity::class.java))
             }
         }
@@ -9326,7 +9326,7 @@ fun bookCatalogJs(catalogUrl: String = "", cycle: BookCycle? = null): String {
 }
 
 // Product name is separate from diagnostic/build revision.
-private const val AB_PRODUCT_NAME="Audiobook Preview"
+private const val AB_PRODUCT_NAME=BuildConfig.PRODUCT_NAME
 private val LocalAbCoverDataVersion=androidx.compose.runtime.compositionLocalOf {0}
 private data class AbTheme(
     val id: Int, val name: String, val light: Boolean,
@@ -11001,7 +11001,7 @@ private fun AbSettingsDialog(data: AbScreenData,prefs: android.content.SharedPre
             }
         }
         if(section==AbSettingsSection.HOME) {
-            AbButton("Обновления Preview · "+BuildConfig.VERSION_NAME,theme) {
+            AbButton("Обновления · "+BuildConfig.VERSION_NAME,theme) {
                 context.startActivity(Intent(context,PreviewUpdatesActivity::class.java))
             }
         }
@@ -11062,6 +11062,7 @@ private fun AbWidgetSettings(theme: AbTheme) {
     Text("Добавьте плеер на главный экран Android. У каждого виджета своя тема или выбор «Как в приложении».",
         color=theme.muted,fontSize=13.sp,lineHeight=19.sp)
     listOf("Компактный · 4×1","Обложка · 2×2","Плеер · 4×2").forEachIndexed {index,label ->
+        AbWidgetCataloguePreview(index,theme)
         AbButton("Добавить: $label",theme){AbGlassWidgets.requestPin(context,index)}
     }
     Text("Также можно зажать пустое место на главном экране Android → Виджеты → Audiobook.",color=theme.muted,fontSize=12.sp)
@@ -11073,6 +11074,32 @@ private fun AbWidgetSettings(theme: AbTheme) {
         }
     }
     AbButton("Обновить список",theme){revision++}
+}
+
+@Composable
+private fun AbWidgetCataloguePreview(kind: Int,theme: AbTheme) {
+    val context=androidx.compose.ui.platform.LocalContext.current
+    var preview by remember(kind,theme) {mutableStateOf<android.widget.RemoteViews?>(null)}
+    DisposableEffect(kind,theme) {
+        var active=true
+        val main=android.os.Handler(android.os.Looper.getMainLooper())
+        AbGlassWidgets.previewKindAsync(context,kind) {views -> main.post {if(active)preview=views}}
+        onDispose {active=false}
+    }
+    Box(Modifier.fillMaxWidth(),contentAlignment=Alignment.Center) {
+        androidx.compose.ui.viewinterop.AndroidView(
+            factory={android.widget.FrameLayout(it)},
+            modifier=(if(kind==1)Modifier.width(190.dp) else Modifier.fillMaxWidth())
+                .height(if(kind==0)80.dp else 200.dp)
+                .semantics {contentDescription="Предпросмотр: "+listOf("Компактный","Обложка","Плеер")[kind]},
+            update={host ->
+                host.removeAllViews()
+                preview?.let {views ->
+                    host.addView(views.apply(context,host),android.widget.FrameLayout.LayoutParams(-1,-1))
+                    host.addView(android.view.View(context).apply {isClickable=true},android.widget.FrameLayout.LayoutParams(-1,-1))
+                }
+            })
+    }
 }
 
 @Composable

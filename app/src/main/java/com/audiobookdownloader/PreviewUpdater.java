@@ -90,17 +90,17 @@ final class PreviewUpdater {
     Release latest() throws Exception {
         JSONArray releases=new JSONArray(read(API+"/releases?per_page=30","application/vnd.github+json",2*1024*1024));
         JSONObject selected=PreviewUpdateRules.selectRelease(releases);
-        long greatest=Long.parseLong(selected.getString("tag_name").substring("preview-v".length()));
+        long greatest=Long.parseLong(selected.getString("tag_name").substring(BuildConfig.UPDATE_PREFIX.length()));
         JSONArray assets=selected.getJSONArray("assets");String metadata=null,apk=null;
         for(int j=0;j<assets.length();j++){
             JSONObject asset=assets.getJSONObject(j);long id=asset.getLong("id");if(id<=0)continue;
             String url=API+"/releases/assets/"+id+"?download=1";
-            if("preview-update.json".equals(asset.getString("name")))metadata=url;
-            if("Audiobook-Preview.apk".equals(asset.getString("name")))apk=url;
+            if(BuildConfig.UPDATE_METADATA.equals(asset.getString("name")))metadata=url;
+            if(BuildConfig.UPDATE_APK.equals(asset.getString("name")))apk=url;
         }
         if(metadata==null||apk==null)throw new IOException("Обновление ещё не полностью опубликовано");
         PreviewUpdateRules info=new PreviewUpdateRules(new JSONObject(read(metadata,"application/octet-stream",65536)));
-        if(info.versionCode!=greatest)throw new IOException("Версия файла не совпадает с выпуском Preview");
+        if(info.versionCode!=greatest)throw new IOException("Версия файла не совпадает с выпуском приложения");
         return new Release(info,apk);
     }
     static long code(PackageInfo info){return Build.VERSION.SDK_INT>=28?info.getLongVersionCode():info.versionCode;}
@@ -108,16 +108,16 @@ final class PreviewUpdater {
         if(Build.VERSION.SDK_INT>=28)return p.signingInfo==null?new Signature[0]:p.signingInfo.getApkContentsSigners();
         return p.signatures==null?new Signature[0]:p.signatures;
     }
-    File target(){return new File(context.getCacheDir(),"preview-updates/Audiobook-Preview.apk");}
+    File target(){return new File(context.getCacheDir(),"app-updates/"+BuildConfig.UPDATE_APK);}
     void verifyApk(File file,Long expected) throws Exception {
         PackageManager pm=context.getPackageManager();int flags=Build.VERSION.SDK_INT>=28?PackageManager.GET_SIGNING_CERTIFICATES:PackageManager.GET_SIGNATURES;
         PackageInfo candidate=pm.getPackageArchiveInfo(file.getAbsolutePath(),flags), installed=pm.getPackageInfo(context.getPackageName(),flags);
         if(candidate==null||!PreviewUpdateRules.PACKAGE.equals(candidate.packageName)||!context.getPackageName().equals(candidate.packageName)
             ||code(candidate)<=code(installed)||(expected!=null&&code(candidate)!=expected))
-            throw new IOException("APK не соответствует каналу Preview или уже установленной версии");
+            throw new IOException("APK не соответствует каналу приложения или уже установленной версии");
         Signature[] a=signatures(candidate),b=signatures(installed);
         if(a.length!=1||b.length!=1||!Arrays.equals(a[0].toByteArray(),b[0].toByteArray()))
-            throw new IOException("Подпись APK отличается от установленной Preview. Установка отменена.");
+            throw new IOException("Подпись APK отличается от установленного приложения. Установка отменена.");
     }
     File download(Release release,Progress progress) throws Exception {
         File target=target(), temp=new File(target.getParentFile(),"update.part.apk");

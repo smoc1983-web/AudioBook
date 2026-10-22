@@ -193,8 +193,24 @@ public class StartupSmokeTest {
         Files.write(audio.toPath(),wav.array());
         try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(MainActivity.class)){
             visible(By.text("Жанры"),"Home unavailable for service test");
+            android.graphics.Bitmap artwork=android.graphics.Bitmap.createBitmap(80,120,android.graphics.Bitmap.Config.ARGB_8888);
+            artwork.eraseColor(0xffe3ad62);
+            AudioBookWidget.Companion.saveCoverForWidget(context,"Проверка таймера",artwork);artwork.recycle();
             PlaybackService.Companion.play(context,"Проверка таймера", "local",java.util.Collections.singletonList(new ServiceTrack("Глава 1",audio.getAbsolutePath(),120000)),0,0);
             playback(ServicePlaybackState::isPlaying,"Local WAV did not start");
+            android.app.NotificationManager notifications=context.getSystemService(android.app.NotificationManager.class);
+            android.app.Notification media=null;
+            for(android.service.notification.StatusBarNotification n:notifications.getActiveNotifications())if(n.getId()==7001)media=n.getNotification();
+            assertNotNull("Media notification missing",media);
+            android.media.session.MediaSession.Token token=media.extras.getParcelable(android.app.Notification.EXTRA_MEDIA_SESSION);
+            assertNotNull("MediaSession token missing",token);
+            android.media.session.MediaController controller=new android.media.session.MediaController(context,token);
+            assertEquals("Проверка таймера",controller.getMetadata().getString(android.media.MediaMetadata.METADATA_KEY_TITLE));
+            assertEquals("Глава 1 из 1",controller.getMetadata().getString(android.media.MediaMetadata.METADATA_KEY_ARTIST));
+            assertNotNull("Durable online/local artwork missing",controller.getMetadata().getBitmap(android.media.MediaMetadata.METADATA_KEY_ALBUM_ART));
+            assertEquals(120000L,controller.getMetadata().getLong(android.media.MediaMetadata.METADATA_KEY_DURATION));
+            assertEquals(android.media.session.PlaybackState.STATE_PLAYING,controller.getPlaybackState().getState());
+            assertTrue("Playback position lacks a clock timestamp",controller.getPlaybackState().getLastPositionUpdateTime()>0);
             visible(By.text("Плеер"),"Player navigation missing").click();
             // The whole player remains vertically scrollable; collection action is above chapter tabs.
             for(int i=0;i<3&&!device.hasObject(By.text("В коллекцию"));i++)
@@ -216,6 +232,10 @@ public class StartupSmokeTest {
             assertTrue("Shaking paused playback",restarted.isPlaying());
             renderWindow(scenario,"preview-player-software.png");
             device.executeShellCommand("screencap -p /sdcard/Download/preview-sleep-shake-success.png");
+            PlaybackService.Companion.play(context,"Ошибка главы","local",java.util.Collections.singletonList(new ServiceTrack("Глава 1",new File(context.getFilesDir(),"missing-audio.wav").getAbsolutePath(),0)),0,0);
+            playback(s->!s.isLoading()&&!s.getError().isEmpty(),"Unreadable chapter left an endless spinner");
+            assertEquals(android.media.session.PlaybackState.STATE_ERROR,controller.getPlaybackState().getState());
+            assertNotNull(controller.getPlaybackState().getErrorMessage());
             PlaybackService.Companion.stop(context,true,null);
             playback(s->!s.getHasSelection(),"Service selection was not cleared between tests");
         }finally{

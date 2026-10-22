@@ -50,6 +50,9 @@ for preview_direction in left right; do
     timeout 15s adb pull "/sdcard/Download/curl-cylinder-${preview_direction}-${preview_frame}.png" startup-evidence/ || true
   done
 done
+for widget_kind in 0 1 2; do
+  timeout 15s adb pull "/sdcard/Download/preview-widget-${widget_kind}.png" startup-evidence/ || true
+done
 free -m > startup-evidence/host-memory.txt
 sudo dmesg -T | tail -100 > startup-evidence/host-kernel.txt || true
 exit "$result"

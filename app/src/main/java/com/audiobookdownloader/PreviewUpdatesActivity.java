@@ -48,9 +48,11 @@ public final class PreviewUpdatesActivity extends Activity {
         });
         scroll.addView(root);setContentView(scroll);
         button(root,"← Настройки",this::finish);
-        text(root,"Обновления Preview",25).setTypeface(null,Typeface.BOLD);
+        text(root,"Обновления "+BuildConfig.PRODUCT_NAME,25).setTypeface(null,Typeface.BOLD);
         text(root,"Установлена "+BuildConfig.VERSION_NAME+" · "+BuildConfig.VERSION_CODE,14);
-        text(root,"Это отдельное приложение. Стабильная Audiobook и её книги не изменяются. Новая версия загрузится здесь; установку подтвердит Android.",15);
+        text(root,(BuildConfig.APPLICATION_ID.endsWith(".preview")?
+            "Это отдельное приложение. Стабильная Audiobook и её книги не изменяются.":
+            "Обновления сохраняют библиотеку и настройки. Не удаляйте приложение перед установкой.")+" Новая версия загрузится здесь; установку подтвердит Android.",15);
         connection=text(root,updater.connected()?"GitHub подключён":"Доступ к закрытому репозиторию GitHub",16);
         text(root,"Для первого подключения создайте fine-grained token: только smoc1983-web/AudioBook, Repository permissions → Contents: Read-only. Вставьте его ниже один раз. Ключ хранится на устройстве с шифрованием Android Keystore и не попадает в отчёты.",14);
         button(root,"Создать ключ на GitHub",()->startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse("https://github.com/settings/personal-access-tokens/new"))));
@@ -92,7 +94,7 @@ public final class PreviewUpdatesActivity extends Activity {
     private void check(){
         release=null;
         run(()->{release=updater.latest();return release.info.isNewer(BuildConfig.VERSION_CODE)?
-            "Доступна "+release.info.versionName+" · "+(release.info.size/1024/1024)+" МБ":"Установлена последняя версия Preview";});
+            "Доступна "+release.info.versionName+" · "+(release.info.size/1024/1024)+" МБ":"Установлена последняя версия приложения";});
     }
     private void download(){
         if(release==null)return;
@@ -140,7 +142,7 @@ public final class PreviewUpdatesActivity extends Activity {
                 PreviewUpdater.Release release=updater.latest();
                 if(!release.info.isNewer(BuildConfig.VERSION_CODE))return;
                 activity.runOnUiThread(()->{if(activity.isDestroyed()||activity.isFinishing()||!activity.hasWindowFocus())return;
-                    new AlertDialog.Builder(activity).setTitle("Обновление Audiobook Preview")
+                    new AlertDialog.Builder(activity).setTitle("Обновление "+BuildConfig.PRODUCT_NAME)
                         .setMessage("Доступна "+release.info.versionName+". Загрузить обновление в приложении?")
                         .setPositiveButton("Обновления",(d,w)->activity.startActivity(new Intent(activity,PreviewUpdatesActivity.class)))
                         .setNegativeButton("Позже",null).show();

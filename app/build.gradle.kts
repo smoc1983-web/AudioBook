@@ -1,13 +1,21 @@
 plugins { id("com.android.application"); id("org.jetbrains.kotlin.android"); id("org.jetbrains.kotlin.plugin.compose") }
+val audiobookChannel=providers.gradleProperty("audiobookChannel").orElse("preview").get()
+require(audiobookChannel in listOf("preview","stable")) { "Unknown Audiobook channel" }
+val stableChannel=audiobookChannel=="stable"
 android {
     namespace="com.audiobookdownloader"
     compileSdk=36
     defaultConfig {
-        applicationId="com.audiobookdownloader.preview"
+        applicationId=if(stableChannel) "com.audiobookdownloader" else "com.audiobookdownloader.preview"
         minSdk=23;targetSdk=36
         versionCode=100000+(System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull() ?: 0)
-        versionName="4.2-preview."+(System.getenv("GITHUB_RUN_NUMBER") ?: "local")
-        buildConfigField("String","LIBRARY_DIRECTORY","\"AudioBooks-Preview\"")
+        versionName=(if(stableChannel) "4.2." else "4.2-preview.")+(System.getenv("GITHUB_RUN_NUMBER") ?: "local")
+        buildConfigField("String","PRODUCT_NAME",if(stableChannel) "\"Audiobook\"" else "\"Audiobook Preview\"")
+        buildConfigField("String","UPDATE_PREFIX",if(stableChannel) "\"stable-v\"" else "\"preview-v\"")
+        buildConfigField("String","UPDATE_APK",if(stableChannel) "\"Audiobook.apk\"" else "\"Audiobook-Preview.apk\"")
+        buildConfigField("String","UPDATE_METADATA",if(stableChannel) "\"stable-update.json\"" else "\"preview-update.json\"")
+        resValue("string","app_name",if(stableChannel) "Audiobook" else "Audiobook Preview")
+        buildConfigField("String","LIBRARY_DIRECTORY",if(stableChannel) "\"AudioBooks\"" else "\"AudioBooks-Preview\"")
         testInstrumentationRunner="androidx.test.runner.AndroidJUnitRunner"
     }
     buildFeatures { compose=true;buildConfig=true }
@@ -17,7 +25,7 @@ android {
             storePassword="android";keyAlias="audiobook-preview";keyPassword="android"
         }
     }
-    buildTypes { getByName("debug") { if(System.getenv("PREVIEW_KEYSTORE")!=null) signingConfig=signingConfigs.getByName("preview") } }
+    buildTypes { getByName("debug") { if(stableChannel) signingConfig=null else if(System.getenv("PREVIEW_KEYSTORE")!=null) signingConfig=signingConfigs.getByName("preview") } }
     compileOptions { sourceCompatibility=JavaVersion.VERSION_17;targetCompatibility=JavaVersion.VERSION_17 }
     kotlinOptions { jvmTarget="17" }
     sourceSets {
