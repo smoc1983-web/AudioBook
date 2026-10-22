@@ -29,8 +29,8 @@
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/StartupSmokeTest.java",
-      "bytes": 21251,
-      "sha256": "a485a46fdbffee6c45b0b37f6488b31b20ace927f50b7f4a1daaa4a9bd3a4df4"
+      "bytes": 21318,
+      "sha256": "21be5e9eebb190b070fe32afc0a71767f231043c9f34848bb742676ce796614a"
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/TestBitmapExports.java",

@@ -143,8 +143,8 @@ public class StartupSmokeTest {
             assertTrue("Native report close button clipped",closeReport.getVisibleBounds().height()>=32);
             closeReport.click();
             assertTrue("Native report did not dismiss",device.wait(Until.gone(By.text("Диагностика запуска")),5000));
-            visible(By.text(java.util.regex.Pattern.compile("ОБНОВЛЕНИЯ PREVIEW",java.util.regex.Pattern.CASE_INSENSITIVE|java.util.regex.Pattern.UNICODE_CASE)),"Native updater entry missing").click();
-            visible(By.text("Обновления Preview"),"Updater cannot open without Compose");
+            visible(By.text(java.util.regex.Pattern.compile(java.util.regex.Pattern.quote("Обновления "+BuildConfig.PRODUCT_NAME),java.util.regex.Pattern.CASE_INSENSITIVE|java.util.regex.Pattern.UNICODE_CASE)),"Native updater entry missing").click();
+            visible(By.text("Обновления "+BuildConfig.PRODUCT_NAME),"Updater cannot open without Compose");
             device.pressBack();
             visible(By.text(java.util.regex.Pattern.compile("ПОВТОРИТЬ ОБЫЧНЫЙ ЗАПУСК",java.util.regex.Pattern.CASE_INSENSITIVE|java.util.regex.Pattern.UNICODE_CASE)),"Recovery retry missing").click();
             visible(By.text("Жанры"),"Retry still cannot open home");
