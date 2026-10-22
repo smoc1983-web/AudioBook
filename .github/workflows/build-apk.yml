@@ -122,12 +122,20 @@ jobs:
         with:
           name: APK-inspection-part-01
           path: dist-inspection/Audiobook-Preview.apk.part-01
-      - name: Prepare unsigned stable-compatible candidate (original AIDE signer required)
+      - name: Prepare unsigned stable-compatible candidate (original signer required)
         run: |
           gradle :app:testReleaseUnitTest :app:assembleRelease -PaudiobookChannel=stable --stacktrace
           mkdir -p dist-stable
           cp app/build/outputs/apk/release/app-release-unsigned.apk dist-stable/Audiobook-stable-UNSIGNED.apk
           cp docs/STABLE-INSTALL.md dist-stable/READ-ME.md
+          cp scripts/sign-phone-update.sh dist-stable/
+          python scripts/inspect-stable-candidate.py
+          (cd dist-stable && zip -q ../Audiobook-stable-sign-on-phone.zip Audiobook-stable-UNSIGNED.apk READ-ME.md sign-phone-update.sh stable-candidate.json)
+      - name: Publish stable candidate for signing on the original phone
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$(cat dist/tag.txt)" Audiobook-stable-sign-on-phone.zip --repo "$GITHUB_REPOSITORY" --clobber
       - uses: actions/upload-artifact@v4
         with:
           name: Audiobook-stable-signing-candidate

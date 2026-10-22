@@ -1,11 +1,11 @@
 {
-  "revision": "4.2-media-widget-stable-signing-candidate",
+  "revision": "4.2-media-widgets-phone-signing",
   "storage": "GitHub export; see releases/ARCHIVE-PARTS.json for three multipart historical ZIPs",
   "files": [
     {
       "path": ".github/workflows/build-apk.yml",
-      "bytes": 6314,
-      "sha256": "64db8baa97ab1fa638a0b470766b0def41d7c3ae3cd1233506d4adaaace89791"
+      "bytes": 6872,
+      "sha256": "1bfb0ca4caa12756c4928d5762ffafe764deec9c23c47802aa8f19eceb0ac548"
     },
     {
       "path": ".gitignore",
@@ -119,8 +119,8 @@
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/PreviewUpdatesActivity.java",
-      "bytes": 11643,
-      "sha256": "a10e4b940b12df74af6de9b34c994257da53056bc4a081372570a6415b04b709"
+      "bytes": 11651,
+      "sha256": "9545196bd9a507f91dcde6470f0afeabd0364a4b3a35ca0742b71932b4742da5"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/SleepShakeDetector.java",
@@ -229,8 +229,8 @@
     },
     {
       "path": "current/MainActivity.kt",
-      "bytes": 713375,
-      "sha256": "149a9016f359905b0dd7ef65b830fcfc55e6a8df8c7b1c169c7a2cd4be821c55"
+      "bytes": 713403,
+      "sha256": "f591a985eb55a3ce3f21b1bcc92063d1ee3f127081e189109f2cbaa69a1a4661"
     },
     {
       "path": "current/PlaybackService.kt",
@@ -409,8 +409,8 @@
     },
     {
       "path": "current/app/src/main/res/values/ab_widget_strings.xml",
-      "bytes": 1269,
-      "sha256": "1da8ce68dcd25ef6365ad39e1c089c209c2168c03d2fd12a6f92c7c262665582"
+      "bytes": 1281,
+      "sha256": "0fbeb91f1da2f5cb65dbda6eeebd67cb5d54af50930cb29723f8352290214e01"
     },
     {
       "path": "current/app/src/main/res/values/audiobook_branding.xml",
@@ -1059,8 +1059,8 @@
     },
     {
       "path": "docs/STABLE-INSTALL.md",
-      "bytes": 3798,
-      "sha256": "ed91b667a247be037a6c2055664f84f1bf622b63fd93d8a6a580498e92643e71"
+      "bytes": 5355,
+      "sha256": "0e167d8b2a0b09423cb2799cda7e524184902b528455bd4d7a7b3f0355c98e85"
     },
     {
       "path": "docs/STARTUP-RECOVERY.md",
@@ -10098,6 +10098,11 @@
       "sha256": "b2b67d79c4f73518cd8e98ec10ef6e07efda6664675aaad07d484dd8d56c5d2b"
     },
     {
+      "path": "scripts/inspect-stable-candidate.py",
+      "bytes": 1475,
+      "sha256": "78fb833b8e3e311b4c3d34fd8ca7e4b1c5affaba61d89f81a8a9ef07fc92dddc"
+    },
+    {
       "path": "scripts/preview-release.py",
       "bytes": 2483,
       "sha256": "24d1ec6efae3d0ef82579e44f7e0d144a36c9ee9cb379071a625153e3f356470"
@@ -10121,6 +10126,11 @@
       "path": "scripts/previous/patch_search_modes.py",
       "bytes": 9322,
       "sha256": "df56f88c6a84f3bdbbcff0c73bace14ff801c945555ef280ddd1ff67f0ed8426"
+    },
+    {
+      "path": "scripts/sign-phone-update.sh",
+      "bytes": 3443,
+      "sha256": "6693e7057d60231290175d35af2af070d9b4c3048d3d333830ff897c557f437b"
     },
     {
       "path": "scripts/test-android-startup.sh",

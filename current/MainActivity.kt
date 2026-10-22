@@ -7653,7 +7653,7 @@ fun rememberLibrarySync(accessVersion: Int, page: AppPage): LibrarySyncState {
                 result.folderUnavailable -> "Нет доступа к выбранной папке или части её книг. Выберите папку снова."
                 result.books.isEmpty() && !hasLibraryAudioPermission(context) ->
                     "Для старых файлов нужен доступ к аудио или к папке библиотеки."
-                result.books.isEmpty() -> "Проверьте папку Download/AudioBooks-Preview или выберите папку со старыми книгами."
+                result.books.isEmpty() -> "Проверьте папку Download/${BuildConfig.LIBRARY_DIRECTORY} или выберите папку со старыми книгами."
                 else -> "Библиотека синхронизирована: ${result.books.size} книг."
             }
         } catch (cancelled: kotlinx.coroutines.CancellationException) {
@@ -7730,7 +7730,7 @@ fun LibrarySyncControls(
             }.padding(vertical = 10.dp))
     }
     if (message.isNotBlank()) Text(message, color = textColor, fontSize = 13.sp)
-    Text("Если старые книги не появились, выберите папку Download/AudioBooks-Preview. После переустановки доступ к папке нужно выдать заново.",
+    Text("Если старые книги не появились, выберите папку Download/${BuildConfig.LIBRARY_DIRECTORY}. После переустановки доступ к папке нужно выдать заново.",
         color = textColor, fontSize = 12.sp, modifier = Modifier.padding(vertical = 8.dp))
 }
 

@@ -72,7 +72,7 @@ public final class PreviewUpdatesActivity extends Activity {
         check=button(root,"Проверить обновления",this::check);
         download=button(root,"Загрузить обновление",this::download);download.setEnabled(false);
         install=button(root,"Установить загруженное обновление",this::install);install.setEnabled(updater.target().isFile());
-        text(root,"При первом обновлении Android попросит разрешить установку из Audiobook Preview. Разрешение можно отозвать после установки. Во время загрузки оставьте это окно открытым.",13);
+        text(root,"При первом обновлении Android попросит разрешить установку из приложения. Разрешение можно отозвать после установки. Во время загрузки оставьте это окно открытым.",13);
     }
     private interface Work {String perform() throws Exception;}
     private void run(Work work){
@@ -121,7 +121,7 @@ public final class PreviewUpdatesActivity extends Activity {
             Uri apk=FileProvider.getUriForFile(this,getPackageName()+".updates",file);
             Intent intent=new Intent(Intent.ACTION_VIEW).setDataAndType(apk,"application/vnd.android.package-archive")
                 .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-            intent.setClipData(ClipData.newRawUri("Audiobook Preview",apk));startActivity(intent);
+            intent.setClipData(ClipData.newRawUri(BuildConfig.PRODUCT_NAME,apk));startActivity(intent);
         }catch(Exception e){status.setText(e instanceof java.io.IOException?e.getMessage():"Не удалось открыть установщик Android");}
     }
     @Override protected void onResume(){super.onResume();
