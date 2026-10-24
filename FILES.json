@@ -1,5 +1,5 @@
 {
-  "revision": "continuation-notifications-workmanager",
+  "revision": "4.2-preview.43-collection-continuation-notifications",
   "storage": "GitHub export; see releases/ARCHIVE-PARTS.json for three multipart historical ZIPs",
   "files": [
     {
@@ -14,8 +14,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 10191,
-      "sha256": "7df58c6da543f857243f8475129d6d4080d289bacc77d5645e3e4297f71901e9"
+      "bytes": 11004,
+      "sha256": "10a5694467357e2757349b0735326f11409ed391f4686959d8db7e76395d092a"
     },
     {
       "path": "app/build.gradle.kts",
@@ -24,8 +24,8 @@
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/ContinuationWorkerTest.kt",
-      "bytes": 4356,
-      "sha256": "f0818f6850ccc5fe4abb645fc7d12853d1dff23325bbf0edfd1faefaedf17950"
+      "bytes": 5067,
+      "sha256": "10066ecf8dc7f7f05634011cf4844a62e3ffd73eeb6a0be955bb703d26c39d4f"
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/OnlineDurationTest.java",
@@ -149,13 +149,13 @@
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/ContinuationScanner.kt",
-      "bytes": 7135,
-      "sha256": "5d5b9a407a280f323c67786ae8756d040ff527262f63421c16638b722bd3f453"
+      "bytes": 7803,
+      "sha256": "130dfbb8bf38b5ec7b78386fce03074631767144a43b8fc7b923276a84d24008"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/ContinuationStore.kt",
-      "bytes": 3632,
-      "sha256": "0d78d6ecfd157b4aaf03104b3693b4337543c50daa50b5ee7e0fd2e80e7c9356"
+      "bytes": 3682,
+      "sha256": "b770a4616a992bd76f0806848b83a32ea9afa02034ab54ded92eaabf69823018"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/CylinderPageMesh.java",
@@ -1104,8 +1104,8 @@
     },
     {
       "path": "docs/CONTINUATION-NOTIFICATIONS.md",
-      "bytes": 7308,
-      "sha256": "83b8264199e2c64529778c01f0e8816cfec88ebfddd484c0422a312ed097598f"
+      "bytes": 8791,
+      "sha256": "2ce4898857d4656d11d6101eba4615228bfb71e37179cd699b52bf733aa10408"
     },
     {
       "path": "docs/CYLINDRICAL-PAGE-CURL.md",
@@ -1114,8 +1114,8 @@
     },
     {
       "path": "docs/HANDOFF.md",
-      "bytes": 22016,
-      "sha256": "a106427cac266213f8678e01e50714f91116506dfb9c28bca7c0019702e5ae80"
+      "bytes": 25709,
+      "sha256": "624e50b8fd6f42a466cc1d9d8dd550baaeb3583459b5c757209b387a84b51036"
     },
     {
       "path": "docs/INSTALL.md",
@@ -1273,6 +1273,16 @@
       "sha256": "d729040e020070d77d3b2fc0b5dfb0cb5faf50d007fb5a345290c201152fa744"
     },
     {
+      "path": "docs/verification/checks-100043.json",
+      "bytes": 6370,
+      "sha256": "57f7ebc9e5f63ebd6c1982779b754ba1484c5305930ec83b881116727f1b11fc"
+    },
+    {
+      "path": "docs/verification/continuations-live-2026-10-24.json",
+      "bytes": 969,
+      "sha256": "84cb9ee470f4b898f68923601472fb5fead3feb54a9a80ace948f30bb45c8622"
+    },
+    {
       "path": "docs/verification/curl-100027-left.png",
       "bytes": 39255,
       "sha256": "442770dfa67a441cc8ddb8b9a0f90fd85ce016ea86eacd8e54a066b1099eb828"
@@ -1383,6 +1393,11 @@
       "sha256": "3d6acc2cf1a2ee8ea8505ec605c3c838d3fe331357c74617f03da465047bc79f"
     },
     {
+      "path": "docs/verification/preview-100043.json",
+      "bytes": 660,
+      "sha256": "526755a9b0163bb27ee3770a667badce909bd63c04768a7d6a84165a3d83d2dd"
+    },
+    {
       "path": "docs/verification/preview-four-source-http-2026-10-21.json",
       "bytes": 1492,
       "sha256": "92d35a513a2e0e5d28d0440c7897f94ad5801be087b1d49da044641a6214915f"
@@ -1426,6 +1441,11 @@
       "path": "docs/verification/stable-candidate-100041.json",
       "bytes": 451,
       "sha256": "665e578fdd86c40286f282a09b70808272dfa840ada6150b6e340416c967dc2e"
+    },
+    {
+      "path": "docs/verification/stable-candidate-100043.json",
+      "bytes": 451,
+      "sha256": "c94b86fd65c8f987fe9207d8574e8a1e4dff92bdecc05fbb104bb91c632d7ff3"
     },
     {
       "path": "docs/verification/startup-100010-android35-crash.txt",

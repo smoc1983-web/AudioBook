@@ -57,6 +57,14 @@ class ContinuationWorkerTest {
             broken=false;check();assertEquals("Failed source must not advance baseline",2,store.notices().size)
             prefs.edit().putString("shelves_v1","[]").commit();latest=4;check();assertEquals(2,store.notices().size)
             store.preferences.edit().putBoolean("enabled",false).commit();check();assertEquals(2,store.notices().size)
+            // Future volume already listed at subscription time must notify when its audio arrives.
+            store.notices().forEach{AbContinuationAlerts.consume(context,it.id)};store.clearNotices()
+            java.io.File(context.filesDir,"continuations-v1").deleteRecursively()
+            store.preferences.edit().putBoolean("enabled",true).commit()
+            prefs.edit().putString("shelves_v1","""[{"n":"Test","b":[{"t":"Камень. Том 1","u":"$book","c":""}]}]""").commit()
+            latest=2;pending=true;check();assertTrue(store.notices().isEmpty())
+            pending=false;check();assertEquals("Previously listed future volume must notify after audio release",1,store.notices().size)
+
         }finally {
             if(original==null)prefs.edit().remove("shelves_v1").commit() else prefs.edit().putString("shelves_v1",original).commit()
             store.notices().forEach{AbContinuationAlerts.consume(context,it.id)}

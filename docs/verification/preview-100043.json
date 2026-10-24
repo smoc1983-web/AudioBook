@@ -1,0 +1,17 @@
+{
+  "packageName": "com.audiobookdownloader.preview",
+  "versionCode": 100043,
+  "versionName": "4.2-preview.43",
+  "size": 37024325,
+  "sha256": "2081969fc5c84e5bfffff0fae764e8c30d9d63e31832c3fad9db7e94f1927f90",
+  "certificateSha256": "3a4cecd14bb3e983843871766909c3f07b3dc64379800f3e270e4a27d39affb7",
+  "apk": "Audiobook-Preview.apk",
+  "commit": "d37e235aead748f75c24b7a047d9a6f2e56bdb20",
+  "label": "Audiobook Preview",
+  "providers": [
+    "com.audiobookdownloader.preview.updates",
+    "com.audiobookdownloader.preview.diagnostic_reports",
+    "com.audiobookdownloader.preview.androidx-startup"
+  ],
+  "file": "Audiobook-Preview-4.2-preview.43.apk"
+}

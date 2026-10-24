@@ -20,7 +20,7 @@ internal class ContinuationStore(private val context:Context) {
     fun readState(key:String):ContinuationRules.State? = try {
         val file=File(folder,"$key.json")
         if(!file.isFile||file.length()>512*1024)null else {
-            val data=JSONObject(file.readText());val values=data.getJSONArray("seen")
+            val data=JSONObject(file.readText());require(data.optInt("schema")==2);val values=data.getJSONArray("seen")
             val seen=(0 until values.length()).map{values.getString(it)}.toSet()
             ContinuationRules.State(seen,if(data.isNull("highest"))null else data.getDouble("highest"))
         }
@@ -29,7 +29,7 @@ internal class ContinuationStore(private val context:Context) {
         require(folder.isDirectory||folder.mkdirs())
         val target=File(folder,"$key.json");val temp=File.createTempFile("snapshot-",".tmp",folder)
         try {
-            temp.writeText(JSONObject().put("seen",JSONArray(state.seen.toList())).put("highest",state.highest ?: JSONObject.NULL).toString())
+            temp.writeText(JSONObject().put("schema",2).put("seen",JSONArray(state.seen.toList())).put("highest",state.highest ?: JSONObject.NULL).toString())
             check(temp.renameTo(target)){"Не удалось сохранить состояние цикла"}
         }finally{temp.delete()}
     }

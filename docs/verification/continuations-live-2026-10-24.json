@@ -1,0 +1,32 @@
+{
+  "date": "2026-10-24",
+  "liveSeries": {
+    "url": "https://bookinfo.net/series/kamennyy-vek-belin",
+    "httpStatus": 200,
+    "verifiedTLS": true,
+    "backgroundUserAgentAccepted": true,
+    "volumes": [
+      6,
+      5,
+      4,
+      3
+    ],
+    "parser": "ContinuationParser; native HTTP and Jsoup; no browser required"
+  },
+  "audioDistinction": [
+    {
+      "url": "https://bookinfo.net/popadantsy/lev-belin/novyy-kamennyy-vek-tom-6",
+      "audioFiles": 0,
+      "parserPlayable": false
+    },
+    {
+      "url": "https://bookinfo.net/religiya/ieromonah-simon/syny-groma",
+      "audioFiles": 30,
+      "parserPlayable": true
+    }
+  ],
+  "all13SourcesFullBackgroundSeriesChecksVerified": false,
+  "actualFuturePublicationObserved": false,
+  "physicalSamsungTested": false,
+  "description": "Public page metadata only; no whole-book playback or future publication claim. Android worker behaviour checked separately with controlled network responses."
+}

@@ -50,10 +50,17 @@ internal class ContinuationScanner(private val context:Context,private val fetch
                     }
                     val previous=store.readState(key)
                     var update=ContinuationRules.evaluate(previous,collected.values.toList(),author)
-                    if(previous!=null&&update.additions.isNotEmpty()) {
-                        val potential=update.additions.map{it.url}.toSet()
+                    // A listed future volume without audio is not an already-published baseline book.
+                    // Probe the newest numbered successors even on first subscription, silently baseline
+                    // playable ones, and leave pending ones eligible for a later release notification.
+                    val seedOrder=cycle.order ?: ContinuationRules.order(seed.title)
+                    val candidates=if(previous==null&&seedOrder!=null) collected.values
+                        .filter{it.order!=null&&it.order>seedOrder}.sortedByDescending{it.order}.take(10)
+                        else update.additions
+                    if(candidates.isNotEmpty()) {
+                        val potential=candidates.map{it.url}.toSet()
                         val confirmed=mutableListOf<ContinuationRules.Book>()
-                        for(candidate in update.additions.take(10)) {
+                        for(candidate in candidates.take(10)) {
                             try {
                                 val detail=parser.detail(fetcher.html(candidate.url),candidate.url)
                                 val belongs=detail.cycles.firstOrNull{policy.same(url,it.url)&&java.net.URI(policy.canonical(it.url)).rawPath==java.net.URI(url).rawPath}
@@ -61,8 +68,8 @@ internal class ContinuationScanner(private val context:Context,private val fetch
                                 if(!detail.announced&&detail.playable&&belongs!=null&&matches)
                                     confirmed.add(ContinuationRules.Book(detail.title.ifBlank{candidate.title},candidate.url,detail.author,belongs.order ?: candidate.order))
                             }catch(error:CancellationException){throw error}
-                            catch(error:ContinuationBudget){errors.add("${cycle.title}: подтверждены не все новые книги");break}
-                            catch(_:Exception){errors.add("${candidate.title}: продолжение пока не подтверждено")}
+                            catch(error:ContinuationBudget){if(previous==null)throw error;errors.add("${cycle.title}: подтверждены не все новые книги");break}
+                            catch(error:Exception){if(previous==null)throw error;errors.add("${candidate.title}: продолжение пока не подтверждено")}
                         }
                         update=ContinuationRules.evaluate(previous,collected.values.filter{it.url !in potential}+confirmed,author)
                     }
