@@ -4,8 +4,8 @@
   "files": [
     {
       "path": ".github/workflows/build-apk.yml",
-      "bytes": 6904,
-      "sha256": "ecee4429a12576c68cc3498375c4f4006e3c7c7e52d9a2cd7e4aeb83e1c644bb"
+      "bytes": 6903,
+      "sha256": "820cda29dd24d1fc27bafaa7d941a0ba789120dede845ef5e458d5bb27bc80f5"
     },
     {
       "path": ".gitignore",
@@ -24,8 +24,8 @@
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/OnlineDurationTest.java",
-      "bytes": 2838,
-      "sha256": "35b0d8628e2b12b96e40e2eccd5753b446b858d2d47ac1545aa7413eaf659550"
+      "bytes": 3467,
+      "sha256": "47778458e4d90be5a96f41a99c9cbfb06d43317fa55f7b6e0700b06b4827414c"
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/PageCurlRenderTest.java",
@@ -64,8 +64,8 @@
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/AbAudioDurations.kt",
-      "bytes": 4876,
-      "sha256": "b71080d5502942a4ead5bc85ee40fb5069f6a4ab54545ed07f9de154f02a202c"
+      "bytes": 5675,
+      "sha256": "1b78bec44e9109111e222993026611bb78749cc34d817292a792a60804f14535"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/AbBookArtwork.kt",

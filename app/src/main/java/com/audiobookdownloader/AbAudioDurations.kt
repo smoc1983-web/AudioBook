@@ -26,8 +26,9 @@ internal object AbAudioDurations {
         values.value=next.toMap()
     }
     fun remember(context:Context,source:String,ms:Int) {
-        if(!isNetworkAudio(source)||ms<=0)return
+        if(source.isBlank()||ms<=0)return
         publish(source,ms)
+        if(!isNetworkAudio(source))return
         val prefs=context.getSharedPreferences("audio_duration_cache_v1",0)
         val editor=prefs.edit().putString(key(source),"$ms|${System.currentTimeMillis()}")
         if(prefs.all.size>2048)prefs.all.entries.sortedBy{it.value.toString().substringAfter('|').toLongOrNull() ?: 0L}
@@ -36,6 +37,7 @@ internal object AbAudioDurations {
     }
     private fun cached(context:Context,source:String):Int? {
         values.value[source]?.let{return it}
+        if(!isNetworkAudio(source))return null
         val row=context.getSharedPreferences("audio_duration_cache_v1",0).getString(key(source),"").orEmpty().split('|')
         val ms=row.firstOrNull()?.toIntOrNull() ?: return null
         val at=row.getOrNull(1)?.toLongOrNull() ?: return null
@@ -62,28 +64,37 @@ internal object AbAudioDurations {
                 ?.takeIf{it in 1..Int.MAX_VALUE.toLong()}?.toInt()
         } finally {try{retriever.release()}finally{reader.close()}}
     }
-    private suspend fun probe(source:String,headers:Map<String,String>):Int? = suspendCancellableCoroutine {reply ->
-        val reader=AbDurationRanges(source,headers)
+    fun readLocalDuration(context:Context,source:String):Int? {
+        val reader=MediaMetadataRetriever()
+        return try {
+            if(source.startsWith("content://")||source.startsWith("file://"))reader.setDataSource(context,android.net.Uri.parse(source))
+            else reader.setDataSource(source)
+            reader.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull()
+                ?.takeIf{it in 1..Int.MAX_VALUE.toLong()}?.toInt()
+        }finally{reader.release()}
+    }
+    private suspend fun probe(context:Context,source:String,headers:Map<String,String>):Int? = suspendCancellableCoroutine {reply ->
+        val reader=if(isNetworkAudio(source))AbDurationRanges(source,headers) else null
         val future=worker.submit {
             try {
                 if(reply.isActive) {
-                    val duration=try{readDuration(reader)}catch(_:Exception){null}
+                    val duration=try{if(reader!=null)readDuration(reader) else readLocalDuration(context,source)}catch(_:Exception){null}
                     if(reply.isActive)reply.resumeWith(Result.success(duration))
                 }
-            }finally{reader.close()}
+            }finally{reader?.close()}
         }
-        reply.invokeOnCancellation{reader.close();future.cancel(false)}
+        reply.invokeOnCancellation{reader?.close();future.cancel(false)}
     }
     suspend fun resolve(context:Context,title:String,tracks:List<ServiceTrack>,force:Boolean=false) = supervisorScope {
         val app=context.applicationContext
-        tracks.distinctBy{it.src}.filter{isNetworkAudio(it.src)}.chunked(2).forEach {batch ->
+        tracks.distinctBy{it.src}.filter{isNetworkAudio(it.src)||it.src.startsWith("/")||it.src.startsWith("content://")||it.src.startsWith("file://")}.chunked(2).forEach {batch ->
         batch.map {track -> async(Dispatchers.IO) {
             if(track.durationMs>0){remember(app,track.src,track.durationMs);return@async}
             if(cached(app,track.src)!=null)return@async
             slots.withPermit {
                 if(cached(app,track.src)!=null||!start(track.src,force))return@withPermit
                 try {
-                    val ms=probe(track.src,abAudioRequestHeaders(app,track.src,title))
+                    val ms=probe(app,track.src,abAudioRequestHeaders(app,track.src,title))
                     currentCoroutineContext().ensureActive()
                     if(ms!=null)remember(app,track.src,ms)
                 } catch(error:CancellationException){cancelled(track.src);throw error}

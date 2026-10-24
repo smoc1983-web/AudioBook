@@ -37,6 +37,15 @@ public class OnlineDurationTest {
   Context context=InstrumentationRegistry.getInstrumentation().getTargetContext();
   AbAudioDurations.INSTANCE.remember(context,source,duration);
   assertEquals(duration,AbAudioDurations.INSTANCE.getState().getValue().get(source));
+  File local=new File(context.getCacheDir(),"mixed-online-chapter.wav");
+  try {
+   try(OutputStream out=new FileOutputStream(local)){out.write(bytes);}
+   Integer localDuration=AbAudioDurations.INSTANCE.readLocalDuration(context,local.getAbsolutePath());
+   assertEquals(duration,localDuration);
+   AbAudioDurations.INSTANCE.remember(context,local.getAbsolutePath(),localDuration);
+   assertEquals(localDuration,AbAudioDurations.INSTANCE.getState().getValue().get(local.getAbsolutePath()));
+   assertEquals(11000,AbBookTimeRules.calculate(new long[]{0,duration,localDuration},1,2000,2).remainingMs);
+  }finally{local.delete();}
   AbBookTimeRules.Result time=AbBookTimeRules.calculate(new long[]{0,duration,18000},1,2000,2);
   assertEquals(14000,time.remainingMs);
   android.util.Log.i("OnlineDurationTest","Native range metadata duration=12000; bytes="+ranges.bytesRead()+"; remaining book=14000 at speed 2");

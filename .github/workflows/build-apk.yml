@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 concurrency:
   group: audiobook-preview-runtime-v3-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 jobs:
   build:
     runs-on: ubuntu-latest
