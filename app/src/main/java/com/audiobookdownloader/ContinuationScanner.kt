@@ -1,0 +1,92 @@
+package com.audiobookdownloader
+
+import android.content.Context
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
+import org.json.JSONArray
+import org.json.JSONObject
+
+/** No UI/WebView or title guessing in background. Only completed, verified series snapshots advance. */
+internal class ContinuationScanner(private val context:Context,private val fetcher:ContinuationFetcher) {
+    private val policy=ContinuationPolicy(AB_EXTRA_SOURCE_JSON)
+    private val parser=ContinuationParser(policy)
+    private val store=ContinuationStore(context)
+    private val settings=context.getSharedPreferences("audiobook_downloader",0)
+    private val visited=mutableSetOf<String>()
+    suspend fun scan():String {
+        val seeds=store.seeds();if(seeds.isEmpty())return "В коллекциях пока нет книг"
+        val errors=mutableListOf<String>();var checked=0;var added=0
+        val start=store.preferences.getInt("cursor",0).mod(seeds.size)
+        var cursor=start
+        for(offset in 0 until minOf(seeds.size,16)) {
+            currentCoroutineContext().ensureActive()
+            val index=(start+offset)%seeds.size;val seed=seeds[index]
+            try {
+                val metadata=abStoredCatalog(settings,seed.title)
+                val address=policy.canonical(seed.url.ifBlank{metadata.url}.ifBlank{settings.getString(bookUrlKey(seed.title),"").orEmpty()})
+                require(policy.book(address)){"Откройте книгу на сайте, чтобы определить её цикл"}
+                var author=metadata.author;var cycles=metadata.cycles
+                if(cycles.none{policy.series(it.url)}) {
+                    val detail=parser.detail(fetcher.html(address),address)
+                    author=detail.author.ifBlank{author}
+                    cycles=detail.cycles.map{BookCycle(it.title,it.url,it.order)}
+                    if(cycles.isNotEmpty())abRememberCatalog(settings,BookLink(seed.title,address,author=author,cycles=cycles))
+                }
+                require(cycles.any{policy.series(it.url)}){"Сайт не указал подтверждённый цикл"}
+                for(cycle in cycles.filter{policy.series(it.url)}) {
+                    val url=policy.canonical(cycle.url)
+                    val key=ContinuationStore.hash(policy.source(url)+"|"+java.net.URI(url).rawPath+"|"+ContinuationRules.author(author))
+                    if(!visited.add(key))continue
+                    val collected=linkedMapOf<String,ContinuationRules.Book>();val seenPages=mutableSetOf<String>();val pages=java.util.ArrayDeque<String>();pages.add(url)
+                    while(pages.isNotEmpty()) {
+                        currentCoroutineContext().ensureActive()
+                        val page=pages.removeFirst();if(!seenPages.add(page))continue
+                        require(seenPages.size<=6){"Слишком длинный список цикла; проверка неполная"}
+                        val parsed=parser.page(fetcher.html(page),page,url,cycle.title,address)
+                        parsed.books.forEach{collected[it.url]=it}
+                        require(collected.size<=500){"Слишком большой список цикла"}
+                        parsed.next.filter{it !in seenPages}.forEach{pages.add(it)}
+                    }
+                    val previous=store.readState(key)
+                    var update=ContinuationRules.evaluate(previous,collected.values.toList(),author)
+                    if(previous!=null&&update.additions.isNotEmpty()) {
+                        val potential=update.additions.map{it.url}.toSet()
+                        val confirmed=mutableListOf<ContinuationRules.Book>()
+                        for(candidate in update.additions.take(10)) {
+                            try {
+                                val detail=parser.detail(fetcher.html(candidate.url),candidate.url)
+                                val belongs=detail.cycles.firstOrNull{policy.same(url,it.url)&&java.net.URI(policy.canonical(it.url)).rawPath==java.net.URI(url).rawPath}
+                                val matches=author.isBlank()||ContinuationRules.author(author)==ContinuationRules.author(detail.author)
+                                if(!detail.announced&&detail.playable&&belongs!=null&&matches)
+                                    confirmed.add(ContinuationRules.Book(detail.title.ifBlank{candidate.title},candidate.url,detail.author,belongs.order ?: candidate.order))
+                            }catch(error:CancellationException){throw error}
+                            catch(error:ContinuationBudget){errors.add("${cycle.title}: подтверждены не все новые книги");break}
+                            catch(_:Exception){errors.add("${candidate.title}: продолжение пока не подтверждено")}
+                        }
+                        update=ContinuationRules.evaluate(previous,collected.values.filter{it.url !in potential}+confirmed,author)
+                    }
+                    // Re-read the collection after network work; removed subscriptions cannot create alerts.
+                    if(!AbContinuationAlerts.enabled(context)||store.seeds().none{it.id==seed.id})return "Проверка остановлена: коллекции изменились"
+                    val now=System.currentTimeMillis()
+                    val notices=update.additions.map {book ->
+                        val identity=ContinuationRules.author(author)+"|"+SearchBookIndex.normal(ContinuationRules.seriesName(cycle.title))+"|"+
+                            (book.order?.let{"volume:$it"} ?: SearchBookIndex.titleKey(book.title))
+                        ContinuationNotice(ContinuationStore.hash(identity),seed.id,book.title,book.url,
+                            ContinuationRules.seriesName(cycle.title),book.author,now)
+                    }
+                    // Persist deterministic inbox entries before the snapshot: a crash cannot lose a new volume.
+                    if(notices.isNotEmpty())store.mergeNotices(notices)
+                    store.writeState(key,update.state)
+                    added+=notices.size;checked++
+                }
+            }catch(error:CancellationException){throw error}
+            catch(error:ContinuationBudget){errors.add(error.message.orEmpty());cursor=(index+1)%seeds.size;break}
+            catch(error:Exception){errors.add(seed.title+": "+(error.message ?: "Источник недоступен").take(180))}
+            cursor=(index+1)%seeds.size
+        }
+        store.preferences.edit().putInt("cursor",cursor).putLong("last_check",System.currentTimeMillis())
+            .putInt("checked",checked).putInt("new_count",added).putString("errors",JSONArray(errors.distinct().take(12)).toString()).commit()
+        return "Проверено циклов: $checked. Новых продолжений: $added."+if(errors.isNotEmpty())" Не все книги удалось проверить." else ""
+    }
+}

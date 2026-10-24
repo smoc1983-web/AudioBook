@@ -209,6 +209,7 @@ class MainActivity : ComponentActivity() {
         AbCrashReport.install(this)
         super.onCreate(savedInstanceState)
         AbWidgetRoutes.accept(if(savedInstanceState==null)intent else null)
+        AbContinuationAlerts.accept(this,if(savedInstanceState==null)intent else null)
         // Rotate/recreate the activity without replaying the launch animation.
         launchAnimationAllowed=savedInstanceState==null && !AbWidgetRoutes.isWidgetIntent(intent)
         volumeControlStream=android.media.AudioManager.STREAM_MUSIC
@@ -229,6 +230,7 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         AbWidgetRoutes.accept(intent)
+        AbContinuationAlerts.accept(this,intent)
     }
 
     private fun requestMissingPermissions() {
@@ -2381,7 +2383,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
         }
     }
 
-    fun openDownloadedBook(libraryBook:LibraryBook) {
+    fun openDownloadedBook(libraryBook:LibraryBook,autoPlay:Boolean=true) {
         genreDeferredPending=genreDeferredPending+genrePending
         if(genreExternalLoading) {genreExternalMore=true;genreExternalBatch--}
         cancelSearchMerges()
@@ -2419,7 +2421,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                 libraryBook.title,
                 libraryBook.files,
                 savedTrack,
-                true
+                autoPlay
             )
 
             appPage =
@@ -2605,19 +2607,19 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
      * Открывает книгу из избранного или с полки: скачанную - в плеере
      * с сохранённого места, нераспознанную - страницей книги в поиске.
      */
-    fun openBookRef(ref:BookRef) {
+    fun openBookRef(ref:BookRef,autoPlay:Boolean=true) {
         val id=++bookOpenId
         val libraryBook=findDownloadedBook(libraryBooks,ref.title)
         if(libraryBook==null && librarySync.isSyncing) {
             status="Проверяю скачанные главы…"
             modernWork.launch {
                 androidx.compose.runtime.snapshotFlow{librarySync.isSyncing}.first{!it}
-                if(id==bookOpenId)openBookRef(ref)
+                if(id==bookOpenId)openBookRef(ref,autoPlay)
             }
             return
         }
         if(libraryBook!=null) {
-            openDownloadedBook(libraryBook)
+            openDownloadedBook(libraryBook,autoPlay)
         } else if (ref.url.isNotBlank()) {
             bookOpening=AbBookOpen(BookLink(ref.title,ref.url,ref.cover),ref.url)
             bookPageLoading=true;bookPageError=""
@@ -2625,7 +2627,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
             cancelSearchMerges()
             searchScrollTarget=0 to 0
             genreExternalId++;genreExternalLoading=false
-            resumeAfterLoad = true
+            resumeAfterLoad = autoPlay
             searchSessionActive = true
             searchScreenId++
             genreRequestId++
@@ -2676,6 +2678,16 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                 "Нет адреса книги: откройте её через поиск",
                 Toast.LENGTH_LONG
             ).show()
+        }
+    }
+
+    val continuationRoute by AbContinuationAlerts.routes.collectAsState()
+    LaunchedEffect(continuationRoute) {
+        continuationRoute?.let {id ->
+            ContinuationStore(context).notices().firstOrNull{it.id==id}?.let {notice ->
+                openBookRef(BookRef(notice.title,notice.url,""),false)
+                AbContinuationAlerts.consume(context,id)
+            }
         }
     }
 
@@ -10503,6 +10515,10 @@ private fun AbLibraryScreen(data: AbScreenData,actions: AbActions,sync: LibraryS
 private fun AbCollectionsScreen(data: AbScreenData,actions: AbActions,books: List<LibraryBook>,
     prefs: android.content.SharedPreferences,theme: AbTheme,onMenu:(BookRef)->Unit) {
     val context=androidx.compose.ui.platform.LocalContext.current
+    var continuationSettings by remember {mutableStateOf(false)}
+    if(continuationSettings) AbDialog("Продолжения",theme,{continuationSettings=false}) {
+        AbContinuationSettings(theme){ref -> continuationSettings=false;actions.openRef(ref)}
+    }
     var selectedShelf by androidx.compose.runtime.saveable.rememberSaveable {mutableStateOf<String?>(null)}
     var editing by remember {mutableStateOf(false)}
     var name by remember {mutableStateOf("")}
@@ -10519,6 +10535,7 @@ private fun AbCollectionsScreen(data: AbScreenData,actions: AbActions,books: Lis
                 AbIconButton(AbIcon.PLUS,"Создать коллекцию",theme) {name="";oldName=null;editing=true}
             }
             Text("Собирайте книги на своих полках",color=theme.muted,fontSize=13.sp,modifier=Modifier.padding(top=8.dp))
+            AbButton("Продолжения книг в коллекциях",theme){continuationSettings=true}
         }
         if(selected==null) {
             if(shelves.isEmpty()) item {
@@ -10849,6 +10866,50 @@ private fun AbSeekButton(seconds: Int,state: ServicePlaybackState,theme: AbTheme
     }
 }
 
+@Composable
+private fun AbContinuationSettings(theme:AbTheme,onOpen:(BookRef)->Unit) {
+    val context=androidx.compose.ui.platform.LocalContext.current
+    val store=remember{ContinuationStore(context)}
+    var revision by remember{mutableStateOf(0)}
+    DisposableEffect(store) {
+        val listener=android.content.SharedPreferences.OnSharedPreferenceChangeListener{_,_->revision++}
+        store.preferences.registerOnSharedPreferenceChangeListener(listener)
+        onDispose{store.preferences.unregisterOnSharedPreferenceChangeListener(listener)}
+    }
+    val permission=androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestPermission()) {AbContinuationAlerts.deliver(context);revision++}
+    val enabled=remember(revision){AbContinuationAlerts.enabled(context)}
+    val notices=remember(revision){store.notices()}
+    Text("Уведомлять о новых продолжениях книг из моих коллекций",color=theme.text,fontSize=15.sp)
+    AbOptions(listOf("Включено","Выключено"),if(enabled)0 else 1,theme){AbContinuationAlerts.setEnabled(context,it==0)}
+    Text("Первая успешная проверка запоминает уже вышедшие книги без уведомлений. Затем приложение проверяет циклы примерно раз в 12 часов при наличии интернета. Android может отложить фоновую проверку.",color=theme.muted,fontSize=12.sp,lineHeight=18.sp)
+    Text("Уведомления появляются только для подтверждённых продолжений с доступным аудио. Сайт должен указывать цикл и полный список его книг; если этих данных нет, ниже появится причина.",color=theme.muted,fontSize=12.sp,lineHeight=18.sp)
+    if(!AbContinuationAlerts.canNotify(context)) {
+        Text("Системные уведомления отключены. Новинки сохранятся в списке ниже.",color=theme.accent,fontSize=13.sp)
+        AbButton("Разрешить уведомления",theme){
+            if(android.os.Build.VERSION.SDK_INT>=33 && context.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)!=android.content.pm.PackageManager.PERMISSION_GRANTED)
+                permission.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+            else try{context.startActivity(Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(android.provider.Settings.EXTRA_APP_PACKAGE,context.packageName))}catch(_:Exception){}
+        }
+    }
+    AbButton("Проверить сейчас",theme,enabled=enabled){AbContinuationAlerts.checkNow(context)}
+    Text(remember(revision){store.preferences.getString("status","Проверка начнётся после добавления книги в коллекцию").orEmpty()},color=theme.muted,fontSize=13.sp)
+    val last=remember(revision){store.preferences.getLong("last_check",0)}
+    if(last>0)Text("Последняя проверка: "+java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.SHORT,java.text.DateFormat.SHORT).format(java.util.Date(last)),color=theme.muted,fontSize=12.sp)
+    val errors=remember(revision){try{val a=JSONArray(store.preferences.getString("errors","[]"));(0 until a.length()).map{a.getString(it)}}catch(_:Exception){emptyList()}}
+    errors.forEach{Text(it,color=theme.muted,fontSize=12.sp)}
+    AbHeading("Новые продолжения",theme)
+    if(notices.isEmpty())Text("Новых продолжений пока нет",color=theme.muted,fontSize=13.sp)
+    notices.forEach {notice ->
+        Column(Modifier.fillMaxWidth().abGlass(theme,16).padding(12.dp),verticalArrangement=Arrangement.spacedBy(6.dp)) {
+            Text((if(notice.read)"" else "● ")+notice.title,color=theme.text,fontWeight=FontWeight.SemiBold)
+            Text(notice.series,color=theme.muted,fontSize=12.sp)
+            AbButton("Открыть книгу",theme){AbContinuationAlerts.consume(context,notice.id);onOpen(BookRef(notice.title,notice.url,""))}
+        }
+    }
+    if(notices.isNotEmpty())AbButton("Очистить список",theme){notices.forEach{AbContinuationAlerts.consume(context,it.id)};store.clearNotices()}
+}
+
 private enum class AbSettingsSection(val label:String,val subtitle:String,val icon:AbIcon) {
     HOME("Настройки","",AbIcon.SETTINGS),
     SPEED("Скорость","Темп прослушивания",AbIcon.PLAY),
@@ -10858,6 +10919,7 @@ private enum class AbSettingsSection(val label:String,val subtitle:String,val ic
     SHAKE("Встряхивание","Перезапустить таймер",AbIcon.SYNC),
     REWIND("После паузы","Откат позиции",AbIcon.PREVIOUS),
     APPEARANCE("Оформление","Тема и фон",AbIcon.SETTINGS),
+    CONTINUATIONS("Продолжения","Новинки циклов в коллекциях",AbIcon.BOOKS),
     WIDGETS("Виджеты","Главный экран Android",AbIcon.COLLECTIONS),
     SUPPORT("Поддержка","Реквизиты разработчика",AbIcon.HEART),
     SOUND("Звук","Мультимедиа и MIUI",AbIcon.PLAY),
@@ -11002,6 +11064,7 @@ private fun AbSettingsDialog(data: AbScreenData,prefs: android.content.SharedPre
             AbButton("Выбрать фон из галереи",theme,onClick=actions.chooseBackground)
             if(data.backgroundUri!=null) AbButton("Вернуть фон темы",theme,onClick=actions.clearBackground)
         }
+        if(section==AbSettingsSection.CONTINUATIONS) {AbContinuationSettings(theme) {ref -> dismiss();actions.openRef(ref)}}
         if(section==AbSettingsSection.WIDGETS) {AbWidgetSettings(theme)}
         if(section==AbSettingsSection.SUPPORT) {
             AbHeading("Поддержать разработчика",theme)
@@ -12279,7 +12342,7 @@ private fun abMergeCycles(first: List<BookCycle>,second: List<BookCycle>): List<
 
 private fun abCatalogKey(title: String) = "book_catalog_"+safeFileName(cleanBookTitle(title))
 
-private fun abStoredCatalog(prefs: android.content.SharedPreferences,title: String): BookLink {
+internal fun abStoredCatalog(prefs: android.content.SharedPreferences,title: String): BookLink {
     return try {
         val json=JSONObject(prefs.getString(abCatalogKey(title),"{}").orEmpty())
         BookLink(title,json.optString("url"),json.optString("cover"),
@@ -12288,7 +12351,7 @@ private fun abStoredCatalog(prefs: android.content.SharedPreferences,title: Stri
     } catch(_:Exception) {BookLink(title,"",author=prefs.getString(abAuthorKey(title),"").orEmpty())}
 }
 
-private fun abRememberCatalog(prefs: android.content.SharedPreferences,book: BookLink) {
+internal fun abRememberCatalog(prefs: android.content.SharedPreferences,book: BookLink) {
     if(book.title.isBlank() || (book.genres.isEmpty() && book.cycles.isEmpty() && book.author.isBlank())) return
     val old=abStoredCatalog(prefs,book.title)
     // Do not combine identically named works with explicitly different authors.

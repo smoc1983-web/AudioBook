@@ -1,0 +1,68 @@
+package com.audiobookdownloader
+
+import android.content.Context
+import androidx.test.core.app.ApplicationProvider
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.work.ListenableWorker
+import androidx.work.WorkManager
+import androidx.work.testing.TestListenableWorkerBuilder
+import kotlinx.coroutines.runBlocking
+import org.junit.Assert.*
+import org.junit.Test
+import org.junit.runner.RunWith
+
+@RunWith(AndroidJUnit4::class)
+class ContinuationWorkerTest {
+    private val book="https://bookinfo.net/fantasy/test-writer/stone-1"
+    private val cycle="https://bookinfo.net/series/test-stone"
+    @Test(timeout=60000) fun workerBaselinesConfirmsDeduplicatesAndPreservesSnapshotOnFailure()=runBlocking {
+        val context=ApplicationProvider.getApplicationContext<Context>()
+        val prefs=context.getSharedPreferences("audiobook_downloader",0)
+        val original=prefs.getString("shelves_v1",null)
+        val store=ContinuationStore(context)
+        val originalEnabled=store.preferences.getBoolean("enabled",true)
+        try {
+            store.preferences.edit().clear().putBoolean("enabled",true).commit()
+            java.io.File(context.filesDir,"continuations-v1").deleteRecursively()
+            prefs.edit().putString("shelves_v1","""[{"n":"Test","b":[{"t":"Камень. Том 1","u":"$book","c":""}]}]""").commit()
+            var latest=1;var broken=false;var pending=false
+            val fake=ContinuationFetcher {url ->
+                if(broken)error("Источник временно недоступен")
+                if(url==cycle) {
+                    "<h1>Камень</h1>"+(1..latest).joinToString(""){n ->
+                        "<article><h2><a href='https://bookinfo.net/fantasy/test-writer/stone-$n'>Камень. Том $n</a></h2><a href='/author/test-writer'>Тест Автор</a></article>"
+                    }
+                } else {
+                    val n=url.substringAfterLast('-').toInt()
+                    "<h1>Камень. Том $n</h1><a href='/author/test-writer'>Тест Автор</a><a href='$cycle'>Камень #$n</a>"+
+                        if(pending)"" else "<script>new Playerjs({file:'audio.mp3'});</script>"
+                }
+            }
+            suspend fun check() {
+                val worker=TestListenableWorkerBuilder<SeriesContinuationWorker>(context).build()
+                worker.fetcher=fake
+                assertEquals(ListenableWorker.Result.success(),worker.doWork())
+            }
+            check();assertTrue("Existing books must not notify",store.notices().isEmpty())
+            latest=2;pending=true;check();assertTrue("Empty audio must not notify",store.notices().isEmpty())
+            pending=false;check();assertEquals(1,store.notices().size)
+            check();assertEquals("Repeated checks must be silent",1,store.notices().size)
+            val id=store.notices().single().id
+            AbContinuationAlerts.accept(context,android.content.Intent().setAction(AbContinuationAlerts.OPEN).putExtra("continuation_id","unknown"))
+            assertNull(AbContinuationAlerts.routes.value)
+            AbContinuationAlerts.accept(context,android.content.Intent().setAction(AbContinuationAlerts.OPEN).putExtra("continuation_id",id))
+            assertEquals(id,AbContinuationAlerts.routes.value)
+            AbContinuationAlerts.consume(context,id);assertTrue(store.notices().single().read)
+            broken=true;latest=3;check();assertEquals(1,store.notices().size)
+            broken=false;check();assertEquals("Failed source must not advance baseline",2,store.notices().size)
+            prefs.edit().putString("shelves_v1","[]").commit();latest=4;check();assertEquals(2,store.notices().size)
+            store.preferences.edit().putBoolean("enabled",false).commit();check();assertEquals(2,store.notices().size)
+        }finally {
+            if(original==null)prefs.edit().remove("shelves_v1").commit() else prefs.edit().putString("shelves_v1",original).commit()
+            store.notices().forEach{AbContinuationAlerts.consume(context,it.id)}
+            store.preferences.edit().clear().putBoolean("enabled",originalEnabled).commit()
+            java.io.File(context.filesDir,"continuations-v1").deleteRecursively()
+            WorkManager.getInstance(context).cancelUniqueWork("continuations-now-v1")
+        }
+    }
+}
