@@ -209,8 +209,8 @@
     },
     {
       "path": "app/src/test/java/com/audiobookdownloader/AbDurationRangesTest.java",
-      "bytes": 3781,
-      "sha256": "1ca087a4ef0f2df0786e995ec3a4632e9bc7dd3b3e0addd982e8e97fbf444aba"
+      "bytes": 4809,
+      "sha256": "67300cb2346b1c1ce6f42db2a822b70964ffabce3d45c39b17dbc032c488dec1"
     },
     {
       "path": "app/src/test/java/com/audiobookdownloader/AbMediaPresentationTest.java",
