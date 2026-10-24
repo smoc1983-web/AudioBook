@@ -237,6 +237,17 @@
     "author": "^/avtor-[0-9]+-[^/]+/?$",
     "status": "Каталог и поиск проверены",
     "enabled": true
+  },
+  {
+    "id": "predanie",
+    "name": "Предание.ру",
+    "home": "https://predanie.ru/audio/",
+    "hosts": ["predanie.ru", "www.predanie.ru"],
+    "book": "^/(?!rubric-page/|fond/|auth/|api/|uploads/|download/|js/|css/|images/|search/|login/|register/|about/)[a-z0-9-]+/[a-z0-9-]+/?$",
+    "genre": "^/rubric-page/[a-z0-9-]+/?$",
+    "author": "^/(?!audio/?$|video/?$|search/?$|login/?$|register/?$|about/?$|fond/?$|crew/?$|friends/?$)[a-z0-9]+(?:-[a-z0-9]+)+/?$",
+    "status": "Аудиокаталог, поиск и открытые аудиозаписи",
+    "enabled": true
   }
 ];
     function source(address){try{var u=new URL(address||location.href,location.href);if(!/^https?:$/.test(u.protocol)||u.username||u.password||(u.port&&u.port!=='80'&&u.port!=='443'))return null;return sources.filter(function(s){return s.hosts.indexOf(u.hostname.toLowerCase())>=0;})[0]||null;}catch(e){return null;}}
@@ -259,6 +270,7 @@
     function metadata(root){
         var author='',genres=[],nodes=root.querySelectorAll('a[href]');
         for(var i=0;i<nodes.length&&i<1000;i++){var a=nodes[i],u=address(a.getAttribute('href'));if(matches(u,'author')&&!author)author=text(a);if(matches(u,'genre')&&text(a)&&genres.indexOf(text(a))<0)genres.push(text(a));}
+        if(current&&current.id==='predanie'){var p=root.querySelector('.work-author,.stroki-card-header__author,.search-result-card__author,.stroki-card-overlay-author');if(p)author=text(p);}
         var explicit=root.querySelector('[itemprop="author"]');if(!author&&explicit)author=text(explicit)||explicit.getAttribute('content')||'';
         return {author:author,genres:genres,cycles:[]};
     }
@@ -270,15 +282,17 @@
         var anchors=document.querySelectorAll('a[href]');
         for(var i=0;i<anchors.length&&i<12000;i++){
             var a=anchors[i],url=address(a.getAttribute('href'));if(!matches(url,'book')||excluded(a))continue;
-            var label=text(a);if(!label||label.length>400)continue;
+            var label=text(a);if(current.id==='predanie'){var titleNode=a.querySelector('.stroki-card-overlay-title,.search-result-card__title');if(titleNode)label=text(titleNode);}if(!label||label.length>400)continue;
             var heading=a.querySelector('h2,h3,.short-title,.sres-title,.book-title');if(heading)label=text(heading);
-            var card=a.closest('article,.book-item,.book-card,.bookkitem,[id^="book"],.shortstory,.short,.sres-wrap,.content__main__book,.b-content__main__book');
+            var card=a.closest('.stroki-card,.search-result-card,article,.book-item,.book-card,.bookkitem,[id^="book"],.shortstory,.short,.sres-wrap,.content__main__book,.b-content__main__book');
             if(!card){var p=a.parentElement;for(var d=0;p&&d<5;d++,p=p.parentElement){var img=p.querySelector('img'),links=p.querySelectorAll('a[href]'),other=false;for(var k=0;k<links.length;k++)if(matches(address(links[k].getAttribute('href')),'book')&&address(links[k].getAttribute('href'))!==url)other=true;if(img&&!other){card=p;break;}}}
-            card=card||a;if(/заблокировано|удалено правообладателем/i.test(text(card.querySelector('.sres-date,.alert-danger'))))continue;var info=metadata(card),image=cover(card),key=url.replace(/#.*$/,'').replace(/\/$/,'');
+            card=card||a;
+            if(current.id==='predanie'){if(!card.querySelector('.fa-headphones,[title="Аудио"]'))continue;var pt=card.querySelector('.stroki-card-title,.search-result-card__title,.stroki-card-overlay-title');if(pt)label=text(pt);}
+            if(/заблокировано|удалено правообладателем/i.test(text(card.querySelector('.sres-date,.alert-danger'))))continue;var info=metadata(card),image=cover(card),key=url.replace(/#.*$/,'').replace(/\/$/,'');
             if(seen[key]){var old=seen[key];if(!old.cover&&image)old.cover=image;if(!old.author&&info.author)old.author=info.author;continue;}
             var book={url:url,title:title(label,info.author),cover:image,author:info.author,genres:info.genres,cycles:[]};if(!book.title)continue;seen[key]=book;result.links.push(book);if(result.links.length>=600)break;
         }
-        var next=document.querySelectorAll('a[rel="next"],.pagination a[href],.pages a[href],.paginator a[href],.navigation a[href]');
+        var next=document.querySelectorAll('a[rel="next"],.pagination a[href],.pages a[href],.paginator a[href],.navigation a[href],nav[aria-label="Страницы результатов поиска"] a[href]');
         for(var j=0;j<next.length&&j<80;j++){var u=address(next[j].getAttribute('href'));if(source(u)&&source(u).id===current.id&&!matches(u,'book')&&u!==location.href&&result.nextUrls.indexOf(u)<0)result.nextUrls.push(u);}
         var body=text(document.body);result.noResults=!result.links.length&&/ничего не найдено|не найден[оы]|нет результатов|по вашему запросу.{0,80}не найден/i.test(body);
         return JSON.stringify(result);
@@ -306,6 +320,23 @@
     }
     function read(literal){
         if(!current||unavailable())return null;
+        if(current.id==='predanie') {
+            var node=document.querySelector('#audioPlaylistRoot[data-playlist]');
+            if(!node)return null;
+            try {
+                var raw=node.getAttribute('data-playlist')||'';if(raw.length>1000000)return null;
+                var rows=JSON.parse(raw);if(!Array.isArray(rows))return null;
+                var tracks=[];
+                rows.slice(0,3000).forEach(function(row){
+                    if(!row||typeof row.src!=='string'||(row.type&&!/^audio\//i.test(row.type)))return;
+                    var src=address(row.src);if(!/^https:\/\//i.test(src)||!/\.(?:mp3|m4a|ogg|opus|wav)(?:[?#]|$)/i.test(src))return;
+                    var value=String(row.duration||''),parts=value.split(':'),duration=Number(value)||0;
+                    if(parts.length>=2&&parts.length<=3&&parts.every(function(p){return /^\d+$/.test(p);}))duration=parts.reduce(function(n,p){return n*60+Number(p);},0);
+                    tracks.push({src:src,title:String(row.title||''),duration:duration});
+                });
+                return tracks.length?{bookId:location.pathname,playlist:tracks}:null;
+            }catch(e){return null;}
+        }
         if(current.id==='audioknigi-pro'){
             // Read the normal site's own decoder only after its anonymous player has loaded data.
             var node=document.querySelector('#vk-player-inline[data-ap-encoded]');
@@ -354,7 +385,7 @@
     }
     return {search:search,host:source,book:function(v){return matches(v,'book');},catalog:catalog,detail:detail,directory:directory,read:read,unavailable:unavailable,blocked:blocked};
 })();
-    if(extra.host(location.href)){if(extra.unavailable())return null;var additional=normalize(extra.read(literal));if(additional)return additional;if(extra.host(location.href).id==='akniga')return null;}
+    if(extra.host(location.href)){if(extra.unavailable())return null;var additional=normalize(extra.read(literal));if(additional)return additional;if(['akniga','predanie'].indexOf(extra.host(location.href).id)>=0)return null;}
     if(extra.host(location.href)||/^(?:www\.)?audiokniga-online\.ru$/i.test(location.hostname)) {
         var sourcePlayer=((function(literal) {
     var pool=(function(){

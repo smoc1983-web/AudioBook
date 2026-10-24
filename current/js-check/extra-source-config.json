@@ -127,5 +127,16 @@
     "author": "^/avtor-[0-9]+-[^/]+/?$",
     "status": "Каталог и поиск проверены",
     "enabled": true
+  },
+  {
+    "id": "predanie",
+    "name": "Предание.ру",
+    "home": "https://predanie.ru/audio/",
+    "hosts": ["predanie.ru", "www.predanie.ru"],
+    "book": "^/(?!rubric-page/|fond/|auth/|api/|uploads/|download/|js/|css/|images/|search/|login/|register/|about/)[a-z0-9-]+/[a-z0-9-]+/?$",
+    "genre": "^/rubric-page/[a-z0-9-]+/?$",
+    "author": "^/(?!audio/?$|video/?$|search/?$|login/?$|register/?$|about/?$|fond/?$|crew/?$|friends/?$)[a-z0-9]+(?:-[a-z0-9]+)+/?$",
+    "status": "Аудиокаталог, поиск и открытые аудиозаписи",
+    "enabled": true
   }
 ]

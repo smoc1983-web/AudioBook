@@ -14297,7 +14297,13 @@ private object AbBookSources {
     val all=original+AbExtraSources.names
     val searchOrder=all
     fun enabled(prefs:android.content.SharedPreferences):List<String> {
-        val saved=prefs.getStringSet("search_enabled_sources",null)
+        var saved=prefs.getStringSet("search_enabled_sources",null)
+        if(!prefs.getBoolean("predanie_source_added",false)) {
+            if(saved!=null) {
+                saved=saved+"Предание.ру"
+                prefs.edit().putStringSet("search_enabled_sources",saved).putBoolean("predanie_source_added",true).apply()
+            } else prefs.edit().putBoolean("predanie_source_added",true).apply()
+        }
         val defaults=original.toSet()+AbExtraSources.defaults
         val retained=saved?.intersect(searchOrder.toSet())
         val choices=retained?.takeIf{it.isNotEmpty()} ?: defaults
@@ -14821,7 +14827,7 @@ private fun abPlayerReaderJs():String {
         }
     }
     var onlinePending=null,extra=$extraAdapter;
-    if(extra.host(location.href)){if(extra.unavailable())return null;var additional=normalize(extra.read(literal));if(additional)return additional;if(extra.host(location.href).id==='akniga')return null;}
+    if(extra.host(location.href)){if(extra.unavailable())return null;var additional=normalize(extra.read(literal));if(additional)return additional;if(['akniga','predanie'].indexOf(extra.host(location.href).id)>=0)return null;}
     if(extra.host(location.href)||/^(?:www\.)?audiokniga-online\.ru${'$'}/i.test(location.hostname)) {
         var sourcePlayer=($onlineReader)(literal).read();
         if(sourcePlayer&&sourcePlayer.playlist.length)return sourcePlayer;

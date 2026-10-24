@@ -4,10 +4,10 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class AdditionalBookSourcesTest {
-    @Test fun registryRetainsNineAdditionalSourcesAndExcludesRemovedHosts() {
-        assertEquals(9,AbExtraSources.names.size)
-        assertEquals(9,AbExtraSources.names.toSet().size)
-        assertEquals(9,AbExtraSources.defaults.size)
+    @Test fun registryRetainsTenAdditionalSourcesAndExcludesRemovedHosts() {
+        assertEquals(10,AbExtraSources.names.size)
+        assertEquals(10,AbExtraSources.names.toSet().size)
+        assertEquals(10,AbExtraSources.defaults.size)
         for(name in AbExtraSources.names){assertEquals(name,AbExtraSources.name(AbExtraSources.home(name)));assertTrue(AbExtraSources.status(name).isNotBlank())}
         for((name,url) in listOf("Lis10Book" to "https://lis10book.com/", "Слушкин Всем" to "https://slushkinvsem.ru/", "Audioboo" to "https://audioboo.org/")) {
             assertFalse(name in AbExtraSources.names)
@@ -30,7 +30,7 @@ class AdditionalBookSourcesTest {
         assertEquals("Отруб",AbExtraSources.name("https://m.otrub.in/test.html"))
     }
     @Test fun detailRoutesExcludeSearchGenresAndInfrastructure() {
-        for(url in listOf("https://uknig.com/books/718702","https://pda.izib.uk/art137768","https://m.otrub.in/taras-bulba.html","https://akniga.org/gogol-nikolay-shinel-4","https://baza-knig.info/audio-124589-book","https://audioknigi.pro/audioknigi/62903-book.html"))assertTrue(url,AbExtraSources.book(url))
-        for(url in listOf("https://uknig.com/books/popular","https://uknig.com/?q=test","https://m.otrub.in/search.html","https://akniga.org/search/books","https://baza-knig.info/genre-1-fiction","https://audioknigi.pro/engine/ajax/controller.php"))assertFalse(url,AbExtraSources.book(url))
+        for(url in listOf("https://predanie.ru/leonov-leonid-maksimovich/piramida-roman-navazhdenie/","https://uknig.com/books/718702","https://pda.izib.uk/art137768","https://m.otrub.in/taras-bulba.html","https://akniga.org/gogol-nikolay-shinel-4","https://baza-knig.info/audio-124589-book","https://audioknigi.pro/audioknigi/62903-book.html"))assertTrue(url,AbExtraSources.book(url))
+        for(url in listOf("https://predanie.ru/rubric-page/russkaya-literatura/","https://predanie.ru/fond/about/","https://uknig.com/books/popular","https://uknig.com/?q=test","https://m.otrub.in/search.html","https://akniga.org/search/books","https://baza-knig.info/genre-1-fiction","https://audioknigi.pro/engine/ajax/controller.php"))assertFalse(url,AbExtraSources.book(url))
     }
 }

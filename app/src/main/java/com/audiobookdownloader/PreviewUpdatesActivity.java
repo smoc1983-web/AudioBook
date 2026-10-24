@@ -8,22 +8,19 @@ import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.*;
 import android.provider.Settings;
-import android.text.InputType;
 import android.view.*;
-import android.view.inputmethod.EditorInfo;
 import android.widget.*;
 import androidx.core.content.FileProvider;
 import java.io.File;
 import java.util.concurrent.*;
 
-/** The updater never installs the stable package and never requests a token through diagnostics. */
+/** Native three-action updater; the package and original signer are verified before installation. */
 public final class PreviewUpdatesActivity extends Activity {
     private final ExecutorService worker=Executors.newSingleThreadExecutor();
     private PreviewUpdater updater;
     private PreviewUpdater.Release release;
-    private TextView status,connection;
+    private TextView status;
     private Button check,download,install;
-    private EditText token;
     private boolean waitingForPermission;
     private int dp(int value){return (int)(getResources().getDisplayMetrics().density*value+.5f);}
     private TextView text(LinearLayout root,String value,int size){
@@ -39,7 +36,6 @@ public final class PreviewUpdatesActivity extends Activity {
     }
     @Override public void onCreate(Bundle state){
         super.onCreate(state);updater=new PreviewUpdater(this);
-        getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);
         getWindow().setStatusBarColor(0xff171228);getWindow().setNavigationBarColor(0xff171228);
         ScrollView scroll=new ScrollView(this);scroll.setBackgroundColor(0xff171228);
         LinearLayout root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setPadding(dp(22),dp(18),dp(22),dp(30));
@@ -47,27 +43,11 @@ public final class PreviewUpdatesActivity extends Activity {
             view.setPadding(dp(22),dp(18)+insets.getSystemWindowInsetTop(),dp(22),dp(30)+insets.getSystemWindowInsetBottom());return insets;
         });
         scroll.addView(root);setContentView(scroll);
-        button(root,"← Настройки",this::finish);
         text(root,"Обновления "+BuildConfig.PRODUCT_NAME,25).setTypeface(null,Typeface.BOLD);
         text(root,"Установлена "+BuildConfig.VERSION_NAME+" · "+BuildConfig.VERSION_CODE,14);
         text(root,(BuildConfig.APPLICATION_ID.endsWith(".preview")?
             "Это отдельное приложение. Стабильная Audiobook и её книги не изменяются.":
             "Обновления сохраняют библиотеку и настройки. Не удаляйте приложение перед установкой.")+" Новая версия загрузится здесь; установку подтвердит Android.",15);
-        connection=text(root,updater.connected()?"GitHub подключён":"Доступ к закрытому репозиторию GitHub",16);
-        text(root,"Для первого подключения создайте fine-grained token: только smoc1983-web/AudioBook, Repository permissions → Contents: Read-only. Вставьте его ниже один раз. Ключ хранится на устройстве с шифрованием Android Keystore и не попадает в отчёты.",14);
-        button(root,"Создать ключ на GitHub",()->startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse("https://github.com/settings/personal-access-tokens/new"))));
-        token=new EditText(this);token.setTextColor(Color.WHITE);token.setHintTextColor(0xffb5adc5);token.setHint("Ключ доступа GitHub");
-        token.setInputType(InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_PASSWORD);token.setSingleLine(true);
-        token.setImeOptions(EditorInfo.IME_FLAG_NO_EXTRACT_UI|EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING);
-        if(Build.VERSION.SDK_INT>=26)token.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS);root.addView(token,new LinearLayout.LayoutParams(-1,dp(56)));
-        button(root,"Сохранить подключение",()->{
-            String value=token.getText().toString();token.setText("");
-            run(()->{updater.saveToken(value);return "Подключение сохранено. Нажмите «Проверить обновления».";});
-        });
-        button(root,"Отключить GitHub",()->{updater.disconnect();release=null;connection.setText("GitHub отключён");download.setEnabled(false);status.setText("Доступ удалён с устройства");});
-        CheckBox automatic=new CheckBox(this);automatic.setText("Проверять обновления при запуске (раз в сутки)");automatic.setTextColor(Color.WHITE);
-        automatic.setChecked(getSharedPreferences("preview_updates",0).getBoolean("auto",true));root.addView(automatic);
-        automatic.setOnCheckedChangeListener((b,checked)->getSharedPreferences("preview_updates",0).edit().putBoolean("auto",checked).apply());
         status=text(root,"Проверка и загрузка обновлений выполняются без браузера.",15);status.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);
         check=button(root,"Проверить обновления",this::check);
         download=button(root,"Загрузить обновление",this::download);download.setEnabled(false);
@@ -80,10 +60,10 @@ public final class PreviewUpdatesActivity extends Activity {
         worker.submit(()->{
             String message;
             try{message=work.perform();}catch(Exception e){
-                message=e instanceof java.io.IOException?e.getMessage():"Не удалось выполнить операцию. Проверьте подключение и ключ GitHub.";
+                message=e instanceof java.io.IOException?e.getMessage():"Не удалось выполнить операцию. Проверьте интернет и повторите попытку.";
             }
             String result=message;
-            runOnUiThread(()->{if(isDestroyed()||isFinishing())return;busy(false);status.setText(result);connection.setText(updater.connected()?"GitHub подключён":"GitHub не подключён");});
+            runOnUiThread(()->{if(isDestroyed()||isFinishing())return;busy(false);status.setText(result);});
         });
     }
     private void busy(boolean value){
@@ -135,7 +115,7 @@ public final class PreviewUpdatesActivity extends Activity {
         PreviewUpdater updater=new PreviewUpdater(activity);
         android.content.SharedPreferences prefs=activity.getSharedPreferences("preview_updates",0);
         long now=System.currentTimeMillis();
-        if(!updater.connected()||!prefs.getBoolean("auto",true)||now-prefs.getLong("last_check",0)<86400000L)return;
+        if(!prefs.getBoolean("auto",true)||now-prefs.getLong("last_check",0)<86400000L)return;
         prefs.edit().putLong("last_check",now).apply();
         Thread thread=new Thread(()->{
             try{

@@ -1,0 +1,11 @@
+{
+  "url": "https://predanie.ru/uploads/ftp/leonov-leonid-maksim/piramida-1/piramida-audiokniga-chitaet-valentin-perkin/0001.mp3",
+  "status": 206,
+  "contentType": "audio/mpeg",
+  "contentRange": "bytes 0-1023/10991752",
+  "readBytes": 1024,
+  "mp3Header": true,
+  "playlistChapters": 163,
+  "firstChapterSeconds": 911,
+  "verifiedTLS": true
+}

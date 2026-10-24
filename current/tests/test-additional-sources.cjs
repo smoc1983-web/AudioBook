@@ -12,7 +12,7 @@ for(const c of sources)test('Exact source identity: '+c.name,()=>{
  const doc=makeDocument('',c.home);assert.equal(doc.evaluate(`(${extra}).host(location.href).name`),c.name);
  for(const bad of ['https://'+new URL(c.home).hostname+'.evil.invalid/','https://evil-'+new URL(c.home).hostname+'/','https://user:password@'+new URL(c.home).hostname+'/','http://127.0.0.1/','https://'+new URL(c.home).hostname+':9999/'])assert.equal(doc.evaluate(`(${extra}).host(${JSON.stringify(bad)})`),null);
 });
-test('The same nine retained additions stay enabled and preserve their order',()=>{assert.deepEqual(sources.map(x=>x.id),['knigavuhe','izibuk','uknig','poleknig','audioknigivse','otrub','akniga','audioknigi-pro','baza-knig']);assert.equal(sources.filter(x=>x.enabled).length,9);assert(sources.every(x=>x.status));});
+test('The retained additions and Predanie stay enabled and preserve their order',()=>{assert.deepEqual(sources.map(x=>x.id),['knigavuhe','izibuk','uknig','poleknig','audioknigivse','otrub','akniga','audioknigi-pro','baza-knig','predanie']);assert.equal(sources.filter(x=>x.enabled).length,10);assert(sources.every(x=>x.status));});
 test('Removed sources cannot be classified or offered by the active adapters',()=>{const doc=makeDocument('',sources[0].home);for(const host of ['lis10book.com','slushkinvsem.ru','audioboo.org']){for(const prefix of ['', 'www.']){const url='https://'+prefix+host+'/book/test/';assert.equal(doc.evaluate(`(${extra}).host(${JSON.stringify(url)})`),null);assert.equal(doc.evaluate(`(${extra}).book(${JSON.stringify(url)})`),false);}}});
 for(const c of sources.filter(c=>sample[c.id])){
  test('Observed search HTML yields named catalogue books: '+c.name,()=>{

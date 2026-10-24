@@ -11,6 +11,7 @@ android {
         versionCode=100000+(System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull() ?: 0)
         versionName=(if(stableChannel) "4.2." else "4.2-preview.")+(System.getenv("GITHUB_RUN_NUMBER") ?: "local")
         buildConfigField("String","PRODUCT_NAME",if(stableChannel) "\"Audiobook\"" else "\"Audiobook Preview\"")
+        buildConfigField("String","UPDATE_ORIGIN","\"https://audiobook-smoc1983-updates.amplecoot2048.chatgpt.site\"")
         buildConfigField("String","UPDATE_PREFIX",if(stableChannel) "\"stable-v\"" else "\"preview-v\"")
         buildConfigField("String","UPDATE_APK",if(stableChannel) "\"Audiobook.apk\"" else "\"Audiobook-Preview.apk\"")
         buildConfigField("String","UPDATE_METADATA",if(stableChannel) "\"stable-update.json\"" else "\"preview-update.json\"")

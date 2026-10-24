@@ -1,11 +1,11 @@
 {
-  "revision": "4.2-preview.45-collection-continuation-notifications",
+  "revision": "predanie-and-direct-updates-pending-ci",
   "storage": "GitHub export; see releases/ARCHIVE-PARTS.json for three multipart historical ZIPs",
   "files": [
     {
       "path": ".github/workflows/build-apk.yml",
-      "bytes": 6903,
-      "sha256": "820cda29dd24d1fc27bafaa7d941a0ba789120dede845ef5e458d5bb27bc80f5"
+      "bytes": 6950,
+      "sha256": "04663485c97e4deb5c52cf389654452f5a51f4712d326a8f66ac5021cad90dfc"
     },
     {
       "path": ".gitignore",
@@ -19,8 +19,8 @@
     },
     {
       "path": "app/build.gradle.kts",
-      "bytes": 3712,
-      "sha256": "014247327ab2249f18df38ca205aea84d8471becf542221a9c74b772d3514fa0"
+      "bytes": 3831,
+      "sha256": "1838e78c28c3795ef338ea25aa30475715a7cdb392fc4df229acbad5d1fcf15a"
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/ContinuationWorkerTest.kt",
@@ -46,6 +46,11 @@
       "path": "app/src/androidTest/java/com/audiobookdownloader/TestBitmapExports.java",
       "bytes": 1311,
       "sha256": "131f80a450f1b780088794dcfbe378de9e2bdbbe3f1ace7b9d49e50ab8a91b10"
+    },
+    {
+      "path": "app/src/androidTest/java/com/audiobookdownloader/UpdateScreenTest.java",
+      "bytes": 1576,
+      "sha256": "80a4ae04159e3444eb54d41f9337d3030d3c499750e1f4902653a73197fa35c1"
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/WidgetPreviewTest.java",
@@ -109,8 +114,8 @@
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/AdditionalBookSources.kt",
-      "bytes": 17942,
-      "sha256": "b648d6e2cf4bbc4685d1e18492abfd18715f710c00e5cedf938da49da59127af"
+      "bytes": 20447,
+      "sha256": "224ff1d04390dcf11b02aa3884bf27126eacdb820589cef9b0ee9a5fbf10572e"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/AudioBookWidget.kt",
@@ -174,18 +179,18 @@
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/PreviewUpdateRules.java",
-      "bytes": 2997,
-      "sha256": "eabb06874c7d05aa19c781226ae51985a29a0cf12cf30b8210e7315a887bd509"
+      "bytes": 3741,
+      "sha256": "466f6f49a77e097f5096f69ae9a96ecdaecab77335cb25b339cde704d0c3bc52"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/PreviewUpdater.java",
-      "bytes": 10268,
-      "sha256": "7f45dd1097330ca662d413c2a1f718bfbfe0d9dabcb6059116dfca7b5aad3576"
+      "bytes": 7409,
+      "sha256": "4469430f773c3ed22066c6ed6246a5f18d06fc48ea1c5594ad4d9173217ffac5"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/PreviewUpdatesActivity.java",
-      "bytes": 11651,
-      "sha256": "9545196bd9a507f91dcde6470f0afeabd0364a4b3a35ca0742b71932b4742da5"
+      "bytes": 9031,
+      "sha256": "35dc61acb666921a96d97bdcd2c86475abfcf5c07a76bb23b938cad9a2018ab4"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/SleepShakeDetector.java",
@@ -264,8 +269,8 @@
     },
     {
       "path": "app/src/test/java/com/audiobookdownloader/AdditionalBookSourcesTest.kt",
-      "bytes": 2551,
-      "sha256": "f78586c607e25b31259da4a67ca699bc5d4ac550b28936756c9b8fe4c1ad9b42"
+      "bytes": 2718,
+      "sha256": "d7927053a8067c9d3c37715483b0551e733f95cab78511e398f699fb3efc2836"
     },
     {
       "path": "app/src/test/java/com/audiobookdownloader/BookAudioHeadersTest.java",
@@ -299,8 +304,8 @@
     },
     {
       "path": "app/src/test/java/com/audiobookdownloader/PreviewUpdateRulesTest.java",
-      "bytes": 3656,
-      "sha256": "fef0839d313dd63496798d2932c0f74b14b69288fd0b410bd8227529360082cf"
+      "bytes": 3654,
+      "sha256": "e12fab9d15262d71e723a5be4675b50ce175a0215a9e0cd21ab3687d1a4a02a4"
     },
     {
       "path": "app/src/test/java/com/audiobookdownloader/SleepShakeDetectorTest.java",
@@ -324,8 +329,8 @@
     },
     {
       "path": "current/MainActivity.kt",
-      "bytes": 720757,
-      "sha256": "8fbe860ada3090b0caeeee17be38609a5ceda58459739a40a6c432acb895e4a2"
+      "bytes": 721139,
+      "sha256": "b94640b9588b27623f78ad0ce14f9a69c17ef69d23412e2095c04ca7c117f9fd"
     },
     {
       "path": "current/PlaybackService.kt",
@@ -629,8 +634,8 @@
     },
     {
       "path": "current/js-check/analyzer.js",
-      "bytes": 175097,
-      "sha256": "47722af9611de834e9e6484f296fffc57599c9dce366aa54fa5808f8191773f6"
+      "bytes": 182605,
+      "sha256": "66966cdec3200ba4f339a99ab29326909f1dee31e3f1966e24a74158d57e971d"
     },
     {
       "path": "current/js-check/azbyka-catalog.js",
@@ -649,13 +654,13 @@
     },
     {
       "path": "current/js-check/catalog-template.js",
-      "bytes": 86304,
-      "sha256": "ac3b73cb629040b0d33a027c3fbd7399af324d1fd3df7abcc47af7500572feb0"
+      "bytes": 88799,
+      "sha256": "dee99a7e7eb1c6714bf4c80eee49207cbf842dabbf9f59724fac176918ca5885"
     },
     {
       "path": "current/js-check/catalog.js",
-      "bytes": 86269,
-      "sha256": "049076fe521f1bdf93659dab3d8cb48747a067bf359163fe332176c93f47f828"
+      "bytes": 88764,
+      "sha256": "e1b48bc9c1dce4545d8148ba0ec8ac312b0f842ff707a8f47f561985debbd2b6"
     },
     {
       "path": "current/js-check/classifier.js",
@@ -664,23 +669,23 @@
     },
     {
       "path": "current/js-check/external-page.js",
-      "bytes": 176861,
-      "sha256": "dbaf1b85c9a4897f0f719bb9591b9f9617f4ca82977c865a77b0e23e0883b71d"
+      "bytes": 184369,
+      "sha256": "967fda674588ec1f589218033f37a466869340f83f059fc984be56ff518f8ca3"
     },
     {
       "path": "current/js-check/extra-search-template.js",
-      "bytes": 24637,
-      "sha256": "94df8d1bd1ab2f30ef1042539b576da001006a0cdaccdefdc780a5c906127da4"
+      "bytes": 27132,
+      "sha256": "4382bdf94ffc5e1af0450f19688aef53013e214e2dc4d7c751912367fb05da4f"
     },
     {
       "path": "current/js-check/extra-source-config.json",
-      "bytes": 3512,
-      "sha256": "0353bfcfe83881e8d6abebccd424788ad1a94ed55f4a50aa7d7567a6718eba9f"
+      "bytes": 4110,
+      "sha256": "5af709c8d32847ece53c139b2f77739ded15c53c5ed39d5c13bb9b3880d914a6"
     },
     {
       "path": "current/js-check/extra-source.js",
-      "bytes": 16231,
-      "sha256": "4fbd7123e3aac24e6f68f7b7c4a9d8d8a50507d1c9929bff0f0f33336fe88ba0"
+      "bytes": 18726,
+      "sha256": "d726aac06ca6af67d0ecefffb3fc56aa8965b6cced7d2f3c653bf5888f1bde1d"
     },
     {
       "path": "current/js-check/genre-adapters.json",
@@ -704,8 +709,8 @@
     },
     {
       "path": "current/js-check/genre-template.js",
-      "bytes": 119934,
-      "sha256": "6e5efc4c894031291250fda80a53ef01989fac62ded81ecb40c390925c98bf7f"
+      "bytes": 122429,
+      "sha256": "d6a4e291afe86ea55ea7c6afb09086a4229596d563270f0863c469d6b88a3d85"
     },
     {
       "path": "current/js-check/native-directory.js",
@@ -714,8 +719,8 @@
     },
     {
       "path": "current/js-check/native-genre-template.js",
-      "bytes": 119933,
-      "sha256": "754ffca62f370085eff97cf1d5831d96b45a62c8b0f79fd8cc8a5aeb899055f8"
+      "bytes": 122428,
+      "sha256": "74236634ebdce04f907e9eb27d2f013f042920b1d9850ab360487d20756891a7"
     },
     {
       "path": "current/js-check/next.js",
@@ -739,8 +744,8 @@
     },
     {
       "path": "current/js-check/online-results-template.js",
-      "bytes": 98616,
-      "sha256": "a1ed83f79a879d5d0c1f04940389d3a512ab6a14f9232088ba8d3f2f18d2ef97"
+      "bytes": 101111,
+      "sha256": "be71eec4807d306affc983102a662356d8d028a1fe62f33938a449566d48e17f"
     },
     {
       "path": "current/js-check/online-scripts.js",
@@ -759,8 +764,8 @@
     },
     {
       "path": "current/js-check/player-reader.js",
-      "bytes": 35978,
-      "sha256": "518ed1c890040827536be91e02cf53b925f4f06aa89f3cbb63108aa4cf713d5d"
+      "bytes": 38496,
+      "sha256": "9b662a4804049af32c79ed87d204d3618858f75fd4e562e9cc03a46937207aa7"
     },
     {
       "path": "current/js-check/public-classifier.js",
@@ -831,6 +836,21 @@
       "path": "current/tests/SearchBookIndexTest.java",
       "bytes": 4330,
       "sha256": "0c48c530ad3354e4839e034957a4f460b09a8cddada8eff92d5e69efbe855195"
+    },
+    {
+      "path": "current/tests/fixtures/predanie/audio.html",
+      "bytes": 48098,
+      "sha256": "b9d064af95dfbf8a05b09d46777e395dd5536181a83d7792c272cadb4ad1ab82"
+    },
+    {
+      "path": "current/tests/fixtures/predanie/piramida.html",
+      "bytes": 50421,
+      "sha256": "0a9d441de12755d9c153657c325a9a81c2ca563ce7581255adaddae8c5e93bce"
+    },
+    {
+      "path": "current/tests/fixtures/predanie/search.html",
+      "bytes": 16396,
+      "sha256": "732d2d5a9171d3feeac8ff05bfc1387c48240836a88f79fb8f02bd2bba72deaf"
     },
     {
       "path": "current/tests/fixtures/screenshot-sources/akniga-catalog.html",
@@ -929,13 +949,18 @@
     },
     {
       "path": "current/tests/test-additional-sources.cjs",
-      "bytes": 7367,
-      "sha256": "6e4a8e67fe8d2afb5502c9c9b59ace7701b08d2e189e9ce3ebe3bed2996ecacf"
+      "bytes": 7382,
+      "sha256": "c9eefd1f243dd8f6a6b878ee29cee16cfb8c808145885460101c1847c53aa79d"
     },
     {
       "path": "current/tests/test-author-search.cjs",
       "bytes": 5744,
       "sha256": "5e38e99087834a8f135d0fd15abcd46d5f4410cb93714d69c6844fc5b635c177"
+    },
+    {
+      "path": "current/tests/test-predanie.cjs",
+      "bytes": 3965,
+      "sha256": "170cc0596e08cdd6dd2149d8a35ddc67f7470136a0d4bc08b0999f755372a894"
     },
     {
       "path": "current/tests/test-source-directory.cjs",
@@ -1143,6 +1168,11 @@
       "sha256": "405d789a7c56f4bd220eed71ce72597ae2e634e12e87197cad2f6f5a34a4cf19"
     },
     {
+      "path": "docs/PREDANIE-AND-DIRECT-UPDATES.md",
+      "bytes": 6242,
+      "sha256": "26396a72131a268fdea5acf9711a95eccf0848a224dccef95ef6375010ff96c8"
+    },
+    {
       "path": "docs/PREVIEW-UPDATES.md",
       "bytes": 8565,
       "sha256": "8bbd47774e168d847ab8789da31bc0d86556ed496dfddb0207c94a5800558768"
@@ -1341,6 +1371,11 @@
       "path": "docs/verification/player-100027.png",
       "bytes": 575957,
       "sha256": "3a112b36833bd2cebc0e4a634e7169a55d8d8f6b2c3c84d8c25872c26927baca"
+    },
+    {
+      "path": "docs/verification/predanie-live-audio.json",
+      "bytes": 344,
+      "sha256": "88ffa2d3e88d793d61379807892abeb7123f1aa3a8b40a5615d9102950a50b37"
     },
     {
       "path": "docs/verification/preview-100009.json",
@@ -10028,6 +10063,21 @@
       "sha256": "a959a86506345eea6a9db1ffdcfea596b25ca7be84f5ac9a9f08b668614a4286"
     },
     {
+      "path": "hosting/updates/_headers",
+      "bytes": 221,
+      "sha256": "2bae67ec49c6f1c811ed3e002ffb0f463f5424395f01ce412a3ec9291e886843"
+    },
+    {
+      "path": "hosting/updates/hosting.json",
+      "bytes": 88,
+      "sha256": "b35a025c1abfe8ad546acb9ec2e49622489f498c549f9ecb7b7ca3e02b0e7e88"
+    },
+    {
+      "path": "hosting/updates/index.html",
+      "bytes": 1012,
+      "sha256": "61f821fc1f6b41c8fd243c8b5db263878aa79cf7f65ee868b0b8f1e0ed152543"
+    },
+    {
       "path": "references/diagnostics/268195a8-0e94-4ecd-a037-fafe6dd7e278/Audiobook-report-2026-10-18_14-09-57-4668715165283423442.txt",
       "bytes": 36726,
       "sha256": "df701c40a8bbbcde836331436d9a9eb53d6b0e9a470a3cafdab41b116d5323a2"
@@ -10366,6 +10416,11 @@
       "path": "settings.gradle.kts",
       "bytes": 269,
       "sha256": "6b587680cfc428a03df2e5cf7ddaceba7336a5da2baf2660b4ed6dff87a00708"
+    },
+    {
+      "path": "tools/package-public-update.py",
+      "bytes": 2912,
+      "sha256": "94bcfa297fac3158c6b49a0846221b0120f8d93c7d81ac808a200653dc3c257d"
     },
     {
       "path": "tools/restore_archives.py",
