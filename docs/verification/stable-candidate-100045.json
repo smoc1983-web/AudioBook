@@ -1,0 +1,14 @@
+{
+  "packageName": "com.audiobookdownloader",
+  "versionCode": 100045,
+  "versionName": "4.2.45",
+  "libraryDirectory": "Download/AudioBooks",
+  "size": 32503853,
+  "sha256": "04b19015eae168382f66a0214bc44a7e3c3a55262d8570c422a972f3f3a217c7",
+  "signed": false,
+  "installable": false,
+  "originalSignerRequired": true,
+  "originalPhoneIDE": "Code on the Go",
+  "realUserUpgradeTested": false,
+  "commit": "4401dfcd935db79ca8794ce7b40e4474a166a40c"
+}

@@ -1,0 +1,17 @@
+{
+  "packageName": "com.audiobookdownloader.preview",
+  "versionCode": 100045,
+  "versionName": "4.2-preview.45",
+  "size": 37040707,
+  "sha256": "ee3b0ac92a3f1251f728f1324c92f7a0d498f270515ad4685cead61a1436e679",
+  "certificateSha256": "3a4cecd14bb3e983843871766909c3f07b3dc64379800f3e270e4a27d39affb7",
+  "apk": "Audiobook-Preview.apk",
+  "commit": "4401dfcd935db79ca8794ce7b40e4474a166a40c",
+  "label": "Audiobook Preview",
+  "providers": [
+    "com.audiobookdownloader.preview.updates",
+    "com.audiobookdownloader.preview.diagnostic_reports",
+    "com.audiobookdownloader.preview.androidx-startup"
+  ],
+  "file": "Audiobook-Preview-4.2-preview.45.apk"
+}

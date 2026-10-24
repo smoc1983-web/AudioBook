@@ -1,5 +1,5 @@
 {
-  "revision": "4.2-preview.43-collection-continuation-notifications",
+  "revision": "4.2-preview.45-collection-continuation-notifications",
   "storage": "GitHub export; see releases/ARCHIVE-PARTS.json for three multipart historical ZIPs",
   "files": [
     {
@@ -15,7 +15,7 @@
     {
       "path": "README.md",
       "bytes": 11004,
-      "sha256": "10a5694467357e2757349b0735326f11409ed391f4686959d8db7e76395d092a"
+      "sha256": "b95adc5f42e33ec57a4fbea3cbc502695fd11fd755277c141e20123c4dbe3e04"
     },
     {
       "path": "app/build.gradle.kts",
@@ -1104,8 +1104,8 @@
     },
     {
       "path": "docs/CONTINUATION-NOTIFICATIONS.md",
-      "bytes": 8791,
-      "sha256": "2ce4898857d4656d11d6101eba4615228bfb71e37179cd699b52bf733aa10408"
+      "bytes": 9848,
+      "sha256": "54d4c36881cf10c863ac05aab566a9e38d18075ab50cd24eab0c7bdee2880d8d"
     },
     {
       "path": "docs/CYLINDRICAL-PAGE-CURL.md",
@@ -1114,8 +1114,8 @@
     },
     {
       "path": "docs/HANDOFF.md",
-      "bytes": 25709,
-      "sha256": "624e50b8fd6f42a466cc1d9d8dd550baaeb3583459b5c757209b387a84b51036"
+      "bytes": 28073,
+      "sha256": "9f6151249a15a6ee7e352b618d2109262fd47a9b112441e176aebf03d08eedd6"
     },
     {
       "path": "docs/INSTALL.md",
@@ -1278,6 +1278,11 @@
       "sha256": "57f7ebc9e5f63ebd6c1982779b754ba1484c5305930ec83b881116727f1b11fc"
     },
     {
+      "path": "docs/verification/checks-100045.json",
+      "bytes": 6503,
+      "sha256": "fceeab208acb1e377ea7807892794d24ed820ca0c3fec36b1f39b79dc0cf7191"
+    },
+    {
       "path": "docs/verification/continuations-live-2026-10-24.json",
       "bytes": 969,
       "sha256": "84cb9ee470f4b898f68923601472fb5fead3feb54a9a80ace948f30bb45c8622"
@@ -1398,6 +1403,11 @@
       "sha256": "526755a9b0163bb27ee3770a667badce909bd63c04768a7d6a84165a3d83d2dd"
     },
     {
+      "path": "docs/verification/preview-100045.json",
+      "bytes": 660,
+      "sha256": "e29ed5cf5f757e2632ead496a628b00852da719f3ca2380fadc427b329dad5a4"
+    },
+    {
       "path": "docs/verification/preview-four-source-http-2026-10-21.json",
       "bytes": 1492,
       "sha256": "92d35a513a2e0e5d28d0440c7897f94ad5801be087b1d49da044641a6214915f"
@@ -1446,6 +1456,11 @@
       "path": "docs/verification/stable-candidate-100043.json",
       "bytes": 451,
       "sha256": "c94b86fd65c8f987fe9207d8574e8a1e4dff92bdecc05fbb104bb91c632d7ff3"
+    },
+    {
+      "path": "docs/verification/stable-candidate-100045.json",
+      "bytes": 451,
+      "sha256": "e2d6ebe5a9873511119dbec69f4b72104516030764bc1959bc1c5b475b1b4085"
     },
     {
       "path": "docs/verification/startup-100010-android35-crash.txt",
