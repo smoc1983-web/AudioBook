@@ -612,6 +612,7 @@ class PlaybackService : Service() {
                 if (token != generation || prepared !== mediaPlayer || stopped) return@setOnPreparedListener
                 isLoading = false
                 durationMs = prepared.duration.coerceAtLeast(0)
+                if(durationMs>0)AbAudioDurations.remember(applicationContext,item.src,durationMs)
                 positionMs = positionMs.coerceIn(0, (durationMs - 1).coerceAtLeast(0))
                 if (positionMs > 0) {
                     pendingSeek = positionMs

@@ -128,9 +128,9 @@ jobs:
           mkdir -p dist-stable
           cp app/build/outputs/apk/release/app-release-unsigned.apk dist-stable/Audiobook-stable-UNSIGNED.apk
           cp docs/STABLE-INSTALL.md dist-stable/READ-ME.md
-          cp scripts/sign-phone-update.sh dist-stable/
+          cp scripts/sign-phone-update.sh dist-stable/sign-phone-update-fixed.sh
           python scripts/inspect-stable-candidate.py
-          (cd dist-stable && zip -q ../Audiobook-stable-sign-on-phone.zip Audiobook-stable-UNSIGNED.apk READ-ME.md sign-phone-update.sh stable-candidate.json)
+          (cd dist-stable && zip -q ../Audiobook-stable-sign-on-phone.zip Audiobook-stable-UNSIGNED.apk READ-ME.md sign-phone-update-fixed.sh stable-candidate.json)
       - name: Publish stable candidate for signing on the original phone
         if: github.ref == 'refs/heads/main'
         env:

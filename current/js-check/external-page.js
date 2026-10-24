@@ -1626,7 +1626,7 @@
             if(source&&typeof source==='object')source=source.src||source.url;
             var address=url(source);if(!address||seen[address])continue;seen[address]=true;
             var title=row&&typeof row==='object'?String(row.title||row.name||'').trim():'';
-            chapter.push({src:address,title:title||('Глава '+(chapter.length+1)),duration:seconds(row&&row.duration)});
+            chapter.push({src:address,title:title||('Глава '+(chapter.length+1)),duration:seconds(row&&(row.duration||row.len||row.length||row.time))});
         }
         if(!chapter.length)return null;
         return {bookId:String(data.bookId||data.id||location.pathname),

@@ -8875,34 +8875,50 @@ class BookSearchTask(
     }
 }
 
+/** Every search mode uses the same site task, headers, form discovery and parser. */
+private suspend fun abSearchOneSource(context:Context,site:String,query:String,
+    prefs:android.content.SharedPreferences):SiteSearchResult {
+    var browser:WebView?=null
+    var task:BookWebsiteTask?=null
+    try {
+        return kotlinx.coroutines.suspendCancellableCoroutine {reply ->
+            fun finish(result:SiteSearchResult) {if(reply.isActive)reply.resumeWith(Result.success(result))}
+            browser=abCreateBrowser(context,{error ->finish(SiteSearchResult(emptyList(),error))}) {
+                settings.javaScriptEnabled=true
+                settings.domStorageEnabled=true
+                settings.loadsImagesAutomatically=false
+                val created=when(site) {
+                    AbBookSources.AZBYKA -> AbAzbykaSearchTask(this,query,::finish)
+                    AbBookSources.AUDIO_ONLINE -> AbOnlineSearchTask(this,query,::finish)
+                    else -> BookSearchTask(this,site,query,prefs.getString("bookinfo_search_endpoint","").orEmpty()) {result,endpoint ->
+                        if(site=="Bookinfo"&&endpoint.isNotBlank())prefs.edit().putString("bookinfo_search_endpoint",endpoint).apply()
+                        finish(result)
+                    }
+                }
+                task=created
+                AbWebViews.onClose(this) {
+                    created.close()
+                    finish(SiteSearchResult(emptyList(),"Поиск источника остановлен. Повторите запрос."))
+                }
+            }
+        }
+    }finally{
+        task?.close()
+        browser?.let{AbWebViews.release(it)}
+    }
+}
+
 @Composable
 fun UnifiedBookSearch(query: String, prefs: android.content.SharedPreferences,
     sources:List<String> = AbBookSources.searchOrder,onResult: (String, SiteSearchResult) -> Unit) {
+    val context=androidx.compose.ui.platform.LocalContext.current
     val requested=sources.filter{it in AbBookSources.searchOrder}.distinct()
-    var completed by remember(query,requested) {mutableStateOf(emptySet<String>())}
     val report by androidx.compose.runtime.rememberUpdatedState(onResult)
-    // Native search may match authors/annotations absent from a short result card.
-    // Azbyka scans a sitemap and already applies its own metadata filter.
-    // Genre discovery still verifies metadata separately before accepting books.
-    val site=requested.firstOrNull{it !in completed}
-    // Sequential renderers bound memory use during searches and scrolling.
-    if(site!=null) key(query,requested,site) {
-        HiddenBookWebView(onFailure={error ->
-            completed=completed+site;report(site,SiteSearchResult(emptyList(),error))
-        }) {web ->
-            if(site==AbBookSources.AZBYKA) {
-                AbAzbykaSearchTask(web,query) {result ->
-                    completed=completed+site
-                    report(site,result)
-                }
-            } else if(site==AbBookSources.AUDIO_ONLINE) {
-                AbOnlineSearchTask(web,query) {result ->completed=completed+site;report(site,result)}
-            } else BookSearchTask(web,site,query,prefs.getString("bookinfo_search_endpoint","").orEmpty()) {result,endpoint ->
-                if(site=="Bookinfo"&&endpoint.isNotBlank())prefs.edit().putString("bookinfo_search_endpoint",endpoint).apply()
-                completed=completed+site
-                report(site,result)
-            }
-        }
+    LaunchedEffect(query,requested,prefs) {
+        // Two browsers at most; slow sitemap enumeration never occupies the first slot.
+        val scheduled=requested.sortedBy{if(it==AbBookSources.AZBYKA)1 else 0}
+        AbSearchCoordinator.search(scheduled,{site ->if(site==AbBookSources.AZBYKA)95_000L else 50_000L},
+            {site ->abSearchOneSource(context,site,query,prefs)}, {site,result ->report(site,result)})
     }
 }
 
@@ -10783,30 +10799,40 @@ private fun AbPlayerAction(icon: AbIcon,label: String,theme: AbTheme,active: Boo
 @Composable
 private fun AbBookPlaybackProgress(data: AbScreenData,theme: AbTheme) {
     val state=data.playback
-    // Cached durations only: no filesystem reads or network requests during playback rendering.
-    val durations=remember(state.tracks,state.trackIndex,state.durationMs,data.durations) {
+    val context=androidx.compose.ui.platform.LocalContext.current.applicationContext
+    val cached by AbAudioDurations.state.collectAsState()
+    var checking by remember(state.bookTitle){mutableStateOf(false)}
+    var retry by remember(state.bookTitle){mutableStateOf(0)}
+    val durations=remember(state.tracks,state.trackIndex,state.durationMs,data.durations,cached) {
         state.tracks.mapIndexed {index,track ->
-            if(index==state.trackIndex && state.durationMs>0) state.durationMs
-            else track.durationMs.takeIf{it>0} ?: data.durations[track.src] ?: 0
-        }
+            (if(index==state.trackIndex && state.durationMs>0)state.durationMs
+            else track.durationMs.takeIf{it>0} ?: data.durations[track.src] ?: cached[track.src] ?: 0).toLong()
+        }.toLongArray()
     }
-    val exact=durations.isNotEmpty() && durations.all{it>0}
-    val total=if(exact) durations.sumOf{it.toLong()} else 0L
-    val position=state.positionMs.coerceIn(0,state.durationMs.coerceAtLeast(0))
-    val elapsed=if(exact) durations.take(state.trackIndex).sumOf{it.toLong()}+position else 0L
-    val fraction=if(total>0L) (elapsed.toDouble()/total).toFloat() else
-        (state.trackIndex+(if(state.durationMs>0) position.toFloat()/state.durationMs else 0f))/state.tracks.size.coerceAtLeast(1)
+    val timing=AbBookTimeRules.calculate(durations,state.trackIndex,state.positionMs.toLong(),state.speed)
+    val sourceKey=remember(state.tracks){state.tracks.map{it.src}}
+    LaunchedEffect(state.bookTitle,sourceKey,state.trackIndex,retry) {
+        checking=true
+        try {AbAudioDurations.resolve(context,state.bookTitle,state.tracks.drop(state.trackIndex.coerceAtLeast(0)),retry>0)}
+        finally{checking=false}
+    }
     Column(Modifier.padding(top=6.dp),verticalArrangement=Arrangement.spacedBy(5.dp)) {
-        AbProgress(fraction,theme,Modifier.fillMaxWidth())
-        if(exact) {
-            val remaining=((total-elapsed).coerceAtLeast(0L)/state.speed.coerceAtLeast(.5f)).toLong()
-            Text("Прослушано ${formatMillis(elapsed.coerceAtMost(Int.MAX_VALUE.toLong()).toInt())} · "+
-                "осталось ${formatMillis(remaining.coerceAtMost(Int.MAX_VALUE.toLong()).toInt())} · ${(fraction*100).toInt()}%",
-                color=theme.muted,fontSize=10.sp,maxLines=2,modifier=Modifier.fillMaxWidth(),
-                textAlign=androidx.compose.ui.text.style.TextAlign.Center)
-        } else Text("По главам: ${(fraction*100).toInt()}% · ${state.trackIndex+1} из ${state.tracks.size}",
+        AbProgress(timing.progress,theme,Modifier.fillMaxWidth())
+        val text=when {
+            timing.remainingMs>=0 -> "До конца книги: "+AbBookTimeRules.time(timing.remainingMs)+
+                (if(timing.elapsedMs>=0)" · прослушано "+AbBookTimeRules.time(timing.elapsedMs) else "")
+            else -> (if(timing.chapterRemainingMs>=0)"До конца главы: "+AbBookTimeRules.time(timing.chapterRemainingMs)+" · " else "")+
+                if(checking)"Уточняем время книги: ${timing.knownRemaining} из ${timing.totalRemaining} оставшихся глав"
+                else "Время до конца книги пока не определено"
+        }
+        Text(text,color=theme.muted,fontSize=11.sp,maxLines=3,modifier=Modifier.fillMaxWidth()
+            .semantics{contentDescription=text},textAlign=androidx.compose.ui.text.style.TextAlign.Center)
+        Text((if(timing.totalMs>0)"Прогресс книги: " else "Прогресс по главам: ")+"${(timing.progress*100).toInt()}% · ${state.trackIndex+1} из ${state.tracks.size}",
             color=theme.muted,fontSize=10.sp,modifier=Modifier.fillMaxWidth(),
             textAlign=androidx.compose.ui.text.style.TextAlign.Center)
+        if(timing.remainingMs<0 && !checking && state.tracks.any{isNetworkAudio(it.src)})
+            Text("Уточнить время книги",color=theme.accent,fontSize=11.sp,
+                modifier=Modifier.heightIn(min=36.dp).clickable{retry++}.padding(vertical=8.dp))
     }
 }
 
@@ -14716,7 +14742,7 @@ private fun abPlayerReaderJs():String {
             if(source&&typeof source==='object')source=source.src||source.url;
             var address=url(source);if(!address||seen[address])continue;seen[address]=true;
             var title=row&&typeof row==='object'?String(row.title||row.name||'').trim():'';
-            chapter.push({src:address,title:title||('Глава '+(chapter.length+1)),duration:seconds(row&&row.duration)});
+            chapter.push({src:address,title:title||('Глава '+(chapter.length+1)),duration:seconds(row&&(row.duration||row.len||row.length||row.time))});
         }
         if(!chapter.length)return null;
         return {bookId:String(data.bookId||data.id||location.pathname),
