@@ -114,8 +114,8 @@
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/AdditionalBookSources.kt",
-      "bytes": 20447,
-      "sha256": "224ff1d04390dcf11b02aa3884bf27126eacdb820589cef9b0ee9a5fbf10572e"
+      "bytes": 20453,
+      "sha256": "054267ba873420e8097caabed1d9fe65dfe4aa1a8cfb8e8515470b15f8d72e94"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/AudioBookWidget.kt",
@@ -634,8 +634,8 @@
     },
     {
       "path": "current/js-check/analyzer.js",
-      "bytes": 182605,
-      "sha256": "66966cdec3200ba4f339a99ab29326909f1dee31e3f1966e24a74158d57e971d"
+      "bytes": 182623,
+      "sha256": "9d9ac919af6ac2af95bd5b3a48c7f30bdd3c07c46e5ecf92cbcbe6d898008f1b"
     },
     {
       "path": "current/js-check/azbyka-catalog.js",
@@ -654,13 +654,13 @@
     },
     {
       "path": "current/js-check/catalog-template.js",
-      "bytes": 88799,
-      "sha256": "dee99a7e7eb1c6714bf4c80eee49207cbf842dabbf9f59724fac176918ca5885"
+      "bytes": 88805,
+      "sha256": "9cc25babfdab4bb6fe2a0aae280d874e238ec7a6c89054e8936d80967f04b0ea"
     },
     {
       "path": "current/js-check/catalog.js",
-      "bytes": 88764,
-      "sha256": "e1b48bc9c1dce4545d8148ba0ec8ac312b0f842ff707a8f47f561985debbd2b6"
+      "bytes": 88770,
+      "sha256": "ef3e9d592158d1028904119e88eaed75df1e6f091c08132105ef48b8601bd5e5"
     },
     {
       "path": "current/js-check/classifier.js",
@@ -669,13 +669,13 @@
     },
     {
       "path": "current/js-check/external-page.js",
-      "bytes": 184369,
-      "sha256": "967fda674588ec1f589218033f37a466869340f83f059fc984be56ff518f8ca3"
+      "bytes": 184387,
+      "sha256": "87e396df46392ee701fab6d0206b58d3629bd51840ab4d49c923a7f018a75a53"
     },
     {
       "path": "current/js-check/extra-search-template.js",
-      "bytes": 27132,
-      "sha256": "4382bdf94ffc5e1af0450f19688aef53013e214e2dc4d7c751912367fb05da4f"
+      "bytes": 27138,
+      "sha256": "ed4f3036b12900307dcb93998f921fddab9cf9e123378904236df3658e8df704"
     },
     {
       "path": "current/js-check/extra-source-config.json",
@@ -684,8 +684,8 @@
     },
     {
       "path": "current/js-check/extra-source.js",
-      "bytes": 18726,
-      "sha256": "d726aac06ca6af67d0ecefffb3fc56aa8965b6cced7d2f3c653bf5888f1bde1d"
+      "bytes": 18732,
+      "sha256": "8bababa201cf5ac372c6328fb521d68f425f2c65864c9b7fdd44eff31571950c"
     },
     {
       "path": "current/js-check/genre-adapters.json",
@@ -709,8 +709,8 @@
     },
     {
       "path": "current/js-check/genre-template.js",
-      "bytes": 122429,
-      "sha256": "d6a4e291afe86ea55ea7c6afb09086a4229596d563270f0863c469d6b88a3d85"
+      "bytes": 122435,
+      "sha256": "a37be9dab22e49c2a9253e49aca047daa239d9fb8e1982650fecd54908f1b4ff"
     },
     {
       "path": "current/js-check/native-directory.js",
@@ -719,8 +719,8 @@
     },
     {
       "path": "current/js-check/native-genre-template.js",
-      "bytes": 122428,
-      "sha256": "74236634ebdce04f907e9eb27d2f013f042920b1d9850ab360487d20756891a7"
+      "bytes": 122434,
+      "sha256": "fca4ca8ae16ca825761734309d7305e6ee3f9e33002281716dc869004c0b3ade"
     },
     {
       "path": "current/js-check/next.js",
@@ -744,8 +744,8 @@
     },
     {
       "path": "current/js-check/online-results-template.js",
-      "bytes": 101111,
-      "sha256": "be71eec4807d306affc983102a662356d8d028a1fe62f33938a449566d48e17f"
+      "bytes": 101117,
+      "sha256": "2fc7206d71a6d7577e745b12ead5f39158b24532f170551f970b0d55bd2f5ea9"
     },
     {
       "path": "current/js-check/online-scripts.js",
@@ -764,8 +764,8 @@
     },
     {
       "path": "current/js-check/player-reader.js",
-      "bytes": 38496,
-      "sha256": "9b662a4804049af32c79ed87d204d3618858f75fd4e562e9cc03a46937207aa7"
+      "bytes": 38502,
+      "sha256": "993b230b9af9229b64ad3111eb08e0a802c65ebdbbd5ef72f9bc806aeb0e04cc"
     },
     {
       "path": "current/js-check/public-classifier.js",
@@ -959,8 +959,8 @@
     },
     {
       "path": "current/tests/test-predanie.cjs",
-      "bytes": 3965,
-      "sha256": "170cc0596e08cdd6dd2149d8a35ddc67f7470136a0d4bc08b0999f755372a894"
+      "bytes": 4068,
+      "sha256": "9117299eff68fe975a3c88005d6c04fe6ef273ae7ea65c2d4cf5d7a0c2e797df"
     },
     {
       "path": "current/tests/test-source-directory.cjs",
