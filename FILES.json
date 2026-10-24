@@ -84,8 +84,8 @@
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/AbContinuationAlerts.kt",
-      "bytes": 7338,
-      "sha256": "85ce41a1ccedb279b303d76ebb679609c2f7ef2efc77b71d5801fd748b9cd996"
+      "bytes": 7455,
+      "sha256": "dd3cee59d212a9e01dfc012a7c353018dc3f32d52cec6c122d3f81d477938cc4"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/AbDurationRanges.java",
@@ -274,8 +274,8 @@
     },
     {
       "path": "app/src/test/java/com/audiobookdownloader/ContinuationParserTest.java",
-      "bytes": 2998,
-      "sha256": "05864e88c7b6483691e9dc2c201ea35ee9f6b4e0960a788a879e288aef969117"
+      "bytes": 3049,
+      "sha256": "5285d1efcd4942b7aaba72f6d1f37337a8b57a5bc0f8f4f46e19e3803c9a44fa"
     },
     {
       "path": "app/src/test/java/com/audiobookdownloader/ContinuationRulesTest.java",

@@ -19,7 +19,7 @@ internal object AbContinuationAlerts {
     private const val PERIODIC="continuations-periodic-v1"
     private const val NOW="continuations-now-v1"
     private const val CHANNEL="book-continuations"
-    private val scope=CoroutineScope(SupervisorJob()+Dispatchers.IO)
+    private val scope=CoroutineScope(SupervisorJob()+Dispatchers.IO+CoroutineExceptionHandler {_,error -> android.util.Log.w("ContinuationAlerts","Background scheduling failed",error)})
     private val mutex=Mutex()
     private var listener:SharedPreferences.OnSharedPreferenceChangeListener?=null
     private val mutableRoute=MutableStateFlow<String?>(null)

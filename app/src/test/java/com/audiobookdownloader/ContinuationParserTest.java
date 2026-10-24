@@ -1,6 +1,7 @@
 package com.audiobookdownloader;
 import org.junit.Test;import java.nio.charset.StandardCharsets;import static org.junit.Assert.*;
 public class ContinuationParserTest {
+ public ContinuationParserTest()throws Exception{}
  private final ContinuationPolicy policy=new ContinuationPolicy("[]");
  private final ContinuationParser parser=new ContinuationParser(policy);
  private final String root="https://bookinfo.net/series/stone",book="https://bookinfo.net/fantasy/author/stone-1";
