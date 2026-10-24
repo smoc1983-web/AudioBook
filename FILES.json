@@ -1,5 +1,5 @@
 {
-  "revision": "4.2-online-duration-and-independent-global-search",
+  "revision": "4.2-preview.41-online-time-and-global-search",
   "storage": "GitHub export; see releases/ARCHIVE-PARTS.json for three multipart historical ZIPs",
   "files": [
     {
@@ -14,8 +14,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 9507,
-      "sha256": "b6c2d6a5d890cece976126ee9a9a3b485ddbd837977f717a0055d9498f41e842"
+      "bytes": 10191,
+      "sha256": "7df58c6da543f857243f8475129d6d4080d289bacc77d5645e3e4297f71901e9"
     },
     {
       "path": "app/build.gradle.kts",
@@ -1054,8 +1054,8 @@
     },
     {
       "path": "docs/HANDOFF.md",
-      "bytes": 19156,
-      "sha256": "2d9f9cf1adbab71c2aa4000685501cc339cb73512832fb21e8319cc65850aa17"
+      "bytes": 22016,
+      "sha256": "a106427cac266213f8678e01e50714f91116506dfb9c28bca7c0019702e5ae80"
     },
     {
       "path": "docs/INSTALL.md",
@@ -1066,6 +1066,11 @@
       "path": "docs/MEDIA-WIDGETS-STABLE.md",
       "bytes": 7300,
       "sha256": "b57b996aa1eb0062ffb56bd133ddc31eb5428838edcb9d126a92d49ebbe677c0"
+    },
+    {
+      "path": "docs/ONLINE-TIME-SEARCH.md",
+      "bytes": 8481,
+      "sha256": "db0e670576cf681a8142ac8fc58a0a0d62f7a7291a997f76bf24415689a845c1"
     },
     {
       "path": "docs/ORIGINAL-FILES.json",
@@ -1104,8 +1109,8 @@
     },
     {
       "path": "docs/STABLE-INSTALL.md",
-      "bytes": 6255,
-      "sha256": "9aa6b94c90f90e458494cb0d729a4d970cf64a2bbed8ef2c9812471ed8083da1"
+      "bytes": 6520,
+      "sha256": "fbaa936560bcd47229cff02ed17e251c387953678b5b94d924133d9be848b266"
     },
     {
       "path": "docs/STARTUP-RECOVERY.md",
@@ -1203,6 +1208,11 @@
       "sha256": "8a89d585155182b69ef37fa8fa5798819eac65f905e193ce3cee554d308881e4"
     },
     {
+      "path": "docs/verification/checks-100041.json",
+      "bytes": 5749,
+      "sha256": "d729040e020070d77d3b2fc0b5dfb0cb5faf50d007fb5a345290c201152fa744"
+    },
+    {
       "path": "docs/verification/curl-100027-left.png",
       "bytes": 39255,
       "sha256": "442770dfa67a441cc8ddb8b9a0f90fd85ce016ea86eacd8e54a066b1099eb828"
@@ -1213,9 +1223,29 @@
       "sha256": "7ce23a931d378c1571a8c2eb511090f8cb0540c597673fa266c0c54027584c80"
     },
     {
+      "path": "docs/verification/live-duration-range-syny-groma.json",
+      "bytes": 618,
+      "sha256": "c9c29a6203634422c3beed8870996edfeace66ea9812a1012d1ca284f8f5d8e0"
+    },
+    {
+      "path": "docs/verification/live-search-syny-groma.json",
+      "bytes": 869,
+      "sha256": "f83c6d12e050d5de2d3f68b68c5c00e01af74a5dfde9049ddecd15e3ca9dd02c"
+    },
+    {
+      "path": "docs/verification/live-syny-groma-all-chapter-metadata.json",
+      "bytes": 5884,
+      "sha256": "55d5cfc65744a739d3e61193da3084ef012b5d067ffbcdaad8ddbc042a1c4214"
+    },
+    {
       "path": "docs/verification/media-widgets-100038-android36.xml",
       "bytes": 984,
       "sha256": "33028e6ad4f87a748aed60b8784fa400594709263e6bc30f289cf70e897d7951"
+    },
+    {
+      "path": "docs/verification/online-duration-search-100041-android36.xml",
+      "bytes": 1143,
+      "sha256": "e2745c948feda1fb581f92381182fdc4d848e85d211de3e181828d221935f9d9"
     },
     {
       "path": "docs/verification/page-capture-100027.png",
@@ -1288,6 +1318,11 @@
       "sha256": "fbd3e956d0230ccf092665e766a22795527678aecaebc0208225bb8d16d85c48"
     },
     {
+      "path": "docs/verification/preview-100041.json",
+      "bytes": 660,
+      "sha256": "3d6acc2cf1a2ee8ea8505ec605c3c838d3fe331357c74617f03da465047bc79f"
+    },
+    {
       "path": "docs/verification/preview-four-source-http-2026-10-21.json",
       "bytes": 1492,
       "sha256": "92d35a513a2e0e5d28d0440c7897f94ad5801be087b1d49da044641a6214915f"
@@ -1326,6 +1361,11 @@
       "path": "docs/verification/stable-candidate-100038.json",
       "bytes": 451,
       "sha256": "99e9aa04f1551dfc1eb129dcf4a4090f534c54b7ada6d413c7c32c254d05cf98"
+    },
+    {
+      "path": "docs/verification/stable-candidate-100041.json",
+      "bytes": 451,
+      "sha256": "665e578fdd86c40286f282a09b70808272dfa840ada6150b6e340416c967dc2e"
     },
     {
       "path": "docs/verification/startup-100010-android35-crash.txt",

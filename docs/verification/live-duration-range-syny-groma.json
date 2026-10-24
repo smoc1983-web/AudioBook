@@ -1,0 +1,17 @@
+{
+  "scope": "Live first online chapter metadata availability; no whole book download or Android playback",
+  "book": "Сыны грома",
+  "source": "Bookinfo",
+  "chapters": 30,
+  "chapter_durations_in_page": 0,
+  "http": 206,
+  "content_type": "audio/mpeg",
+  "content_range": "bytes 0-32767/5595428",
+  "bytes_read": 32768,
+  "header": "494433",
+  "metadata_probe_bytes_total": 131072,
+  "duration_hint_seconds_from_ffprobe": 485.784,
+  "duration_hint_scope": "First real chapter MP3 metadata only; not full book or physical Android playback",
+  "audio_file_bytes": 5595428,
+  "whole_audio_downloaded": false
+}

@@ -1,0 +1,30 @@
+[
+  {
+    "site": "Bookinfo",
+    "query": "сыны грома",
+    "scope": "Real Chromium, production page scripts; not an Android or physical phone playback test",
+    "http": 200,
+    "results": [
+      {
+        "title": "Сыны грома",
+        "url": "https://bookinfo.net/religiya/ieromonah-simon/syny-groma"
+      }
+    ],
+    "debug": "",
+    "bookMetadata": {
+      "title": "Сыны грома — иеромонах Симон, слушать аудиокнигу онлайн",
+      "chapters": 30,
+      "withDuration": 0
+    }
+  },
+  {
+    "site": "Книгоблуд",
+    "query": "сыны грома",
+    "scope": "Real Chromium, production page scripts; not an Android or physical phone playback test",
+    "http": 200,
+    "submission": "SEARCH_SUBMITTED",
+    "results": [],
+    "blocked": false,
+    "observationWindowMs": 6000
+  }
+]

@@ -1,0 +1,251 @@
+{
+  "scope": "Live public MP3 metadata checked with ffprobe and <=128 KiB per chapter; not Android live playback",
+  "book": "Сыны грома",
+  "source": "Bookinfo",
+  "chapters": 30,
+  "durations_found": 30,
+  "bytes_read": 3932160,
+  "total_seconds_if_complete": 57045.936,
+  "results": [
+    {
+      "chapter": 1,
+      "title": "Глава 1",
+      "http": 206,
+      "bytes_read": 131072,
+      "declared_frame_metadata": true,
+      "duration_seconds": 485.784
+    },
+    {
+      "chapter": 2,
+      "title": "Глава 2",
+      "http": 206,
+      "bytes_read": 131072,
+      "declared_frame_metadata": true,
+      "duration_seconds": 1897.2
+    },
+    {
+      "chapter": 3,
+      "title": "Глава 3",
+      "http": 206,
+      "bytes_read": 131072,
+      "declared_frame_metadata": true,
+      "duration_seconds": 1924.032
+    },
+    {
+      "chapter": 4,
+      "title": "Глава 4",
+      "http": 206,
+      "bytes_read": 131072,
+      "declared_frame_metadata": true,
+      "duration_seconds": 1668.168
+    },
+    {
+      "chapter": 5,
+      "title": "Глава 5",
+      "http": 206,
+      "bytes_read": 131072,
+      "declared_frame_metadata": true,
+      "duration_seconds": 1668.168
+    },
+    {
+      "chapter": 6,
+      "title": "Глава 6",
+      "http": 206,
+      "bytes_read": 131072,
+      "declared_frame_metadata": true,
+      "duration_seconds": 2189.016
+    },
+    {
+      "chapter": 7,
+      "title": "Глава 7",
+      "http": 206,
+      "bytes_read": 131072,
+      "declared_frame_metadata": true,
+      "duration_seconds": 2041.248
+    },
+    {
+      "chapter": 8,
+      "title": "Глава 8",
+      "http": 206,
+      "bytes_read": 131072,
+      "declared_frame_metadata": true,
+      "duration_seconds": 2098.248
+    },
+    {
+      "chapter": 9,
+      "title": "Глава 9",
+      "http": 206,
+      "bytes_read": 131072,
+      "declared_frame_metadata": true,
+      "duration_seconds": 2146.704
+    },
+    {
+      "chapter": 10,
+      "title": "Глава 10",
+      "http": 206,
+      "bytes_read": 131072,
+      "declared_frame_metadata": true,
+      "duration_seconds": 2579.088
+    },
+    {
+      "chapter": 11,
+      "title": "Глава 11",
+      "http": 206,
+      "bytes_read": 131072,
+      "declared_frame_metadata": true,
+      "duration_seconds": 2175.648
+    },
+    {
+      "chapter": 12,
+      "title": "Глава 12",
+      "http": 206,
+      "bytes_read": 131072,
+      "declared_frame_metadata": true,
+      "duration_seconds": 2064.264
+    },
+    {
+      "chapter": 13,
+      "title": "Глава 13",
+      "http": 206,
+      "bytes_read": 131072,
+      "declared_frame_metadata": true,
+      "duration_seconds": 1709.592
+    },
+    {
+      "chapter": 14,
+      "title": "Глава 14",
+      "http": 206,
+      "bytes_read": 131072,
+      "declared_frame_metadata": true,
+      "duration_seconds": 1754.76
+    },
+    {
+      "chapter": 15,
+      "title": "Глава 15",
+      "http": 206,
+      "bytes_read": 131072,
+      "declared_frame_metadata": true,
+      "duration_seconds": 1289.4
+    },
+    {
+      "chapter": 16,
+      "title": "Глава 16",
+      "http": 206,
+      "bytes_read": 131072,
+      "declared_frame_metadata": true,
+      "duration_seconds": 1791.12
+    },
+    {
+      "chapter": 17,
+      "title": "Глава 17",
+      "http": 206,
+      "bytes_read": 131072,
+      "declared_frame_metadata": true,
+      "duration_seconds": 1939.968
+    },
+    {
+      "chapter": 18,
+      "title": "Глава 18",
+      "http": 206,
+      "bytes_read": 131072,
+      "declared_frame_metadata": true,
+      "duration_seconds": 1653.552
+    },
+    {
+      "chapter": 19,
+      "title": "Глава 19",
+      "http": 206,
+      "bytes_read": 131072,
+      "declared_frame_metadata": true,
+      "duration_seconds": 1623.192
+    },
+    {
+      "chapter": 20,
+      "title": "Глава 20",
+      "http": 206,
+      "bytes_read": 131072,
+      "declared_frame_metadata": true,
+      "duration_seconds": 1872.792
+    },
+    {
+      "chapter": 21,
+      "title": "Глава 21",
+      "http": 206,
+      "bytes_read": 131072,
+      "declared_frame_metadata": true,
+      "duration_seconds": 2105.256
+    },
+    {
+      "chapter": 22,
+      "title": "Глава 22",
+      "http": 206,
+      "bytes_read": 131072,
+      "declared_frame_metadata": true,
+      "duration_seconds": 1983.72
+    },
+    {
+      "chapter": 23,
+      "title": "Глава 23",
+      "http": 206,
+      "bytes_read": 131072,
+      "declared_frame_metadata": true,
+      "duration_seconds": 2066.616
+    },
+    {
+      "chapter": 24,
+      "title": "Глава 24",
+      "http": 206,
+      "bytes_read": 131072,
+      "declared_frame_metadata": true,
+      "duration_seconds": 2140.56
+    },
+    {
+      "chapter": 25,
+      "title": "Глава 25",
+      "http": 206,
+      "bytes_read": 131072,
+      "declared_frame_metadata": true,
+      "duration_seconds": 2403.072
+    },
+    {
+      "chapter": 26,
+      "title": "Глава 26",
+      "http": 206,
+      "bytes_read": 131072,
+      "declared_frame_metadata": true,
+      "duration_seconds": 2710.944
+    },
+    {
+      "chapter": 27,
+      "title": "Глава 27",
+      "http": 206,
+      "bytes_read": 131072,
+      "declared_frame_metadata": true,
+      "duration_seconds": 2723.712
+    },
+    {
+      "chapter": 28,
+      "title": "Глава 28",
+      "http": 206,
+      "bytes_read": 131072,
+      "declared_frame_metadata": true,
+      "duration_seconds": 3056.208
+    },
+    {
+      "chapter": 29,
+      "title": "Глава 29",
+      "http": 206,
+      "bytes_read": 131072,
+      "declared_frame_metadata": true,
+      "duration_seconds": 1141.056
+    },
+    {
+      "chapter": 30,
+      "title": "Глава 30",
+      "http": 206,
+      "bytes_read": 131072,
+      "declared_frame_metadata": true,
+      "duration_seconds": 142.848
+    }
+  ]
+}

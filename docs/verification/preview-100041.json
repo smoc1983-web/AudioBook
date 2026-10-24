@@ -1,0 +1,17 @@
+{
+  "packageName": "com.audiobookdownloader.preview",
+  "versionCode": 100041,
+  "versionName": "4.2-preview.41",
+  "size": 36529010,
+  "sha256": "b094de064b18382a057fba78e7ae1561b43aca3ca0ad92dc50d0ed03a9e00a30",
+  "certificateSha256": "3a4cecd14bb3e983843871766909c3f07b3dc64379800f3e270e4a27d39affb7",
+  "apk": "Audiobook-Preview.apk",
+  "commit": "b3e54df15505b1e0712b9d921e6d47f41da22679",
+  "label": "Audiobook Preview",
+  "providers": [
+    "com.audiobookdownloader.preview.updates",
+    "com.audiobookdownloader.preview.diagnostic_reports",
+    "com.audiobookdownloader.preview.androidx-startup"
+  ],
+  "file": "Audiobook-Preview-4.2-preview.41.apk"
+}
