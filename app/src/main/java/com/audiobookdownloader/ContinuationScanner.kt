@@ -58,15 +58,29 @@ internal class ContinuationScanner(private val context:Context,private val fetch
                         .filter{it.order!=null&&it.order>seedOrder}.sortedByDescending{it.order}.take(10)
                         else update.additions
                     if(candidates.isNotEmpty()) {
-                        val potential=candidates.map{it.url}.toSet()
+                        val aliases=candidates.flatMap{ContinuationRules.aliases(it)}.toSet()
+                        val potential=collected.values.filter{book -> ContinuationRules.aliases(book).any{it in aliases}}.map{it.url}.toSet()
                         val confirmed=mutableListOf<ContinuationRules.Book>()
                         for(candidate in candidates.take(10)) {
                             try {
-                                val detail=parser.detail(fetcher.html(candidate.url),candidate.url)
-                                val belongs=detail.cycles.firstOrNull{policy.same(url,it.url)&&java.net.URI(policy.canonical(it.url)).rawPath==java.net.URI(url).rawPath}
-                                val matches=author.isBlank()||ContinuationRules.author(author)==ContinuationRules.author(detail.author)
-                                if(!detail.announced&&detail.playable&&belongs!=null&&matches)
-                                    confirmed.add(ContinuationRules.Book(detail.title.ifBlank{candidate.title},candidate.url,detail.author,belongs.order ?: candidate.order))
+                                val group=ContinuationRules.aliases(candidate)
+                                val narrations=(listOf(candidate)+collected.values.filter {book ->
+                                    book.url!=candidate.url&&ContinuationRules.aliases(book).any{it in group}
+                                }).distinctBy{it.url}.take(3)
+                                var narrationError:Exception?=null
+                                var found=false
+                                for(narration in narrations) try {
+                                    val detail=parser.detail(fetcher.html(narration.url),narration.url)
+                                    val belongs=detail.cycles.firstOrNull{policy.same(url,it.url)&&java.net.URI(policy.canonical(it.url)).rawPath==java.net.URI(url).rawPath}
+                                    val matches=author.isBlank()||ContinuationRules.author(author)==ContinuationRules.author(detail.author)
+                                    if(!detail.announced&&detail.playable&&belongs!=null&&matches) {
+                                        confirmed.add(ContinuationRules.Book(detail.title.ifBlank{narration.title},narration.url,detail.author,belongs.order ?: narration.order))
+                                        found=true;break
+                                    }
+                                }catch(error:CancellationException){throw error}
+                                catch(error:ContinuationBudget){throw error}
+                                catch(error:Exception){narrationError=error}
+                                if(!found&&narrationError!=null)throw narrationError
                             }catch(error:CancellationException){throw error}
                             catch(error:ContinuationBudget){if(previous==null)throw error;errors.add("${cycle.title}: подтверждены не все новые книги");break}
                             catch(error:Exception){if(previous==null)throw error;errors.add("${candidate.title}: продолжение пока не подтверждено")}

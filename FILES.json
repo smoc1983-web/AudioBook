@@ -24,8 +24,8 @@
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/ContinuationWorkerTest.kt",
-      "bytes": 5067,
-      "sha256": "10066ecf8dc7f7f05634011cf4844a62e3ffd73eeb6a0be955bb703d26c39d4f"
+      "bytes": 6253,
+      "sha256": "22953b3bba4dccfb728eb4817e39f4af7cac19785fa1502ebf9850adfc4cd0ad"
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/OnlineDurationTest.java",
@@ -149,13 +149,13 @@
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/ContinuationScanner.kt",
-      "bytes": 7803,
-      "sha256": "130dfbb8bf38b5ec7b78386fce03074631767144a43b8fc7b923276a84d24008"
+      "bytes": 8939,
+      "sha256": "e70d8d59da963fd4e9706c8e1cb351eaf074011e3ebea292c8ba125e344f467b"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/ContinuationStore.kt",
       "bytes": 3682,
-      "sha256": "b770a4616a992bd76f0806848b83a32ea9afa02034ab54ded92eaabf69823018"
+      "sha256": "0442f691c7bdc7772d57c2109b587a60a9c41ec1beaa265894337a9033d6d61d"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/CylinderPageMesh.java",

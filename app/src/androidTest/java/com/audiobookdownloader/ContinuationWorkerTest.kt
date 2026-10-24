@@ -25,17 +25,18 @@ class ContinuationWorkerTest {
             store.preferences.edit().clear().putBoolean("enabled",true).commit()
             java.io.File(context.filesDir,"continuations-v1").deleteRecursively()
             prefs.edit().putString("shelves_v1","""[{"n":"Test","b":[{"t":"Камень. Том 1","u":"$book","c":""}]}]""").commit()
-            var latest=1;var broken=false;var pending=false
+            var latest=1;var broken=false;var pending=false;var alternate=false;var alternateAudio=false;var primaryFailed=false
             val fake=ContinuationFetcher {url ->
                 if(broken)error("Источник временно недоступен")
+                if(primaryFailed&&url.endsWith("/stone-2"))error("Первая озвучка временно недоступна")
                 if(url==cycle) {
                     "<h1>Камень</h1>"+(1..latest).joinToString(""){n ->
                         "<article><h2><a href='https://bookinfo.net/fantasy/test-writer/stone-$n'>Камень. Том $n</a></h2><a href='/author/test-writer'>Тест Автор</a></article>"
-                    }
+                    }+if(alternate&&latest>=2)"<article><h2><a href='https://bookinfo.net/fantasy/test-writer/stone-alternate-2'>Камень. Том 2</a></h2><a href='/author/test-writer'>Тест Автор</a></article>" else ""
                 } else {
                     val n=url.substringAfterLast('-').toInt()
                     "<h1>Камень. Том $n</h1><a href='/author/test-writer'>Тест Автор</a><a href='$cycle'>Камень #$n</a>"+
-                        if(pending)"" else "<script>new Playerjs({file:'audio.mp3'});</script>"
+                        if(pending&&!(alternateAudio&&url.contains("alternate")))"" else "<script>new Playerjs({file:'audio.mp3'});</script>"
                 }
             }
             suspend fun check() {
@@ -64,6 +65,14 @@ class ContinuationWorkerTest {
             prefs.edit().putString("shelves_v1","""[{"n":"Test","b":[{"t":"Камень. Том 1","u":"$book","c":""}]}]""").commit()
             latest=2;pending=true;check();assertTrue(store.notices().isEmpty())
             pending=false;check();assertEquals("Previously listed future volume must notify after audio release",1,store.notices().size)
+            store.notices().forEach{AbContinuationAlerts.consume(context,it.id)};store.clearNotices()
+            java.io.File(context.filesDir,"continuations-v1").deleteRecursively()
+            latest=1;pending=false;check()
+            latest=2;pending=true;alternate=true;check();assertTrue("Pending alternate must not advance the volume",store.notices().isEmpty())
+            alternateAudio=true;primaryFailed=true;check();assertEquals("A ready alternate narration must notify",1,store.notices().size)
+            assertTrue(store.notices().single().url.contains("alternate"))
+            pending=false;primaryFailed=false;check();assertEquals("Another narration must not duplicate the release",1,store.notices().size)
+
 
         }finally {
             if(original==null)prefs.edit().remove("shelves_v1").commit() else prefs.edit().putString("shelves_v1",original).commit()
