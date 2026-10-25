@@ -1,0 +1,13 @@
+{
+  "origin": "https://audiobook-smoc1983-updates.amplecoot2048.chatgpt.site",
+  "clientUserAgent": "Audiobook-Updater/4.2-preview.48",
+  "versionCode": 100055,
+  "versionName": "4.2.55",
+  "apkBytes": 37075719,
+  "sha256": "0cd6606ecea677f4370e59484d16cf1bdd34abcea38d64830591474c6406edf1",
+  "allPartsAndFullSha256Verified": true,
+  "legacyApkFieldUnchanged": true,
+  "authSent": false,
+  "physicalSamsungTested": false,
+  "old48InstallerStillNeedsManualBootstrap": true
+}

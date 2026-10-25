@@ -1,0 +1,11 @@
+{
+  "oldCode": 100048,
+  "oldApkContainsActualTargetDirectory": "app-updates/",
+  "dexWithTargetConstant": [
+    "classes3.dex"
+  ],
+  "oldProviderDirectory": "preview-updates/",
+  "installed48MismatchConfirmed": true,
+  "fixedProviderDirectory": "app-updates/",
+  "wholeCacheNotExposed": true
+}

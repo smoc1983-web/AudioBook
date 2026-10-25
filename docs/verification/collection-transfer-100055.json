@@ -1,0 +1,14 @@
+{
+  "shellReaderMatchesShizukuUserService": true,
+  "debuggableOldPackageRead": true,
+  "oldPrivateFileUnchangedByDirectRead": true,
+  "otherPrivateSettingsNotTransferred": true,
+  "realNewCollectionStoreMerged": true,
+  "repeatImportIdempotent": true,
+  "releaseOldPackageRejectedByShellReader": true,
+  "actualPreviousStableReleaseUiReadViaAccessibility": true,
+  "screenImportHasTitlesAndMembershipOnly": true,
+  "rootUsed": false,
+  "actualShizukuManagerPairingTested": false,
+  "physicalPhone": false
+}

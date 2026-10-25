@@ -1,5 +1,5 @@
 {
-  "revision": "audiobook-installer-path-and-error-delivery-fix",
+  "revision": "audiobook-4.2.55-installer-handoff-verified",
   "storage": "GitHub export; see releases/ARCHIVE-PARTS.json for three multipart historical ZIPs",
   "files": [
     {
@@ -14,8 +14,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 14682,
-      "sha256": "d2a0ec134f033f61851c95748c5d3a0c65feb15824d21ca6c6941aa3537b8273"
+      "bytes": 15380,
+      "sha256": "32978f042230437fc23ef9ad8039944e39bc6bd3d9257ae1ce2a5d0bbab7f7b3"
     },
     {
       "path": "app/build.gradle.kts",
@@ -1233,6 +1233,11 @@
       "sha256": "e290dfa6745ef7c7fddad3085c9b919b71b47ec8955a15977eecd34652fe68ff"
     },
     {
+      "path": "docs/INSTALLER-PATH-FIX.md",
+      "bytes": 7367,
+      "sha256": "97163c9ef476c02a27d5490d4cb2696537f2b2e7c79e582d56e4fe95e4a2b466"
+    },
+    {
       "path": "docs/MEDIA-WIDGETS-STABLE.md",
       "bytes": 7300,
       "sha256": "b57b996aa1eb0062ffb56bd133ddc31eb5428838edcb9d126a92d49ebbe677c0"
@@ -1428,7 +1433,17 @@
       "sha256": "c67f8f410057b4e0d4a6e46123854cf473dc8693407ac93749e0653808404d70"
     },
     {
+      "path": "docs/verification/checks-100055.json",
+      "bytes": 1345,
+      "sha256": "e6b6b1a891d8051e7bab33050f95cd0579b563489610c4bd0153d649c2a5b1b5"
+    },
+    {
       "path": "docs/verification/collection-transfer-100053.json",
+      "bytes": 508,
+      "sha256": "f493ad3b08db0ffd44d1b269d655625649bdbdcfd7081acfa8a08f30630a9b04"
+    },
+    {
+      "path": "docs/verification/collection-transfer-100055.json",
       "bytes": 508,
       "sha256": "f493ad3b08db0ffd44d1b269d655625649bdbdcfd7081acfa8a08f30630a9b04"
     },
@@ -1468,6 +1483,11 @@
       "sha256": "75204552dee8618bda29d9457cecfaf10dea727d7c6f1314a18345a1421e44e8"
     },
     {
+      "path": "docs/verification/direct-update-channel-100055.json",
+      "bytes": 475,
+      "sha256": "c42264b7e49dbe8873950fd82b4784b66e80474fa968effbb1a1170b8eb2fd10"
+    },
+    {
       "path": "docs/verification/installed-upgrade-100048-to-100050.json",
       "bytes": 421,
       "sha256": "3407f1ae1917dcc6b4aad85d7d857aa440aeff084f6dcf5d73d1f9ac3912debf"
@@ -1476,6 +1496,21 @@
       "path": "docs/verification/installed-upgrade-100050-to-100053.json",
       "bytes": 421,
       "sha256": "8a4f36cb99539ee31299bb714c36716bb0c6e55bb09cb7f5fb9d28a04a90fdf5"
+    },
+    {
+      "path": "docs/verification/installed-upgrade-100053-to-100055.json",
+      "bytes": 421,
+      "sha256": "b7c1867add10745a9d8280e264365256c7ac92f60b3b11f788a77465fe7eff4c"
+    },
+    {
+      "path": "docs/verification/installer-download-browser-100055.json",
+      "bytes": 749,
+      "sha256": "e293f878cfd3fb37788d47727d1eab008f8f4665d6a00ea98f10339c0264aa84"
+    },
+    {
+      "path": "docs/verification/installer-old48-cause.json",
+      "bytes": 296,
+      "sha256": "bfe18e5ee482d5d0ebe05bf4a89dc0c0ad0c28d0f7ed5825547a2f1df6875c62"
     },
     {
       "path": "docs/verification/live-duration-range-syny-groma.json",
@@ -1611,6 +1646,11 @@
       "path": "docs/verification/preview-100053.json",
       "bytes": 641,
       "sha256": "c8151d134b8d7f3da7633737dfdb1d8a8641feb32e7d94740ad13e04a0f0c404"
+    },
+    {
+      "path": "docs/verification/preview-100055.json",
+      "bytes": 641,
+      "sha256": "34fa63d9b7a28a0de8b5d9364de97a049f50b306cc81f4dcd4274899ce2f5a7a"
     },
     {
       "path": "docs/verification/preview-as-main-2026-10-25.json",
@@ -10284,8 +10324,8 @@
     },
     {
       "path": "hosting/updates/index.html",
-      "bytes": 4350,
-      "sha256": "1670951a3f6bb7c17d9133b9c6ca77ca00bf166f1de30dcc2e110303ec35677f"
+      "bytes": 4946,
+      "sha256": "3af8ca3f87d555b614f8d4191d192147756be0093bbddf73578456cdfd78874a"
     },
     {
       "path": "legacyFixture/build.gradle.kts",

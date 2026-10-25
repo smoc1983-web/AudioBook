@@ -1,0 +1,44 @@
+{
+  "runId": 40169894517,
+  "jobId": 121098429955,
+  "sourceCommit": "4d1445742bb6a22665afef959dbc9c61dcb50947",
+  "localSourceCommit": "d9f6487",
+  "sourceTree": "c0584a1892fec481cc8f6344916a2237174d1324",
+  "conclusion": "success",
+  "jvmPerVariant": {
+    "total": 89,
+    "passed": 88,
+    "skipped": 1,
+    "failures": 0
+  },
+  "nativeGeneral": {
+    "total": 18,
+    "passed": 14,
+    "skippedOptIn": 4,
+    "failures": 0,
+    "seconds": 53.997
+  },
+  "fourOptInPassesExecutedSeparately": true,
+  "installerCases": {
+    "downloadedApkUriReadable": true,
+    "unrelatedPrivatePathRejected": true,
+    "actualAndroidInstallerWindowAndUpdateButton": true,
+    "installerCancelledWithoutConfirmingInstall": true,
+    "corruptApkErrorStaysVisible": true
+  },
+  "realSystemInstallerReplacementConfirmed": false,
+  "separateAdbReplacementDataPreserved": true,
+  "old48PathMismatchConfirmedInOriginalApk": true,
+  "correctedProviderPath": "app-updates/",
+  "sameSignerAndPackage": true,
+  "rootDexRegisters": 119,
+  "zip16KiBAlignment": true,
+  "physicalSamsungTested": false,
+  "site": {
+    "version": 6,
+    "sourceCommit": "c24d7f08e0185784a62aeb17d0cc301ac1722ff3",
+    "deploymentId": "appgdep_6adda73e8e408191a6f294e7a235ab9a",
+    "status": "succeeded",
+    "origin": "https://audiobook-smoc1983-updates.amplecoot2048.chatgpt.site"
+  }
+}
