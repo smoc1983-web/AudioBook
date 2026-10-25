@@ -1,5 +1,5 @@
 {
-  "revision": "audiobook-series-reference-recovery-and-release-notices",
+  "revision": "audiobook-series-hotel-source-fallback-verified",
   "storage": "GitHub export; see releases/ARCHIVE-PARTS.json for three multipart historical ZIPs",
   "files": [
     {
@@ -49,8 +49,8 @@
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/SeriesRecoveryTest.kt",
-      "bytes": 6176,
-      "sha256": "e51c75c46b013190471b67607af3bd9195583838af7369dfcd1dda8342b72dc5"
+      "bytes": 8297,
+      "sha256": "27a2d357e30579a15e656e285152e5dc818e674571229f4f241f52430c79c2e3"
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/StartupSmokeTest.java",
@@ -214,8 +214,8 @@
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/KnigobludSeriesParser.java",
-      "bytes": 2719,
-      "sha256": "b6c236494cdafe8fa71d0278d3ba823d9effa27a9ce985ccbc6f49a43247f2db"
+      "bytes": 2721,
+      "sha256": "947dbd30a4f2bc45e12aa288125539e2480aef6696d6eb0820bb06cf4ed7dccc"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/LegacyCollectionScreens.java",
@@ -244,13 +244,13 @@
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/LitresReleaseScanner.kt",
-      "bytes": 3201,
-      "sha256": "58367009c5f976ec4b481a49f95f2cc2a368d33be66779c637a02ddf3f0cec20"
+      "bytes": 3419,
+      "sha256": "fca75e9308c72d4daa88b7019bf9ad66b82a056db7e953686b588d65fe170c25"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/LocalSeriesRules.java",
-      "bytes": 849,
-      "sha256": "5a183d0ff51171b185bf5e1fcfbbd7d7a50232bc21d6808ffef6b70add399acf"
+      "bytes": 1234,
+      "sha256": "4d6853e956d268cc8b88e1d195a7752e5eb8f3e5949bd17bc352289bb0166bbb"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/OpenAudioCatalog.java",
@@ -294,8 +294,8 @@
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/SeriesAuthorityParser.java",
-      "bytes": 7270,
-      "sha256": "addcb39273f80ae436258f36be58b296c30cbc1c7d52d5d99a6031053296783f"
+      "bytes": 7529,
+      "sha256": "a3a8acf5afa642ba5fb8c8b00c9d6dd6a09ed830d4633379be2647016ae87578"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/SeriesAuthorityRules.java",
@@ -304,8 +304,8 @@
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/SeriesContinuationRecovery.kt",
-      "bytes": 4543,
-      "sha256": "e1dff08e53ef4126cdfaca71d1c1333c38fb5f5224836e9d21aae02de7720260"
+      "bytes": 5833,
+      "sha256": "8f40400633d846ac741e679d8ce14c0c69a8dc8ebe8dd57f1cc9c2d80e885a80"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/SleepShakeDetector.java",
@@ -449,8 +449,8 @@
     },
     {
       "path": "app/src/test/java/com/audiobookdownloader/SeriesMetadataTest.java",
-      "bytes": 5110,
-      "sha256": "3434ca9dc5aa469a4637490cd71041e6712399762ec0949a55ffd769b9162dc2"
+      "bytes": 5824,
+      "sha256": "487ab2e10cf3b95cbbd83093863de539f05ae4035ceb497f2523c57b91f458d9"
     },
     {
       "path": "app/src/test/java/com/audiobookdownloader/SleepShakeDetectorTest.java",
@@ -464,8 +464,8 @@
     },
     {
       "path": "app/src/test/resources/series-metadata/README.md",
-      "bytes": 846,
-      "sha256": "043cf6c785e16c9928a995ed5510facbcecd9ec48042226f946a53db6d820b7a"
+      "bytes": 1001,
+      "sha256": "816961d24acad75fa49ee459cb6051cfbe2954a344da48bef2e8c4ea68124a24"
     },
     {
       "path": "app/src/test/resources/series-metadata/at-gold.html",
@@ -481,6 +481,11 @@
       "path": "app/src/test/resources/series-metadata/kb-gold.html",
       "bytes": 3877,
       "sha256": "46fd6555982112d5338fc04a579702a3817ff956dcbf455c6ba0308e73c4b6bf"
+    },
+    {
+      "path": "app/src/test/resources/series-metadata/kb-hotel.html",
+      "bytes": 1237,
+      "sha256": "f282143c034aebd039e44511a62de4f0c7da6c85eea19a153b704574634098f9"
     },
     {
       "path": "app/src/test/resources/series-metadata/litres-feed.html",
@@ -1384,8 +1389,8 @@
     },
     {
       "path": "docs/SERIES-VERIFICATION.md",
-      "bytes": 3603,
-      "sha256": "73dbdb226524747681ed083ed93d8972afee345213bec03694065753b6706fbe"
+      "bytes": 3920,
+      "sha256": "1fb611f22270457869a428dc9dc8673892e618daa8a86892d5e7059c7059862a"
     },
     {
       "path": "docs/SIGNING-KEY-SEARCH.md",

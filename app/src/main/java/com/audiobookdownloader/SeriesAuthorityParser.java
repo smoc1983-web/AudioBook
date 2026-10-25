@@ -27,6 +27,7 @@ public final class SeriesAuthorityParser {
   Document d=document(html,url);String heading=SeriesAuthorityRules.seriesLabel(text(d,"h1"));
   if(!SeriesAuthorityRules.series(heading).equals(SeriesAuthorityRules.series(expected)))throw new IllegalArgumentException("Справочник вернул другую серию");
   if(!d.select("a[rel=next],.pagination a,.paginator a").isEmpty())throw new IllegalArgumentException("Список серии содержит дополнительные страницы");
+  for(Element b:d.select("button,[role=button]"))if(b.text().matches("(?iu).*(?:показать|загрузить)\\s+(?:ещё|еще).*"))throw new IllegalArgumentException("Справочник не раскрыл полный список серии");
   List<Record> found=search(html,url);List<Record> out=new ArrayList<>();
   for(Record r:found){Element card=null;for(Element a:d.select(".book-row-content .book-title a[href],[data-testid='art__title'][href]"))if(SeriesAuthorityRules.canonical(a.absUrl("href")).equals(r.bookUrl)){card=a.closest(SeriesAuthorityRules.provider(url).equals("Author.Today")?".book-row-content":"[data-testid='art__wrapper']");break;}
    Double n=card==null?null:order(text(card,".label-row-index"));out.add(new Record(r.title,r.bookUrl,r.authors,expected,url,n,"",""));}

@@ -14,7 +14,10 @@ internal class LitresReleaseScanner(context:Context,private val fetcher:Continua
         val seen=try{val a=JSONArray(prefs.getString("litres_seen","[]"));(0 until a.length()).map{a.getString(it)}.toMutableSet()}catch(_:Exception){mutableSetOf<String>()}
         if(previous==0L){seen.addAll(books.map{it.bookUrl});prefs.edit().putString("litres_seen",JSONArray(seen.toList()).toString()).putLong("litres_last_success",now).putString("litres_status","Новинки Литрес: исходный список запомнен без уведомлений").commit();return seriesStatus+" Новинки Литрес: начальная проверка выполнена."}
         var added=0;var failed=false
-        for(book in books.filter{it.bookUrl !in seen}.take(6)) {
+        val unseen=books.filter{it.bookUrl !in seen}
+        val start=if(unseen.isEmpty())0 else prefs.getInt("litres_cursor",0).mod(unseen.size)
+        val batch=(unseen.drop(start)+unseen.take(start)).take(6)
+        for(book in batch) {
             currentCoroutineContext().ensureActive()
             try {
                 val writer=book.authors.firstOrNull().orEmpty();val html=fetcher.html(book.bookUrl)
@@ -30,7 +33,7 @@ internal class LitresReleaseScanner(context:Context,private val fetcher:Continua
         }
         // Keep the time boundary until every unseen item has been examined; no releases are lost to a batch limit.
         val pending=books.any{it.bookUrl !in seen}
-        val edit=prefs.edit().putString("litres_seen",JSONArray(seen.toList().takeLast(2000)).toString())
+        val edit=prefs.edit().putInt("litres_cursor",start+batch.size).putString("litres_seen",JSONArray(seen.toList().takeLast(2000)).toString())
             .putString("litres_status","Новых аудиокниг Литрес: $added"+if(failed||pending)". Часть записей ожидает подтверждения даты выхода." else "")
         if(!pending)edit.putLong("litres_last_success",now)
         edit.commit();return seriesStatus+" "+prefs.getString("litres_status","")

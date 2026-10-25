@@ -36,6 +36,18 @@ class SeriesRecoveryTest {
         store.preferences.edit().putStringSet("muted_titles",setOf(SeriesAuthorityRules.title("Отель Перекресток"))).commit();assertTrue(store.seeds().isEmpty())
     }finally{if(original==null)prefs.edit().remove("shelves_v1").commit() else prefs.edit().putString("shelves_v1",original).commit();store.preferences.edit().clear().commit();java.io.File(context.filesDir,"continuations-v1").deleteRecursively()}
  }
+ @Test(timeout=60000) fun explicitSourceCycleWorksWhenReferenceSearchHasNoMatch()=runBlocking {
+    val context=ApplicationProvider.getApplicationContext<Context>();val prefs=context.getSharedPreferences("audiobook_downloader",0);val store=ContinuationStore(context)
+    val original=prefs.getString("shelves_v1",null);val title="Гостиница тестового цикла"
+    val one="https://knigoblud.club/55555555-5555-5555-5555-555555555555";val two="https://knigoblud.club/66666666-6666-6666-6666-666666666666"
+    val cycle="https://knigoblud.club/77777777-7777-7777-7777-777777777777"
+    val fake=ContinuationFetcher{url->if(url==one||url==two){"<h1>"+title+(if(url==two)". Том 2" else "")+"</h1><span itemprop='author'>Тест Автор</span><div class='BookMetaBlockLine'>✍️ <a>Тест Автор</a></div><div class='BookDescription BookSeries'><div class='BookDescriptionLabel'>📚 Цикл <a href='$cycle'>$title</a></div><a class='BookDescriptionSeriesItem' href='$one'><span class='BookDescriptionSeriesItemIndex'>1.</span><b>$title</b></a><a class='BookDescriptionSeriesItem' href='$two'><span class='BookDescriptionSeriesItemIndex'>2.</span><span class='BookDescriptionSeriesItemName'>$title. Том 2</span></a></div><script>KB.playerInit({});</script>"}else "<h1>Поиск</h1>"}
+    try{store.preferences.edit().clear().putBoolean("enabled",true).commit();java.io.File(context.filesDir,"continuations-v1").deleteRecursively()
+        prefs.edit().putString("shelves_v1","""[{"n":"Test","b":[{"t":"$title","u":"$one","c":""}]}]""").commit()
+        val seed=store.seeds().single();assertEquals(1,SeriesContinuationRecovery(context,fake).checkKnigoblud(seed,one).first)
+        assertEquals(2,store.available(seed.id).size);assertTrue(store.notices().isEmpty());assertEquals(cycle,abStoredCatalog(prefs,title).cycles.single().url)
+    }finally{if(original==null)prefs.edit().remove("shelves_v1").commit() else prefs.edit().putString("shelves_v1",original).commit();store.preferences.edit().clear().commit();java.io.File(context.filesDir,"continuations-v1").deleteRecursively()}
+ }
  @Test(timeout=60000) fun litresBaselineAndDateValidationSurviveSourceFailure()=runBlocking {
     val context=ApplicationProvider.getApplicationContext<Context>();val store=ContinuationStore(context);var latest=1;var broken=false
     val date=java.text.SimpleDateFormat("d MMMM yyyy",java.util.Locale("ru")).apply{timeZone=java.util.TimeZone.getTimeZone("UTC")}.format(java.util.Date())
