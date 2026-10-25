@@ -15,6 +15,7 @@
         <category android:name="android.intent.category.LAUNCHER" />
       </intent-filter>
     </activity>
+    <activity android:name="com.audiobookdownloader.ReleaseNotesActivity" android:exported="false" android:label="Что нового" />
     <activity android:name="com.audiobookdownloader.CollectionTransferActivity" android:exported="false" android:label="Перенос коллекций" />
     <service android:name="com.audiobookdownloader.LegacyCollectionsScreenService" android:label="Перенос коллекций Audiobook" android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE" android:exported="true">
       <intent-filter><action android:name="android.accessibilityservice.AccessibilityService" /></intent-filter>

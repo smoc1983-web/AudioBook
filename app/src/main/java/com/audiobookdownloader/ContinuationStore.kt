@@ -16,7 +16,15 @@ internal class ContinuationStore(private val context:Context) {
     val preferences=context.getSharedPreferences("continuations_v1",0)
     private val folder=File(context.filesDir,"continuations-v1")
     fun seeds():List<ContinuationSeed> = loadShelves(context.getSharedPreferences("audiobook_downloader",0))
-        .flatMap{it.books}.map{ContinuationSeed(hash(it.url.ifBlank{SearchBookIndex.normal(it.title)}),it.title,it.url)}.distinctBy{it.id}
+        .flatMap{it.books}.filter{SeriesAuthorityRules.title(it.title) !in preferences.getStringSet("muted_titles",emptySet()).orEmpty()}.map{ContinuationSeed(hash(it.url.ifBlank{SearchBookIndex.normal(it.title)}),it.title,it.url)}.distinctBy{it.id}
+    fun available(seed:String?=null):List<ContinuationNotice> = try {
+        val a=JSONArray(preferences.getString("available","[]"));(0 until minOf(a.length(),300)).map{a.getJSONObject(it)}
+            .filter{seed==null||it.optString("seed")==seed}.map{j->ContinuationNotice(j.getString("id"),j.getString("seed"),j.getString("title"),j.optString("url"),j.optString("series"),j.optString("author"),j.optLong("at"))}
+        }catch(_:Exception){emptyList()}
+    fun saveAvailable(seed:String,books:List<ContinuationNotice>)=synchronized(inboxLock) {
+        val all=(available().filter{it.seed!=seed}+books).takeLast(300)
+        check(preferences.edit().putString("available",JSONArray().apply{all.forEach{put(it.json())}}.toString()).commit())
+    }
     fun readState(key:String):ContinuationRules.State? = try {
         val file=File(folder,"$key.json")
         if(!file.isFile||file.length()>512*1024)null else {

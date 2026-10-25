@@ -14,6 +14,11 @@ internal class ContinuationHttp(private val policy:ContinuationPolicy,private va
     private var requests=0
     private var bytes=0
     override suspend fun html(address:String):String {
+        if(SeriesAuthorityRules.provider(address).isNotBlank()) {
+            if(++requests>24||bytes>=8*1024*1024)throw ContinuationBudget()
+            val value=SeriesAuthorityHttp().html(address);bytes+=value.toByteArray().size
+            if(bytes>8*1024*1024)throw ContinuationBudget();return value
+        }
         var next=policy.canonical(address)
         require(next.isNotBlank())
         repeat(5) {

@@ -264,6 +264,7 @@ class MainActivity : ComponentActivity() {
                         androidx.compose.runtime.withFrameNanos { }
                         delay(2000L)
                         AbLaunchState.healthy(this@MainActivity,launchToken)
+                        ReleaseNotesActivity.schedule(this@MainActivity)
                         if(foreground && !isFinishing && !isDestroyed)requestMissingPermissions()
                     }
                 }
@@ -382,7 +383,7 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         AbCrashReport.install(this)
-        if(appStarted)libraryAccessVersion++
+        if(appStarted){libraryAccessVersion++;ReleaseNotesActivity.schedule(this)}
     }
     override fun onRequestPermissionsResult(requestCode: Int,permissions: Array<String>,grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode,permissions,grantResults)
@@ -2683,7 +2684,8 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
     LaunchedEffect(continuationRoute) {
         continuationRoute?.let {id ->
             ContinuationStore(context).notices().firstOrNull{it.id==id}?.let {notice ->
-                openBookRef(BookRef(notice.title,notice.url,""),false)
+                if(LitresReleaseParser.audio(notice.url))context.startActivity(Intent(Intent.ACTION_VIEW,Uri.parse(notice.url)))
+                else openBookRef(BookRef(notice.title,notice.url,""),false)
                 AbContinuationAlerts.consume(context,id)
             }
         }
@@ -3045,7 +3047,11 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
         repairCovers = {repairModernCovers()},
         openSite = { book, source -> openWebsiteBook(book, source) },
         openRef = { openBookRef(it) },
-        cycle = { openWebsiteCycle(it) },
+        cycle = { cycle ->
+            if(cycle.referenceUrl.isNotBlank()) {
+                searchText=cycle.title;startCommonBookSearch();selectedCycle=cycle;cycleBrowsing=true;appPage=AppPage.SEARCH
+            } else openWebsiteCycle(cycle)
+        },
         playOnline = { index ->
             player?.let { book ->
                 val state = PlaybackService.state.value
@@ -7633,6 +7639,24 @@ private fun abLocalSize(book:LibraryBook):String=when {
 
 fun scanLibrary(context: Context? = null): List<LibraryBook> = scanLibraryReport(context).books
 
+internal fun recoverLibraryBookRef(context:Context,book:LibraryBook):BookRef {
+    var ref=abRecoverCoverRef(context,book.title,"","",book.folder.path)
+    if(ref.url.isBlank()&&book.folderUri.isNotBlank())try {
+        val folder=Uri.parse(book.folderUri)
+        libraryDocuments(context,folder,folder).firstOrNull{it.name=="book_metadata.json"&&!it.isDirectory}?.let{doc->
+            context.contentResolver.openInputStream(doc.uri)?.use{input->
+                val output=java.io.ByteArrayOutputStream();val chunk=ByteArray(4096);while(true){val n=input.read(chunk);if(n<0)break;if(output.size()+n>65536)return@use;output.write(chunk,0,n)};val data=output.toByteArray()
+                val j=JSONObject(String(data,Charsets.UTF_8))
+                if(j.optString("format")=="AudioBookMetadata"&&SearchBookIndex.normal(j.optString("title"))==SearchBookIndex.normal(book.title))
+                    ref=BookRef(book.title,supportedBookUrl(j.optString("url")).orEmpty(),j.optString("cover"))
+            }
+        }
+    }catch(_:Exception){}
+    if(ref.url.isNotBlank())context.getSharedPreferences("audiobook_downloader",0).edit().putString(bookUrlKey(book.title),ref.url).apply()
+    return ref
+}
+
+
 class LibrarySyncState {
     val books = mutableStateOf<List<LibraryBook>>(emptyList())
     var downloadedIndex by mutableStateOf(DownloadedChapterIndex.EMPTY)
@@ -8427,7 +8451,8 @@ fun formatSleepTime(
 
 
 data class BookSource(val site: String, val url: String, val coverUrl: String = "")
-data class BookCycle(val title: String, val url: String = "", val order: Double? = null)
+data class BookCycle(val title: String, val url: String = "", val order: Double? = null,
+    val referenceUrl:String="",val referenceSite:String="",val parentTitle:String="")
 data class SiteSearchResult(val books: List<BookLink>, val error: String = "")
 
 fun bookSiteName(url: String): String = when {
@@ -9206,10 +9231,7 @@ fun bookCatalogJs(catalogUrl: String = "", cycle: BookCycle? = null): String {
                 var signature = (link.className || '') + ' ' + (link.getAttribute('title') || '') + ' ' +
                     (link.getAttribute('itemprop') || '') + ' ' + (parent ? parent.className || '' : '');
                 var nearby = text(parent);
-                var explicitlySeries = /(?:series|cycle|isPartOf|цикл|серия)/i.test(signature) ||
-                    /^\s*(?:цикл|серия)\s*[:–—-]/i.test(label) ||
-                    (nearby.length < 200 && /(?:^|\s)(?:цикл|серия)\s*[:–—-]/i.test(nearby));
-                if (bookUrl(location.href) && !link.closest('[class*="book-card"], [class*="book-item"], [data-book]') && (explicitlySeries || (seriesPath(link.href) && !result.isCyclePage))) {
+                if (bookUrl(location.href) && !link.closest('[class*="book-card"], [class*="book-item"], .bookListItem, [data-book]') && classifier.seriesLink(link)) {
                     setCycle(label || link.getAttribute('title'), link.href);
                 }
             }
@@ -9255,7 +9277,7 @@ fun bookCatalogJs(catalogUrl: String = "", cycle: BookCycle? = null): String {
                 if (/^(?:автор|чтец|жанр|цикл|серия)\s*[:–—-]/i.test(text(anchor)) ||
                     /(?:author|reader|genre|series|cycle)[-_](?:link|name|title)/i.test(ownSignature)) continue;
                 var image = anchor.querySelector('img');
-                var card = anchor.closest('article, [data-book], [class*="book-card"], [class*="book_card"], [class*="book-item"], [class*="BookCard"], [class*="catalog-item"], [class*="shortstory"], [class*="short-story"], [class*="shortitem"]');
+                var card = anchor.closest('.bookListItem, article, [data-book], [class*="book-card"], [class*="book_card"], [class*="book-item"], [class*="BookCard"], [class*="catalog-item"], [class*="shortstory"], [class*="short-story"], [class*="shortitem"]');
                 if (!card) {
                     card = anchor;
                     for (var level = 0; level < 4 && card.parentElement; level++) {
@@ -9269,7 +9291,7 @@ fun bookCatalogJs(catalogUrl: String = "", cycle: BookCycle? = null): String {
                 if (!image) image = card.querySelector('img');
                 var coverLink=image?image.closest('a[href]'):null;
                 if(coverLink && bookUrl(coverLink.href) && canonical(coverLink.href)!==canonical(href))continue;
-                var headings=card.querySelectorAll('h2, h3, h4, [class*="book-title"], [itemprop="name"]');
+                var headings=card.querySelectorAll('.bookListItemCoverNameText, h2, h3, h4, [class*="book-title"], [itemprop="name"]');
                 var bookHeading=null;
                 for(var hi=0;hi<headings.length;hi++)if(!metadataLink(headings[hi],card)){bookHeading=headings[hi];break;}
                 var headingLink = bookHeading ? bookHeading.querySelector('a[href]') : null;
@@ -10011,6 +10033,12 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
     var shownResults by androidx.compose.runtime.saveable.rememberSaveable(data.query,data.genre,data.cycle?.url) {mutableStateOf(AB_RESULTS_PAGE)}
     val visibleCount=if(data.genre.isNotBlank())data.genreVisibleCount.coerceIn(AB_GENRE_PAGE,AB_SEARCH_LIMIT)
         else maxOf(shownResults,data.searchRestoreIndex+AB_RESULTS_PAGE).coerceAtMost(AB_SEARCH_LIMIT)
+    val detail=if(data.onlineBook!=null) listOf(abStoredCatalog(prefs,cleanBookTitle(data.pageTitle))) else emptyList()
+    val seriesStatus=SeriesAuthorityWatcher(detail+data.results.take(visibleCount),prefs)
+    val resultBooks=data.results.map {book->book.copy(cycles=SeriesAuthorityCache.cycles(prefs,book.title,book.author,book.cycles,book.url))}.filter {book->
+        !data.cycleBrowsing || data.cycle==null || book.cycles.none{it.referenceUrl.isNotBlank()} ||
+            book.cycles.any{SeriesAuthorityRules.series(it.title)==SeriesAuthorityRules.series(data.cycle.title)}
+    }.let{if(data.cycleBrowsing&&data.cycle!=null)abOrderSeries(it,data.cycle) else it}
     LazyColumn(Modifier.fillMaxSize(),state=listState,contentPadding=PaddingValues(horizontal=20.dp,vertical=14.dp),
         verticalArrangement=Arrangement.spacedBy(12.dp)) {
         if(data.searchActive) item(key="search-home") {
@@ -10029,6 +10057,7 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
             Text(if(data.searchSource.isBlank())"Режим: включённые источники" else "Режим: только ${data.searchSource}",
                 color=theme.muted,fontSize=11.sp,modifier=Modifier.padding(top=5.dp))
         }
+        if(seriesStatus.isNotBlank()) item {Text(seriesStatus,color=theme.muted,fontSize=11.sp)}
         if(data.searching) item { Row(verticalAlignment=Alignment.CenterVertically) {
             androidx.compose.material3.CircularProgressIndicator(Modifier.size(18.dp),color=theme.accent,strokeWidth=2.dp)
             Text(if(data.genre.isNotBlank()) "Ищем книги и проверяем жанры…" else "Ищем книги…",color=theme.muted,fontSize=13.sp,modifier=Modifier.padding(start=10.dp))
@@ -10039,16 +10068,16 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
             item { AbOnlineBookDetails(data,actions,books,prefs,theme,onMenu) }
             itemsIndexed(book.tracks,key={index,track->"$index:${track.src}"}) { index,track -> AbOnlineChapter(data,actions,theme,index,track) }
         }
-        if(data.results.isNotEmpty() || data.cycleBrowsing || data.genre.isNotBlank()) item {
+        if(resultBooks.isNotEmpty() || data.cycleBrowsing || data.genre.isNotBlank()) item {
             AbHeading(if(data.genre.isNotBlank()) "Жанр: ${data.genre}"
                 else if(data.cycleBrowsing) data.cycle?.title ?: "Книги цикла" else "Результаты",theme,
-                "${if(data.genre.isNotBlank())minOf(data.results.size,visibleCount) else data.results.size} книг")
+                "${if(data.genre.isNotBlank())minOf(resultBooks.size,visibleCount) else resultBooks.size} книг")
         }
-        if(data.cycleBrowsing && data.results.isNotEmpty()) item {
+        if(data.cycleBrowsing && resultBooks.isNotEmpty()) item {
             Text("Тома с известными номерами идут по порядку. Книги без номера — после них, в порядке сайта.",
                 color=theme.muted,fontSize=11.sp)
         }
-        itemsIndexed(data.results.take(visibleCount),key={_,book->book.url}) { _,book ->
+        itemsIndexed(resultBooks.take(visibleCount),key={_,book->book.url}) { _,book ->
             val ref=BookRef(book.title,book.url,book.coverUrl)
             Column(verticalArrangement=Arrangement.spacedBy(5.dp)) {
                 AbBookRow(ref,abFindLocal(books,book.title),book.author.ifBlank{"Аудиокнига"},theme,
@@ -10056,7 +10085,7 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
                 if(book.genres.isNotEmpty()) Text(book.genres.joinToString(" · "),color=theme.muted,fontSize=11.sp)
                 if(book.genreOrigin.isNotBlank()) Text("Источник жанра: ${book.genreOrigin}",color=theme.muted,fontSize=10.sp)
                 book.cycles.forEach {cycle ->
-                    Text("${cycle.title} · ${abVolumeLabel(cycle)}",color=theme.accent,fontSize=12.sp,
+                    Text("${if(cycle.referenceUrl.isNotBlank()) "Сверено" else "По источнику"}: ${cycle.title} · ${abVolumeLabel(cycle)}",color=theme.accent,fontSize=12.sp,
                         modifier=Modifier.fillMaxWidth().abGlass(theme,9,field=true)
                             .clickable(enabled=cycle.url.isNotBlank()){actions.cycle(cycle)}.padding(10.dp))
                 }
@@ -10068,12 +10097,12 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
                 }
             }
         }
-        if(data.genre.isBlank() && visibleCount<data.results.size) item {
-            AbButton("Показать ещё · ${visibleCount.coerceAtMost(data.results.size)} из ${data.results.size}",theme) {
+        if(data.genre.isBlank() && visibleCount<resultBooks.size) item {
+            AbButton("Показать ещё · ${visibleCount.coerceAtMost(resultBooks.size)} из ${resultBooks.size}",theme) {
                 shownResults=(visibleCount+AB_RESULTS_PAGE).coerceAtMost(AB_SEARCH_LIMIT)
             }
         }
-        if(data.genre.isNotBlank() && visibleCount>=AB_SEARCH_LIMIT && data.results.size>=AB_SEARCH_LIMIT) item {
+        if(data.genre.isNotBlank() && visibleCount>=AB_SEARCH_LIMIT && resultBooks.size>=AB_SEARCH_LIMIT) item {
             Text("Показаны первые $AB_SEARCH_LIMIT книг. Уточните название или автора, чтобы найти нужное издание.",color=theme.muted,fontSize=12.sp)
         }
         if(data.status.isNotBlank() && data.status!="Вставьте ссылку" &&
@@ -10090,7 +10119,7 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
             AbButton(if(data.searching) "Загружаем…" else "Загрузить еще",theme,primary=true,
                 enabled=!data.searching,onClick=actions.moreGenre)
         }
-        if(!data.searchActive && data.onlineBook==null && data.results.isEmpty() && !data.searching && !data.cycleBrowsing) {
+        if(!data.searchActive && data.onlineBook==null && resultBooks.isEmpty() && !data.searching && !data.cycleBrowsing) {
             item {
                 AbHeading("Жанры",theme)
                 var moreGenres by remember {mutableStateOf(false)}
@@ -10747,8 +10776,7 @@ private fun AbPlayerScreen(data: AbScreenData,actions: AbActions,books: List<Lib
             when(tab) {
                 3->item {
                     val metadata=remember(prefs,state.bookTitle,data.version) {abStoredCatalog(prefs,state.bookTitle)}
-                    if(metadata.cycles.isEmpty()) Text("Сайт не указал серию или сведения ещё не получены. Откройте источник книги через её меню.",color=theme.muted,fontSize=13.sp)
-                    else AbSeriesBlock(metadata.cycles,theme,actions)
+                    AbPlayerSeries(metadata,ref,books,prefs,theme,actions,onShelf,onSettings)
                 }
                 0->{ if(chaptersExpanded) itemsIndexed(state.tracks) {index,track ->
                     val active=index==state.trackIndex
@@ -10897,13 +10925,24 @@ private fun AbContinuationSettings(theme:AbTheme,onOpen:(BookRef)->Unit) {
     if(last>0)Text("Последняя проверка: "+java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.SHORT,java.text.DateFormat.SHORT).format(java.util.Date(last)),color=theme.muted,fontSize=12.sp)
     val errors=remember(revision){try{val a=JSONArray(store.preferences.getString("errors","[]"));(0 until a.length()).map{a.getString(it)}}catch(_:Exception){emptyList()}}
     errors.forEach{Text(it,color=theme.muted,fontSize=12.sp)}
-    AbHeading("Новые продолжения",theme)
+    Text("Новинки аудиокниг Литрес",color=theme.text,fontSize=15.sp)
+    AbOptions(listOf("Уведомлять","Выключено"),if(store.preferences.getBoolean("litres_enabled",false))0 else 1,theme){
+        store.preferences.edit().putBoolean("litres_enabled",it==0).apply()
+        if(it==0){AbContinuationAlerts.setEnabled(context,true);AbContinuationAlerts.checkNow(context)}
+    }
+    Text("Отдельная подписка на новые аудиокниги Литрес. Первая проверка — без уведомлений; затем проверяются дата выхода и аудиоформат. Книга открывается на сайте Литрес.",color=theme.muted,fontSize=12.sp)
+    Text(remember(revision){store.preferences.getString("litres_status","").orEmpty()},color=theme.muted,fontSize=12.sp)
+    val available=remember(revision){store.available().filter{item->store.seeds().any{it.id==item.seed}}.distinctBy{it.title+"|"+it.url}}
+    AbHeading("Уже вышедшие и найденные книги",theme)
+    if(available.isEmpty())Text("Выполните проверку. Уже скачанные тома также доступны в разделе «Серия» плеера.",color=theme.muted,fontSize=12.sp)
+    available.forEach{item->AbButton(item.title+if(item.url.isBlank())" · на устройстве" else " · в списке источника",theme){onOpen(if(item.url.isBlank())bookRefFor(context.getSharedPreferences("audiobook_downloader",0),item.title) else BookRef(item.title,item.url,""))}}
+    AbHeading("Новые продолжения и уведомления Литрес",theme)
     if(notices.isEmpty())Text("Новых продолжений пока нет",color=theme.muted,fontSize=13.sp)
     notices.forEach {notice ->
         Column(Modifier.fillMaxWidth().abGlass(theme,16).padding(12.dp),verticalArrangement=Arrangement.spacedBy(6.dp)) {
             Text((if(notice.read)"" else "● ")+notice.title,color=theme.text,fontWeight=FontWeight.SemiBold)
             Text(notice.series,color=theme.muted,fontSize=12.sp)
-            AbButton("Открыть книгу",theme){AbContinuationAlerts.consume(context,notice.id);onOpen(BookRef(notice.title,notice.url,""))}
+            AbButton(if(LitresReleaseParser.audio(notice.url))"Открыть на Литрес" else "Открыть книгу",theme){AbContinuationAlerts.consume(context,notice.id);if(LitresReleaseParser.audio(notice.url))context.startActivity(Intent(Intent.ACTION_VIEW,Uri.parse(notice.url))) else onOpen(BookRef(notice.title,notice.url,""))}
         }
     }
     if(notices.isNotEmpty())AbButton("Очистить список",theme){notices.forEach{AbContinuationAlerts.consume(context,it.id)};store.clearNotices()}
@@ -11089,6 +11128,7 @@ private fun AbSettingsDialog(data: AbScreenData,prefs: android.content.SharedPre
             }
         }
         if(section==AbSettingsSection.HOME) {
+            AbButton("Что нового · "+BuildConfig.VERSION_NAME,theme){context.startActivity(Intent(context,ReleaseNotesActivity::class.java))}
             AbButton("Перенос и копия коллекций",theme){context.startActivity(Intent(context,CollectionTransferActivity::class.java))}
             AbButton("Обновления · "+BuildConfig.VERSION_NAME,theme) {
                 context.startActivity(Intent(context,PreviewUpdatesActivity::class.java))
@@ -11247,7 +11287,7 @@ private fun AbBookMenu(ref: BookRef,local: LibraryBook?,prefs: android.content.S
             }
             if(local==null) Text("Для очереди скачайте книгу на устройство",color=theme.muted,fontSize=11.sp)
             val metadata=remember(prefs,ref.title,version) {abStoredCatalog(prefs,ref.title)}
-            AbSeriesBlock(metadata.cycles,theme,actions.copy(cycle={dismiss();actions.cycle(it)}))
+            AbSeriesBlock(metadata.cycles,theme,actions.copy(cycle={dismiss();actions.cycle(it)}),metadata)
             val evidence=remember(prefs,version,ref.title) {
                 AbPublicMetadata.cached(prefs,metadata)?.optJSONArray("evidence") ?: JSONArray()
             }
@@ -11623,7 +11663,7 @@ private fun abCoverFileId(title: String): String = java.security.MessageDigest.g
     .digest(abCoverIdentity(title).toByteArray(Charsets.UTF_8)).joinToString("") {"%02x".format(it.toInt() and 255)}
 
 /** Runs only on IO. Recovers older metadata without changing favourites or shelves. */
-private fun abRecoverCoverRef(context: Context,title: String,direct: String,page: String,folder: String): BookRef {
+internal fun abRecoverCoverRef(context: Context,title: String,direct: String,page: String,folder: String): BookRef {
     val prefs=context.getSharedPreferences("audiobook_downloader",Context.MODE_PRIVATE)
     var cover=direct.takeUnless {isBadCoverUrl(it)}.orEmpty()
     var url=page
@@ -12180,12 +12220,13 @@ private fun abCatalogClassifierJs(): String {
         }
         function seriesTitle(v) {return String(v||'').replace(/^\s*(?:цикл|серия|серии)\s*[:–—-]?\s*/i,'').trim();}
         function seriesLink(a) {
-            var p=a.parentElement, sig=(a.className||'')+' '+(a.getAttribute('itemprop')||'')+' '+(p?p.className||'':'');
-            var href=absolute(a.getAttribute('href'));
-            return sameSite(href)&&(/\/(?:series|cycle|cycles|serii|cikly|collections?)\//i.test(href)||
-                /series|cycle|isPartOf|цикл|серия/i.test(sig)||
-                /^\s*(?:цикл|серия)\s*[:–—-]/i.test(text(a))||
-                (text(p).length<200&&/(?:^|\s)(?:цикл|серия)\s*[:–—-]/i.test(text(p))));
+            var p=a.parentElement, own=String(a.className||''), prop=String(a.getAttribute('itemprop')||''), href=absolute(a.getAttribute('href'));
+            // Entries inside a cycle list are books, even when their class/parent contains "Series".
+            if(/BookDescriptionSeriesItem|(?:series|cycle)[-_]?(?:book|item)/i.test(own))return false;
+            var nearby=text(p), labeled=nearby.length<220&&(/^(?:\s*📚\s*)?(?:цикл|серия)\s*[:«"–—-]/i.test(nearby)||/^\s*📚\s*[^📕✍🎙]/.test(nearby));
+            var dedicated=/isPartOf/i.test(prop)||/(?:^|[ _-])(?:series|cycle)[_-](?:link|name|title)(?:$|[ _-])/i.test(own);
+            return sameSite(href)&&(/\/(?:series|cycle|cycles|serii|cikly|collections?)\//i.test(href)||dedicated||labeled||
+                /^\s*(?:цикл|серия)\s*[:–—-]/i.test(text(a)));
         }
         function merge(a,b) {
             var ar=a.genreRank||0,br=b.genreRank||0;
@@ -12255,12 +12296,12 @@ private fun abCatalogClassifierJs(): String {
             var content=document.querySelector('main, [role="main"]')||document.body||document;
             var links=content.querySelectorAll('a[href]');
             for(var j=0;j<links.length;j++) {
-                var a=links[j];if(a.closest('nav, header, footer, [class*="recommend"], [class*="related"], [class*="book-card"], [class*="book-item"], [data-book]'))continue;
+                var a=links[j];if(a.closest('nav, header, footer, [class*="recommend"], [class*="related"], [class*="book-card"], [class*="book-item"], .bookListItem, [data-book]'))continue;
                 var isolated={querySelectorAll:function(){return [a];},querySelector:function(){return null;}};
                 meta=merge(meta,card(isolated,location.href,heading,null,null,false));
             }
             var nodes=content.querySelectorAll('[itemprop="genre"]');
-            for(var k=0;k<nodes.length;k++)if(!nodes[k].closest('[class*="recommend"], [class*="related"], [class*="book-card"], [class*="book-item"], [data-book]')) {
+            for(var k=0;k<nodes.length;k++)if(!nodes[k].closest('[class*="recommend"], [class*="related"], [class*="book-card"], [class*="book-item"], .bookListItem, [data-book]')) {
                 var value=nodes[k].getAttribute('content')||text(nodes[k]);
                 value.split(/[,;|]/).forEach(function(v){if(normal(v))meta.genres=meta.genres.concat(allGenres(v).length?allGenres(v):[v.trim()]);});
             }
@@ -12268,7 +12309,7 @@ private fun abCatalogClassifierJs(): String {
             else {var inferred=routeGenre(location.href);if(inferred){meta.genres.push(inferred);meta.genreRank=1;}}
             meta.genres=unique(meta.genres);return meta;
         }
-        return {card:card,schema:schema,current:current,merge:merge,genre:genre,matches:matches,allGenres:allGenres,routeGenre:routeGenre,volume:volume};
+        return {card:card,schema:schema,current:current,merge:merge,genre:genre,matches:matches,allGenres:allGenres,routeGenre:routeGenre,volume:volume,seriesLink:seriesLink};
     })()
     """.trimIndent()
 }
@@ -12276,7 +12317,7 @@ private fun abCatalogClassifierJs(): String {
 private fun abReadCycles(array: JSONArray?): List<BookCycle> = (0 until (array?.length() ?: 0)).mapNotNull { index ->
     val item=array?.optJSONObject(index) ?: return@mapNotNull null
     val title=item.optString("title").trim().take(300)
-    if(title.isBlank()) return@mapNotNull null
+    if(!SeriesAuthorityRules.plausibleSeriesTitle(title)) return@mapNotNull null
     val order=item.optDouble("order",Double.NaN).takeIf { it.isFinite() && it>0 && it<100000 }
     BookCycle(title,supportedBookUrl(item.optString("url")).orEmpty(),order)
 }
@@ -12317,7 +12358,7 @@ private fun abLibrarySeries(refs: List<BookRef>,prefs: android.content.SharedPre
         metadata.cycles.forEach cycleLoop@ {cycle ->
             if(filter.isNotBlank() && !cycle.title.contains(filter,true) && !ref.title.contains(filter,true) &&
                 !metadata.author.contains(filter,true)) return@cycleLoop
-            val key=cycle.url.ifBlank {cycle.title.lowercase(java.util.Locale.ROOT)+"|"+metadata.author.lowercase(java.util.Locale.ROOT)}
+            val key=(if(cycle.referenceUrl.isNotBlank()) SeriesAuthorityRules.series(cycle.title)+"|"+SeriesAuthorityRules.author(metadata.author) else cycle.url).ifBlank {cycle.title.lowercase(java.util.Locale.ROOT)+"|"+metadata.author.lowercase(java.util.Locale.ROOT)}
                 .substringBefore('#').trimEnd('/')
             groups.getOrPut(key){mutableListOf()}.add(ref to cycle)
         }
@@ -12329,8 +12370,10 @@ private fun abLibrarySeries(refs: List<BookRef>,prefs: android.content.SharedPre
 }
 
 private fun abMergeCycles(first: List<BookCycle>,second: List<BookCycle>): List<BookCycle> {
-    val result=first.toMutableList()
-    second.forEach { item ->
+    val trusted=(first+second).filter{it.referenceUrl.isNotBlank()}
+    if(trusted.isNotEmpty())return trusted.distinctBy{SeriesAuthorityRules.series(it.title)}
+    val result=first.filter{SeriesAuthorityRules.plausibleSeriesTitle(it.title)}.toMutableList()
+    second.filter{SeriesAuthorityRules.plausibleSeriesTitle(it.title)}.forEach { item ->
         val index=result.indexOfFirst { old -> if(old.url.isNotBlank() && item.url.isNotBlank())
             old.url.substringBefore('#').trimEnd('/')==item.url.substringBefore('#').trimEnd('/')
             else old.title.equals(item.title,true) }
@@ -12345,9 +12388,10 @@ private fun abCatalogKey(title: String) = "book_catalog_"+safeFileName(cleanBook
 internal fun abStoredCatalog(prefs: android.content.SharedPreferences,title: String): BookLink {
     return try {
         val json=JSONObject(prefs.getString(abCatalogKey(title),"{}").orEmpty())
-        BookLink(title,json.optString("url"),json.optString("cover"),
+        val stored=BookLink(title,json.optString("url"),json.optString("cover"),
             json.optString("author").ifBlank{prefs.getString(abAuthorKey(title),"").orEmpty()},
             genres=abReadGenres(json.optJSONArray("genres")),cycles=abReadCycles(json.optJSONArray("cycles")),genreOrigin=json.optString("genreOrigin"))
+        stored.copy(cycles=SeriesAuthorityCache.cycles(prefs,title,stored.author,stored.cycles,stored.url))
     } catch(_:Exception) {BookLink(title,"",author=prefs.getString(abAuthorKey(title),"").orEmpty())}
 }
 
@@ -12360,7 +12404,8 @@ internal fun abRememberCatalog(prefs: android.content.SharedPreferences,book: Bo
     val keepExternal=compatible && old.genreOrigin.isNotBlank() && book.genreOrigin.isBlank() && book.genres.none{it in canonical}
     val genres=if(keepExternal) (old.genres+book.genres).distinct()
         else if(compatible) book.genres.ifEmpty{old.genres}.distinct() else book.genres
-    val cycles=if(compatible) abMergeCycles(book.cycles,old.cycles) else book.cycles
+    val mergedCycles=if(compatible) abMergeCycles(book.cycles,old.cycles) else book.cycles
+    val cycles=SeriesAuthorityCache.cycles(prefs,book.title,book.author.ifBlank{old.author},mergedCycles,book.url)
     val json=JSONObject().put("title",book.title).put("url",book.url.ifBlank{old.url})
         .put("cover",book.coverUrl.ifBlank{old.coverUrl}).put("author",book.author.ifBlank{old.author})
         .put("genreOrigin",book.genreOrigin.ifBlank{if(book.genres.isEmpty() || keepExternal) old.genreOrigin else ""})
@@ -12383,18 +12428,71 @@ private fun abOrderSeries(books: List<BookLink>,cycle: BookCycle): List<BookLink
 }
 
 @Composable
-private fun AbSeriesBlock(cycles: List<BookCycle>,theme: AbTheme,actions: AbActions) {
-    if(cycles.isEmpty()) return
+private fun AbSeriesBlock(cycles: List<BookCycle>,theme: AbTheme,actions: AbActions,book:BookLink?=null) {
+    val context=androidx.compose.ui.platform.LocalContext.current
+    val verification=if(book!=null)SeriesAuthorityWatcher(listOf(book),context.getSharedPreferences("audiobook_downloader",0)) else ""
+    if(cycles.isEmpty()&&verification.isBlank()) return
     Column(Modifier.fillMaxWidth().abGlass(theme,17).padding(14.dp),
         verticalArrangement=Arrangement.spacedBy(9.dp)) {
         Text("Серия и порядок чтения",color=theme.text,fontSize=16.sp,fontWeight=FontWeight.SemiBold)
+        if(verification.isNotBlank())Text(verification,color=theme.muted,fontSize=11.sp)
         cycles.forEach { cycle ->
             Text(cycle.title,color=theme.text,fontSize=14.sp)
+            if(cycle.parentTitle.isNotBlank())Text("Общий цикл: ${cycle.parentTitle}",color=theme.muted,fontSize=11.sp)
+            if(cycle.referenceUrl.isNotBlank())Text("Сверено: ${cycle.referenceSite}",color=theme.accent,fontSize=11.sp,
+                modifier=Modifier.clickable{context.startActivity(Intent(Intent.ACTION_VIEW,Uri.parse(cycle.referenceUrl)))})
+            else Text("Сведения аудиоисточника; независимая сверка не выполнена",color=theme.muted,fontSize=10.sp)
             Text(abVolumeLabel(cycle),color=theme.muted,fontSize=12.sp)
-            if(cycle.url.isNotBlank()) AbButton("Все книги серии · ${bookSiteName(cycle.url)}",theme) {actions.cycle(cycle)}
+            if(cycle.referenceUrl.isNotBlank()) AbButton("Найти аудиокниги этой серии",theme){actions.cycle(cycle)}
+            else if(cycle.url.isNotBlank()) AbButton("Все книги серии · ${bookSiteName(cycle.url)}",theme) {actions.cycle(cycle)}
             else Text("Сайт не указал ссылку на список книг",color=theme.muted,fontSize=11.sp)
         }
     }
+}
+
+@Composable
+private fun AbPlayerSeries(metadata:BookLink,ref:BookRef,books:List<LibraryBook>,prefs:android.content.SharedPreferences,
+    theme:AbTheme,actions:AbActions,onShelf:(BookRef)->Unit,onSettings:(AbSettingsSection)->Unit) {
+    val context=androidx.compose.ui.platform.LocalContext.current
+    val continuationStore=remember{ContinuationStore(context)}
+    var continuationRevision by remember{mutableStateOf(0)}
+    DisposableEffect(continuationStore){val listener=android.content.SharedPreferences.OnSharedPreferenceChangeListener{_,_->continuationRevision++}
+        continuationStore.preferences.registerOnSharedPreferenceChangeListener(listener)
+        onDispose{continuationStore.preferences.unregisterOnSharedPreferenceChangeListener(listener)}}
+    var retry by remember(metadata.title){mutableStateOf(0)}
+    val progress=SeriesAuthorityWatcher(listOf(metadata),prefs,retry)
+    if(progress.isNotBlank())Text(progress,color=theme.muted,fontSize=12.sp)
+    AbSeriesBlock(metadata.cycles,theme,actions)
+    if(metadata.cycles.isEmpty()&&progress.isBlank())Text("Серия пока не подтверждена. Выполните сверку справочников или посмотрите книги с похожим названием ниже.",color=theme.muted,fontSize=12.sp)
+    AbButton("Обновить сведения о серии",theme){retry++}
+    val nameCandidates=LocalSeriesRules.siblings(metadata.title,books.map{it.title})
+    val confirmed=metadata.cycles.firstOrNull{it.referenceUrl.isNotBlank()}
+    val local=books.filter{book->val entry=abStoredCatalog(prefs,book.title)
+        val compatible=metadata.author.isBlank()||entry.author.isBlank()||SeriesAuthorityRules.author(metadata.author)==SeriesAuthorityRules.author(entry.author)
+        compatible&&(nameCandidates.contains(book.title)||confirmed!=null&&entry.cycles.any{
+            it.referenceUrl.isNotBlank()&&SeriesAuthorityRules.series(it.title)==SeriesAuthorityRules.series(confirmed.title)})}
+    if(local.isNotEmpty()) {
+        AbHeading("Книги на устройстве",theme)
+        Text("Совпадения по названиям файлов показаны отдельно от подтверждённых сведений справочников.",color=theme.muted,fontSize=11.sp)
+        local.forEach{book->AbButton(book.title+" · на устройстве",theme){actions.openRef(bookRefFor(prefs,book.title))}}
+    }
+    val available=remember(continuationRevision,metadata.title){val seedIds=continuationStore.seeds().filter{SeriesAuthorityRules.title(it.title)==SeriesAuthorityRules.title(ref.title)}.map{it.id}.toSet()
+        continuationStore.available().filter{it.seed in seedIds&&it.url.isNotBlank()}.distinctBy{it.url}}
+    if(available.isNotEmpty()){AbHeading("Книги серии в источнике",theme);available.forEach{item->AbButton(item.title,theme){actions.openRef(BookRef(item.title,item.url,""))}}}
+    val inCollection=loadShelves(prefs).any{shelf->shelf.books.any{SeriesAuthorityRules.title(it.title)==SeriesAuthorityRules.title(ref.title)}}
+    if(!inCollection)AbButton("Добавить в коллекцию для отслеживания",theme){onShelf(ref)}
+    else {
+        val store=ContinuationStore(context)
+        val following=remember(continuationRevision,ref.title){store.preferences.getStringSet("muted_titles",emptySet()).orEmpty()}.none{it==SeriesAuthorityRules.title(ref.title)}
+        AbOptions(listOf("Следить за серией","Не следить"),if(following)0 else 1,theme){value->
+            val muted=store.preferences.getStringSet("muted_titles",emptySet()).orEmpty().toMutableSet()
+            if(value==0)muted.remove(SeriesAuthorityRules.title(ref.title)) else muted.add(SeriesAuthorityRules.title(ref.title))
+            store.preferences.edit().putStringSet("muted_titles",muted).apply()
+            if(value==0)AbContinuationAlerts.setEnabled(context,true)
+        }
+        AbButton("Проверить продолжения",theme){AbContinuationAlerts.checkNow(context)}
+    }
+    AbButton("Уведомления о сериях и новинках Литрес",theme){onSettings(AbSettingsSection.CONTINUATIONS)}
 }
 
 // A real window attachment is required by WebView's renderer. The parsing

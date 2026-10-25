@@ -77,14 +77,14 @@ internal object AbContinuationAlerts {
         val manager=context.getSystemService(NotificationManager::class.java)
         if(Build.VERSION.SDK_INT>=26)manager.createNotificationChannel(NotificationChannel(CHANNEL,"Продолжения аудиокниг",NotificationManager.IMPORTANCE_DEFAULT))
         if(Build.VERSION.SDK_INT>=26&&manager.getNotificationChannel(CHANNEL)?.importance==NotificationManager.IMPORTANCE_NONE)return
-        val store=ContinuationStore(context);val seeds=store.seeds().map{it.id}.toSet()
+        val store=ContinuationStore(context);val seeds=store.seeds().map{it.id}.toMutableSet().apply{if(store.preferences.getBoolean("litres_enabled",false))add("litres")}
         store.notices().filter{!it.notified&&!it.read&&it.seed in seeds}.forEach {notice ->
             val intent=Intent(context,MainActivity::class.java).setAction(OPEN).putExtra("continuation_id",notice.id)
                 .setData(android.net.Uri.parse("audiobook://continuation/"+notice.id))
                 .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
             val pending=PendingIntent.getActivity(context,0,intent,PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
             val notification=NotificationCompat.Builder(context,CHANNEL).setSmallIcon(R.drawable.ab_notification_book)
-                .setContentTitle("Новое продолжение: "+notice.series).setContentText(notice.title)
+                .setContentTitle(if(notice.seed=="litres")"Новая аудиокнига на Литрес" else "Новое продолжение: "+notice.series).setContentText(notice.title)
                 .setStyle(NotificationCompat.BigTextStyle().bigText(notice.title+if(notice.author.isBlank())"" else "\n"+notice.author))
                 .setContentIntent(pending).setAutoCancel(true).setOnlyAlertOnce(true).build()
             try {manager.notify(notice.id,1,notification);store.updateNotice(notice.id,notified=true)}catch(_:SecurityException){}

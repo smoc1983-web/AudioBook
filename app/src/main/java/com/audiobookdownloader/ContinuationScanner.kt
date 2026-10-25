@@ -15,7 +15,10 @@ internal class ContinuationScanner(private val context:Context,private val fetch
     private val settings=context.getSharedPreferences("audiobook_downloader",0)
     private val visited=mutableSetOf<String>()
     suspend fun scan():String {
-        val seeds=store.seeds();if(seeds.isEmpty())return "В коллекциях пока нет книг"
+        val seeds=store.seeds()
+        val library=if(seeds.isNotEmpty())scanLibrary(context) else emptyList()
+        val recovery=SeriesContinuationRecovery(context,fetcher)
+        if(seeds.isEmpty())return LitresReleaseScanner(context,fetcher).scan("В коллекциях пока нет книг")
         val errors=mutableListOf<String>();var checked=0;var added=0
         val start=store.preferences.getInt("cursor",0).mod(seeds.size)
         var cursor=start
@@ -23,10 +26,26 @@ internal class ContinuationScanner(private val context:Context,private val fetch
             currentCoroutineContext().ensureActive()
             val index=(start+offset)%seeds.size;val seed=seeds[index]
             try {
-                val metadata=abStoredCatalog(settings,seed.title)
-                val address=policy.canonical(seed.url.ifBlank{metadata.url}.ifBlank{settings.getString(bookUrlKey(seed.title),"").orEmpty()})
+                val local=LocalSeriesRules.siblings(seed.title,library.map{it.title}).map{title->
+                    ContinuationNotice(ContinuationStore.hash("local|"+seed.id+"|"+title),seed.id,title,"","На устройстве · совпадение названий","",System.currentTimeMillis())}
+                if(local.isNotEmpty())store.saveAvailable(seed.id,(store.available(seed.id).filter{it.url.isNotBlank()}+local).distinctBy{it.id})
+                var metadata=abStoredCatalog(settings,seed.title)
+                var recovered=seed.url.ifBlank{metadata.url}.ifBlank{settings.getString(bookUrlKey(seed.title),"").orEmpty()}
+                if(recovered.isBlank())library.firstOrNull{SeriesAuthorityRules.title(it.title)==SeriesAuthorityRules.title(seed.title)}?.let{recovered=recoverLibraryBookRef(context,it).url}
+                if(recovered.isBlank())recovered=recovery.findSource(seed.title,metadata.author)
+                val address=policy.canonical(recovered)
                 require(policy.book(address)){"Откройте книгу на сайте, чтобы определить её цикл"}
+                if(KnigobludSeriesParser.valid(address)) {
+                    val result=recovery.checkKnigoblud(seed,address)
+                    checked+=result.first;added+=result.second
+                    cursor=(index+1)%seeds.size;continue
+                }
                 var author=metadata.author;var cycles=metadata.cycles
+                if(cycles.any{it.referenceUrl.isNotBlank()}&&cycles.none{policy.series(it.url)}) {
+                    val restored=recovery.findSource(seed.title,author)
+                    val result=recovery.checkKnigoblud(seed,restored);checked+=result.first;added+=result.second
+                    cursor=(index+1)%seeds.size;continue
+                }
                 if(cycles.none{policy.series(it.url)}) {
                     val detail=parser.detail(fetcher.html(address),address)
                     author=detail.author.ifBlank{author}
@@ -98,6 +117,8 @@ internal class ContinuationScanner(private val context:Context,private val fetch
                     }
                     // Persist deterministic inbox entries before the snapshot: a crash cannot lose a new volume.
                     if(notices.isNotEmpty())store.mergeNotices(notices)
+                    store.saveAvailable(seed.id,(store.available(seed.id).filter{it.url.isBlank()}+collected.values.map{book->
+                        ContinuationNotice(ContinuationStore.hash(seed.id+"|"+book.url),seed.id,book.title,book.url,cycle.title,book.author,now)}).distinctBy{it.id})
                     store.writeState(key,update.state)
                     added+=notices.size;checked++
                 }
@@ -108,6 +129,6 @@ internal class ContinuationScanner(private val context:Context,private val fetch
         }
         store.preferences.edit().putInt("cursor",cursor).putLong("last_check",System.currentTimeMillis())
             .putInt("checked",checked).putInt("new_count",added).putString("errors",JSONArray(errors.distinct().take(12)).toString()).commit()
-        return "Проверено циклов: $checked. Новых продолжений: $added."+if(errors.isNotEmpty())" Не все книги удалось проверить." else ""
+        return LitresReleaseScanner(context,fetcher).scan("Проверено циклов: $checked. Новых продолжений: $added."+if(errors.isNotEmpty())" Не все книги удалось проверить." else "")
     }
 }

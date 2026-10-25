@@ -53,12 +53,13 @@
         }
         function seriesTitle(v) {return String(v||'').replace(/^\s*(?:цикл|серия|серии)\s*[:–—-]?\s*/i,'').trim();}
         function seriesLink(a) {
-            var p=a.parentElement, sig=(a.className||'')+' '+(a.getAttribute('itemprop')||'')+' '+(p?p.className||'':'');
-            var href=absolute(a.getAttribute('href'));
-            return sameSite(href)&&(/\/(?:series|cycle|cycles|serii|cikly|collections?)\//i.test(href)||
-                /series|cycle|isPartOf|цикл|серия/i.test(sig)||
-                /^\s*(?:цикл|серия)\s*[:–—-]/i.test(text(a))||
-                (text(p).length<200&&/(?:^|\s)(?:цикл|серия)\s*[:–—-]/i.test(text(p))));
+            var p=a.parentElement, own=String(a.className||''), prop=String(a.getAttribute('itemprop')||''), href=absolute(a.getAttribute('href'));
+            // Entries inside a cycle list are books, even when their class/parent contains "Series".
+            if(/BookDescriptionSeriesItem|(?:series|cycle)[-_]?(?:book|item)/i.test(own))return false;
+            var nearby=text(p), labeled=nearby.length<220&&(/^(?:\s*📚\s*)?(?:цикл|серия)\s*[:«"–—-]/i.test(nearby)||/^\s*📚\s*[^📕✍🎙]/.test(nearby));
+            var dedicated=/isPartOf/i.test(prop)||/(?:^|[ _-])(?:series|cycle)[_-](?:link|name|title)(?:$|[ _-])/i.test(own);
+            return sameSite(href)&&(/\/(?:series|cycle|cycles|serii|cikly|collections?)\//i.test(href)||dedicated||labeled||
+                /^\s*(?:цикл|серия)\s*[:–—-]/i.test(text(a)));
         }
         function merge(a,b) {
             var ar=a.genreRank||0,br=b.genreRank||0;
@@ -128,12 +129,12 @@
             var content=document.querySelector('main, [role="main"]')||document.body||document;
             var links=content.querySelectorAll('a[href]');
             for(var j=0;j<links.length;j++) {
-                var a=links[j];if(a.closest('nav, header, footer, [class*="recommend"], [class*="related"], [class*="book-card"], [class*="book-item"], [data-book]'))continue;
+                var a=links[j];if(a.closest('nav, header, footer, [class*="recommend"], [class*="related"], [class*="book-card"], [class*="book-item"], .bookListItem, [data-book]'))continue;
                 var isolated={querySelectorAll:function(){return [a];},querySelector:function(){return null;}};
                 meta=merge(meta,card(isolated,location.href,heading,null,null,false));
             }
             var nodes=content.querySelectorAll('[itemprop="genre"]');
-            for(var k=0;k<nodes.length;k++)if(!nodes[k].closest('[class*="recommend"], [class*="related"], [class*="book-card"], [class*="book-item"], [data-book]')) {
+            for(var k=0;k<nodes.length;k++)if(!nodes[k].closest('[class*="recommend"], [class*="related"], [class*="book-card"], [class*="book-item"], .bookListItem, [data-book]')) {
                 var value=nodes[k].getAttribute('content')||text(nodes[k]);
                 value.split(/[,;|]/).forEach(function(v){if(normal(v))meta.genres=meta.genres.concat(allGenres(v).length?allGenres(v):[v.trim()]);});
             }
@@ -141,5 +142,5 @@
             else {var inferred=routeGenre(location.href);if(inferred){meta.genres.push(inferred);meta.genreRank=1;}}
             meta.genres=unique(meta.genres);return meta;
         }
-        return {card:card,schema:schema,current:current,merge:merge,genre:genre,matches:matches,allGenres:allGenres,routeGenre:routeGenre,volume:volume};
+        return {card:card,schema:schema,current:current,merge:merge,genre:genre,matches:matches,allGenres:allGenres,routeGenre:routeGenre,volume:volume,seriesLink:seriesLink};
     })()

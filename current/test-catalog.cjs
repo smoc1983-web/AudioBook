@@ -58,6 +58,10 @@ test('Series detail block gets explicit Roman volume and excludes related series
         <div class="related">${card('/fentezi/someone/castle','Замок','<a class="series-link" href="/series/999/other">Чужая серия</a>')}</div></main>`);
     assert.equal(result.cycles.length,1);assert.equal(result.cycles[0].title,'Каменный век');assert.equal(result.cycles[0].order,2);
 });
+test('Knigoblud sibling book links cannot become false cycle names',()=>{
+ const result=read(kb('a'),`<main><h1>Отдел 15-К</h1><div class="BookDescription BookSeries"><div class="BookDescriptionLabel">📚 Цикл «<a href="${kb('b')}">Отдел 15-К</a>»</div><div class="BookDescriptionContent"><a class="BookDescriptionSeriesItem" href="${kb('c')}"><span class="BookDescriptionSeriesItemIndex">2.</span> <span class="BookDescriptionSeriesItemName">Золото мертвых</span> (в исполнении Олега Троицкого)</a></div></div><div class="bookListItem"><a href="${kb('d')}" class="series-name">Рекомендованная чужая серия</a></div></main>`);
+ assert.deepEqual(result.cycles.map(x=>x.title),['Отдел 15-К']);
+});
 test('Series membership without URL is retained without inventing a destination',()=>{
     const url='https://bookinfo.net/fantastika/lev-belin/tom-3';
     const result=read(url,'<main><h1>Книга 3</h1></main>'+ld({'@type':'Book',name:'Книга 3',isPartOf:{'@type':'BookSeries',name:'Каменный век'}}));
