@@ -20,6 +20,7 @@
 - [Онлайн-время и независимый общий поиск](docs/ONLINE-TIME-SEARCH.md)
 - [Шторка, виджеты и стабильная конфигурация](docs/MEDIA-WIDGETS-STABLE.md)
 - [Прежние 13 источников и удаление трёх сайтов](docs/SOURCES-13.md)
+- [Скачать без GitHub: APK или ZIP](https://audiobook-smoc1983-updates.amplecoot2048.chatgpt.site)
 - [Скачать APK 4.2-preview.48](https://github.com/smoc1983-web/AudioBook/releases/download/preview-v100048/Audiobook-Preview.apk)
 - [Скачать APK 4.2-preview.27](https://github.com/smoc1983-web/AudioBook/releases/download/preview-v100027/Audiobook-Preview.apk)
 - [Сравнение открытых реализаций, новый цилиндрический движок и проверка кадров](docs/CYLINDRICAL-PAGE-CURL.md)

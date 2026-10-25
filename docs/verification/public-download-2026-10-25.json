@@ -1,0 +1,97 @@
+{
+  "apkUnchanged": true,
+  "apkVersion": "4.2-preview.48",
+  "local": {
+    "date": "2026-10-25T04:00:48.788Z",
+    "origin": "http://127.0.0.1:8765",
+    "mobileEmulation": true,
+    "physicalSamsung": false,
+    "errors": [],
+    "downloads": [
+      {
+        "kind": "apk",
+        "bytes": 37024328,
+        "sha256": "372429e5b4c6f651baf6df88d4c9b25390053a2c8ca69ac2fd54bc8a2329defd",
+        "downloadCompleted": true,
+        "fileName": "local-Audiobook-Preview-4.2-preview.48.apk"
+      },
+      {
+        "kind": "zip",
+        "bytes": 37024498,
+        "sha256": "29e0a3916e08c4f6b0635f21b6692e47c918ea9cb89d75a0bff74ed9853b2117",
+        "downloadCompleted": true,
+        "fileName": "local-Audiobook-Preview-4.2-preview.48.zip"
+      }
+    ],
+    "cases": [
+      {
+        "case": "interruption",
+        "passed": true,
+        "requests": [
+          1,
+          4,
+          1
+        ]
+      },
+      {
+        "case": "wrong-package",
+        "passed": true,
+        "requests": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "case": "corruption",
+        "passed": true,
+        "requests": [
+          3,
+          0,
+          0
+        ]
+      }
+    ]
+  },
+  "live": {
+    "date": "2026-10-25T04:03:15.354Z",
+    "origin": "https://audiobook-smoc1983-updates.amplecoot2048.chatgpt.site",
+    "mobileEmulation": true,
+    "physicalSamsung": false,
+    "errors": [],
+    "downloads": [
+      {
+        "kind": "apk",
+        "bytes": 37024328,
+        "sha256": "372429e5b4c6f651baf6df88d4c9b25390053a2c8ca69ac2fd54bc8a2329defd",
+        "downloadCompleted": true,
+        "fileName": "live-Audiobook-Preview-4.2-preview.48.apk"
+      },
+      {
+        "kind": "zip",
+        "bytes": 37024498,
+        "sha256": "29e0a3916e08c4f6b0635f21b6692e47c918ea9cb89d75a0bff74ed9853b2117",
+        "downloadCompleted": true,
+        "fileName": "live-Audiobook-Preview-4.2-preview.48.zip"
+      }
+    ],
+    "cases": []
+  },
+  "zipExtractionVerified": true,
+  "apkInsideZipMatchesSignedBuild": true,
+  "projectId": "appgprj_6add1a69b6f481918b5e390c8f413992",
+  "siteSourceCommit": "d01663abb178babc2e5db90411510cb39ed20f1a",
+  "siteVersion": "appgprj_6add1a69b6f481918b5e390c8f413992~appgver_0c87550fcf448191b1f69e8ba2dec6f9",
+  "siteVersionNumber": 3,
+  "deploymentId": "appgdep_6add7f5e8ce481919d6dabf14a07af51",
+  "deploymentStatus": "succeeded",
+  "apkSignatureVerified": true,
+  "arm64LoadSegmentAlignment": [
+    16384,
+    16384,
+    16384
+  ],
+  "zipalign16KiBPassed": true,
+  "deviceInstallFailureCauseKnown": false,
+  "physicalPhoneInstallTested": false
+}

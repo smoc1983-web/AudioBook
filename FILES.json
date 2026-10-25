@@ -1,5 +1,5 @@
 {
-  "revision": "preview-48-primary-channel-and-shared-audio-folder",
+  "revision": "preview-48-public-apk-zip-download-and-installation-audit",
   "storage": "GitHub export; see releases/ARCHIVE-PARTS.json for three multipart historical ZIPs",
   "files": [
     {
@@ -14,8 +14,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 12324,
-      "sha256": "b6ed94dfb1cba795fe4630ebe85dd216d2514b49644f5a7fd8ce244c89d938c5"
+      "bytes": 12436,
+      "sha256": "fbc0551d22bd5d952d4af2725f376d72a27d43c7e7ba0ac0726b9363c9781daa"
     },
     {
       "path": "app/build.gradle.kts",
@@ -1139,8 +1139,8 @@
     },
     {
       "path": "docs/HANDOFF.md",
-      "bytes": 39480,
-      "sha256": "265d0ffefb282a6b619a386a4f8275af804ca671bf096402f95d48f016b24d47"
+      "bytes": 43182,
+      "sha256": "5b4d6eef556e0279300fd938f80c540db195ec24046e008a0123fb79b62f1ebc"
     },
     {
       "path": "docs/INSTALL.md",
@@ -1174,8 +1174,8 @@
     },
     {
       "path": "docs/PREVIEW-AS-MAIN.md",
-      "bytes": 6325,
-      "sha256": "f5f7cf587e52945870e8c20bc279027b409a353f9f65b31f61ea472e148518f7"
+      "bytes": 6901,
+      "sha256": "2a0accd91d96c8335391ba0881a0564af25c99cf0fc482dad6d4e44f1bba0b33"
     },
     {
       "path": "docs/PREVIEW-UPDATES.md",
@@ -1286,6 +1286,11 @@
       "path": "docs/tools/inspect_preview_apk.py",
       "bytes": 6085,
       "sha256": "37d707c7c0822e2d91ba784535bf0739962c14f7072ebc33e2e07a14128bc1a9"
+    },
+    {
+      "path": "docs/tools/test-public-download.cjs",
+      "bytes": 4717,
+      "sha256": "94ccf200ebf29a2235be0e6be543722be5e09f706b7711d5aa1cfa3c1fa7c5f7"
     },
     {
       "path": "docs/verification/checks-100027.json",
@@ -1491,6 +1496,11 @@
       "path": "docs/verification/preview-thirteen-source-http-2026-10-21.json",
       "bytes": 4326,
       "sha256": "8ec57dc0bb02f45c2fa722386661133cc8250c9fe6a688d7def89f8fe590dda2"
+    },
+    {
+      "path": "docs/verification/public-download-2026-10-25.json",
+      "bytes": 2612,
+      "sha256": "e448801358f4772665c3d8756627285b94b87b8d80d4c8e0d1cb0125a03370ed"
     },
     {
       "path": "docs/verification/screenshot-source-probes-2026-10-21.json",
@@ -10118,14 +10128,19 @@
       "sha256": "2bae67ec49c6f1c811ed3e002ffb0f463f5424395f01ce412a3ec9291e886843"
     },
     {
+      "path": "hosting/updates/download.js",
+      "bytes": 6169,
+      "sha256": "9efcc0e52622539a79af501abad5adf5af10a21b9ab5f4ee4f0088c2be8e9b5f"
+    },
+    {
       "path": "hosting/updates/hosting.json",
       "bytes": 88,
       "sha256": "b35a025c1abfe8ad546acb9ec2e49622489f498c549f9ecb7b7ca3e02b0e7e88"
     },
     {
       "path": "hosting/updates/index.html",
-      "bytes": 1012,
-      "sha256": "61f821fc1f6b41c8fd243c8b5db263878aa79cf7f65ee868b0b8f1e0ed152543"
+      "bytes": 3995,
+      "sha256": "4957cb7c2d61b0fc6ffb78414c72b05b10b2ea94dc5fcb9b4a491d6ef9608115"
     },
     {
       "path": "references/diagnostics/268195a8-0e94-4ecd-a037-fafe6dd7e278/Audiobook-report-2026-10-18_14-09-57-4668715165283423442.txt",
