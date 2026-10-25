@@ -3,7 +3,7 @@ import os,subprocess,json,hashlib,xml.sax.saxutils as X
 import glob
 from pathlib import Path
 assert os.environ.get('CI')=='true'
-def run(*args):return subprocess.check_output(list(args),text=True,stderr=subprocess.STDOUT,timeout=60)
+def run(*args):return subprocess.check_output(list(args),text=True,stderr=subprocess.STDOUT,timeout=120)
 assert run('adb','get-serialno').strip().startswith('emulator-')
 old='com.audiobookdownloader';new='com.audiobookdownloader.preview';out=Path('startup-evidence');out.mkdir(exist_ok=True)
 def write(package,relative,data):

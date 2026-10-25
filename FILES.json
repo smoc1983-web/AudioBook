@@ -20,12 +20,12 @@
     {
       "path": "app/build.gradle.kts",
       "bytes": 3818,
-      "sha256": "bf3be9523a0bb741f1573cbdff19cf2401186d6e1cce12c385cdc7347c8c209c"
+      "sha256": "f41ad117bfe392a8c9848b540f93a8e41d259d5adebed9d097f18a6ae173476b"
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/CollectionTransferTest.java",
-      "bytes": 7546,
-      "sha256": "49a23793d3fcdde7ff3397c01df75ed4394356a9ab022d733f6d4d2917e5fbf5"
+      "bytes": 7564,
+      "sha256": "034a3abe4bb14285b15827c6a13e38f096456dad6816875e187c29215741fa51"
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/ContinuationWorkerTest.kt",
@@ -10599,8 +10599,8 @@
     },
     {
       "path": "scripts/test-legacy-collections.py",
-      "bytes": 4593,
-      "sha256": "c67d2aa850a7adad7011fe07b994543d3994dfad8a150d7d8a0b7dd761bfcbfb"
+      "bytes": 4594,
+      "sha256": "f4611f099a4cb27d5770a7afb93001bd6a70f982153ee7ddfa0dbc6694c6d9e6"
     },
     {
       "path": "scripts/test-preview-upgrade.py",

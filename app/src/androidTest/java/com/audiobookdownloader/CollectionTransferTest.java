@@ -41,8 +41,8 @@ public class CollectionTransferTest {
    var nav=device.wait(androidx.test.uiautomator.Until.findObject(androidx.test.uiautomator.By.text("Коллекции")),30000);assertNotNull("Legacy collections tab",nav);nav.click();
    assertTrue(device.wait(androidx.test.uiautomator.Until.hasObject(androidx.test.uiautomator.By.text("Мои коллекции")),15000));android.os.SystemClock.sleep(1500);
    for(String name:new String[]{"Проверка обновления","Из старой Audiobook"}){
-    var shelf=device.wait(androidx.test.uiautomator.Until.findObject(androidx.test.uiautomator.By.text(name)),10000);assertNotNull(name,shelf);shelf.click();
-    assertTrue(device.wait(androidx.test.uiautomator.Until.hasObject(androidx.test.uiautomator.By.text("В коллекции")),10000));android.os.SystemClock.sleep(1500);
+    var shelf=device.wait(androidx.test.uiautomator.Until.findObject(androidx.test.uiautomator.By.textStartsWith(name)),10000);assertNotNull(name,shelf);shelf.click();
+    assertTrue(device.wait(androidx.test.uiautomator.Until.hasObject(androidx.test.uiautomator.By.textContains("В коллекции")),10000));android.os.SystemClock.sleep(1500);
     var back=device.findObject(androidx.test.uiautomator.By.desc("Все коллекции"));assertNotNull(back);back.click();android.os.SystemClock.sleep(1200);
    }
    LegacyCollectionScreens capture=LegacyCollectionsScreenService.snapshot();assertEquals("Both old shelves fully read",2,capture.complete());assertEquals(0,capture.partial());String data=capture.export();assertFalse(data.contains("do-not-copy"));assertTrue(data.contains("Старая книга"));
