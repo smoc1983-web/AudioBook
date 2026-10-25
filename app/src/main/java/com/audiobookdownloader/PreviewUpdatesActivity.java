@@ -22,6 +22,7 @@ public final class PreviewUpdatesActivity extends Activity {
     private TextView status;
     private Button check,download,install;
     private boolean waitingForPermission;
+    private static final int INSTALL_REQUEST=72;
     private int dp(int value){return (int)(getResources().getDisplayMetrics().density*value+.5f);}
     private TextView text(LinearLayout root,String value,int size){
         TextView view=new TextView(this);view.setText(value);view.setTextSize(size);view.setTextColor(Color.WHITE);
@@ -36,6 +37,7 @@ public final class PreviewUpdatesActivity extends Activity {
     }
     @Override public void onCreate(Bundle state){
         super.onCreate(state);updater=new PreviewUpdater(this);
+        waitingForPermission=state!=null&&state.getBoolean("waitingForInstallPermission",false);
         getWindow().setStatusBarColor(0xff171228);getWindow().setNavigationBarColor(0xff171228);
         ScrollView scroll=new ScrollView(this);scroll.setBackgroundColor(0xff171228);
         LinearLayout root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setPadding(dp(22),dp(18),dp(22),dp(30));
@@ -85,25 +87,45 @@ public final class PreviewUpdatesActivity extends Activity {
         });
     }
     private void install(){
-        run(()->{
-            updater.verifyApk(updater.target(),null);
-            runOnUiThread(()->{if(!isDestroyed()&&!isFinishing())launchInstaller();});
-            return "APK проверен. Подтвердите установку в Android.";
+        busy(true);status.setText("Проверяю APK перед установкой…");
+        worker.submit(()->{
+            String error=null;
+            try{updater.verifyApk(updater.target(),null);}catch(Exception e){error=e instanceof java.io.IOException?e.getMessage():"Не удалось проверить APK. Загрузите обновление заново.";}
+            final String failure=error;
+            runOnUiThread(()->{if(isDestroyed()||isFinishing())return;busy(false);
+                if(failure!=null)status.setText(failure);else launchInstaller();
+            });
         });
     }
-    private void launchInstaller(){
+    // Package-private so instrumentation exercises the real provider and system installer.
+    void launchInstaller(){
         try{
             File file=updater.target();
             if(Build.VERSION.SDK_INT>=26&&!getPackageManager().canRequestPackageInstalls()){
                 waitingForPermission=true;
+                status.setText("Разрешите установку из Audiobook и вернитесь сюда. APK сохранён.");
                 startActivity(new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,Uri.parse("package:"+getPackageName())));return;
             }
-            Uri apk=FileProvider.getUriForFile(this,getPackageName()+".updates",file);
-            Intent intent=new Intent(Intent.ACTION_VIEW).setDataAndType(apk,"application/vnd.android.package-archive")
-                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-            intent.setClipData(ClipData.newRawUri(BuildConfig.PRODUCT_NAME,apk));startActivity(intent);
-        }catch(Exception e){status.setText(e instanceof java.io.IOException?e.getMessage():"Не удалось открыть установщик Android");}
+            Intent intent=installerIntent(this,file);
+            startActivityForResult(intent,INSTALL_REQUEST);
+            status.setText("Запрошено системное подтверждение установки. Подтвердите обновление в окне Android.");
+        }catch(IllegalArgumentException e){status.setText("Файл обновления недоступен установщику. Загрузите APK со страницы обновлений и откройте через «Мои файлы».");}
+        catch(SecurityException e){status.setText("Android заблокировал запуск установщика. Проверьте разрешение установки для Audiobook. Если Samsung показывает отдельное сообщение блокировки, следуйте его указаниям.");}
+        catch(Exception e){status.setText("Не удалось открыть установщик Android. Откройте APK со страницы обновлений через «Мои файлы».");}
     }
+    static Intent installerIntent(Context context,File file){
+        Uri apk=FileProvider.getUriForFile(context,context.getPackageName()+".updates",file);
+        Intent intent=new Intent(Intent.ACTION_VIEW).setDataAndType(apk,"application/vnd.android.package-archive")
+            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION).putExtra(Intent.EXTRA_RETURN_RESULT,true);
+        intent.setClipData(ClipData.newRawUri(BuildConfig.PRODUCT_NAME,apk));return intent;
+    }
+    @Override protected void onActivityResult(int request,int result,Intent data){super.onActivityResult(request,result,data);
+        if(request==INSTALL_REQUEST){
+            if(result==RESULT_OK)status.setText("Android подтвердил установку обновления.");
+            else status.setText("Установка не завершена. Если Android показал ошибку, сохраните её текст. APK остаётся доступен для повторной попытки.");
+        }
+    }
+    @Override protected void onSaveInstanceState(Bundle state){state.putBoolean("waitingForInstallPermission",waitingForPermission);super.onSaveInstanceState(state);}
     @Override protected void onResume(){super.onResume();
         if(waitingForPermission){waitingForPermission=false;
             if(Build.VERSION.SDK_INT>=26&&getPackageManager().canRequestPackageInstalls())install();

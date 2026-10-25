@@ -1,5 +1,5 @@
 {
-  "revision": "audiobook-4.2.53-legacy-collections-transfer-verified",
+  "revision": "audiobook-installer-path-and-error-delivery-fix",
   "storage": "GitHub export; see releases/ARCHIVE-PARTS.json for three multipart historical ZIPs",
   "files": [
     {
@@ -31,6 +31,11 @@
       "path": "app/src/androidTest/java/com/audiobookdownloader/ContinuationWorkerTest.kt",
       "bytes": 6253,
       "sha256": "22953b3bba4dccfb728eb4817e39f4af7cac19785fa1502ebf9850adfc4cd0ad"
+    },
+    {
+      "path": "app/src/androidTest/java/com/audiobookdownloader/InstallerLaunchTest.java",
+      "bytes": 4838,
+      "sha256": "392d23a564deec091609a32031033ce37b77cf17aae6046ed7c2673f1a28e67d"
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/OnlineDurationTest.java",
@@ -239,8 +244,8 @@
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/PreviewUpdatesActivity.java",
-      "bytes": 9031,
-      "sha256": "35dc61acb666921a96d97bdcd2c86475abfcf5c07a76bb23b938cad9a2018ab4"
+      "bytes": 11508,
+      "sha256": "66b3320bfd8d6b1990a023c000f59c94c01bf776aa5ebcf2b045706ef2bd8f5b"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/SleepShakeDetector.java",
@@ -304,8 +309,8 @@
     },
     {
       "path": "app/src/main/res/xml/preview_update_paths.xml",
-      "bytes": 121,
-      "sha256": "2b21f1f67b8fb2625fee62f2201977c4643d2cf894c4642dfce277861850241e"
+      "bytes": 117,
+      "sha256": "7cf3e68ddc8f9e03584e4be4a45c864666348904f7da22f9fbcabc0ef36b8292"
     },
     {
       "path": "app/src/test/java/com/audiobookdownloader/AbBookTimeRulesTest.java",
