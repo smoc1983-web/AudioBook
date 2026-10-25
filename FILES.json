@@ -1,5 +1,5 @@
 {
-  "revision": "4.2-preview.48-and-original-signing-key-search",
+  "revision": "preview-48-primary-channel-and-shared-audio-folder",
   "storage": "GitHub export; see releases/ARCHIVE-PARTS.json for three multipart historical ZIPs",
   "files": [
     {
@@ -14,8 +14,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 12164,
-      "sha256": "d6be4b28b5a07aebb82547eb75c659becef7b9ff5b11b15d390c0d8fa4e99f04"
+      "bytes": 12324,
+      "sha256": "b6ed94dfb1cba795fe4630ebe85dd216d2514b49644f5a7fd8ce244c89d938c5"
     },
     {
       "path": "app/build.gradle.kts",
@@ -1139,8 +1139,8 @@
     },
     {
       "path": "docs/HANDOFF.md",
-      "bytes": 37295,
-      "sha256": "e317bfa586d8e67bc299a96e84d8636ad746bd5c7208eee9f894bf9df84ed0f4"
+      "bytes": 39480,
+      "sha256": "265d0ffefb282a6b619a386a4f8275af804ca671bf096402f95d48f016b24d47"
     },
     {
       "path": "docs/INSTALL.md",
@@ -1173,9 +1173,14 @@
       "sha256": "bea14cb2b1605233564ab3bfe57b2baec4559b710163d472b42ada0aa4dda772"
     },
     {
+      "path": "docs/PREVIEW-AS-MAIN.md",
+      "bytes": 6325,
+      "sha256": "f5f7cf587e52945870e8c20bc279027b409a353f9f65b31f61ea472e148518f7"
+    },
+    {
       "path": "docs/PREVIEW-UPDATES.md",
-      "bytes": 8685,
-      "sha256": "c0090904682de7bc1c44a9f8cfc4b34335b80802e4cd395daac599707709971d"
+      "bytes": 9262,
+      "sha256": "3c168ce6c2a4c7994ab6d1e1e3db509dbfe93fb1a33c1d9e56425b7369069633"
     },
     {
       "path": "docs/SCREENSHOT-SOURCES.md",
@@ -1466,6 +1471,11 @@
       "path": "docs/verification/preview-100048.json",
       "bytes": 660,
       "sha256": "c1775fab7323809c4088f47f1798d63db5dfaa02eebb8aca4dee78503b77be8a"
+    },
+    {
+      "path": "docs/verification/preview-as-main-2026-10-25.json",
+      "bytes": 409,
+      "sha256": "9d98064c5b9643d81f9f3daa2f989f353f14e690607911d3b9984c90b47d43d6"
     },
     {
       "path": "docs/verification/preview-four-source-http-2026-10-21.json",

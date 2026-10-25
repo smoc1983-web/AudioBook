@@ -1,0 +1,12 @@
+{
+  "package": "com.audiobookdownloader.preview",
+  "version": "4.2-preview.48",
+  "versionCode": 100048,
+  "signatureValid": true,
+  "certificateMatchesExistingPreview": true,
+  "publicUpdateFeedMatchesApk": true,
+  "size": 37024328,
+  "sha256": "372429e5b4c6f651baf6df88d4c9b25390053a2c8ca69ac2fd54bc8a2329defd",
+  "privateStableSettingsAutomaticallyTransferred": false,
+  "physicalPhoneInstalled": false
+}
