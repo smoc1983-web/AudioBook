@@ -1,0 +1,37 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuite name="com.audiobookdownloader.CollectionTransferTest" tests="21" failures="0" errors="0" skipped="4" time="56.228" timestamp="2026-10-25T17:45:19" hostname="localhost">
+  <properties>
+    <property name="device" value="emulator-5554 - 16" />
+    <property name="flavor" value="" />
+    <property name="project" value=":app" />
+  </properties>
+  <testcase name="importBacksUpAndUndoPreservesOtherSettings" classname="com.audiobookdownloader.CollectionTransferTest" time="0.158" />
+  <testcase name="legacySnapshotMergesIntoRealCollections" classname="com.audiobookdownloader.CollectionTransferTest" time="0.003">
+    <skipped />
+  </testcase>
+  <testcase name="nativeScreenDoesNotImportWithoutConfirmation" classname="com.audiobookdownloader.CollectionTransferTest" time="1.243" />
+  <testcase name="legacyReleaseScreensTransferWithoutPrivateAccess" classname="com.audiobookdownloader.CollectionTransferTest" time="0.003">
+    <skipped />
+  </testcase>
+  <testcase name="laterChangesAndCorruptInputCannotBeOverwritten" classname="com.audiobookdownloader.CollectionTransferTest" time="0.126" />
+  <testcase name="workerBaselinesConfirmsDeduplicatesAndPreservesSnapshotOnFailure" classname="com.audiobookdownloader.ContinuationWorkerTest" time="1.422" />
+  <testcase name="downloadedPathIsReadableAndOtherPrivateFilesStayHidden" classname="com.audiobookdownloader.InstallerLaunchTest" time="0.197" />
+  <testcase name="verifiedCachePathActuallyOpensAndroidInstaller" classname="com.audiobookdownloader.InstallerLaunchTest" time="11.058" />
+  <testcase name="verificationFailureRemainsVisibleAndDoesNotClaimInstallation" classname="com.audiobookdownloader.InstallerLaunchTest" time="0.908" />
+  <testcase name="nativeMetadataReadsBoundedRangesAndDurationIsCachedForOnlineChapters" classname="com.audiobookdownloader.OnlineDurationTest" time="0.062" />
+  <testcase name="texturedCylinderRendersBothDirectionsAndExportsFrames" classname="com.audiobookdownloader.PageCurlRenderTest" time="0.534" />
+  <testcase name="explicitSourceCycleWorksWhenReferenceSearchHasNoMatch" classname="com.audiobookdownloader.SeriesRecoveryTest" time="0.111" />
+  <testcase name="legacyOriginRecoveryShowsExistingSecondVolumeAndExcludesAnotherDirectSeries" classname="com.audiobookdownloader.SeriesRecoveryTest" time="0.414" />
+  <testcase name="litresBaselineAndDateValidationSurviveSourceFailure" classname="com.audiobookdownloader.SeriesRecoveryTest" time="0.132" />
+  <testcase name="mainNavigationRecreationAndNativeRecoveryRemainUsable" classname="com.audiobookdownloader.StartupSmokeTest" time="24.817" />
+  <testcase name="playerAddsCurrentBookAndRealSensorRestartsSleepCountdown" classname="com.audiobookdownloader.StartupSmokeTest" time="12.937" />
+  <testcase name="installedVersionCannotBeInstalledAgain" classname="com.audiobookdownloader.UpdateScreenTest" time="0.254" />
+  <testcase name="threeUpdateActionsAndNoAccountFields" classname="com.audiobookdownloader.UpdateScreenTest" time="0.138" />
+  <testcase name="oldUpdaterAcceptsNewSignedApk" classname="com.audiobookdownloader.UpgradeCandidateTest" time="0.037">
+    <skipped />
+  </testcase>
+  <testcase name="installedUpgradeKeepsDataAndNewName" classname="com.audiobookdownloader.UpgradeCandidateTest" time="0.006">
+    <skipped />
+  </testcase>
+  <testcase name="previewsHaveIntrinsicHeightAndRenderAllNineThemes" classname="com.audiobookdownloader.WidgetPreviewTest" time="0.564" />
+</testsuite>

@@ -1,0 +1,11 @@
+{
+  "userAgent": "Audiobook-Updater/4.2.57",
+  "origin": "https://audiobook-smoc1983-updates.amplecoot2048.chatgpt.site/updates/",
+  "versionCode": 100062,
+  "partCount": 5,
+  "bytes": 37142065,
+  "sha256": "744135becfa5b1cbfe0df9124a4d78d62361d1dedfb1ea95040dbd2d75242fc1",
+  "allPartChecksumsMatch": true,
+  "completeApkChecksumMatches": true,
+  "physicalPhone": false
+}

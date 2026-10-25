@@ -20,3 +20,19 @@ External layouts/availability can change. Ambiguous identity, incomplete paginat
 ## Validation
 
 Metadata-only recorded fixtures under app/src/test/resources/series-metadata document the exact public pages. JVM tests cover identity, direct/parent distinction, existing Hotel volume 2, release dates, and update acknowledgement. Native SeriesRecoveryTest covers recovery with a missing old URL, an already published second volume, exclusion of another subseries, third-volume notification, deduplication, offline retention, muting, and Litres baseline/retry. The existing complete CI suite and actual old-to-new installation checks remain required before public publication.
+
+## Проверка на телефоне
+
+1. Обновите установленную новую Audiobook через Настройки → Обновления. Удаление и очистка данных не нужны.
+2. Откройте первую книгу → Серия. Блок «Книги на устройстве» показывает подходящие скачанные тома даже без сохранённого адреса источника. Совпадения названий явно отделены от независимой сверки.
+3. Добавьте книгу в коллекцию и нажмите «Проверить продолжения». Найденные ранее вышедшие книги доступны в отдельном списке. Первая успешная проверка не рассылает уведомления о старых релизах.
+4. Подписка на новые аудиокниги Литрес включается отдельно в настройках продолжений. Системное разрешение уведомлений должно быть включено.
+5. «Что нового» автоматически открывается после обновления и доступно вручную в настройках.
+
+## Выпуск 4.2.62
+
+[Полный прогон GitHub Actions](https://github.com/smoc1983-web/AudioBook/actions/runs/40217391065) завершился успешно. Для каждого варианта — 102 успешных JVM-теста и один необязательный пропуск. На Android 36 — 17 основных успешных проверок; четыре opt-in проверки выполнены отдельно. Реально установленная 4.2.57 проверила новый APK и открыла системное подтверждение; отдельная замена пакета сохранила настройки, полку, выбранную папку и контрольный приватный файл. Подпись, applicationId и выравнивание APK проверены.
+
+Нативные сценарии подтверждают: восстановление отсутствующего адреса, второй том в тихой исходной выборке, исключение чужой подсерии, оповещение о третьем томе, отсутствие повторов, сохранение списка при ошибке сети, источник без совпадения в справочнике и подписку на новые аудиокниги Литрес. Метаданные обеих настоящих страниц «Отеля Перекресток» прочитаны отдельно; полное воспроизведение этих записей и физический Samsung в этой проверке не использовались.
+
+[Данные проверок](verification/checks-100062.json). Новое приложение обновляется поверх установленного нового канала; старую стабильную Audiobook удалять не нужно.
