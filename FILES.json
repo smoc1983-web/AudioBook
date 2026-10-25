@@ -1,5 +1,5 @@
 {
-  "revision": "predanie-direct-updates-runtime-checks",
+  "revision": "4.2-preview.48-predanie-direct-updates-verified",
   "storage": "GitHub export; see releases/ARCHIVE-PARTS.json for three multipart historical ZIPs",
   "files": [
     {
@@ -14,8 +14,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 11004,
-      "sha256": "b95adc5f42e33ec57a4fbea3cbc502695fd11fd755277c141e20123c4dbe3e04"
+      "bytes": 12164,
+      "sha256": "d6be4b28b5a07aebb82547eb75c659becef7b9ff5b11b15d390c0d8fa4e99f04"
     },
     {
       "path": "app/build.gradle.kts",
@@ -1139,8 +1139,8 @@
     },
     {
       "path": "docs/HANDOFF.md",
-      "bytes": 28073,
-      "sha256": "9f6151249a15a6ee7e352b618d2109262fd47a9b112441e176aebf03d08eedd6"
+      "bytes": 35702,
+      "sha256": "a42ec845dfee80a6dc496e7abb5e18232f8396bf38097d8a012c13a5a41e7ade"
     },
     {
       "path": "docs/INSTALL.md",
@@ -1169,13 +1169,13 @@
     },
     {
       "path": "docs/PREDANIE-AND-DIRECT-UPDATES.md",
-      "bytes": 6242,
-      "sha256": "26396a72131a268fdea5acf9711a95eccf0848a224dccef95ef6375010ff96c8"
+      "bytes": 10337,
+      "sha256": "bea14cb2b1605233564ab3bfe57b2baec4559b710163d472b42ada0aa4dda772"
     },
     {
       "path": "docs/PREVIEW-UPDATES.md",
-      "bytes": 8565,
-      "sha256": "8bbd47774e168d847ab8789da31bc0d86556ed496dfddb0207c94a5800558768"
+      "bytes": 8685,
+      "sha256": "c0090904682de7bc1c44a9f8cfc4b34335b80802e4cd395daac599707709971d"
     },
     {
       "path": "docs/SCREENSHOT-SOURCES.md",
@@ -1199,8 +1199,8 @@
     },
     {
       "path": "docs/STABLE-INSTALL.md",
-      "bytes": 6520,
-      "sha256": "fbaa936560bcd47229cff02ed17e251c387953678b5b94d924133d9be848b266"
+      "bytes": 7009,
+      "sha256": "e0ad6dbaf6bfed935c45b386daf008b276f6842d1397eece148f031a088766fa"
     },
     {
       "path": "docs/STARTUP-RECOVERY.md",
@@ -1313,6 +1313,11 @@
       "sha256": "fceeab208acb1e377ea7807892794d24ed820ca0c3fec36b1f39b79dc0cf7191"
     },
     {
+      "path": "docs/verification/checks-100048.json",
+      "bytes": 6746,
+      "sha256": "abe047db69b34c59d1b248dc22060586f74717a0c0e748267e9f042cf32fbce2"
+    },
+    {
       "path": "docs/verification/continuations-live-2026-10-24.json",
       "bytes": 969,
       "sha256": "84cb9ee470f4b898f68923601472fb5fead3feb54a9a80ace948f30bb45c8622"
@@ -1326,6 +1331,11 @@
       "path": "docs/verification/curl-100027-right.png",
       "bytes": 38640,
       "sha256": "7ce23a931d378c1571a8c2eb511090f8cb0540c597673fa266c0c54027584c80"
+    },
+    {
+      "path": "docs/verification/direct-update-channel-100048.json",
+      "bytes": 1835,
+      "sha256": "69b5af3fa9971a6555670595689bca82d148bdfb08d3c616619381e491806c26"
     },
     {
       "path": "docs/verification/live-duration-range-syny-groma.json",
@@ -1371,6 +1381,11 @@
       "path": "docs/verification/player-100027.png",
       "bytes": 575957,
       "sha256": "3a112b36833bd2cebc0e4a634e7169a55d8d8f6b2c3c84d8c25872c26927baca"
+    },
+    {
+      "path": "docs/verification/predanie-browser-live.json",
+      "bytes": 1205,
+      "sha256": "32f701193b6e29cc313c7f022a56be33fd547332a82a4ea400b84eaaac748ee4"
     },
     {
       "path": "docs/verification/predanie-live-audio.json",
@@ -1443,6 +1458,11 @@
       "sha256": "e29ed5cf5f757e2632ead496a628b00852da719f3ca2380fadc427b329dad5a4"
     },
     {
+      "path": "docs/verification/preview-100048.json",
+      "bytes": 660,
+      "sha256": "c1775fab7323809c4088f47f1798d63db5dfaa02eebb8aca4dee78503b77be8a"
+    },
+    {
       "path": "docs/verification/preview-four-source-http-2026-10-21.json",
       "bytes": 1492,
       "sha256": "92d35a513a2e0e5d28d0440c7897f94ad5801be087b1d49da044641a6214915f"
@@ -1478,6 +1498,11 @@
       "sha256": "4515ff27dd55e7e5ec045624acc6e985aee59fe7feca178fe3add48911d152b8"
     },
     {
+      "path": "docs/verification/source-availability-100048.json",
+      "bytes": 4623,
+      "sha256": "904e8c0a5e78bbb8f493966b788030573164287e0d1f5f6c91b9f86e0e4ea8b5"
+    },
+    {
       "path": "docs/verification/stable-candidate-100038.json",
       "bytes": 451,
       "sha256": "99e9aa04f1551dfc1eb129dcf4a4090f534c54b7ada6d413c7c32c254d05cf98"
@@ -1496,6 +1521,11 @@
       "path": "docs/verification/stable-candidate-100045.json",
       "bytes": 451,
       "sha256": "e2d6ebe5a9873511119dbec69f4b72104516030764bc1959bc1c5b475b1b4085"
+    },
+    {
+      "path": "docs/verification/stable-candidate-100048.json",
+      "bytes": 451,
+      "sha256": "382ebe61868dfa05606f0278f5e7434880332ed3bf9fbac0fe6c2f41fa44c89f"
     },
     {
       "path": "docs/verification/startup-100010-android35-crash.txt",

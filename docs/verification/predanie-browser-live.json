@@ -1,0 +1,32 @@
+{
+  "date": "2026-10-24T21:12:13.616Z",
+  "verifiedTLS": true,
+  "formResult": "SEARCH_SUBMITTED",
+  "query": "Гоголь",
+  "audioResults": 11,
+  "examples": [
+    {
+      "title": "Мертвые души",
+      "author": "Гоголь, Николай Васильевич",
+      "url": "https://predanie.ru/gogol-nikolay-vasilevich/mertvye-dushi-1"
+    },
+    {
+      "title": "Выбранные места из переписки с друзьями. Статьи и рецензии",
+      "author": "Гоголь, Николай Васильевич",
+      "url": "https://predanie.ru/gogol-nikolay-vasilevich/vybrannye-mesta-iz-perepiski-s-druzyami-1"
+    },
+    {
+      "title": "Светлое воскресенье",
+      "author": "Пастернак, Борис Леонидович",
+      "url": "https://predanie.ru/pasternak-boris-leonidovich/svetloe-voskresene"
+    }
+  ],
+  "book": {
+    "title": "Пирамида",
+    "author": "Леонов Леонид Максимович",
+    "chapters": 162,
+    "firstSeconds": 911
+  },
+  "genres": 105,
+  "scope": "Actual Chromium production parser and form; audio header range checked separately; whole-book playback not claimed"
+}

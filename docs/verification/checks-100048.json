@@ -1,0 +1,244 @@
+{
+  "run": 40151361610,
+  "source": "b5e1e6cde94d0bfd0fb63f1ded8ee61c4e2ac81f",
+  "conclusion": "success",
+  "javascript_fixtures": 170,
+  "jvm": {
+    "testDebugUnitTest": {
+      "passed": 69,
+      "skipped": 1,
+      "suites": [
+        {
+          "name": "com.audiobookdownloader.PreviewUpdateRulesTest",
+          "tests": "8",
+          "failures": "0",
+          "errors": "0",
+          "skipped": "0"
+        },
+        {
+          "name": "com.audiobookdownloader.AdditionalBookSourcesTest",
+          "tests": "4",
+          "failures": "0",
+          "errors": "0",
+          "skipped": "0"
+        },
+        {
+          "name": "com.audiobookdownloader.ContinuationRulesTest",
+          "tests": "6",
+          "failures": "0",
+          "errors": "0",
+          "skipped": "0"
+        },
+        {
+          "name": "com.audiobookdownloader.BookAudioHeadersTest",
+          "tests": "4",
+          "failures": "0",
+          "errors": "0",
+          "skipped": "0"
+        },
+        {
+          "name": "com.audiobookdownloader.CylinderPageMeshTest",
+          "tests": "7",
+          "failures": "0",
+          "errors": "0",
+          "skipped": "0"
+        },
+        {
+          "name": "com.audiobookdownloader.ContinuationParserTest",
+          "tests": "8",
+          "failures": "0",
+          "errors": "0",
+          "skipped": "0"
+        },
+        {
+          "name": "com.audiobookdownloader.AbDurationRangesTest",
+          "tests": "6",
+          "failures": "0",
+          "errors": "0",
+          "skipped": "0"
+        },
+        {
+          "name": "com.audiobookdownloader.AbBookTimeRulesTest",
+          "tests": "5",
+          "failures": "0",
+          "errors": "0",
+          "skipped": "0"
+        },
+        {
+          "name": "com.audiobookdownloader.SleepShakeDetectorTest",
+          "tests": "8",
+          "failures": "0",
+          "errors": "0",
+          "skipped": "0"
+        },
+        {
+          "name": "com.audiobookdownloader.AbMediaPresentationTest",
+          "tests": "2",
+          "failures": "0",
+          "errors": "0",
+          "skipped": "0"
+        },
+        {
+          "name": "com.audiobookdownloader.OpenAudioCatalogTest",
+          "tests": "7",
+          "failures": "0",
+          "errors": "0",
+          "skipped": "0"
+        },
+        {
+          "name": "com.audiobookdownloader.AbSearchCoordinatorTest",
+          "tests": "4",
+          "failures": "0",
+          "errors": "0",
+          "skipped": "0"
+        },
+        {
+          "name": "com.audiobookdownloader.LiveCatalogTest",
+          "tests": "1",
+          "failures": "0",
+          "errors": "0",
+          "skipped": "1"
+        }
+      ]
+    },
+    "testReleaseUnitTest": {
+      "passed": 69,
+      "skipped": 1,
+      "suites": [
+        {
+          "name": "com.audiobookdownloader.PreviewUpdateRulesTest",
+          "tests": "8",
+          "failures": "0",
+          "errors": "0",
+          "skipped": "0"
+        },
+        {
+          "name": "com.audiobookdownloader.AdditionalBookSourcesTest",
+          "tests": "4",
+          "failures": "0",
+          "errors": "0",
+          "skipped": "0"
+        },
+        {
+          "name": "com.audiobookdownloader.ContinuationRulesTest",
+          "tests": "6",
+          "failures": "0",
+          "errors": "0",
+          "skipped": "0"
+        },
+        {
+          "name": "com.audiobookdownloader.BookAudioHeadersTest",
+          "tests": "4",
+          "failures": "0",
+          "errors": "0",
+          "skipped": "0"
+        },
+        {
+          "name": "com.audiobookdownloader.CylinderPageMeshTest",
+          "tests": "7",
+          "failures": "0",
+          "errors": "0",
+          "skipped": "0"
+        },
+        {
+          "name": "com.audiobookdownloader.ContinuationParserTest",
+          "tests": "8",
+          "failures": "0",
+          "errors": "0",
+          "skipped": "0"
+        },
+        {
+          "name": "com.audiobookdownloader.AbDurationRangesTest",
+          "tests": "6",
+          "failures": "0",
+          "errors": "0",
+          "skipped": "0"
+        },
+        {
+          "name": "com.audiobookdownloader.AbBookTimeRulesTest",
+          "tests": "5",
+          "failures": "0",
+          "errors": "0",
+          "skipped": "0"
+        },
+        {
+          "name": "com.audiobookdownloader.SleepShakeDetectorTest",
+          "tests": "8",
+          "failures": "0",
+          "errors": "0",
+          "skipped": "0"
+        },
+        {
+          "name": "com.audiobookdownloader.AbMediaPresentationTest",
+          "tests": "2",
+          "failures": "0",
+          "errors": "0",
+          "skipped": "0"
+        },
+        {
+          "name": "com.audiobookdownloader.OpenAudioCatalogTest",
+          "tests": "7",
+          "failures": "0",
+          "errors": "0",
+          "skipped": "0"
+        },
+        {
+          "name": "com.audiobookdownloader.AbSearchCoordinatorTest",
+          "tests": "4",
+          "failures": "0",
+          "errors": "0",
+          "skipped": "0"
+        },
+        {
+          "name": "com.audiobookdownloader.LiveCatalogTest",
+          "tests": "1",
+          "failures": "0",
+          "errors": "0",
+          "skipped": "1"
+        }
+      ]
+    }
+  },
+  "android": {
+    "api": 36,
+    "image": "aosp_atd",
+    "tests": 8,
+    "failures": 0,
+    "errors": 0,
+    "seconds": 39.598,
+    "cases": [
+      "workerBaselinesConfirmsDeduplicatesAndPreservesSnapshotOnFailure",
+      "nativeMetadataReadsBoundedRangesAndDurationIsCachedForOnlineChapters",
+      "texturedCylinderRendersBothDirectionsAndExportsFrames",
+      "mainNavigationRecreationAndNativeRecoveryRemainUsable",
+      "playerAddsCurrentBookAndRealSensorRestartsSleepCountdown",
+      "installedVersionCannotBeInstalledAgain",
+      "threeUpdateActionsAndNoAccountFields",
+      "previewsHaveIntrinsicHeightAndRenderAllNineThemes"
+    ]
+  },
+  "predanie": {
+    "sources": 14,
+    "real_browser_audio_results": 11,
+    "unique_chapters": 162,
+    "genre_links": 105,
+    "mp3_header_range_verified": true,
+    "whole_book_playback_tested": false
+  },
+  "updater": {
+    "buttons": 3,
+    "account_fields": 0,
+    "same_version_rejected_on_android": true,
+    "parts_and_whole_apk_sha256": true,
+    "package_version_and_original_certificate_required": true,
+    "stable_original_signed_apk_available": false,
+    "signed_preview_v1_v2_verified": true,
+    "preview_original_certificate_unchanged": true,
+    "stable_packaged_dex_markers_verified": true,
+    "anonymous_full_download_sha256_verified": true,
+    "unsigned_stable_feed_publication_refused": true
+  },
+  "AudioBookApp_dex_registers": 119,
+  "physical_S24_tested": false,
+  "real_user_upgrade_tested": false
+}
