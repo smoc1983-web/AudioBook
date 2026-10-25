@@ -1,5 +1,5 @@
 {
-  "revision": "audiobook-rename-upgrade-fixture-copy-verified-pending-ci",
+  "revision": "audiobook-4.2.50-renamed-and-upgrade-from-48-verified",
   "storage": "GitHub export; see releases/ARCHIVE-PARTS.json for three multipart historical ZIPs",
   "files": [
     {
@@ -14,8 +14,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 12436,
-      "sha256": "fbc0551d22bd5d952d4af2725f376d72a27d43c7e7ba0ac0726b9363c9781daa"
+      "bytes": 13205,
+      "sha256": "1164dc03b224cb604627d72a4da8b1b93c1da53af42334c179846a33382a6795"
     },
     {
       "path": "app/build.gradle.kts",
@@ -1118,6 +1118,11 @@
       "sha256": "82a8ffde88107f8054dd770e769569bf437246b9300d1b9af540e4a51772e741"
     },
     {
+      "path": "docs/AUDIOBOOK-RENAME-UPDATE.md",
+      "bytes": 7859,
+      "sha256": "66e2e58aab627232dbf6e61f3ff58363ff48ef1d4990e0bf143dea2d694ae992"
+    },
+    {
       "path": "docs/BUILD-4.1.md",
       "bytes": 3054,
       "sha256": "884a495152896c92c0292e51953eb70b410c0dde78d04196a9c76c7d29cca978"
@@ -1144,8 +1149,8 @@
     },
     {
       "path": "docs/HANDOFF.md",
-      "bytes": 44730,
-      "sha256": "5dab35139c641a63b6b84cdf172ec0bef57bc7d0db7c5818639540e9e7e82ae6"
+      "bytes": 49248,
+      "sha256": "558f5e53e529d0812293b4539002c6903f6eb47f308d774f787be4df3512e9a6"
     },
     {
       "path": "docs/INSTALL.md",
@@ -1179,13 +1184,13 @@
     },
     {
       "path": "docs/PREVIEW-AS-MAIN.md",
-      "bytes": 6901,
-      "sha256": "2a0accd91d96c8335391ba0881a0564af25c99cf0fc482dad6d4e44f1bba0b33"
+      "bytes": 7806,
+      "sha256": "020ce5d8e5b71d6ea565604caf70b82b342361741c9a3ddb2bf5d592461a3462"
     },
     {
       "path": "docs/PREVIEW-UPDATES.md",
-      "bytes": 9262,
-      "sha256": "3c168ce6c2a4c7994ab6d1e1e3db509dbfe93fb1a33c1d9e56425b7369069633"
+      "bytes": 9694,
+      "sha256": "f222490e046c7230fc62800f905faba916c565d4fcf9f9f55e4ea9da47d385c4"
     },
     {
       "path": "docs/SCREENSHOT-SOURCES.md",
@@ -1338,6 +1343,11 @@
       "sha256": "abe047db69b34c59d1b248dc22060586f74717a0c0e748267e9f042cf32fbce2"
     },
     {
+      "path": "docs/verification/checks-100050.json",
+      "bytes": 6613,
+      "sha256": "33af38f7cbbdda4e12112d4a4a67399070f19bd9085b37cb49af6d6643be36b4"
+    },
+    {
       "path": "docs/verification/continuations-live-2026-10-24.json",
       "bytes": 969,
       "sha256": "84cb9ee470f4b898f68923601472fb5fead3feb54a9a80ace948f30bb45c8622"
@@ -1356,6 +1366,16 @@
       "path": "docs/verification/direct-update-channel-100048.json",
       "bytes": 1835,
       "sha256": "69b5af3fa9971a6555670595689bca82d148bdfb08d3c616619381e491806c26"
+    },
+    {
+      "path": "docs/verification/direct-update-channel-100050.json",
+      "bytes": 885,
+      "sha256": "cae8d1432238c32325a7b70a90705e74f24ec594509a809009c897ca235dd519"
+    },
+    {
+      "path": "docs/verification/installed-upgrade-100048-to-100050.json",
+      "bytes": 421,
+      "sha256": "3407f1ae1917dcc6b4aad85d7d857aa440aeff084f6dcf5d73d1f9ac3912debf"
     },
     {
       "path": "docs/verification/live-duration-range-syny-groma.json",
@@ -1483,6 +1503,11 @@
       "sha256": "c1775fab7323809c4088f47f1798d63db5dfaa02eebb8aca4dee78503b77be8a"
     },
     {
+      "path": "docs/verification/preview-100050.json",
+      "bytes": 636,
+      "sha256": "a9d17eba849b7f2075724501c71063160bb55237a96a2627697f7ea551a0c6f8"
+    },
+    {
       "path": "docs/verification/preview-as-main-2026-10-25.json",
       "bytes": 409,
       "sha256": "9d98064c5b9643d81f9f3daa2f989f353f14e690607911d3b9984c90b47d43d6"
@@ -1506,6 +1531,11 @@
       "path": "docs/verification/public-download-2026-10-25.json",
       "bytes": 2866,
       "sha256": "b62cffb194343954c3c90d634ef4c56a21249cedad4b54aeb69d8de8d6acc70f"
+    },
+    {
+      "path": "docs/verification/rename-download-browser-100050.json",
+      "bytes": 703,
+      "sha256": "1c81a8ec5cc438a7a0096553fefe4c5f55b09603ee46e497534896fdf7ecaf98"
     },
     {
       "path": "docs/verification/screenshot-source-probes-2026-10-21.json",
@@ -1561,6 +1591,11 @@
       "path": "docs/verification/stable-candidate-100048.json",
       "bytes": 451,
       "sha256": "382ebe61868dfa05606f0278f5e7434880332ed3bf9fbac0fe6c2f41fa44c89f"
+    },
+    {
+      "path": "docs/verification/stable-candidate-100050.json",
+      "bytes": 451,
+      "sha256": "324c0d65842569eab038fd37dfa1dead34bde9df94c36921ee3d1ab09de827f9"
     },
     {
       "path": "docs/verification/startup-100010-android35-crash.txt",
@@ -10134,8 +10169,8 @@
     },
     {
       "path": "hosting/updates/download.js",
-      "bytes": 6169,
-      "sha256": "9efcc0e52622539a79af501abad5adf5af10a21b9ab5f4ee4f0088c2be8e9b5f"
+      "bytes": 6161,
+      "sha256": "0401c7aaf67f283f6d630f966d170ad8a4b7ac9005910c22d677d5a2452aae04"
     },
     {
       "path": "hosting/updates/hosting.json",
@@ -10144,8 +10179,8 @@
     },
     {
       "path": "hosting/updates/index.html",
-      "bytes": 3995,
-      "sha256": "4957cb7c2d61b0fc6ffb78414c72b05b10b2ea94dc5fcb9b4a491d6ef9608115"
+      "bytes": 3992,
+      "sha256": "954cbd6c8c62555d064e590512c5b21e1f8f02aaaca0e1e38a4dc11c85fb7ee9"
     },
     {
       "path": "references/diagnostics/268195a8-0e94-4ecd-a037-fafe6dd7e278/Audiobook-report-2026-10-18_14-09-57-4668715165283423442.txt",

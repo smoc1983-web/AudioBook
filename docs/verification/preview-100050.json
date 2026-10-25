@@ -1,0 +1,17 @@
+{
+  "packageName": "com.audiobookdownloader.preview",
+  "versionCode": 100050,
+  "versionName": "4.2.50",
+  "size": 37024303,
+  "sha256": "a9c921fa758967608a842c08690f73709aed468bd9ceeb56055d68414b472ef3",
+  "certificateSha256": "3a4cecd14bb3e983843871766909c3f07b3dc64379800f3e270e4a27d39affb7",
+  "apk": "Audiobook-Preview.apk",
+  "commit": "59debe54f42081f0c395fab8598ad5e5b3eb5958",
+  "label": "Audiobook",
+  "providers": [
+    "com.audiobookdownloader.preview.updates",
+    "com.audiobookdownloader.preview.diagnostic_reports",
+    "com.audiobookdownloader.preview.androidx-startup"
+  ],
+  "file": "Audiobook-Preview-4.2.50.apk"
+}

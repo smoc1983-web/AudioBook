@@ -1,0 +1,21 @@
+{
+  "origin": "https://audiobook-smoc1983-updates.amplecoot2048.chatgpt.site",
+  "clientUserAgent": "Audiobook-Updater/4.2-preview.48",
+  "versionCode": 100050,
+  "versionName": "4.2.50",
+  "package": "com.audiobookdownloader.preview",
+  "legacyApkFieldUnchanged": true,
+  "allPartsAndFullSha256Verified": true,
+  "apkBytes": 37024303,
+  "sha256": "a9c921fa758967608a842c08690f73709aed468bd9ceeb56055d68414b472ef3",
+  "offeredToInstalled48": true,
+  "authSent": false,
+  "physicalPhoneUpdateConfirmed": false,
+  "siteProject": "appgprj_6add1a69b6f481918b5e390c8f413992",
+  "siteSource": "33b8b6cea8a5d966892864190441ed0086060473",
+  "siteVersion": "appgprj_6add1a69b6f481918b5e390c8f413992~appgver_8b2eaeae7d648191aeb98b103dd5ef1f",
+  "siteVersionNumber": 4,
+  "deployment": "appgdep_6add8adebfd081919f91914d51f592a3",
+  "deploymentStatus": "succeeded",
+  "old48PartsRetained": true
+}
