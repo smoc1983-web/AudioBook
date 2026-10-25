@@ -1,6 +1,6 @@
 """Exercise the read-only shell bridge on code-free old-package fixtures, never a user device."""
 import os,subprocess,json,hashlib,xml.sax.saxutils as X
-import glob
+import glob,tempfile,time
 from pathlib import Path
 assert os.environ.get('CI')=='true'
 def run(*args):
@@ -10,8 +10,24 @@ def run(*args):
 assert run('adb','get-serialno').strip().startswith('emulator-')
 old='com.audiobookdownloader';new='com.audiobookdownloader.preview';out=Path('startup-evidence');out.mkdir(exist_ok=True)
 def write(package,relative,data):
- subprocess.run(['adb','exec-in','run-as',package,'dd','of='+relative,'bs=65536'],input=data,stdout=subprocess.PIPE,stderr=subprocess.PIPE,check=True,timeout=30)
- assert run('adb','shell','run-as',package,'sha256sum',relative).split()[0]==hashlib.sha256(data).hexdigest()
+ # A regular descriptor avoids adbd losing a short PIPE payload before exec-in is ready.
+ # Keep a strict checksum gate and bounded retries; never continue with a missing fixture.
+ assert package in ('com.audiobookdownloader','com.audiobookdownloader.preview')
+ assert relative and not relative.startswith('/') and '..' not in Path(relative).parts
+ target='/data/user/0/'+package+'/'+relative
+ expected=hashlib.sha256(data).hexdigest()
+ for attempt in range(3):
+  try:
+   run('adb','shell','run-as',package,'mkdir','-p',str(Path(target).parent))
+   with tempfile.TemporaryFile() as source:
+    source.write(data);source.seek(0)
+    subprocess.run(['adb','exec-in','run-as',package,'dd','of='+target,'bs=65536'],stdin=source,stdout=subprocess.PIPE,stderr=subprocess.PIPE,check=True,timeout=30)
+   actual=run('adb','shell','run-as',package,'sha256sum',target).split()[0]
+   if actual==expected:return
+  except (subprocess.CalledProcessError,subprocess.TimeoutExpired,IndexError):pass
+  if attempt<2:
+   print('Retrying verified emulator fixture transfer:',attempt+1,flush=True);time.sleep(.2*(attempt+1))
+ raise AssertionError('Emulator fixture transfer failed SHA-256 verification: '+relative)
 subprocess.run(['adb','uninstall',old],capture_output=True)
 try:
  assert 'Success' in run('adb','install','legacyFixture/build/outputs/apk/debug/legacyFixture-debug.apk')

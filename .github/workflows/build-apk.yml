@@ -48,6 +48,7 @@ jobs:
           path: ${{ env.PREVIEW_KEYSTORE }}
       - name: Restored source adapters and playlist regressions
         run: |
+          python scripts/test-ci-file-transfer.py
           python current/check.py
           node current/tests/test-additional-sources.cjs
           node current/tests/test-predanie.cjs

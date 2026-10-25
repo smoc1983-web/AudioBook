@@ -4,8 +4,8 @@
   "files": [
     {
       "path": ".github/workflows/build-apk.yml",
-      "bytes": 7710,
-      "sha256": "132f572ce5d5c35d2c146e7962f60b8cf1719ea5430e230589b3374390589095"
+      "bytes": 7760,
+      "sha256": "342fa893409c3d1679ce97ec7d4c773f3b085e81e85d6e30b0c3a65aa98455a0"
     },
     {
       "path": ".gitignore",
@@ -10823,9 +10823,14 @@
       "sha256": "8b1cf97d99ffb7074543f18d499b8d5de66df1a7fbc17bb7c446160dbc7b9787"
     },
     {
+      "path": "scripts/test-ci-file-transfer.py",
+      "bytes": 1746,
+      "sha256": "77b239ac2dff2a749d7eb9178de1852f3ab8bea3ee812be2b592c3f35f991669"
+    },
+    {
       "path": "scripts/test-legacy-collections.py",
-      "bytes": 5022,
-      "sha256": "a7c8ff9c1fcf98342708a8587f67af788d94df965be528b1beda9207e8f5f50e"
+      "bytes": 5957,
+      "sha256": "c516c128b94d524cda3d5808ceb0d841321bc3d127d98cee130c27674c188551"
     },
     {
       "path": "scripts/test-preview-upgrade.py",
