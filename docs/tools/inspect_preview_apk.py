@@ -92,7 +92,7 @@ with zipfile.ZipFile(output) as package:
     assert identity['versionCode']==manifest['versionCode']
     assert identity['versionName']==manifest['versionName']
     application['label']=resource_string(package,application['label'])
-    assert application['label']=='Audiobook Preview' and application['allowBackup']==0
+    assert application['label']==('Audiobook' if manifest['versionCode']>100048 else 'Audiobook Preview') and application['allowBackup']==0
     assert all(a.startswith(identity['package']+'.') for a in providers)
     assert identity['package']+'.updates' in providers
     certificate=next(n for n in package.namelist() if n.startswith('META-INF/') and n.endswith(('.RSA','.DSA','.EC')))

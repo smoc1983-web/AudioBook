@@ -8,6 +8,7 @@ m=re.search(r"package: name='([^']+)' versionCode='(\d+)' versionName='([^']+)'"
 assert m and m[1]=='com.audiobookdownloader.preview', 'Refusing to publish the stable package'
 version=int(m[2]);assert version==100000+int(os.environ['GITHUB_RUN_NUMBER'])
 manifest_tree=subprocess.check_output([str(build_tools/'aapt'),'dump','xmltree',str(apk),'AndroidManifest.xml'],text=True)
+assert "application-label:'Audiobook'" in identity, 'Application must be named Audiobook'
 assert 'com.audiobookdownloader.preview.updates' in manifest_tree
 assert 'com.audiobookdownloader.preview.diagnostic_reports' in manifest_tree
 certificate=subprocess.check_output([str(build_tools/'apksigner'),'verify','--verbose','--print-certs',str(apk)],text=True)

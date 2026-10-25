@@ -55,4 +55,7 @@ for widget_kind in 0 1 2; do
 done
 free -m > startup-evidence/host-memory.txt
 sudo dmesg -T | tail -100 > startup-evidence/host-kernel.txt || true
+if [ "$result" -eq 0 ]; then
+  timeout 3m python scripts/test-preview-upgrade.py || result=$?
+fi
 exit "$result"

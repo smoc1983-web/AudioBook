@@ -1,11 +1,11 @@
 {
-  "revision": "preview-48-installation-confirmed-by-owner",
+  "revision": "audiobook-rename-and-installed-upgrade-check-pending-ci",
   "storage": "GitHub export; see releases/ARCHIVE-PARTS.json for three multipart historical ZIPs",
   "files": [
     {
       "path": ".github/workflows/build-apk.yml",
-      "bytes": 6950,
-      "sha256": "04663485c97e4deb5c52cf389654452f5a51f4712d326a8f66ac5021cad90dfc"
+      "bytes": 7138,
+      "sha256": "37511ab1807210de66b972b5b001ec5e0ac507c3cd394f55451267d9d1a0a6f6"
     },
     {
       "path": ".gitignore",
@@ -19,8 +19,8 @@
     },
     {
       "path": "app/build.gradle.kts",
-      "bytes": 3831,
-      "sha256": "1838e78c28c3795ef338ea25aa30475715a7cdb392fc4df229acbad5d1fcf15a"
+      "bytes": 3701,
+      "sha256": "efe639bdf306f5da8614edc1931afe4cfa4ec66e9212110512e4be55ea695e5d"
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/ContinuationWorkerTest.kt",
@@ -51,6 +51,11 @@
       "path": "app/src/androidTest/java/com/audiobookdownloader/UpdateScreenTest.java",
       "bytes": 1576,
       "sha256": "80a4ae04159e3444eb54d41f9337d3030d3c499750e1f4902653a73197fa35c1"
+    },
+    {
+      "path": "app/src/androidTest/java/com/audiobookdownloader/UpgradeCandidateTest.java",
+      "bytes": 2929,
+      "sha256": "231fce41a5d957952bcc07abadc8b3f074c39252b215b07f61af58c981431c7e"
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/WidgetPreviewTest.java",
@@ -514,8 +519,8 @@
     },
     {
       "path": "current/app/src/main/res/values/audiobook_branding.xml",
-      "bytes": 154,
-      "sha256": "05eb325ce4cda89c48aea4b5e10e2f5298c40546c6e9a6b5e4e12a440d8c7c8f"
+      "bytes": 146,
+      "sha256": "e8587e587a4697c4d3fe50461dd1ea6ee85cebf066a467f2fbe611f01239a337"
     },
     {
       "path": "current/app/src/main/res/xml/ab_widget_compact_info.xml",
@@ -1284,8 +1289,8 @@
     },
     {
       "path": "docs/tools/inspect_preview_apk.py",
-      "bytes": 6085,
-      "sha256": "37d707c7c0822e2d91ba784535bf0739962c14f7072ebc33e2e07a14128bc1a9"
+      "bytes": 6138,
+      "sha256": "c8422bbad3bbcee8589e9b7d04078c74e45ffd9687b6bc71f8b71e8da13f763a"
     },
     {
       "path": "docs/tools/test-public-download.cjs",
@@ -10433,14 +10438,19 @@
       "sha256": "b2b67d79c4f73518cd8e98ec10ef6e07efda6664675aaad07d484dd8d56c5d2b"
     },
     {
+      "path": "scripts/fetch-upgrade-baseline.py",
+      "bytes": 1449,
+      "sha256": "aa3f2b49fd5cd40a62c19962f17cfbdf1b95ed94cb107bca9a92e5c5e85ac89c"
+    },
+    {
       "path": "scripts/inspect-stable-candidate.py",
       "bytes": 1475,
       "sha256": "78fb833b8e3e311b4c3d34fd8ca7e4b1c5affaba61d89f81a8a9ef07fc92dddc"
     },
     {
       "path": "scripts/preview-release.py",
-      "bytes": 2483,
-      "sha256": "24d1ec6efae3d0ef82579e44f7e0d144a36c9ee9cb379071a625153e3f356470"
+      "bytes": 2573,
+      "sha256": "8cbfa991c41d38821e69e1fae7b5f1da74f05485c74cc572e9843d471621acf0"
     },
     {
       "path": "scripts/preview-signing.sh",
@@ -10469,8 +10479,13 @@
     },
     {
       "path": "scripts/test-android-startup.sh",
-      "bytes": 3064,
-      "sha256": "0db4f46bdf4f281a402335e600df85b9eb3c16cd7a75a62b042a4a4cf8f839ca"
+      "bytes": 3161,
+      "sha256": "1d3b1cae8a1e8302478eaa8478112aa869061aace1b05636ed840823edbca888"
+    },
+    {
+      "path": "scripts/test-preview-upgrade.py",
+      "bytes": 3862,
+      "sha256": "0c91ee3bb56fdcc25bf9e9c49f87cb79372d1426b6f440d1e81a987f76e945d1"
     },
     {
       "path": "scripts/tests/test-phone-signing.py",

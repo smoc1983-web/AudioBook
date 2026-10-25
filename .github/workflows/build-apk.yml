@@ -56,6 +56,10 @@ jobs:
           node current/tests/test-source-directory.cjs
       - name: Record current source availability
         run: python scripts/audit-book-sources.py
+      - name: Fetch published baseline for upgrade verification
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python scripts/fetch-upgrade-baseline.py
       - name: Android SDK
         run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;35.0.0"'
       - name: Tests and isolated Preview APK
@@ -100,7 +104,7 @@ jobs:
         run: |
           tag="$(cat dist/tag.txt)"
           if ! gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release create "$tag" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --draft --prerelease --title "Audiobook Preview $tag" --notes "Отдельное приложение com.audiobookdownloader.preview. Установка параллельно стабильной версии. Обновление доступно в настройках Preview."
+            gh release create "$tag" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --draft --prerelease --title "Audiobook $tag" --notes "Audiobook: переименование установленного канала Preview с сохранением пакета, подписи и данных. Обновление доступно в настройках приложения."
           fi
           gh release upload "$tag" dist/Audiobook-Preview.apk dist/preview-update.json --repo "$GITHUB_REPOSITORY" --clobber
           gh release edit "$tag" --repo "$GITHUB_REPOSITORY" --draft=false --prerelease --latest=false
