@@ -47,7 +47,7 @@ public class CollectionTransferTest {
    }
    LegacyCollectionScreens capture=LegacyCollectionsScreenService.snapshot();assertEquals("Both old shelves fully read",2,capture.complete());assertEquals(0,capture.partial());String data=capture.export();assertFalse(data.contains("do-not-copy"));assertTrue(data.contains("Старая книга"));
    var store=new CollectionTransferStore(app);String before=store.current();var result=store.apply(data);assertEquals(1,result.addedShelves);assertEquals(2,result.addedBooks);assertEquals(0,store.apply(data).addedBooks);store.undo();assertEquals(before,store.current());
-  }finally{LegacyCollectionsScreenService.clear();automation.executeShellCommand("settings delete secure enabled_accessibility_services").close();automation.executeShellCommand("settings put secure accessibility_enabled 0").close();}
+  }catch(Throwable failure){try{device.dumpWindowHierarchy(new File(app.getCacheDir(),"legacy-screen-failure.xml"));}catch(Exception ignored){}throw failure;}finally{LegacyCollectionsScreenService.clear();automation.executeShellCommand("settings delete secure enabled_accessibility_services").close();automation.executeShellCommand("settings put secure accessibility_enabled 0").close();}
  }
 
 }

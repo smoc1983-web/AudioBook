@@ -4,8 +4,8 @@
   "files": [
     {
       "path": ".github/workflows/build-apk.yml",
-      "bytes": 7202,
-      "sha256": "4970438abe590523817cfffa49b9f5e56593e1167462a677e8745490ee22aaa2"
+      "bytes": 7615,
+      "sha256": "6c229025657d13c59b0152de323275234062eb9ed7020166fbcfac98bd3ddf70"
     },
     {
       "path": ".gitignore",
@@ -24,8 +24,8 @@
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/CollectionTransferTest.java",
-      "bytes": 7564,
-      "sha256": "034a3abe4bb14285b15827c6a13e38f096456dad6816875e187c29215741fa51"
+      "bytes": 7719,
+      "sha256": "bde3ea19780e45da2f69143b0c86a5184521f61f3426bd75fc837198be152344"
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/ContinuationWorkerTest.kt",
@@ -10254,8 +10254,8 @@
     },
     {
       "path": "legacyFixture/build.gradle.kts",
-      "bytes": 446,
-      "sha256": "02d30e4e7879f0af83794370bd9b492639725f37c1a5e19081710a11995fc297"
+      "bytes": 697,
+      "sha256": "e0d7b0d36e07644481172bae84a181134080b9b38c9dd5537aa9eac5bb3902d4"
     },
     {
       "path": "legacyFixture/src/main/AndroidManifest.xml",
@@ -10599,8 +10599,8 @@
     },
     {
       "path": "scripts/test-legacy-collections.py",
-      "bytes": 4594,
-      "sha256": "f4611f099a4cb27d5770a7afb93001bd6a70f982153ee7ddfa0dbc6694c6d9e6"
+      "bytes": 5022,
+      "sha256": "a7c8ff9c1fcf98342708a8587f67af788d94df965be528b1beda9207e8f5f50e"
     },
     {
       "path": "scripts/test-preview-upgrade.py",

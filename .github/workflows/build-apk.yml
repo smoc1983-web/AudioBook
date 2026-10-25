@@ -26,7 +26,11 @@ jobs:
         with:
           gradle-version: '8.9'
       - name: Signing workspace
-        run: echo "PREVIEW_KEYSTORE=$RUNNER_TEMP/audiobook-preview-signing/preview.keystore" >> "$GITHUB_ENV"
+        run: |
+          echo "PREVIEW_KEYSTORE=$RUNNER_TEMP/audiobook-preview-signing/preview.keystore" >> "$GITHUB_ENV"
+          echo "LEGACY_FIXTURE_KEYSTORE=$RUNNER_TEMP/audiobook-legacy-fixture/test.keystore" >> "$GITHUB_ENV"
+          mkdir -p "$RUNNER_TEMP/audiobook-legacy-fixture"
+          keytool -genkeypair -keystore "$RUNNER_TEMP/audiobook-legacy-fixture/test.keystore" -storetype JKS -storepass android -keypass android -alias fixture -keyalg RSA -keysize 2048 -validity 2 -dname "CN=Disposable CI fixture"
       - uses: actions/cache@v4
         with:
           path: ${{ runner.temp }}/audiobook-preview-signing
