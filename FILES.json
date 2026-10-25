@@ -1,5 +1,5 @@
 {
-  "revision": "predanie-and-direct-updates-pending-ci",
+  "revision": "predanie-direct-updates-runtime-checks",
   "storage": "GitHub export; see releases/ARCHIVE-PARTS.json for three multipart historical ZIPs",
   "files": [
     {
@@ -39,8 +39,8 @@
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/StartupSmokeTest.java",
-      "bytes": 21318,
-      "sha256": "21be5e9eebb190b070fe32afc0a71767f231043c9f34848bb742676ce796614a"
+      "bytes": 21822,
+      "sha256": "fcce8f9eaedd0eada6803cc840d5340900338d4c84c59a4d636ea7cc4e6653ca"
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/TestBitmapExports.java",

@@ -66,7 +66,9 @@ public class StartupSmokeTest {
             visible(By.text("Режим: включённые источники"),"Removed saved source was not reset");
             assertEquals("Removed single-source selection was not cleaned","",context.getSharedPreferences("audiobook_downloader",0).getString("search_source",""));
             java.util.Set<String> retainedSources=context.getSharedPreferences("audiobook_downloader",0).getStringSet("search_enabled_sources",java.util.Collections.emptySet());
-            assertEquals("Other enabled sources changed",13,retainedSources.size());
+            assertEquals("Other enabled sources changed",14,retainedSources.size());
+            assertTrue("New source migration missing",retainedSources.contains("Предание.ру"));
+            assertTrue("Migration marker missing",context.getSharedPreferences("audiobook_downloader",0).getBoolean("predanie_source_added",false));
             for(String removed:new String[]{"Lis10Book","Слушкин Всем","Audioboo"})assertFalse("Removed saved source remained enabled",retainedSources.contains(removed));
             for(String url:new String[]{"https://azbyka.ru/audio/book.html","https://mob.knigoblud.club/audiobook/123","https://bookinfo.net/fentezi/author/book","https://audiokniga-online.ru/fjentezi/1487-book.html"})
                 assertNotNull("Original URL rejected: "+url,MainActivityKt.supportedBookUrl(url));
@@ -76,7 +78,7 @@ public class StartupSmokeTest {
             visible(By.text("Моя библиотека"),"Library did not open");
             visible(By.text("Поиск"),"Search navigation missing").click();
             visible(By.text("Жанры"),"Cannot return home");
-            visible(By.text("Источники · 13"),"Expanded source selector missing").click();
+            visible(By.text("Источники · 14"),"Expanded source selector missing").click();
             for(String source:new String[]{"Азбука веры","Книгоблуд","Bookinfo","Audiokniga-online.ru"})
                 visible(By.text(source),"Original source missing: "+source);
             assertFalse("Removed catalog is offered",device.hasObject(By.text("Internet Archive")));
@@ -89,7 +91,7 @@ public class StartupSmokeTest {
             visible(By.text("Режим: только Bookinfo"),"Single-source selection did not apply");
             scenario.recreate();
             visible(By.text("Режим: только Bookinfo"),"Selected source did not survive recreation");
-            assertEquals("Selected subset changed after recreation",12,context.getSharedPreferences("audiobook_downloader",0).getStringSet("search_enabled_sources",java.util.Collections.emptySet()).size());
+            assertEquals("Selected subset changed after recreation",13,context.getSharedPreferences("audiobook_downloader",0).getStringSet("search_enabled_sources",java.util.Collections.emptySet()).size());
             for(String url:new String[]{"https://m.knigavuhe.org/book/test/","https://pda.izib.uk/art137768","https://uknig.com/books/718702","https://poleknig.com/books/125017","https://m.otrub.in/taras-bulba.html","https://akniga.org/gogol-nikolay-shinel-4","https://audioknigi.pro/audioknigi/62903-book.html","https://baza-knig.info/audio-124589-book"})
                 assertNotNull("Additional source URL rejected: "+url,MainActivityKt.supportedBookUrl(url));
             context.getSharedPreferences("audiobook_downloader",0).edit().remove("search_enabled_sources").commit();
@@ -218,7 +220,9 @@ public class StartupSmokeTest {
             visible(By.text("В коллекцию"),"Direct player collection action missing").click();
             visible(By.text("Добавить в коллекцию"),"Player collection picker did not open");
             visible(By.clazz("android.widget.EditText"),"New collection field missing").setText("Из плеера");
-            visible(By.text("Создать и добавить"),"Cannot create collection from player").click();
+            UiObject2 create=device.wait(Until.findObject(By.text("Создать и добавить").enabled(true)),5000);
+            assertNotNull("Collection name did not enable creation",create);create.click();
+            assertTrue("Collection save did not dismiss picker",device.wait(Until.gone(By.text("Добавить в коллекцию")),5000));
             Shelf shelf=MainActivityKt.loadShelves(context.getSharedPreferences("audiobook_downloader",0)).stream()
                 .filter(value->value.getName().equals("Из плеера")).findFirst().orElseThrow(()->new AssertionError("Collection not created"));
             assertTrue("Current book not saved in collection",shelf.getBooks().stream().anyMatch(book->book.getTitle().equals("Проверка таймера")));
