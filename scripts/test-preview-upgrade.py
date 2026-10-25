@@ -1,4 +1,4 @@
-"""Real 48->next package replacement and native old-updater validation in CI's emulator only."""
+"""Real published-baseline->next replacement and native old-updater validation in CI's emulator only."""
 import subprocess,json,os,re,uuid,hashlib,xml.sax.saxutils as X
 from pathlib import Path
 assert os.environ.get('CI')=='true','Never run on a user phone'
@@ -25,8 +25,10 @@ run('adb','shell','pm','grant',package,'android.permission.READ_MEDIA_AUDIO');ru
 def instrument(method,argument,value):
  result=run('adb','shell','am','instrument','-w','-r','-e','class','com.audiobookdownloader.UpgradeCandidateTest#'+method,'-e',argument,value,package+'.test/androidx.test.runner.AndroidJUnitRunner')
  (out/(method+'.txt')).write_text(result);assert re.search(r'OK \(1 test\)',result),result
-instrument('oldUpdaterAcceptsNewSignedApk','upgrade_apk','/data/user/0/'+package+'/cache/upgrade-candidate.apk')
+ return result
+candidate_result=instrument('oldUpdaterAcceptsNewSignedApk','upgrade_apk','/data/user/0/'+package+'/cache/upgrade-candidate.apk')
+assert 'OLD_UPDATER_INSTALLER_CONFIRMATION_VERIFIED' in candidate_result,'Old installed updater did not show Android installation confirmation'
 assert 'Success' in run('adb','install','-r',str(new))
 instrument('installedUpgradeKeepsDataAndNewName','upgrade_marker',marker)
-previous=json.loads(Path('upgrade-baseline/preview-update.json').read_text());result={'baselineCode':previous['versionCode'],'newCode':100000+int(os.environ['GITHUB_RUN_NUMBER']),'oldUpdaterAcceptedNewApk':True,'androidPackageReplacementSucceeded':True,'label':'Audiobook','settingsCollectionFolderAndPrivateFilePreserved':True,'certificateUnchanged':True,'installationMethod':'adb install -r in disposable emulator; user will confirm installer on phone','actualInAppNetworkDownloadTested':False,'physicalPhone':False}
+previous=json.loads(Path('upgrade-baseline/preview-update.json').read_text());result={'baselineCode':previous['versionCode'],'newCode':100000+int(os.environ['GITHUB_RUN_NUMBER']),'oldUpdaterAcceptedNewApk':True,'oldUpdaterOpenedSystemConfirmation':True,'systemConfirmationCancelledForHostReplacement':True,'androidPackageReplacementSucceeded':True,'label':'Audiobook','settingsCollectionFolderAndPrivateFilePreserved':True,'certificateUnchanged':True,'installationMethod':'adb install -r in disposable emulator; user will confirm installer on phone','actualInAppNetworkDownloadTested':False,'physicalPhone':False}
 (out/'installed-upgrade.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result))

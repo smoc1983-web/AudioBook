@@ -1,5 +1,5 @@
 package com.audiobookdownloader;
-import android.content.*;import android.content.pm.*;import android.os.*;import java.io.*;import java.nio.charset.StandardCharsets;import java.nio.file.Files;
+import android.content.*;import android.content.pm.*;import android.os.*;import java.io.*;import java.nio.charset.StandardCharsets;import java.nio.file.Files;import java.nio.file.StandardCopyOption;import java.util.regex.Pattern;import androidx.test.uiautomator.*;
 import androidx.test.core.app.ActivityScenario;import androidx.test.ext.junit.runners.AndroidJUnit4;import androidx.test.platform.app.InstrumentationRegistry;
 import org.junit.*;import org.junit.runner.RunWith;import static org.junit.Assert.*;
 /** Opt-in second pass: executes against the actually installed old/new APKs in a disposable emulator. */
@@ -17,6 +17,19 @@ public class UpgradeCandidateTest {
   new PreviewUpdater(c).verifyApk(apk,null);
   PackageInfo p=c.getPackageManager().getPackageArchiveInfo(path,0);assertNotNull(p);p.applicationInfo.sourceDir=path;p.applicationInfo.publicSourceDir=path;
   assertEquals("Audiobook",c.getPackageManager().getApplicationLabel(p.applicationInfo).toString());
+  if(installed.getLongVersionCode()>=100055){
+   File target=new PreviewUpdater(c).target();target.getParentFile().mkdirs();Files.copy(apk.toPath(),target.toPath(),StandardCopyOption.REPLACE_EXISTING);
+   UiDevice device=UiDevice.getInstance(InstrumentationRegistry.getInstrumentation());device.executeShellCommand("appops set "+c.getPackageName()+" REQUEST_INSTALL_PACKAGES allow");
+   try(ActivityScenario<PreviewUpdatesActivity> scenario=ActivityScenario.launch(PreviewUpdatesActivity.class)){
+    // This method runs from the actually installed old APK, using its provider and updater.
+    scenario.onActivity(a->a.launchInstaller());
+    assertNotNull("Old updater must open Android installer",device.wait(Until.findObject(By.pkg(Pattern.compile("com\\.(?:google\\.android|android)\\.(?:packageinstaller|permissioncontroller)"))),15000));
+    assertNotNull("Real newer candidate must reach Update confirmation",device.wait(Until.findObject(By.text(Pattern.compile("(?i)update|install"))),5000));
+    System.out.println("OLD_UPDATER_INSTALLER_CONFIRMATION_VERIFIED");device.pressBack();
+    assertTrue(device.wait(Until.hasObject(By.pkg(c.getPackageName())),5000));
+   }finally{target.delete();}
+   // The following host-controlled package replacement finishes this process; do not revoke its app-op here.
+  }
  }
  @Test public void installedUpgradeKeepsDataAndNewName()throws Exception{
   String marker=InstrumentationRegistry.getArguments().getString("upgrade_marker");Assume.assumeTrue("Separate installed-upgrade pass",marker!=null);

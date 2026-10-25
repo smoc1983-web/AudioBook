@@ -1,5 +1,5 @@
 {
-  "revision": "audiobook-4.2.55-installer-handoff-verified",
+  "revision": "audiobook-test-update-from-4.2.55",
   "storage": "GitHub export; see releases/ARCHIVE-PARTS.json for three multipart historical ZIPs",
   "files": [
     {
@@ -64,8 +64,8 @@
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/UpgradeCandidateTest.java",
-      "bytes": 3823,
-      "sha256": "659483e34886a099b1a33485903ab9a6b21666053fcdb3a8b06a8480eaba1f03"
+      "bytes": 5243,
+      "sha256": "64d483b4823936b28e019d4b216ed4fce978d4f390d8d9ee58367993de3a99b5"
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/WidgetPreviewTest.java",
@@ -244,8 +244,8 @@
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/PreviewUpdatesActivity.java",
-      "bytes": 11508,
-      "sha256": "66b3320bfd8d6b1990a023c000f59c94c01bf776aa5ebcf2b045706ef2bd8f5b"
+      "bytes": 11621,
+      "sha256": "fd664f06f99a394f33400f22a032a46f9409a001c78b6caee5dc84eb9278888d"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/SleepShakeDetector.java",
@@ -10679,8 +10679,8 @@
     },
     {
       "path": "scripts/test-preview-upgrade.py",
-      "bytes": 4054,
-      "sha256": "ec9ea3ccf244b15dce0ce4635f23babdf59cbfe4f3a3d59c6bb605194e0fada6"
+      "bytes": 4333,
+      "sha256": "50c6089d66fe2488613ceb8d8ddf532b120618c1792ece0ed9975976df674258"
     },
     {
       "path": "scripts/tests/test-phone-signing.py",
