@@ -29,7 +29,7 @@ internal class SeriesContinuationRecovery(private val context:Context,private va
     val series=verified?.series ?: own.series
     val expectedAuthor=verified?.author ?: writer
     require(expectedAuthor.isNotBlank()){"Источник не указал автора; цикл не подтверждён"}
-    val sourceKey=ContinuationStore.hash("source|"+own.url+"|"+SeriesAuthorityRules.author(expectedAuthor))
+    val sourceKey=ContinuationStore.hash("source|"+java.net.URI(own.url).path.trimEnd('/')+"|"+SeriesAuthorityRules.author(expectedAuthor))
     val matched:List<Pair<ContinuationRules.Book,Double?>>
     if(verified!=null) {
         val members=SeriesAuthorityParser.members(fetcher.html(verified.seriesUrl),verified.seriesUrl,verified.series)
@@ -51,7 +51,7 @@ internal class SeriesContinuationRecovery(private val context:Context,private va
         currentCoroutineContext().ensureActive()
         val html=if(book.url.trimEnd('/')==address.trimEnd('/'))ownHtml else fetcher.html(book.url)
         val detail=parser.detail(html,book.url)
-        val explicitCycle=KnigobludSeriesParser.detail(html,book.url).url.trimEnd('/')==own.url.trimEnd('/')
+        val explicitCycle=KnigobludSeriesParser.sameCycle(KnigobludSeriesParser.detail(html,book.url).url,own.url)
         if(detail.playable&&!detail.announced&&explicitCycle&&SeriesAuthorityRules.sameTitle(book.title,detail.title,series)&&
             SeriesAuthorityRules.author(detail.author)==SeriesAuthorityRules.author(expectedAuthor))
             confirmed.add(ContinuationRules.Book(book.title,book.url,expectedAuthor,number ?: book.order))

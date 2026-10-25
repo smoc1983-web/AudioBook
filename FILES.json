@@ -214,8 +214,8 @@
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/KnigobludSeriesParser.java",
-      "bytes": 2721,
-      "sha256": "947dbd30a4f2bc45e12aa288125539e2480aef6696d6eb0820bb06cf4ed7dccc"
+      "bytes": 2926,
+      "sha256": "feb94ae9f86d08148e467a5a72438288e0bba40dac4e94e29c9942fd3af3c717"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/LegacyCollectionScreens.java",
@@ -304,8 +304,8 @@
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/SeriesContinuationRecovery.kt",
-      "bytes": 5833,
-      "sha256": "8f40400633d846ac741e679d8ce14c0c69a8dc8ebe8dd57f1cc9c2d80e885a80"
+      "bytes": 5871,
+      "sha256": "e232e4ff3374321d7f0e9e03980a74100276fbaad98f0d9326a34280a95ed400"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/SleepShakeDetector.java",
@@ -444,8 +444,8 @@
     },
     {
       "path": "app/src/test/java/com/audiobookdownloader/SeriesAuthorityRulesTest.java",
-      "bytes": 2511,
-      "sha256": "d00f80581fa0e44a4d3e25b176bded00082477210558eccebd1d7bd0f89b16fe"
+      "bytes": 2986,
+      "sha256": "a89c4f87a1d80f49221323467a1ad3e009daea286ab26a1e92768c38562427d5"
     },
     {
       "path": "app/src/test/java/com/audiobookdownloader/SeriesMetadataTest.java",
