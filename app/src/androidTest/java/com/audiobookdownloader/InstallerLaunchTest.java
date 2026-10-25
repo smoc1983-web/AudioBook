@@ -24,7 +24,9 @@ public class InstallerLaunchTest {
    // No install/replace confirmation is pressed in this launch-only test.
    device.pressBack();assertTrue(device.wait(Until.hasObject(By.pkg(pkg)),5000));
 
-  }finally{apk.delete();device.executeShellCommand("appops set "+pkg+" REQUEST_INSTALL_PACKAGES default");}
+  }finally{apk.delete();}
+  // Revoking this app-op kills its UID on Android 16. The CI host removes the app
+  // after the complete suite, before the separate baseline-upgrade pass.
  }
  @Test(timeout=15000) public void verificationFailureRemainsVisibleAndDoesNotClaimInstallation()throws Exception{
   File apk=new PreviewUpdater(context).target();apk.getParentFile().mkdirs();Files.write(apk.toPath(),new byte[]{1,2,3});
