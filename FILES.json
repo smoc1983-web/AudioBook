@@ -1,5 +1,5 @@
 {
-  "revision": "4.2-preview.48-predanie-direct-updates-verified",
+  "revision": "4.2-preview.48-and-original-signing-key-search",
   "storage": "GitHub export; see releases/ARCHIVE-PARTS.json for three multipart historical ZIPs",
   "files": [
     {
@@ -1139,8 +1139,8 @@
     },
     {
       "path": "docs/HANDOFF.md",
-      "bytes": 35702,
-      "sha256": "a42ec845dfee80a6dc496e7abb5e18232f8396bf38097d8a012c13a5a41e7ade"
+      "bytes": 37295,
+      "sha256": "e317bfa586d8e67bc299a96e84d8636ad746bd5c7208eee9f894bf9df84ed0f4"
     },
     {
       "path": "docs/INSTALL.md",
@@ -1181,6 +1181,11 @@
       "path": "docs/SCREENSHOT-SOURCES.md",
       "bytes": 10487,
       "sha256": "c5d4cf3356d422253e96a7100a42e23db0a0983c0607cb357f65505020186f11"
+    },
+    {
+      "path": "docs/SIGNING-KEY-SEARCH.md",
+      "bytes": 4969,
+      "sha256": "170efcad056a9e3afa29a8bd0afffaac34c518bacc94ecdaee5ff0e19bddb579"
     },
     {
       "path": "docs/SOURCE-REPLACEMENT.md",
@@ -1496,6 +1501,11 @@
       "path": "docs/verification/sensor-injection-100034.txt",
       "bytes": 96,
       "sha256": "4515ff27dd55e7e5ec045624acc6e985aee59fe7feca178fe3add48911d152b8"
+    },
+    {
+      "path": "docs/verification/signing-key-search-2026-10-25.json",
+      "bytes": 3238,
+      "sha256": "862380b5ddbbffb96f82c0168a02751234cf341643a2c074364110adc6425f95"
     },
     {
       "path": "docs/verification/source-availability-100048.json",

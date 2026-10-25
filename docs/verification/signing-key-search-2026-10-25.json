@@ -1,0 +1,104 @@
+{
+  "checkedAt": "2026-10-25T03:21:44.133Z",
+  "repo": "smoc1983-web/AudioBook",
+  "head": "835ae46cf9bf1335d25cb1e767d2fb43842d001d",
+  "branches": [
+    {
+      "name": "diagnostics/startup",
+      "commitCount": 17
+    },
+    {
+      "name": "diagnostics/startup-35",
+      "commitCount": 17
+    },
+    {
+      "name": "integration/screenshot-source-audit",
+      "commitCount": 40
+    },
+    {
+      "name": "integration/verified-sources",
+      "commitCount": 14
+    },
+    {
+      "name": "main",
+      "commitCount": 62
+    }
+  ],
+  "uniqueCommits": 67,
+  "uniqueTrees": 66,
+  "tagCount": 15,
+  "releases": 15,
+  "workflowRuns": 50,
+  "artifactCount": 156,
+  "previewRecoveryCopies": 38,
+  "distinctRecoveryArchivesInspected": 4,
+  "remoteTreesNotInitiallyLocal": [
+    {
+      "tree": "d1c8df0a45d1a0b0fe85f9de64d3317983024cc2",
+      "fileCount": 1934,
+      "keyFilenameCandidates": 0
+    },
+    {
+      "tree": "0edf23342fb45fc7b50282f68b25f4ec82feb5a0",
+      "fileCount": 1982,
+      "keyFilenameCandidates": 0
+    },
+    {
+      "tree": "b5b1e91876d69fd6efaabca1c3c1f92cd06fca29",
+      "fileCount": 1981,
+      "keyFilenameCandidates": 0
+    },
+    {
+      "tree": "e66fe727e673a9a027b3489438925070dbb175bd",
+      "fileCount": 1980,
+      "keyFilenameCandidates": 0
+    }
+  ],
+  "originalStableKeyFound": false,
+  "privateKeysPublished": false,
+  "privateCopiesRemovedAfterCertificateCheck": true,
+  "historicalPathsCheckedIn62LocalTrees": 2095,
+  "localTreeCount": 62,
+  "keyFilenameCandidatesInLocalTrees": 0,
+  "contentInspection": {
+    "gitBlobObjectsInspected": 1115,
+    "gitBlobContentLimit": 4194304,
+    "archivesInspected": 50,
+    "archiveMembersEnumerated": 306,
+    "largeArchiveMembersNotContentScanned": 0,
+    "keyMaterialCandidates": []
+  },
+  "recoveryCertificates": [
+    {
+      "artifactId": 12583230341,
+      "certificateSha256": "3a4cecd14bb3e983843871766909c3f07b3dc64379800f3e270e4a27d39affb7",
+      "matchesInstalledStable": false,
+      "keyFileRetainedLocally": false
+    },
+    {
+      "artifactId": 12321054737,
+      "certificateSha256": "3a4cecd14bb3e983843871766909c3f07b3dc64379800f3e270e4a27d39affb7",
+      "matchesInstalledStable": false,
+      "keyFileRetainedLocally": false
+    },
+    {
+      "artifactId": 12321622782,
+      "certificateSha256": "3a4cecd14bb3e983843871766909c3f07b3dc64379800f3e270e4a27d39affb7",
+      "matchesInstalledStable": false,
+      "keyFileRetainedLocally": false
+    },
+    {
+      "artifactId": 12320838514,
+      "certificateSha256": "3a4cecd14bb3e983843871766909c3f07b3dc64379800f3e270e4a27d39affb7",
+      "matchesInstalledStable": false,
+      "keyFileRetainedLocally": false
+    }
+  ],
+  "expectedStableCertificateSha256": "020e6c23aad35b45e6ef2ee3ef3326a6ddac731b8491162f0d340848887c9bc7",
+  "matchingRecoveryCertificates": 0,
+  "limits": [
+    "Search covers reachable branch/tag history, historical source archives and workflow artifact metadata. Four distinct recovery archives were opened and inspected.",
+    "Encrypted GitHub Actions secret values and evicted/deleted remote objects were not retrieved.",
+    "Blob content scanning was limited to 4 MiB per object; all 306 enumerated source archive members were below that bound."
+  ]
+}
