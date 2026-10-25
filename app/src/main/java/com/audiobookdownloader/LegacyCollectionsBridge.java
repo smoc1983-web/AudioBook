@@ -1,0 +1,20 @@
+package com.audiobookdownloader;
+import android.content.*;import android.content.pm.*;import android.os.*;import java.util.concurrent.*;import java.util.concurrent.atomic.AtomicBoolean;import org.json.*;import rikka.shizuku.Shizuku;
+/** One explicitly requested, short-lived UserService session. No automatic/background reads. */
+final class LegacyCollectionsBridge implements AutoCloseable {
+ interface Callback{void done(String data,String error);}
+ private final Context context;private final Handler main=new Handler(Looper.getMainLooper());private final ExecutorService worker=Executors.newSingleThreadExecutor();private final AtomicBoolean finished=new AtomicBoolean();
+ private Callback callback;private boolean bound;private final Shizuku.UserServiceArgs args;private final Runnable timeout=()->finish(null,"Соединение не установлено. Запустите Shizuku и повторите попытку");
+ private final Shizuku.OnRequestPermissionResultListener permission=(code,result)->{if(code==6431){if(result==PackageManager.PERMISSION_GRANTED)bind();else finish(null,"Разрешение Shizuku не выдано. Коллекции не изменены");}};
+ private final ServiceConnection connection=new ServiceConnection(){public void onServiceConnected(ComponentName n,IBinder b){if(finished.get())return;worker.submit(()->{try{String response=ILegacyCollections.Stub.asInterface(b).readCollections();JSONObject r=new JSONObject(response);if(!r.optBoolean("ok"))finish(null,r.optString("message","Не удалось прочитать коллекции"));else finish(r.getString("data"),null);}catch(Exception e){finish(null,"Не удалось получить коллекции. Повторите подключение Shizuku");}});}public void onServiceDisconnected(ComponentName n){finish(null,"Соединение Shizuku закрыто. Повторите попытку");}};
+ LegacyCollectionsBridge(Context context){this.context=context.getApplicationContext();args=new Shizuku.UserServiceArgs(new ComponentName(context,LegacyCollectionsReader.class)).daemon(false).tag("legacy-collections-readonly").processNameSuffix("collections_transfer").version(BuildConfig.VERSION_CODE);}
+ static String eligibility(Context c){try{if(android.os.Process.myUid()/100000!=0)return "Прямой перенос доступен в основном профиле Android. Здесь можно импортировать файл копии";if(c.getPackageName().equals(LegacyCollectionsReader.LEGACY))return "Эта установка уже использует прежний пакет. Для переноса откройте новую Audiobook";ApplicationInfo info=c.getPackageManager().getApplicationInfo(LegacyCollectionsReader.LEGACY,0);if((info.flags&ApplicationInfo.FLAG_DEBUGGABLE)==0)return "Старая Audiobook найдена, но Android не разрешает прямое чтение этой версии. Используйте перенос с экранов или файл резервной копии";return null;}catch(PackageManager.NameNotFoundException e){return "Старая Audiobook не найдена на этом профиле Android";}}
+ void start(Callback callback){this.callback=callback;String error=eligibility(context);if(error!=null){finish(null,error);return;}
+  try{if(!Shizuku.pingBinder()){finish(null,"Для прямого переноса запустите Shizuku и вернитесь сюда. Root не требуется");return;}if(Shizuku.getVersion()<13){finish(null,"Обновите Shizuku до версии 13 или новее");return;}Shizuku.addRequestPermissionResultListener(permission);main.postDelayed(timeout,60000);if(Shizuku.checkSelfPermission()==PackageManager.PERMISSION_GRANTED)bind();else Shizuku.requestPermission(6431);}
+  catch(Exception e){finish(null,"Не удалось подключиться к Shizuku. Проверьте, что он запущен");}
+ }
+ private void bind(){if(finished.get())return;try{bound=true;Shizuku.bindUserService(args,connection);}catch(Exception e){finish(null,"Не удалось запустить перенос. Перезапустите Shizuku");}}
+ private void finish(String data,String error){if(!finished.compareAndSet(false,true))return;main.post(()->{release();if(callback!=null)callback.done(data,error);});}
+ private void release(){main.removeCallbacks(timeout);try{Shizuku.removeRequestPermissionResultListener(permission);}catch(Exception ignored){}if(bound)try{Shizuku.unbindUserService(args,connection,true);}catch(Exception ignored){}bound=false;worker.shutdownNow();}
+ public void close(){finished.set(true);release();callback=null;}
+}

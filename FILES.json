@@ -1,11 +1,11 @@
 {
-  "revision": "audiobook-4.2.50-renamed-and-upgrade-from-48-verified",
+  "revision": "audiobook-collections-transfer-candidate",
   "storage": "GitHub export; see releases/ARCHIVE-PARTS.json for three multipart historical ZIPs",
   "files": [
     {
       "path": ".github/workflows/build-apk.yml",
-      "bytes": 7138,
-      "sha256": "37511ab1807210de66b972b5b001ec5e0ac507c3cd394f55451267d9d1a0a6f6"
+      "bytes": 7202,
+      "sha256": "4970438abe590523817cfffa49b9f5e56593e1167462a677e8745490ee22aaa2"
     },
     {
       "path": ".gitignore",
@@ -19,8 +19,13 @@
     },
     {
       "path": "app/build.gradle.kts",
-      "bytes": 3701,
-      "sha256": "efe639bdf306f5da8614edc1931afe4cfa4ec66e9212110512e4be55ea695e5d"
+      "bytes": 3818,
+      "sha256": "bf3be9523a0bb741f1573cbdff19cf2401186d6e1cce12c385cdc7347c8c209c"
+    },
+    {
+      "path": "app/src/androidTest/java/com/audiobookdownloader/CollectionTransferTest.java",
+      "bytes": 7546,
+      "sha256": "49a23793d3fcdde7ff3397c01df75ed4394356a9ab022d733f6d4d2917e5fbf5"
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/ContinuationWorkerTest.kt",
@@ -64,8 +69,13 @@
     },
     {
       "path": "app/src/main/AndroidManifest.xml",
-      "bytes": 4458,
-      "sha256": "9ee2110c9ed6ef81c34d0b5f3f995a068a089835cc86f3d4e85ade7d19dc03f6"
+      "bytes": 5553,
+      "sha256": "271cd76484c83fccaf272ddf3e6f22d19c609022b2bd05a1d32acc67603d6b08"
+    },
+    {
+      "path": "app/src/main/aidl/com/audiobookdownloader/ILegacyCollections.aidl",
+      "bytes": 125,
+      "sha256": "37fb43a05b21090114af7c026a7a600f0a39df73c92b052493f6ebb216275b18"
     },
     {
       "path": "app/src/main/assets/licenses/Apache-2.0.txt",
@@ -138,6 +148,21 @@
       "sha256": "b806353a320e96cf5e072695e9c3ccda31a4352e34cb5e7676ff82ae1327303a"
     },
     {
+      "path": "app/src/main/java/com/audiobookdownloader/CollectionTransferActivity.java",
+      "bytes": 12554,
+      "sha256": "6131768503dbfeed3ab268aa59a683776feb478e822472cb8f0ef0dfaef5b53a"
+    },
+    {
+      "path": "app/src/main/java/com/audiobookdownloader/CollectionTransferRules.java",
+      "bytes": 6509,
+      "sha256": "2d5a444a75a2cd9ac7ab121eb593f90239c111bcaabd32dc77fccff6942487db"
+    },
+    {
+      "path": "app/src/main/java/com/audiobookdownloader/CollectionTransferStore.java",
+      "bytes": 2847,
+      "sha256": "40b4ed4aa66ca3b8f621e047a45e8e405502f254f3a536b703a31457e956fc95"
+    },
+    {
       "path": "app/src/main/java/com/audiobookdownloader/ContinuationHttp.kt",
       "bytes": 3373,
       "sha256": "19e119be6a5f7e8dcffc28e1ad854fc9178a68386d8dcd0b0c50988eabd89be0"
@@ -171,6 +196,26 @@
       "path": "app/src/main/java/com/audiobookdownloader/CylinderPageMesh.java",
       "bytes": 4042,
       "sha256": "bc75781fce8fcfc096467218b6688e1e6e668f9e354e6423a9afb5059ae36bcf"
+    },
+    {
+      "path": "app/src/main/java/com/audiobookdownloader/LegacyCollectionScreens.java",
+      "bytes": 3138,
+      "sha256": "8dbde7ab5ca9b76e668b894e56fad0cf16f61616e77863ac11d9d1684300538f"
+    },
+    {
+      "path": "app/src/main/java/com/audiobookdownloader/LegacyCollectionsBridge.java",
+      "bytes": 4742,
+      "sha256": "a9365c05e83f1ce83dcaea1e3d93c319c50e8c0de82b1352bbe0c3a66e2933cf"
+    },
+    {
+      "path": "app/src/main/java/com/audiobookdownloader/LegacyCollectionsReader.java",
+      "bytes": 3547,
+      "sha256": "611976d39fbe63406591e7313427ab35ca9bb05c53a4503f5f6085167db34ac8"
+    },
+    {
+      "path": "app/src/main/java/com/audiobookdownloader/LegacyCollectionsScreenService.java",
+      "bytes": 3043,
+      "sha256": "aef85676cd610efdcd552de846c85a0c9b5931ebfb9947f31805bf4c2aab7b1e"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/OpenAudioCatalog.java",
@@ -248,6 +293,16 @@
       "sha256": "b733c4ecaf5ca93af9c4b14cf8976251f9c6af21f6929698a1ecb4c64c7b3390"
     },
     {
+      "path": "app/src/main/res/values/collections.xml",
+      "bytes": 677,
+      "sha256": "ac4ddbe6fd0a9683a898a15014a79908cd2c332d7bb77ae6009dd18e3177c191"
+    },
+    {
+      "path": "app/src/main/res/xml/legacy_collections_accessibility.xml",
+      "bytes": 581,
+      "sha256": "cf69ee5c3eb74a640331a84da586d28c650ccd6504435e84e15336db62b9dadb"
+    },
+    {
       "path": "app/src/main/res/xml/preview_update_paths.xml",
       "bytes": 121,
       "sha256": "2b21f1f67b8fb2625fee62f2201977c4643d2cf894c4642dfce277861850241e"
@@ -283,6 +338,11 @@
       "sha256": "f343a685b1207a2c41ffcdebbcb38bec1c35debfce58bb402ad143f9d87e8d18"
     },
     {
+      "path": "app/src/test/java/com/audiobookdownloader/CollectionTransferRulesTest.java",
+      "bytes": 5389,
+      "sha256": "e37ef441167888017bacedc76fbc9e9965a74295393947d96f9069ce9152be80"
+    },
+    {
       "path": "app/src/test/java/com/audiobookdownloader/ContinuationParserTest.java",
       "bytes": 3049,
       "sha256": "5285d1efcd4942b7aaba72f6d1f37337a8b57a5bc0f8f4f46e19e3803c9a44fa"
@@ -296,6 +356,11 @@
       "path": "app/src/test/java/com/audiobookdownloader/CylinderPageMeshTest.java",
       "bytes": 2834,
       "sha256": "abbd5d1aae790c46bed5dd6c5d26a3488a581274e9182367411fa6320651a8a0"
+    },
+    {
+      "path": "app/src/test/java/com/audiobookdownloader/LegacyCollectionScreensTest.java",
+      "bytes": 2593,
+      "sha256": "5e07c59a2e53622ef5b508d4bbd6a57a47aec58f89ccf310506179d24761dc2d"
     },
     {
       "path": "app/src/test/java/com/audiobookdownloader/LiveCatalogTest.java",
@@ -334,8 +399,8 @@
     },
     {
       "path": "current/MainActivity.kt",
-      "bytes": 721139,
-      "sha256": "b94640b9588b27623f78ad0ce14f9a69c17ef69d23412e2095c04ca7c117f9fd"
+      "bytes": 721344,
+      "sha256": "147c4badd20e8eb6d5e4760c9ae319468565fa122da49b715f4dfaf714899851"
     },
     {
       "path": "current/PlaybackService.kt",
@@ -1136,6 +1201,11 @@
       "path": "docs/CHANGELOG.md",
       "bytes": 1982,
       "sha256": "e1cef10ed28682ac7d57a63141452add87367eacff845e6c9a00395267149989"
+    },
+    {
+      "path": "docs/COLLECTION-TRANSFER.md",
+      "bytes": 5712,
+      "sha256": "7bbf9615ad7a5bd74b0e832088b9ad1cd1b03ffc84a55a6ac4084b470d6f85cf"
     },
     {
       "path": "docs/CONTINUATION-NOTIFICATIONS.md",
@@ -10183,6 +10253,16 @@
       "sha256": "954cbd6c8c62555d064e590512c5b21e1f8f02aaaca0e1e38a4dc11c85fb7ee9"
     },
     {
+      "path": "legacyFixture/build.gradle.kts",
+      "bytes": 446,
+      "sha256": "02d30e4e7879f0af83794370bd9b492639725f37c1a5e19081710a11995fc297"
+    },
+    {
+      "path": "legacyFixture/src/main/AndroidManifest.xml",
+      "bytes": 193,
+      "sha256": "28bcca3f22779adbb59d7c29a60f1ddca3c3a0cf206fab2f13a304e6c134d4b2"
+    },
+    {
       "path": "references/diagnostics/268195a8-0e94-4ecd-a037-fafe6dd7e278/Audiobook-report-2026-10-18_14-09-57-4668715165283423442.txt",
       "bytes": 36726,
       "sha256": "df701c40a8bbbcde836331436d9a9eb53d6b0e9a470a3cafdab41b116d5323a2"
@@ -10474,8 +10554,8 @@
     },
     {
       "path": "scripts/fetch-upgrade-baseline.py",
-      "bytes": 1449,
-      "sha256": "aa3f2b49fd5cd40a62c19962f17cfbdf1b95ed94cb107bca9a92e5c5e85ac89c"
+      "bytes": 1875,
+      "sha256": "77bd749432dd2582567002199de1acadb0bdd9f9a6b4a75bb0e23afce308c7b7"
     },
     {
       "path": "scripts/inspect-stable-candidate.py",
@@ -10514,8 +10594,13 @@
     },
     {
       "path": "scripts/test-android-startup.sh",
-      "bytes": 3161,
-      "sha256": "1d3b1cae8a1e8302478eaa8478112aa869061aace1b05636ed840823edbca888"
+      "bytes": 3261,
+      "sha256": "8b1cf97d99ffb7074543f18d499b8d5de66df1a7fbc17bb7c446160dbc7b9787"
+    },
+    {
+      "path": "scripts/test-legacy-collections.py",
+      "bytes": 4593,
+      "sha256": "c67d2aa850a7adad7011fe07b994543d3994dfad8a150d7d8a0b7dd761bfcbfb"
     },
     {
       "path": "scripts/test-preview-upgrade.py",
@@ -10529,8 +10614,8 @@
     },
     {
       "path": "settings.gradle.kts",
-      "bytes": 269,
-      "sha256": "6b587680cfc428a03df2e5cf7ddaceba7336a5da2baf2660b4ed6dff87a00708"
+      "bytes": 286,
+      "sha256": "8e24c7a31ca1c2b9d363946363944b45b8edc6b7bcab62d9a5da4888b87e38d0"
     },
     {
       "path": "tools/package-public-update.py",

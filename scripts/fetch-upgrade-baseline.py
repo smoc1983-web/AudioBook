@@ -13,3 +13,9 @@ m=json.loads((out/'preview-update.json').read_text());apk=out/'Audiobook-Preview
 assert apk.stat().st_size==m['size'] and hashlib.sha256(apk.read_bytes()).hexdigest()==m['sha256']
 assert m['certificateSha256']=='3a4cecd14bb3e983843871766909c3f07b3dc64379800f3e270e4a27d39affb7'
 print(json.dumps({'baseline':m['versionName'],'code':m['versionCode'],'sha256Verified':True}))
+
+# An unsigned historical stable APK is used only as a disposable legacy-UI test fixture.
+subprocess.run(['gh','release','download',old['tag_name'],'--repo',repo,'--dir',str(out),'--pattern','Audiobook-stable-sign-on-phone.zip','--clobber'],check=True)
+import zipfile
+with zipfile.ZipFile(out/'Audiobook-stable-sign-on-phone.zip') as z:
+ (out/'legacy-stable-unsigned.apk').write_bytes(z.read('Audiobook-stable-UNSIGNED.apk'))

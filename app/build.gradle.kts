@@ -19,7 +19,7 @@ android {
         buildConfigField("String","LIBRARY_DIRECTORY",if(stableChannel) "\"AudioBooks\"" else "\"AudioBooks-Preview\"")
         testInstrumentationRunner="androidx.test.runner.AndroidJUnitRunner"
     }
-    buildFeatures { compose=true;buildConfig=true }
+    buildFeatures { compose=true;buildConfig=true;aidl=true }
     signingConfigs {
         create("preview") {
             System.getenv("PREVIEW_KEYSTORE")?.let { storeFile=file(it) }
@@ -47,6 +47,8 @@ dependencies {
     implementation("androidx.compose.material3:material3")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
     implementation("org.jsoup:jsoup:1.18.3")
+    implementation("dev.rikka.shizuku:api:13.1.5")
+    implementation("dev.rikka.shizuku:provider:13.1.5")
     implementation("androidx.work:work-runtime-ktx:2.10.1")
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.json:json:20240303")

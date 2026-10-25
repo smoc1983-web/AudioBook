@@ -2673,11 +2673,9 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
 
         } else {
 
-            Toast.makeText(
-                context,
-                "Нет адреса книги: откройте её через поиск",
-                Toast.LENGTH_LONG
-            ).show()
+            searchText=ref.title
+            appPage=AppPage.SEARCH
+            startCommonBookSearch()
         }
     }
 
@@ -10535,6 +10533,7 @@ private fun AbCollectionsScreen(data: AbScreenData,actions: AbActions,books: Lis
                 AbIconButton(AbIcon.PLUS,"Создать коллекцию",theme) {name="";oldName=null;editing=true}
             }
             Text("Собирайте книги на своих полках",color=theme.muted,fontSize=13.sp,modifier=Modifier.padding(top=8.dp))
+            AbButton("Перенести коллекции",theme){context.startActivity(Intent(context,CollectionTransferActivity::class.java))}
             AbButton("Продолжения книг в коллекциях",theme){continuationSettings=true}
         }
         if(selected==null) {
@@ -11090,6 +11089,7 @@ private fun AbSettingsDialog(data: AbScreenData,prefs: android.content.SharedPre
             }
         }
         if(section==AbSettingsSection.HOME) {
+            AbButton("Перенос и копия коллекций",theme){context.startActivity(Intent(context,CollectionTransferActivity::class.java))}
             AbButton("Обновления · "+BuildConfig.VERSION_NAME,theme) {
                 context.startActivity(Intent(context,PreviewUpdatesActivity::class.java))
             }

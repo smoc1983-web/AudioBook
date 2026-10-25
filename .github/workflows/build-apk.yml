@@ -63,7 +63,7 @@ jobs:
       - name: Android SDK
         run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;35.0.0"'
       - name: Tests and isolated Preview APK
-        run: gradle :app:testDebugUnitTest :app:assembleDebug :app:assembleDebugAndroidTest --stacktrace
+        run: gradle :app:testDebugUnitTest :app:assembleDebug :app:assembleDebugAndroidTest :legacyFixture:assembleDebug :legacyFixture:assembleRelease --stacktrace
       - name: Enable Android emulator acceleration
         run: |
           gradle --stop
@@ -104,7 +104,7 @@ jobs:
         run: |
           tag="$(cat dist/tag.txt)"
           if ! gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release create "$tag" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --draft --prerelease --title "Audiobook $tag" --notes "Audiobook: переименование установленного канала Preview с сохранением пакета, подписи и данных. Обновление доступно в настройках приложения."
+            gh release create "$tag" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --draft --prerelease --title "Audiobook $tag" --notes "Audiobook: перенос и резервное копирование коллекций из прежней версии. Пакет, подпись и библиотека установленного нового канала сохранены."
           fi
           gh release upload "$tag" dist/Audiobook-Preview.apk dist/preview-update.json --repo "$GITHUB_REPOSITORY" --clobber
           gh release edit "$tag" --repo "$GITHUB_REPOSITORY" --draft=false --prerelease --latest=false

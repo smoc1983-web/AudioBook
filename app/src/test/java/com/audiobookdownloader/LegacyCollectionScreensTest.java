@@ -1,0 +1,10 @@
+package com.audiobookdownloader;
+import org.junit.*;import static org.junit.Assert.*;import java.util.*;import org.json.*;
+public class LegacyCollectionScreensTest {
+ private LegacyCollectionScreens model(){LegacyCollectionScreens m=new LegacyCollectionScreens();m.accept(Arrays.asList("Audiobook","Мои коллекции","Собирайте книги на своих полках","Любимое\n2 книг","Пустая","0 книг"),false);return m;}
+ @Test public void onlyCompleteShelvesExported()throws Exception{var m=model();assertEquals(1,m.complete());assertEquals(1,m.partial());m.accept(Arrays.asList("Любимое","Собирайте книги на своих полках","Книга 1\nВ коллекции","Убрать из коллекции"),true);assertEquals(1,m.complete());m.accept(Arrays.asList("Книга 2","В коллекции","Убрать из коллекции"),false);assertEquals(2,m.complete());assertEquals(2,CollectionTransferRules.parse(m.export()).getJSONObject(0).getJSONArray("b").length());}
+ @Test public void repeatedScreensDoNotDuplicate()throws Exception{var m=model();for(int n=0;n<2;n++)m.accept(Arrays.asList("Любимое","Собирайте книги на своих полках","Книга 1","В коллекции","Убрать из коллекции","Книга 2","В коллекции"),true);assertEquals(2,m.complete());}
+ @Test public void unknownShelfAndOtherScreensIgnored()throws Exception{var m=model();m.accept(Arrays.asList("Иная","Собирайте книги на своих полках","Книга","В коллекции"),true);m.accept(Arrays.asList("Жанры","Таймер","Случайная","20 книг"),false);assertEquals(1,m.complete());assertEquals(1,m.partial());}
+ @Test public void scrolledShelfListAndReset()throws Exception{var m=model();m.accept(Arrays.asList("Ещё","0 книг"),false,true);assertEquals(2,m.complete());m.accept(Arrays.asList("Название коллекции","Личное","Сохранить"),false);assertFalse(m.export().contains("Личное"));}
+ @Test public void changedCountInvalidatesOldCapture()throws Exception{var m=model();m.accept(Arrays.asList("Любимое","Собирайте книги на своих полках","Книга 1","В коллекции","Книга 2","В коллекции"),true);assertEquals(2,m.complete());m.accept(Arrays.asList("Мои коллекции","Собирайте книги на своих полках","Любимое","3 книг"),false);assertEquals(1,m.complete());}
+}

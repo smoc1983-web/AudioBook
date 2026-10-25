@@ -58,4 +58,7 @@ sudo dmesg -T | tail -100 > startup-evidence/host-kernel.txt || true
 if [ "$result" -eq 0 ]; then
   timeout 3m python scripts/test-preview-upgrade.py || result=$?
 fi
+if [ "$result" -eq 0 ]; then
+  timeout 3m python scripts/test-legacy-collections.py || result=$?
+fi
 exit "$result"
