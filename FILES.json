@@ -1,5 +1,5 @@
 {
-  "revision": "audiobook-test-update-from-4.2.55",
+  "revision": "audiobook-4.2.57-test-update-from-55-verified",
   "storage": "GitHub export; see releases/ARCHIVE-PARTS.json for three multipart historical ZIPs",
   "files": [
     {
@@ -14,8 +14,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 15380,
-      "sha256": "32978f042230437fc23ef9ad8039944e39bc6bd3d9257ae1ce2a5d0bbab7f7b3"
+      "bytes": 15969,
+      "sha256": "0c48d73bf9e4dc2b99c0f9e940b8f9ee498c96bf84d2befd832699c5177925a2"
     },
     {
       "path": "app/build.gradle.kts",
@@ -1313,6 +1313,11 @@
       "sha256": "19979ca5fe93b86ef43a8c93682e438a9a2c5e96a705d336155932d71fb37d6d"
     },
     {
+      "path": "docs/TEST-UPDATE-4.2.md",
+      "bytes": 6383,
+      "sha256": "ade1b4066d2cc8c014ea60e07f5547b59c7d7d534de28286fb8ebf321b440d82"
+    },
+    {
       "path": "docs/VALIDATION.log",
       "bytes": 25335,
       "sha256": "c0dddf5e386ae9395ecc8cd83e924975b64805da91ffa3c4a057777c3e0cb19c"
@@ -1438,12 +1443,22 @@
       "sha256": "e6b6b1a891d8051e7bab33050f95cd0579b563489610c4bd0153d649c2a5b1b5"
     },
     {
+      "path": "docs/verification/checks-100057.json",
+      "bytes": 1297,
+      "sha256": "93d25ecd1b2fe5a28bdbeff486b998b40337c128d550be1ce6ff24ddfea504bd"
+    },
+    {
       "path": "docs/verification/collection-transfer-100053.json",
       "bytes": 508,
       "sha256": "f493ad3b08db0ffd44d1b269d655625649bdbdcfd7081acfa8a08f30630a9b04"
     },
     {
       "path": "docs/verification/collection-transfer-100055.json",
+      "bytes": 508,
+      "sha256": "f493ad3b08db0ffd44d1b269d655625649bdbdcfd7081acfa8a08f30630a9b04"
+    },
+    {
+      "path": "docs/verification/collection-transfer-100057.json",
       "bytes": 508,
       "sha256": "f493ad3b08db0ffd44d1b269d655625649bdbdcfd7081acfa8a08f30630a9b04"
     },
@@ -1488,6 +1503,11 @@
       "sha256": "c42264b7e49dbe8873950fd82b4784b66e80474fa968effbb1a1170b8eb2fd10"
     },
     {
+      "path": "docs/verification/direct-update-channel-100057.json",
+      "bytes": 490,
+      "sha256": "95cd00ba78e3d291974b94e2462187f69cbbe10e0d6cac99eee2be95debbfbef"
+    },
+    {
       "path": "docs/verification/installed-upgrade-100048-to-100050.json",
       "bytes": 421,
       "sha256": "3407f1ae1917dcc6b4aad85d7d857aa440aeff084f6dcf5d73d1f9ac3912debf"
@@ -1501,6 +1521,11 @@
       "path": "docs/verification/installed-upgrade-100053-to-100055.json",
       "bytes": 421,
       "sha256": "b7c1867add10745a9d8280e264365256c7ac92f60b3b11f788a77465fe7eff4c"
+    },
+    {
+      "path": "docs/verification/installed-upgrade-100055-to-100057.json",
+      "bytes": 524,
+      "sha256": "f11fbdb7f564655309c6f669bf04c5dc8514394daabb641f5a1b78d046b07358"
     },
     {
       "path": "docs/verification/installer-download-browser-100055.json",
@@ -1653,6 +1678,11 @@
       "sha256": "34fa63d9b7a28a0de8b5d9364de97a049f50b306cc81f4dcd4274899ce2f5a7a"
     },
     {
+      "path": "docs/verification/preview-100057.json",
+      "bytes": 641,
+      "sha256": "a24f712d0e2492a70f946b1e908fafcb37fe8c56905f3268ded13534cb3951e4"
+    },
+    {
       "path": "docs/verification/preview-as-main-2026-10-25.json",
       "bytes": 409,
       "sha256": "9d98064c5b9643d81f9f3daa2f989f353f14e690607911d3b9984c90b47d43d6"
@@ -1786,6 +1816,11 @@
       "path": "docs/verification/startup-thirteen-sources-100035-android36.xml",
       "bytes": 843,
       "sha256": "11a6f01fccc756b572b72613432281628e576a0b53e79f326be2b9c28ca65b91"
+    },
+    {
+      "path": "docs/verification/test-update-download-browser-100057.json",
+      "bytes": 753,
+      "sha256": "c151bc43d39b422bb5a6e2b4fa9ba564350a0d897cf988c478708b12c20fc515"
     },
     {
       "path": "docs/verification/widget-preview-100038-0.png",

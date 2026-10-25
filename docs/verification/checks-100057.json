@@ -1,0 +1,42 @@
+{
+  "runId": 40177627682,
+  "attempt": 2,
+  "jobId": 121123687091,
+  "sourceCommit": "4e19e13a5e82b95c95643c51fe60b78d14beb94a",
+  "localSourceCommit": "e3a7a9e",
+  "sourceTree": "801ad08882107bad6a926b16e76033e8a20fb4bc",
+  "conclusion": "success",
+  "jvmPerVariant": {
+    "total": 89,
+    "passed": 88,
+    "skipped": 1,
+    "failures": 0
+  },
+  "nativeGeneral": {
+    "total": 18,
+    "passed": 14,
+    "skippedOptIn": 4,
+    "failures": 0,
+    "seconds": 51.131
+  },
+  "fourOptInPassesExecutedSeparately": true,
+  "actualInstalled55VerifierAndInstallerAccepted57": true,
+  "newerApkSystemConfirmationVisible": true,
+  "confirmationCancelledBeforeSeparateHostReplacement": true,
+  "separateHostReplacementPreservedData": true,
+  "firstAttemptUpgradeCasePassed": true,
+  "firstAttemptStoppedOnMissingLegacyFixtureFile": true,
+  "retrySourceUnchanged": true,
+  "physicalPhone": false,
+  "actualNativeAndroidNetworkDownloadTested": false,
+  "sameSignerAndPackage": true,
+  "rootDexRegisters": 119,
+  "zip16KiBAlignment": true,
+  "site": {
+    "version": 7,
+    "sourceCommit": "865b7eabac3cc6782b4139e779d3f6081b5df825",
+    "deploymentId": "appgdep_6addc5c1ec00819192c46930e86c81f3",
+    "status": "succeeded",
+    "origin": "https://audiobook-smoc1983-updates.amplecoot2048.chatgpt.site"
+  }
+}

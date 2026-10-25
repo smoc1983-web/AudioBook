@@ -1,0 +1,14 @@
+{
+  "baselineCode": 100055,
+  "newCode": 100057,
+  "oldUpdaterAcceptedNewApk": true,
+  "oldUpdaterOpenedSystemConfirmation": true,
+  "systemConfirmationCancelledForHostReplacement": true,
+  "androidPackageReplacementSucceeded": true,
+  "label": "Audiobook",
+  "settingsCollectionFolderAndPrivateFilePreserved": true,
+  "certificateUnchanged": true,
+  "installationMethod": "adb install -r in disposable emulator; user will confirm installer on phone",
+  "actualInAppNetworkDownloadTested": false,
+  "physicalPhone": false
+}
