@@ -1,5 +1,5 @@
 {
-  "revision": "preview-48-public-apk-zip-download-and-installation-audit",
+  "revision": "preview-48-installation-confirmed-by-owner",
   "storage": "GitHub export; see releases/ARCHIVE-PARTS.json for three multipart historical ZIPs",
   "files": [
     {
@@ -1139,8 +1139,8 @@
     },
     {
       "path": "docs/HANDOFF.md",
-      "bytes": 43182,
-      "sha256": "5b4d6eef556e0279300fd938f80c540db195ec24046e008a0123fb79b62f1ebc"
+      "bytes": 44730,
+      "sha256": "5dab35139c641a63b6b84cdf172ec0bef57bc7d0db7c5818639540e9e7e82ae6"
     },
     {
       "path": "docs/INSTALL.md",
@@ -1499,8 +1499,8 @@
     },
     {
       "path": "docs/verification/public-download-2026-10-25.json",
-      "bytes": 2612,
-      "sha256": "e448801358f4772665c3d8756627285b94b87b8d80d4c8e0d1cb0125a03370ed"
+      "bytes": 2866,
+      "sha256": "b62cffb194343954c3c90d634ef4c56a21249cedad4b54aeb69d8de8d6acc70f"
     },
     {
       "path": "docs/verification/screenshot-source-probes-2026-10-21.json",

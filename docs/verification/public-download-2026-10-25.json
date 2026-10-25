@@ -92,6 +92,10 @@
     16384
   ],
   "zipalign16KiBPassed": true,
-  "deviceInstallFailureCauseKnown": false,
-  "physicalPhoneInstallTested": false
+  "deviceInstallFailureCauseKnown": true,
+  "physicalPhoneInstallTested": false,
+  "deviceInstallFailureCauseSource": "Owner confirmation: download error; original failed APK not inspected",
+  "physicalPhoneInstallationConfirmedByOwner": true,
+  "ownerConfirmationAt": "2026-10-25T04:16:49.687591+00:00",
+  "failedApkRequested": false
 }
