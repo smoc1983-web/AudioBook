@@ -1,0 +1,46 @@
+{
+  "runId": 40167325643,
+  "jobId": 121090935018,
+  "sourceCommit": "579bf586891dc11d9598cb4785c14ed259dd898c",
+  "localSourceCommit": "0c00726",
+  "sourceTree": "ba8fdca830c4967d3f1961df12902229a73a6a9a",
+  "conclusion": "success",
+  "javaScriptSuites": "passed",
+  "jvmPerVariant": {
+    "total": 89,
+    "passed": 88,
+    "skipped": 1,
+    "failures": 0,
+    "errors": 0
+  },
+  "nativeGeneral": {
+    "total": 15,
+    "passed": 11,
+    "skippedOptIn": 4,
+    "failures": 0,
+    "timeSeconds": 47.47
+  },
+  "nativeSeparatePasses": [
+    "oldUpdaterAcceptsNewSignedApk",
+    "installedUpgradeKeepsDataAndNewName",
+    "legacySnapshotMergesIntoRealCollections",
+    "legacyReleaseScreensTransferWithoutPrivateAccess"
+  ],
+  "legacyScreenPassSeconds": 13.28,
+  "debuggableLegacyReadOnly": true,
+  "nonDebuggableLegacyScreenTransfer": true,
+  "realShizukuManagerPairing": false,
+  "physicalPhone": false,
+  "label": "Audiobook",
+  "rootDexRegisters": 119,
+  "samePublishedCertificate": true,
+  "zip16KiBAlignment": true,
+  "site": {
+    "projectId": "appgprj_6add1a69b6f481918b5e390c8f413992",
+    "version": 5,
+    "sourceCommit": "feae36e1f9c1a96b5d5f07d8a65efeb047d5bd21",
+    "deploymentId": "appgdep_6add9d33b0bc81918561ee7a135aeff9",
+    "conclusion": "succeeded",
+    "origin": "https://audiobook-smoc1983-updates.amplecoot2048.chatgpt.site"
+  }
+}

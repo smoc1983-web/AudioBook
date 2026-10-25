@@ -1,0 +1,17 @@
+{
+  "packageName": "com.audiobookdownloader.preview",
+  "versionCode": 100053,
+  "versionName": "4.2.53",
+  "size": 37075728,
+  "sha256": "76368b1f3e75a77d19ad3eee8df5b5c568c5d4fe74cf6fa752bece8abd65a445",
+  "certificateSha256": "3a4cecd14bb3e983843871766909c3f07b3dc64379800f3e270e4a27d39affb7",
+  "apk": "Audiobook-Preview.apk",
+  "commit": "579bf586891dc11d9598cb4785c14ed259dd898c",
+  "label": "Audiobook",
+  "providers": [
+    "com.audiobookdownloader.preview.shizuku",
+    "com.audiobookdownloader.preview.updates",
+    "com.audiobookdownloader.preview.diagnostic_reports",
+    "com.audiobookdownloader.preview.androidx-startup"
+  ]
+}
