@@ -1,5 +1,5 @@
 """Real 48->next package replacement and native old-updater validation in CI's emulator only."""
-import subprocess,json,os,re,uuid,xml.sax.saxutils as X
+import subprocess,json,os,re,uuid,hashlib,xml.sax.saxutils as X
 from pathlib import Path
 assert os.environ.get('CI')=='true','Never run on a user phone'
 def run(*args):return subprocess.check_output(list(args),text=True,stderr=subprocess.STDOUT,timeout=60)
@@ -16,7 +16,8 @@ fixture.write_text('<?xml version="1.0" encoding="utf-8"?><map><string name="upg
 run('adb','shell','run-as',package,'mkdir','-p','shared_prefs','files','cache')
 def write_app_file(relative,source):
  with source.open('rb') as data:
-  subprocess.run(['adb','exec-in','run-as',package,'sh','-c',"'cat > "+relative+"'"],stdin=data,stdout=subprocess.PIPE,stderr=subprocess.PIPE,check=True,timeout=60)
+  subprocess.run(['adb','exec-in','run-as',package,'dd','of='+relative,'bs=65536'],stdin=data,stdout=subprocess.PIPE,stderr=subprocess.PIPE,check=True,timeout=60)
+ expected=hashlib.sha256(source.read_bytes()).hexdigest();actual=run('adb','shell','run-as',package,'sha256sum',relative).split()[0];assert actual==expected,'Transfer changed '+relative
 write_app_file('shared_prefs/audiobook_downloader.xml',fixture)
 markerfile=out/'upgrade-marker.txt';markerfile.write_text(marker);write_app_file('files/upgrade-marker.txt',markerfile)
 write_app_file('cache/upgrade-candidate.apk',new)

@@ -7,7 +7,14 @@ import org.junit.*;import org.junit.runner.RunWith;import static org.junit.Asser
 public class UpgradeCandidateTest {
  @Test public void oldUpdaterAcceptsNewSignedApk()throws Exception{
   String path=InstrumentationRegistry.getArguments().getString("upgrade_apk");Assume.assumeTrue("Separate installed-upgrade pass",path!=null);
-  Context c=InstrumentationRegistry.getInstrumentation().getTargetContext();new PreviewUpdater(c).verifyApk(new File(path),null);
+  Context c=InstrumentationRegistry.getInstrumentation().getTargetContext();File apk=new File(path);
+  assertTrue("Candidate missing: "+path,apk.isFile());assertTrue("Candidate unreadable: "+path,apk.canRead());assertTrue("Candidate incomplete: "+apk.length(),apk.length()>1000000);
+  PackageInfo installed=c.getPackageManager().getPackageInfo(c.getPackageName(),0),archive=c.getPackageManager().getPackageArchiveInfo(path,PackageManager.GET_SIGNING_CERTIFICATES);
+  assertNotNull("PackageManager rejected candidate bytes: "+apk.length(),archive);
+  assertEquals(c.getPackageName(),archive.packageName);assertEquals(c.getPackageName(),PreviewUpdateRules.PACKAGE);
+  assertTrue("Candidate "+archive.getLongVersionCode()+" is not newer than installed "+installed.getLongVersionCode(),archive.getLongVersionCode()>installed.getLongVersionCode());
+  System.out.println("Installed "+installed.getLongVersionCode()+", candidate "+archive.getLongVersionCode()+", bytes "+apk.length());
+  new PreviewUpdater(c).verifyApk(apk,null);
   PackageInfo p=c.getPackageManager().getPackageArchiveInfo(path,0);assertNotNull(p);p.applicationInfo.sourceDir=path;p.applicationInfo.publicSourceDir=path;
   assertEquals("Audiobook",c.getPackageManager().getApplicationLabel(p.applicationInfo).toString());
  }

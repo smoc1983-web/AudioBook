@@ -1,5 +1,5 @@
 {
-  "revision": "audiobook-rename-and-installed-upgrade-check-pending-ci",
+  "revision": "audiobook-rename-upgrade-fixture-copy-verified-pending-ci",
   "storage": "GitHub export; see releases/ARCHIVE-PARTS.json for three multipart historical ZIPs",
   "files": [
     {
@@ -54,8 +54,8 @@
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/UpgradeCandidateTest.java",
-      "bytes": 2929,
-      "sha256": "231fce41a5d957952bcc07abadc8b3f074c39252b215b07f61af58c981431c7e"
+      "bytes": 3823,
+      "sha256": "659483e34886a099b1a33485903ab9a6b21666053fcdb3a8b06a8480eaba1f03"
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/WidgetPreviewTest.java",
@@ -10484,8 +10484,8 @@
     },
     {
       "path": "scripts/test-preview-upgrade.py",
-      "bytes": 3862,
-      "sha256": "0c91ee3bb56fdcc25bf9e9c49f87cb79372d1426b6f440d1e81a987f76e945d1"
+      "bytes": 4054,
+      "sha256": "ec9ea3ccf244b15dce0ce4635f23babdf59cbfe4f3a3d59c6bb605194e0fada6"
     },
     {
       "path": "scripts/tests/test-phone-signing.py",
