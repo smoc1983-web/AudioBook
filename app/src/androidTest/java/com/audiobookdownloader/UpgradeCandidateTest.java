@@ -25,7 +25,7 @@ public class UpgradeCandidateTest {
     scenario.onActivity(a->a.launchInstaller());
     assertNotNull("Old updater must open Android installer",device.wait(Until.findObject(By.pkg(Pattern.compile("com\\.(?:google\\.android|android)\\.(?:packageinstaller|permissioncontroller)"))),15000));
     assertNotNull("Real newer candidate must reach Update confirmation",device.wait(Until.findObject(By.text(Pattern.compile("(?i)update|install"))),5000));
-    System.out.println("OLD_UPDATER_INSTALLER_CONFIRMATION_VERIFIED");device.pressBack();
+    Bundle phase=new Bundle();phase.putString("stream","OLD_UPDATER_INSTALLER_CONFIRMATION_VERIFIED\n");InstrumentationRegistry.getInstrumentation().sendStatus(2,phase);device.pressBack();
     assertTrue(device.wait(Until.hasObject(By.pkg(c.getPackageName())),5000));
    }finally{target.delete();}
    // The following host-controlled package replacement finishes this process; do not revoke its app-op here.

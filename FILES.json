@@ -64,8 +64,8 @@
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/UpgradeCandidateTest.java",
-      "bytes": 5243,
-      "sha256": "64d483b4823936b28e019d4b216ed4fce978d4f390d8d9ee58367993de3a99b5"
+      "bytes": 5342,
+      "sha256": "a31a6ffc0737b08439da8f60ee425e3f49af75f0dcecce8dc306521ffd64f013"
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/WidgetPreviewTest.java",
