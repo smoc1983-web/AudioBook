@@ -1,0 +1,28 @@
+{
+  "reason": "Site archive rejected above 256 MiB; current metadata references only 100066",
+  "removedOnlyObsoletePartsFromVersion": 100048,
+  "files": [
+    {
+      "name": "preview-100048-372429e5b4c6f651-01.bin",
+      "bytes": 8388608
+    },
+    {
+      "name": "preview-100048-372429e5b4c6f651-02.bin",
+      "bytes": 8388608
+    },
+    {
+      "name": "preview-100048-372429e5b4c6f651-00.bin",
+      "bytes": 8388608
+    },
+    {
+      "name": "preview-100048-372429e5b4c6f651-04.bin",
+      "bytes": 3469896
+    },
+    {
+      "name": "preview-100048-372429e5b4c6f651-03.bin",
+      "bytes": 8388608
+    }
+  ],
+  "retainedInGitSiteHistoryAndGitHubRelease": true,
+  "currentFeedUnchanged": true
+}

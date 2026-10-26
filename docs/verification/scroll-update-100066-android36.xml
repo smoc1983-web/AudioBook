@@ -1,0 +1,38 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuite name="com.audiobookdownloader.CollectionTransferTest" tests="24" failures="0" errors="0" skipped="3" time="60.108" timestamp="2026-10-26T18:36:39" hostname="localhost">
+  <properties>
+    <property name="device" value="emulator-5554 - 16" />
+    <property name="flavor" value="" />
+    <property name="project" value=":app" />
+  </properties>
+  <testcase name="importBacksUpAndUndoPreservesOtherSettings" classname="com.audiobookdownloader.CollectionTransferTest" time="0.019" />
+  <testcase name="nativeScreenDoesNotImportWithoutConfirmation" classname="com.audiobookdownloader.CollectionTransferTest" time="0.864" />
+  <testcase name="laterChangesAndCorruptInputCannotBeOverwritten" classname="com.audiobookdownloader.CollectionTransferTest" time="0.045" />
+  <testcase name="fileBackupRoundTripRequiresConfirmationAndCopiesOnlyCollections" classname="com.audiobookdownloader.CollectionTransferTest" time="0.219" />
+  <testcase name="workerBaselinesConfirmsDeduplicatesAndPreservesSnapshotOnFailure" classname="com.audiobookdownloader.ContinuationWorkerTest" time="1.389" />
+  <testcase name="downloadedPathIsReadableAndOtherPrivateFilesStayHidden" classname="com.audiobookdownloader.InstallerLaunchTest" time="0.254" />
+  <testcase name="verifiedCachePathActuallyOpensAndroidInstaller" classname="com.audiobookdownloader.InstallerLaunchTest" time="11.066" />
+  <testcase name="verificationFailureRemainsVisibleAndDoesNotClaimInstallation" classname="com.audiobookdownloader.InstallerLaunchTest" time="0.813" />
+  <testcase name="nativeMetadataReadsBoundedRangesAndDurationIsCachedForOnlineChapters" classname="com.audiobookdownloader.OnlineDurationTest" time="0.098" />
+  <testcase name="texturedCylinderRendersBothDirectionsAndExportsFrames" classname="com.audiobookdownloader.PageCurlRenderTest" time="0.544" />
+  <testcase name="installedPlayerHasNoScreenReaderOrPrivilegedTransferComponents" classname="com.audiobookdownloader.PermissionSurfaceTest" time="0.007" />
+  <testcase name="backgroundPreparationRetainsConfirmedSeriesAndUnambiguousDownloadedMatches" classname="com.audiobookdownloader.SearchScrollTest" time="0.278" />
+  <testcase name="sixHundredResultsRecycleAndKeepPositionAfterOpeningAndAppending" classname="com.audiobookdownloader.SearchScrollTest" time="3.11" />
+  <testcase name="explicitSourceCycleWorksWhenReferenceSearchHasNoMatch" classname="com.audiobookdownloader.SeriesRecoveryTest" time="0.102" />
+  <testcase name="legacyOriginRecoveryShowsExistingSecondVolumeAndExcludesAnotherDirectSeries" classname="com.audiobookdownloader.SeriesRecoveryTest" time="0.432" />
+  <testcase name="litresBaselineAndDateValidationSurviveSourceFailure" classname="com.audiobookdownloader.SeriesRecoveryTest" time="0.069" />
+  <testcase name="mainNavigationRecreationAndNativeRecoveryRemainUsable" classname="com.audiobookdownloader.StartupSmokeTest" time="26.117" />
+  <testcase name="playerAddsCurrentBookAndRealSensorRestartsSleepCountdown" classname="com.audiobookdownloader.StartupSmokeTest" time="12.411" />
+  <testcase name="installedVersionCannotBeInstalledAgain" classname="com.audiobookdownloader.UpdateScreenTest" time="0.317" />
+  <testcase name="threeUpdateActionsAndNoAccountFields" classname="com.audiobookdownloader.UpdateScreenTest" time="0.156" />
+  <testcase name="oldUpdaterAcceptsNewSignedApk" classname="com.audiobookdownloader.UpgradeCandidateTest" time="0.034">
+    <skipped />
+  </testcase>
+  <testcase name="installedUpgradeKeepsDataAndNewName" classname="com.audiobookdownloader.UpgradeCandidateTest" time="0.006">
+    <skipped />
+  </testcase>
+  <testcase name="seedInstalledUpgradeData" classname="com.audiobookdownloader.UpgradeCandidateTest" time="0.004">
+    <skipped />
+  </testcase>
+  <testcase name="previewsHaveIntrinsicHeightAndRenderAllNineThemes" classname="com.audiobookdownloader.WidgetPreviewTest" time="0.611" />
+</testsuite>

@@ -1,0 +1,65 @@
+{
+  "jvmDebug": {
+    "tests": 98,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1
+  },
+  "jvmRelease": {
+    "tests": 98,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1
+  },
+  "nativeGeneral": {
+    "name": "com.audiobookdownloader.CollectionTransferTest",
+    "tests": "24",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "3",
+    "time": "60.108",
+    "timestamp": "2026-10-26T18:36:39",
+    "hostname": "localhost"
+  },
+  "searchTests": [
+    {
+      "name": "backgroundPreparationRetainsConfirmedSeriesAndUnambiguousDownloadedMatches",
+      "classname": "com.audiobookdownloader.SearchScrollTest",
+      "time": "0.278"
+    },
+    {
+      "name": "sixHundredResultsRecycleAndKeepPositionAfterOpeningAndAppending",
+      "classname": "com.audiobookdownloader.SearchScrollTest",
+      "time": "3.11"
+    }
+  ],
+  "scroll": {
+    "results": 600,
+    "preparationMs": 336,
+    "peakComposed": 12,
+    "renderingEmulatorOnly": true,
+    "physicalSamsung": false
+  },
+  "upgrade": {
+    "baselineCode": 100063,
+    "newCode": 100066,
+    "oldUpdaterAcceptedNewApk": true,
+    "oldUpdaterOpenedSystemConfirmation": true,
+    "systemConfirmationCancelledForHostReplacement": true,
+    "releaseBaselineSeededBySameSignedInstrumentation": true,
+    "androidPackageReplacementSucceeded": true,
+    "label": "Audiobook",
+    "settingsCollectionFolderAndPrivateFilePreserved": true,
+    "certificateUnchanged": true,
+    "installationMethod": "adb install -r in disposable emulator; user will confirm installer on phone",
+    "actualInAppNetworkDownloadTested": false,
+    "physicalPhone": false,
+    "newBuildType": "release",
+    "debuggable": false,
+    "privateAudioFileChecksumPreserved": true,
+    "googlePlayProtectVerdictTested": false
+  },
+  "oldUpdaterAcceptsNewSignedApk": true,
+  "installedUpgradeKeepsDataAndNewName": true,
+  "seedInstalledUpgradeData": true
+}
