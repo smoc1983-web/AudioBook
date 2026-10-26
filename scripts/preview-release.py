@@ -1,7 +1,7 @@
 """Publish only an isolated, signed APK. No credentials enter the manifest or APK."""
 import hashlib,json,os,re,shutil,subprocess
 from pathlib import Path
-apk=Path('app/build/outputs/apk/debug/app-debug.apk')
+apk=Path('app/build/outputs/apk/release/app-release.apk')
 build_tools=Path(os.environ['ANDROID_HOME'])/'build-tools/35.0.0'
 identity=subprocess.check_output([str(build_tools/'aapt'),'dump','badging',str(apk)],text=True)
 m=re.search(r"package: name='([^']+)' versionCode='(\d+)' versionName='([^']+)'",identity)
@@ -24,6 +24,7 @@ for release in old:
             assert version>=previous['versionCode'], 'Version code regressed; refusing publication'
         break
 out=Path('dist');out.mkdir(exist_ok=True)
+subprocess.run(['python','scripts/audit-installable-apk.py','--apk',str(apk),'--build-tools',str(build_tools),'--output',str(out/'permission-audit.json')],check=True)
 shutil.copyfile(apk,out/'Audiobook-Preview.apk')
 manifest={'packageName':m[1],'versionCode':version,'versionName':m[3],'size':apk.stat().st_size,
     'sha256':hashlib.sha256(apk.read_bytes()).hexdigest(),'certificateSha256':fingerprint,

@@ -17,37 +17,19 @@ public class CollectionTransferTest {
  @Test public void nativeScreenDoesNotImportWithoutConfirmation()throws Exception{
   String before=app.getSharedPreferences("audiobook_downloader",0).getString("shelves_v1","[]");
   try(ActivityScenario<CollectionTransferActivity> scenario=ActivityScenario.launch(CollectionTransferActivity.class)){
-   scenario.onActivity(a->{ArrayDeque<View> q=new ArrayDeque<>();q.add(a.getWindow().getDecorView());Set<String> buttons=new HashSet<>();while(!q.isEmpty()){View v=q.remove();if(v instanceof Button){Button b=(Button)v;buttons.add(b.getText().toString());if(b.getText().toString().equals("Добавить найденные коллекции"))assertFalse(b.isEnabled());}if(v instanceof ViewGroup){ViewGroup g=(ViewGroup)v;for(int i=0;i<g.getChildCount();i++)q.add(g.getChildAt(i));}}assertTrue(buttons.contains("Импортировать JSON/XML"));assertTrue(buttons.contains("Сохранить копию коллекций"));});
+   scenario.onActivity(a->{ArrayDeque<View> q=new ArrayDeque<>();q.add(a.getWindow().getDecorView());Set<String> buttons=new HashSet<>();while(!q.isEmpty()){View v=q.remove();if(v instanceof Button){Button b=(Button)v;buttons.add(b.getText().toString());if(b.getText().toString().equals("Добавить найденные коллекции"))assertFalse(b.isEnabled());}if(v instanceof ViewGroup){ViewGroup g=(ViewGroup)v;for(int i=0;i<g.getChildCount();i++)q.add(g.getChildAt(i));}}assertTrue(buttons.contains("Импортировать JSON/XML"));assertTrue(buttons.contains("Сохранить копию коллекций"));assertTrue(buttons.stream().noneMatch(t->t.contains("Shizuku")||t.contains("экранов")||t.contains("Считать коллекции")));});
   }
   assertEquals(before,app.getSharedPreferences("audiobook_downloader",0).getString("shelves_v1","[]"));
  }
- @Test public void legacySnapshotMergesIntoRealCollections()throws Exception{
-  String path=InstrumentationRegistry.getArguments().getString("legacy_snapshot");Assume.assumeTrue("Separate shell-reader pass",path!=null);
-  JSONObject reply=new JSONObject(new String(Files.readAllBytes(new File(path).toPath()),StandardCharsets.UTF_8));assertTrue(reply.getBoolean("ok"));assertFalse(reply.toString().contains("do-not-copy"));
-  var store=new CollectionTransferStore(app);var result=store.apply(reply.getString("data"));assertEquals(1,result.addedShelves);assertEquals(2,result.addedBooks);assertTrue(MainActivityKt.loadShelves(app.getSharedPreferences("audiobook_downloader",0)).stream().anyMatch(s->s.getName().equals("Проверка обновления")));
-  assertEquals(0,store.apply(reply.getString("data")).addedBooks);assertNull(app.getSharedPreferences("audiobook_downloader",0).getString("secret_not_collection",null));store.undo();
+ @Test public void fileBackupRoundTripRequiresConfirmationAndCopiesOnlyCollections()throws Exception{
+  Context c=isolated();var prefs=c.getSharedPreferences("audiobook_downloader",0);prefs.edit().clear().putString("shelves_v1",row("Существующая")).putInt("player_last_position",54321).commit();var store=new CollectionTransferStore(c);String before=store.current();
+  String xml="<map><string name='private_token'>do-not-copy</string><string name='shelves_v1'>"+row("Из файла")+"</string></map>";
+  File copy=new File(c.getCacheDir(),"collections-import-roundtrip.xml");try{
+   Files.write(copy.toPath(),xml.getBytes(StandardCharsets.UTF_8));String input=CollectionTransferActivity.read(new FileInputStream(copy));
+   assertEquals(1,store.preview(input).addedShelves);assertEquals(before,store.current());
+   assertEquals(1,store.apply(input).addedShelves);assertEquals(0,store.apply(input).addedShelves);
+   assertEquals(54321,prefs.getInt("player_last_position",0));assertNull(prefs.getString("private_token",null));assertFalse(CollectionTransferRules.export(store.current()).contains("do-not-copy"));
+   store.undo();assertEquals(before,store.current());
+  }finally{copy.delete();}
  }
- @Test public void legacyReleaseScreensTransferWithoutPrivateAccess()throws Exception{
-  Assume.assumeTrue("Separate old release UI pass",InstrumentationRegistry.getArguments().getString("legacy_screens")!=null);
-  var instrument=InstrumentationRegistry.getInstrumentation();
-  androidx.test.uiautomator.Configurator.getInstance().setUiAutomationFlags(android.app.UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES);
-  var device=androidx.test.uiautomator.UiDevice.getInstance(instrument);var automation=instrument.getUiAutomation(android.app.UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES);
-  String component=app.getPackageName()+"/com.audiobookdownloader.LegacyCollectionsScreenService";
-  LegacyCollectionsScreenService.begin();
-  try{
-   automation.executeShellCommand("settings put secure enabled_accessibility_services "+component).close();automation.executeShellCommand("settings put secure accessibility_enabled 1").close();
-   long until=android.os.SystemClock.uptimeMillis()+15000;while(!LegacyCollectionsScreenService.isConnected()&&android.os.SystemClock.uptimeMillis()<until)android.os.SystemClock.sleep(200);assertTrue("Capture service connected",LegacyCollectionsScreenService.isConnected());
-   app.startActivity(new Intent().setClassName("com.audiobookdownloader","com.audiobookdownloader.MainActivity").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
-   var nav=device.wait(androidx.test.uiautomator.Until.findObject(androidx.test.uiautomator.By.text("Коллекции")),30000);assertNotNull("Legacy collections tab",nav);nav.click();
-   assertTrue(device.wait(androidx.test.uiautomator.Until.hasObject(androidx.test.uiautomator.By.text("Мои коллекции")),15000));android.os.SystemClock.sleep(1500);
-   for(String name:new String[]{"Проверка обновления","Из старой Audiobook"}){
-    var shelf=device.wait(androidx.test.uiautomator.Until.findObject(androidx.test.uiautomator.By.textStartsWith(name)),10000);assertNotNull(name,shelf);shelf.click();
-    assertTrue(device.wait(androidx.test.uiautomator.Until.hasObject(androidx.test.uiautomator.By.textContains("В коллекции")),10000));android.os.SystemClock.sleep(1500);
-    var back=device.findObject(androidx.test.uiautomator.By.desc("Все коллекции"));assertNotNull(back);back.click();android.os.SystemClock.sleep(1200);
-   }
-   LegacyCollectionScreens capture=LegacyCollectionsScreenService.snapshot();assertEquals("Both old shelves fully read",2,capture.complete());assertEquals(0,capture.partial());String data=capture.export();assertFalse(data.contains("do-not-copy"));assertTrue(data.contains("Старая книга"));
-   var store=new CollectionTransferStore(app);String before=store.current();var result=store.apply(data);assertEquals(1,result.addedShelves);assertEquals(2,result.addedBooks);assertEquals(0,store.apply(data).addedBooks);store.undo();assertEquals(before,store.current());
-  }catch(Throwable failure){try{device.dumpWindowHierarchy(new File(app.getCacheDir(),"legacy-screen-failure.xml"));}catch(Exception ignored){}throw failure;}finally{LegacyCollectionsScreenService.clear();automation.executeShellCommand("settings delete secure enabled_accessibility_services").close();automation.executeShellCommand("settings put secure accessibility_enabled 0").close();}
- }
-
 }

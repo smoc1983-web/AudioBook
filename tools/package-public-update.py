@@ -7,6 +7,7 @@ CERTIFICATES={'stable':'020e6c23aad35b45e6ef2ee3ef3326a6ddac731b8491162f0d340848
 def package(apk,channel,output,build_tools):
     identity=subprocess.check_output([str(build_tools/'aapt'),'dump','badging',str(apk)],text=True)
     m=re.search(r"package: name='([^']+)' versionCode='(\d+)' versionName='([^']+)'",identity)
+    if 'application-debuggable' in identity:raise ValueError('Only non-debuggable release APKs may be published')
     expected='com.audiobookdownloader'+('.preview' if channel=='preview' else '')
     if not m or m[1]!=expected:raise ValueError('Wrong APK applicationId')
     # An unsigned stable candidate must never enter the direct installation feed.

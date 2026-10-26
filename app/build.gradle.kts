@@ -19,14 +19,20 @@ android {
         buildConfigField("String","LIBRARY_DIRECTORY",if(stableChannel) "\"AudioBooks\"" else "\"AudioBooks-Preview\"")
         testInstrumentationRunner="androidx.test.runner.AndroidJUnitRunner"
     }
-    buildFeatures { compose=true;buildConfig=true;aidl=true }
+    buildFeatures { compose=true;buildConfig=true }
     signingConfigs {
         create("preview") {
             System.getenv("PREVIEW_KEYSTORE")?.let { storeFile=file(it) }
             storePassword="android";keyAlias="audiobook-preview";keyPassword="android"
         }
     }
-    buildTypes { getByName("debug") { if(stableChannel) signingConfig=null else if(System.getenv("PREVIEW_KEYSTORE")!=null) signingConfig=signingConfigs.getByName("preview") } }
+    buildTypes {
+        getByName("debug") { if(stableChannel) signingConfig=null else if(System.getenv("PREVIEW_KEYSTORE")!=null) signingConfig=signingConfigs.getByName("preview") }
+        getByName("release") {
+            isDebuggable=false
+            if(!stableChannel && System.getenv("PREVIEW_KEYSTORE")!=null) signingConfig=signingConfigs.getByName("preview")
+        }
+    }
     compileOptions { sourceCompatibility=JavaVersion.VERSION_17;targetCompatibility=JavaVersion.VERSION_17 }
     kotlinOptions { jvmTarget="17" }
     sourceSets {
@@ -47,8 +53,6 @@ dependencies {
     implementation("androidx.compose.material3:material3")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
     implementation("org.jsoup:jsoup:1.18.3")
-    implementation("dev.rikka.shizuku:api:13.0.0")
-    implementation("dev.rikka.shizuku:provider:13.0.0")
     implementation("androidx.work:work-runtime-ktx:2.10.1")
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.json:json:20240303")
