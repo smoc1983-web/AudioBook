@@ -61,6 +61,8 @@ internal fun AbPageTurn(page: AppPage, navigate: (AppPage) -> Unit, modifier: Mo
     // Record the actual Compose RenderNode: View.draw(Canvas(bitmap)) loses hardware layers.
     LaunchedEffect(turn) {
         val request = turn ?: run { renderer.clearTexture(); return@LaunchedEffect }
+        // The normal screen now draws directly. Give the turn one recorded frame before readback.
+        withFrameNanos { }
         withFrameNanos { }
         try {
             val readback: Bitmap? = sourceLayer.toImageBitmap().asAndroidBitmap()
@@ -137,7 +139,7 @@ internal fun AbPageTurn(page: AppPage, navigate: (AppPage) -> Unit, modifier: Mo
         }
         Box(Modifier.fillMaxSize().drawWithContent {
             if (current == null || snapshot == null) {
-                if (drawContext.canvas.nativeCanvas.isHardwareAccelerated) {
+                if (current != null && drawContext.canvas.nativeCanvas.isHardwareAccelerated) {
                     sourceLayer.record { this@drawWithContent.drawContent() }
                     drawLayer(sourceLayer)
                 } else drawContent() // Software screenshots/printing cannot replay an Android RenderNode.

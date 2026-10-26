@@ -1,11 +1,11 @@
 {
-  "revision": "audiobook-4.2.63-permission-minimized-signed-release-verified",
+  "revision": "audiobook-search-scroll-background-preparation",
   "storage": "GitHub export; see releases/ARCHIVE-PARTS.json for three multipart historical ZIPs",
   "files": [
     {
       "path": ".github/workflows/build-apk.yml",
-      "bytes": 7525,
-      "sha256": "4e9050a2ee1a7610df7be3b3b939534323a9427674ca3303fe9224033f0f6fb6"
+      "bytes": 7520,
+      "sha256": "4f2545cfe3a6c83a3ae546553c952f714ac1dc497cf36134d8a1c14630903624"
     },
     {
       "path": ".gitignore",
@@ -19,8 +19,8 @@
     },
     {
       "path": "app/build.gradle.kts",
-      "bytes": 3909,
-      "sha256": "4d4b69cf5caa085fc0088f3a72f1c24f2f9d02bcf5542b92556d705f7b3f9245"
+      "bytes": 4124,
+      "sha256": "e7fc6463d6512317632863da48fdfa92807436c6a42117ea5c2b7f4d0f26a6dd"
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/CollectionTransferTest.java",
@@ -51,6 +51,11 @@
       "path": "app/src/androidTest/java/com/audiobookdownloader/PermissionSurfaceTest.java",
       "bytes": 1724,
       "sha256": "e3cd035858a60a19cac047a245f579f508ce070ded1acd4183ab3e14faf6f65e"
+    },
+    {
+      "path": "app/src/androidTest/java/com/audiobookdownloader/SearchScrollTest.kt",
+      "bytes": 6246,
+      "sha256": "fa8741cadeba810ed2963756cad9a7c365579d7dfd12d55108179c7e6d11edc0"
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/SeriesRecoveryTest.kt",
@@ -99,8 +104,8 @@
     },
     {
       "path": "app/src/main/assets/release-notes.json",
-      "bytes": 940,
-      "sha256": "4763cc2f36f26b29aed30bdb1b32f63c199ee30b622b56964d7967619d722993"
+      "bytes": 1039,
+      "sha256": "c102b9c48edadd15e63b278014764185adaaef717d599bc8b3e771e925e12a25"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/AbAudioDurations.kt",
@@ -134,13 +139,18 @@
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/AbPageTurn.kt",
-      "bytes": 9258,
-      "sha256": "8e3d0831227b5610ba6e4174e1724ebd8d2de5906e9ffb15fd94cd809081d3b1"
+      "bytes": 9403,
+      "sha256": "98113d86c880241391fd9ff6a3a8afd278a1e726eea77a1d810d1b12748b99f2"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/AbSearchCoordinator.kt",
       "bytes": 1618,
       "sha256": "fde8bda9bc40198c75fa97d1bd0c5583b55b1b0faf2c038b6d95f7292e303790"
+    },
+    {
+      "path": "app/src/main/java/com/audiobookdownloader/AbSearchRows.kt",
+      "bytes": 2021,
+      "sha256": "5992f11bc336601a6bbf72ae7feedad7e3642a7958decec1c9252d71ca7f5efc"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/AdditionalBookSources.kt",
@@ -269,8 +279,8 @@
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/SeriesAuthority.kt",
-      "bytes": 10678,
-      "sha256": "1074f81a410fd6bea2cf05f2c7011df34327857071472ebaaedf08ff01072df9"
+      "bytes": 11110,
+      "sha256": "9216b22571db2935c0b36bc7d548edfc6a016b50e080f89757ce4c68bb1d42b0"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/SeriesAuthorityParser.java",
@@ -479,8 +489,8 @@
     },
     {
       "path": "current/MainActivity.kt",
-      "bytes": 731783,
-      "sha256": "ec9187aadf43d95ab67d7ccdd611f27b1a4d8cfc4c991887430a02cde969c553"
+      "bytes": 733976,
+      "sha256": "83de7e28d5471e6ee7d96a8a137b2caac2d775874ac58fbe374634fbf7868ea6"
     },
     {
       "path": "current/PlaybackService.kt",
@@ -1361,6 +1371,11 @@
       "path": "docs/SCREENSHOT-SOURCES.md",
       "bytes": 10487,
       "sha256": "c5d4cf3356d422253e96a7100a42e23db0a0983c0607cb357f65505020186f11"
+    },
+    {
+      "path": "docs/SEARCH-SCROLL-PERFORMANCE.md",
+      "bytes": 4686,
+      "sha256": "31723e26e8001c888b27ec0073c477ce7c20ebdfebb3b488a3c820a25145a028"
     },
     {
       "path": "docs/SERIES-VERIFICATION.md",

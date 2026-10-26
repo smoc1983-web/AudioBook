@@ -9375,8 +9375,9 @@ fun bookCatalogJs(catalogUrl: String = "", cycle: BookCycle? = null): String {
 
 // Product name is separate from diagnostic/build revision.
 private const val AB_PRODUCT_NAME=BuildConfig.PRODUCT_NAME
+private val LocalAbCoverScrollState=androidx.compose.runtime.compositionLocalOf<androidx.compose.foundation.lazy.LazyListState?> {null}
 private val LocalAbCoverDataVersion=androidx.compose.runtime.compositionLocalOf {0}
-private data class AbTheme(
+internal data class AbTheme(
     val id: Int, val name: String, val light: Boolean,
     val background: Color, val panel: Color, val field: Color, val accent: Color,
     val text: Color, val muted: Color, val border: Color,
@@ -9425,7 +9426,7 @@ private val AbGlassThemes = listOf(
         Color(0xFF472460),Color.White,Color(0xFFB591D9),R.drawable.ab_glass_amethyst)
 )
 
-private fun abTheme(skin: Int): AbTheme = AbGlassThemes.firstOrNull {it.id==skin} ?: AbGlassThemes[1]
+internal fun abTheme(skin: Int): AbTheme = AbGlassThemes.firstOrNull {it.id==skin} ?: AbGlassThemes[1]
 
 private fun abReadGlassSkin(prefs: android.content.SharedPreferences): Int {
     if(prefs.contains("glass_theme"))return prefs.getInt("glass_theme",2).takeIf {it in 1..9} ?: 2
@@ -9719,7 +9720,13 @@ private fun AbCover(title: String, local: LibraryBook?, remote: BookRef?, theme:
         listOf(title,uri,path,cover,page,edge.toString(),local?.coverRevision.toString(),audio,savedRevision.toString()).joinToString("\u0000")
     }
     var bitmap by remember(request) {mutableStateOf(AbCoverStore.peek(request))}
+    val scrollState=LocalAbCoverScrollState.current
     LaunchedEffect(request) {
+        if(bitmap==null && scrollState!=null) {
+            androidx.compose.runtime.snapshotFlow {scrollState.isScrollInProgress}.first{!it}
+            delay(100L)
+            androidx.compose.runtime.snapshotFlow {scrollState.isScrollInProgress}.first{!it}
+        }
         bitmap=withContext(Dispatchers.IO) {AbCoverStore.load(context.applicationContext,request,uri,path,cover,page,edge,title,audio,local?.folder?.path.orEmpty())}
     }
     LaunchedEffect(bitmap,widgetBook,title) {
@@ -10033,12 +10040,25 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
     var shownResults by androidx.compose.runtime.saveable.rememberSaveable(data.query,data.genre,data.cycle?.url) {mutableStateOf(AB_RESULTS_PAGE)}
     val visibleCount=if(data.genre.isNotBlank())data.genreVisibleCount.coerceIn(AB_GENRE_PAGE,AB_SEARCH_LIMIT)
         else maxOf(shownResults,data.searchRestoreIndex+AB_RESULTS_PAGE).coerceAtMost(AB_SEARCH_LIMIT)
-    val detail=if(data.onlineBook!=null) listOf(abStoredCatalog(prefs,cleanBookTitle(data.pageTitle))) else emptyList()
-    val seriesStatus=SeriesAuthorityWatcher(detail+data.results.take(visibleCount),prefs)
-    val resultBooks=data.results.map {book->book.copy(cycles=SeriesAuthorityCache.cycles(prefs,book.title,book.author,book.cycles,book.url))}.filter {book->
-        !data.cycleBrowsing || data.cycle==null || book.cycles.none{it.referenceUrl.isNotBlank()} ||
-            book.cycles.any{SeriesAuthorityRules.series(it.title)==SeriesAuthorityRules.series(data.cycle.title)}
-    }.let{if(data.cycleBrowsing&&data.cycle!=null)abOrderSeries(it,data.cycle) else it}
+    val detail=remember(data.onlineBook,data.pageTitle,prefs,data.version) {
+        if(data.onlineBook!=null) listOf(abStoredCatalog(prefs,cleanBookTitle(data.pageTitle))) else emptyList()
+    }
+    val verificationTargets=remember(detail,data.results,visibleCount) {detail+data.results.take(visibleCount)}
+    val seriesStatus=SeriesAuthorityWatcher(verificationTargets,prefs)
+    // Playback ticks and lazy-list recycling must not reparse every book's reference metadata.
+    val seriesRevision=remember(prefs,data.version) {prefs.getInt("book_series_revision",0)}
+    val prepared by androidx.compose.runtime.produceState<List<AbSearchRow>?>(null,
+        data.results,books,seriesRevision,data.cycle,data.cycleBrowsing) {
+        value=AbSearchRows.prepare(data.results,books,prefs,data.cycle.takeIf{data.cycleBrowsing})
+    }
+    val resultBooks=prepared.orEmpty()
+    val visibleResults=remember(resultBooks,visibleCount) {resultBooks.take(visibleCount)}
+    // Keep the lazy list unmeasured until its first snapshot is ready, so a restored position
+    // is not clamped to an empty header-only list while background preparation finishes.
+    if(prepared==null) Box(Modifier.fillMaxSize(),contentAlignment=Alignment.Center) {
+        Text("Подготавливаем список книг…",color=theme.muted,fontSize=13.sp)
+    }
+    else androidx.compose.runtime.CompositionLocalProvider(LocalAbCoverScrollState provides listState) {
     LazyColumn(Modifier.fillMaxSize(),state=listState,contentPadding=PaddingValues(horizontal=20.dp,vertical=14.dp),
         verticalArrangement=Arrangement.spacedBy(12.dp)) {
         if(data.searchActive) item(key="search-home") {
@@ -10077,25 +10097,8 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
             Text("Тома с известными номерами идут по порядку. Книги без номера — после них, в порядке сайта.",
                 color=theme.muted,fontSize=11.sp)
         }
-        itemsIndexed(resultBooks.take(visibleCount),key={_,book->book.url}) { _,book ->
-            val ref=BookRef(book.title,book.url,book.coverUrl)
-            Column(verticalArrangement=Arrangement.spacedBy(5.dp)) {
-                AbBookRow(ref,abFindLocal(books,book.title),book.author.ifBlank{"Аудиокнига"},theme,
-                    onClick={actions.openSite(book,book.url)},onMenu={onMenu(ref)})
-                if(book.genres.isNotEmpty()) Text(book.genres.joinToString(" · "),color=theme.muted,fontSize=11.sp)
-                if(book.genreOrigin.isNotBlank()) Text("Источник жанра: ${book.genreOrigin}",color=theme.muted,fontSize=10.sp)
-                book.cycles.forEach {cycle ->
-                    Text("${if(cycle.referenceUrl.isNotBlank()) "Сверено" else "По источнику"}: ${cycle.title} · ${abVolumeLabel(cycle)}",color=theme.accent,fontSize=12.sp,
-                        modifier=Modifier.fillMaxWidth().abGlass(theme,9,field=true)
-                            .clickable(enabled=cycle.url.isNotBlank()){actions.cycle(cycle)}.padding(10.dp))
-                }
-                Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(6.dp)) {
-                    bookSources(book).forEach { source ->
-                        Text(source.site,color=theme.accent,fontSize=11.sp,modifier=Modifier.abGlass(theme,9,field=true).clickable{actions.openSite(book,source.url)}
-                            .padding(horizontal=12.dp,vertical=7.dp))
-                    }
-                }
-            }
+        items(visibleResults,key={it.book.url},contentType={"search-book"}) { row ->
+            AbSearchResultCard(row,theme,actions.openSite,onMenu,actions.cycle)
         }
         if(data.genre.isBlank() && visibleCount<resultBooks.size) item {
             AbButton("Показать ещё · ${visibleCount.coerceAtMost(resultBooks.size)} из ${resultBooks.size}",theme) {
@@ -10155,6 +10158,7 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
                 if(data.searchSource.isBlank())AbBookSources.enabled(prefs) else listOf(data.searchSource))}
         }
     }
+    } // Cover requests wait for this list to stop scrolling.
     if(showSources) AbDialog("Источники поиска",theme,{showSources=false}) {
         Text("Нажмите название для поиска на одном сайте. Переключатели задают состав общего поиска. Проверка каталога не гарантирует доступность каждой книги.",color=theme.muted,fontSize=12.sp)
         AbButton("Общий поиск · ${enabledSources.size} из ${AbBookSources.searchOrder.size}",theme,primary=data.searchSource.isBlank()) {
@@ -10182,6 +10186,31 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
         }
         AbButton("Готово",theme){showSources=false;if(data.searchSource.isBlank()&&data.query.isNotBlank())actions.searchScope("")}
     }
+}
+
+/** Shared with the native large-catalogue test: one lazy item per complete result. */
+@Composable
+internal fun AbSearchResultCard(row:AbSearchRow,theme:AbTheme,onOpen:(BookLink,String)->Unit,
+    onMenu:(BookRef)->Unit,onCycle:(BookCycle)->Unit) {
+            val book=row.book
+            val ref=row.ref
+            Column(verticalArrangement=Arrangement.spacedBy(5.dp)) {
+                AbBookRow(ref,row.local,book.author.ifBlank{"Аудиокнига"},theme,
+                    onClick={onOpen(book,book.url)},onMenu={onMenu(ref)})
+                if(book.genres.isNotEmpty()) Text(book.genres.joinToString(" · "),color=theme.muted,fontSize=11.sp)
+                if(book.genreOrigin.isNotBlank()) Text("Источник жанра: ${book.genreOrigin}",color=theme.muted,fontSize=10.sp)
+                book.cycles.forEach {cycle ->
+                    Text("${if(cycle.referenceUrl.isNotBlank()) "Сверено" else "По источнику"}: ${cycle.title} · ${abVolumeLabel(cycle)}",color=theme.accent,fontSize=12.sp,
+                        modifier=Modifier.fillMaxWidth().abGlass(theme,9,field=true)
+                            .clickable(enabled=cycle.url.isNotBlank()){onCycle(cycle)}.padding(10.dp))
+                }
+                Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(6.dp)) {
+                    row.sources.forEach { source ->
+                        Text(source.site,color=theme.accent,fontSize=11.sp,modifier=Modifier.abGlass(theme,9,field=true).clickable{onOpen(book,source.url)}
+                            .padding(horizontal=12.dp,vertical=7.dp))
+                    }
+                }
+            }
 }
 
 @Composable
@@ -11427,19 +11456,23 @@ private object AbCoverStore {
         override fun sizeOf(key: String, value: android.graphics.Bitmap): Int = value.byteCount
     }
     private val slots = kotlinx.coroutines.sync.Semaphore(3)
-    private val locks = java.util.concurrent.ConcurrentHashMap<String, kotlinx.coroutines.sync.Mutex>()
+    // Fixed stripes bound retained lock objects after browsing thousands of covers.
+    private val locks = Array(32) {kotlinx.coroutines.sync.Mutex()}
+    private val urlLocks = Array(32) {Any()}
+    private val failures = android.util.LruCache<String,Long>(256)
 
     fun peek(key: String): android.graphics.Bitmap? = memory.get(key)
-    fun clearMemory() {memory.evictAll()}
+    fun clearMemory() {memory.evictAll();failures.evictAll()}
 
     suspend fun load(context: Context, key: String, localUri: String, localPath: String,
         direct: String, page: String, edge: Int, title: String = "", audio: String = "",
         folder: String = ""): android.graphics.Bitmap? {
         peek(key)?.let { return it }
-        val lock = locks.getOrPut(key) { kotlinx.coroutines.sync.Mutex() }
+        val lock = locks[(key.hashCode() and Int.MAX_VALUE)%locks.size]
         lock.lock()
         try {
             peek(key)?.let { return it }
+            failures.get(key)?.let {if(android.os.SystemClock.elapsedRealtime()-it<30_000L)return null}
             slots.acquire()
             try {
                 kotlinx.coroutines.currentCoroutineContext().ensureActive()
@@ -11465,7 +11498,8 @@ private object AbCoverStore {
                 // A downloaded book keeps its cover outside the disposable search cache.
                 if(bitmap!=null && audio.isNotBlank() && title.isNotBlank() && !durable(context,title).exists())
                     writeImage(durable(context,title),bitmap)
-                if (bitmap != null) memory.put(key, bitmap)
+                if (bitmap != null) {memory.put(key, bitmap);failures.remove(key)}
+                else failures.put(key,android.os.SystemClock.elapsedRealtime())
                 return bitmap
             } finally { slots.release() }
         } finally { lock.unlock() }
@@ -11577,7 +11611,8 @@ private object AbCoverStore {
             val url = address(raw, page)
             if (url.isBlank() || !tried.add(url)) return null
             kotlinx.coroutines.currentCoroutineContext().ensureActive()
-            val bitmap = fetch(context, url, page, edge)
+            val task=kotlinx.coroutines.currentCoroutineContext()
+            val bitmap = fetch(context, url, page, edge) {task.ensureActive()}
             if (bitmap != null && page.isNotBlank()) saved.edit().putString(page, url).apply()
             return bitmap
         }
@@ -11593,13 +11628,14 @@ private object AbCoverStore {
         return attempt(found)
     }
 
-    private fun fetch(context: Context, url: String, page: String, edge: Int): android.graphics.Bitmap? {
+    private fun fetch(context: Context, url: String, page: String, edge: Int,checkActive:()->Unit): android.graphics.Bitmap? {
         val folder = File(context.cacheDir, "audiobook-covers-v2")
         val name = java.security.MessageDigest.getInstance("SHA-256").digest(url.toByteArray(Charsets.UTF_8))
             .joinToString("") { "%02x".format(it.toInt() and 255) }
         val file = File(folder, name)
         // Serialise identical URLs even when a player and a thumbnail request different sizes.
-        synchronized(locks.getOrPut("url:$url") { kotlinx.coroutines.sync.Mutex() }) {
+        synchronized(urlLocks[(url.hashCode() and Int.MAX_VALUE)%urlLocks.size]) {
+            checkActive()
             if (file.exists()) {
                 decode(edge) { file.inputStream() }?.let { file.setLastModified(System.currentTimeMillis()); return it }
                 file.delete()
@@ -11624,6 +11660,7 @@ private object AbCoverStore {
                     val buffer = ByteArray(8192)
                     var total = 0L
                     while (true) {
+                        checkActive()
                         val count = input.read(buffer)
                         if (count < 0) break
                         total += count
@@ -11639,7 +11676,7 @@ private object AbCoverStore {
                         if (bytes > MAX_DISK) { val length = it.length(); if (it.delete()) bytes -= length }
                     }
                 return bitmap
-            } catch (_: Exception) { return null }
+            } catch (error: Exception) {if(error is kotlinx.coroutines.CancellationException)throw error;return null}
             finally { temp?.delete(); try { connection?.disconnect() } catch (_: Exception) { } }
         }
     }

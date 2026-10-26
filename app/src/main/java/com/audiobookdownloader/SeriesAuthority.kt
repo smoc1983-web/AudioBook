@@ -16,8 +16,17 @@ internal data class SeriesEvidence(val title:String,val author:String,val series
     val bookUrl:String,val provider:String,val order:Double?,val parent:String="",val checked:Long=System.currentTimeMillis())
 internal object SeriesAuthorityCache {
     private const val PREFIX="book_series_authority_v1_"
-    private fun key(title:String,author:String):String = PREFIX+MessageDigest.getInstance("SHA-256")
-        .digest((SeriesAuthorityRules.title(title)+"|"+SeriesAuthorityRules.author(author)).toByteArray()).joinToString(""){"%02x".format(it)}
+    private val keys=android.util.LruCache<String,String>(1024)
+    private fun key(title:String,author:String):String {
+        val identity=title+"\u0000"+author
+        keys.get(identity)?.let{return it}
+        val digest=MessageDigest.getInstance("SHA-256")
+            .digest((SeriesAuthorityRules.title(title)+"|"+SeriesAuthorityRules.author(author)).toByteArray())
+        val hex="0123456789abcdef"
+        val result=PREFIX+buildString(64){digest.forEach{byte->val n=byte.toInt() and 255;append(hex[n ushr 4]);append(hex[n and 15])}}
+        keys.put(identity,result)
+        return result
+    }
     fun evidence(prefs:SharedPreferences,title:String,author:String):SeriesEvidence? = try {
         run {
             val j=JSONObject(prefs.getString(key(title,author),"{}").orEmpty())
@@ -125,8 +134,9 @@ private val seriesAuthorityInFlight=java.util.Collections.synchronizedSet(mutabl
 
 /** Bibliographic work runs separately from playback and the audio-source search workers. */
 @Composable internal fun SeriesAuthorityWatcher(books:List<BookLink>,prefs:SharedPreferences,retry:Int=0):String {
-    val targets=books.filter{it.title.isNotBlank()}.distinctBy{SeriesAuthorityRules.title(it.title)+"|"+SeriesAuthorityRules.author(it.author)}.take(12)
-    val fingerprint=targets.joinToString("|"){it.title+":"+it.author}
+    val targets=remember(books) {books.asSequence().filter{it.title.isNotBlank()}
+        .distinctBy{SeriesAuthorityRules.title(it.title)+"|"+SeriesAuthorityRules.author(it.author)}.take(12).toList()}
+    val fingerprint=remember(targets) {targets.joinToString("|"){it.title+":"+it.author}}
     var status by remember {mutableStateOf("")}
     LaunchedEffect(fingerprint,retry) {
         delay(700)
