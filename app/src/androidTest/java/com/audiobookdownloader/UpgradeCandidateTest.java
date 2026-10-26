@@ -5,6 +5,31 @@ import org.junit.*;import org.junit.runner.RunWith;import static org.junit.Asser
 /** Opt-in second pass: executes against the actually installed old/new APKs in a disposable emulator. */
 @RunWith(AndroidJUnit4.class)
 public class UpgradeCandidateTest {
+ /** Test fixture only: supports an actually installed non-debuggable baseline, with no run-as. */
+ @Test public void seedInstalledUpgradeData()throws Exception{
+  Bundle args=InstrumentationRegistry.getArguments();String dir=args.getString("upgrade_fixture_dir");
+  Assume.assumeTrue("Separate disposable-emulator fixture pass",dir!=null);
+  assertTrue(dir.matches("/data/local/tmp/audiobook-upgrade-fixture-upgrade-[0-9a-f-]+"));
+  Context c=InstrumentationRegistry.getInstrumentation().getTargetContext();
+  assertEquals("com.audiobookdownloader.preview",c.getPackageName());String marker=args.getString("upgrade_marker");
+  assertNotNull(marker);assertTrue(marker.matches("upgrade-[0-9a-f-]+"));
+  c.getSharedPreferences("audiobook_downloader",0).edit().putString("upgrade_marker",marker)
+   .putInt("player_last_position",54321).putString("library_tree_uri","content://com.android.externalstorage.documents/tree/primary%3ADownload%2FAudioBooks")
+   .putString("shelves_v1","[{\"n\":\"Проверка обновления\",\"b\":[]}]").commit();
+  String[] names={"marker.txt","audio.wav","candidate.apk"};
+  File[] targets={new File(c.getFilesDir(),"upgrade-marker.txt"),new File(c.getFilesDir(),"upgrade-audio.wav"),new File(c.getCacheDir(),"upgrade-candidate.apk")};
+  for(int i=0;i<names.length;i++){
+   targets[i].getParentFile().mkdirs();
+   // UiAutomation reads the shell-owned staging file and returns an FD to this same-signed test.
+   ParcelFileDescriptor fd=InstrumentationRegistry.getInstrumentation().getUiAutomation().executeShellCommand("cat "+dir+"/"+names[i]);
+   try(InputStream in=new ParcelFileDescriptor.AutoCloseInputStream(fd);OutputStream out=new FileOutputStream(targets[i])){
+    byte[] buffer=new byte[65536];int count;while((count=in.read(buffer))!=-1)out.write(buffer,0,count);
+   }
+   String expected=i==0?marker:null;
+   if(i==0)assertEquals(expected,new String(Files.readAllBytes(targets[i].toPath()),StandardCharsets.UTF_8));
+   else {StringBuilder hash=new StringBuilder();for(byte b:java.security.MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(targets[i].toPath())))hash.append(String.format(java.util.Locale.ROOT,"%02x",b&255));assertEquals(args.getString(i==1?"upgrade_audio_sha":"upgrade_candidate_sha"),hash.toString());}
+  }
+ }
  @Test public void oldUpdaterAcceptsNewSignedApk()throws Exception{
   String path=InstrumentationRegistry.getArguments().getString("upgrade_apk");Assume.assumeTrue("Separate installed-upgrade pass",path!=null);
   Context c=InstrumentationRegistry.getInstrumentation().getTargetContext();File apk=new File(path);

@@ -79,8 +79,8 @@
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/UpgradeCandidateTest.java",
-      "bytes": 6441,
-      "sha256": "24aedc0f4aafe5984a6626a8f281084ae358be20642bf471fe0bcc9d01a045ab"
+      "bytes": 8732,
+      "sha256": "02abaa413a82f44f267596133b05ddb0b90db9e70e1ab9b064ac94b154adc705"
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/WidgetPreviewTest.java",
@@ -10969,8 +10969,8 @@
     },
     {
       "path": "scripts/test-preview-upgrade.py",
-      "bytes": 4784,
-      "sha256": "f7856ea8b62ea33c8e8b6d0d0cfa153d0a0d9320a6ac6334db85d11c2667c87f"
+      "bytes": 4257,
+      "sha256": "a804c5007c14ef64b4f622e3a6efcb2fc5b7f6479bdc39c5acac85c28e623a7d"
     },
     {
       "path": "scripts/tests/test-phone-signing.py",

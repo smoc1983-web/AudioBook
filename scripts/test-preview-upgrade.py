@@ -1,5 +1,5 @@
 """Real published-baseline->next replacement and native old-updater validation in CI's emulator only."""
-import subprocess,json,os,re,uuid,hashlib,wave,xml.sax.saxutils as X
+import subprocess,json,os,re,uuid,hashlib,wave
 from pathlib import Path
 assert os.environ.get('CI')=='true','Never run on a user phone'
 def run(*args):return subprocess.check_output(list(args),text=True,stderr=subprocess.STDOUT,timeout=60)
@@ -11,29 +11,28 @@ assert cert(tests)==cert(new),'Instrumentation must keep the same signing identi
 # Only throwaway tests from this job are removed; no physical device or stable package is touched.
 subprocess.run(['adb','uninstall',package],capture_output=True);subprocess.run(['adb','uninstall',package+'.test'],capture_output=True)
 assert 'Success' in run('adb','install',str(old));assert 'Success' in run('adb','install','-t',str(tests))
-marker='upgrade-'+uuid.uuid4().hex;fixture=out/'upgrade-fixture.xml';tree='content://com.android.externalstorage.documents/tree/primary%3ADownload%2FAudioBooks'
-fixture.write_text('<?xml version="1.0" encoding="utf-8"?><map><string name="upgrade_marker">'+marker+'</string><int name="player_last_position" value="54321"/><string name="library_tree_uri">'+X.escape(tree)+'</string><string name="shelves_v1">'+X.escape('[{"n":"Проверка обновления","b":[]}]')+'</string></map>')
-run('adb','shell','run-as',package,'mkdir','-p','shared_prefs','files','cache')
-def write_app_file(relative,source):
- with source.open('rb') as data:
-  subprocess.run(['adb','exec-in','run-as',package,'dd','of='+relative,'bs=65536'],stdin=data,stdout=subprocess.PIPE,stderr=subprocess.PIPE,check=True,timeout=60)
- expected=hashlib.sha256(source.read_bytes()).hexdigest();actual=run('adb','shell','run-as',package,'sha256sum',relative).split()[0];assert actual==expected,'Transfer changed '+relative
-write_app_file('shared_prefs/audiobook_downloader.xml',fixture)
-markerfile=out/'upgrade-marker.txt';markerfile.write_text(marker);write_app_file('files/upgrade-marker.txt',markerfile)
+marker='upgrade-'+uuid.uuid4().hex
+markerfile=out/'upgrade-marker.txt';markerfile.write_text(marker)
 audio=out/'upgrade-audio.wav'
 with wave.open(str(audio),'wb') as stream:
  stream.setnchannels(1);stream.setsampwidth(2);stream.setframerate(8000);stream.writeframes(bytes(1600))
-write_app_file('files/upgrade-audio.wav',audio)
 audio_sha=hashlib.sha256(audio.read_bytes()).hexdigest()
-write_app_file('cache/upgrade-candidate.apk',new)
+# The previous public APK is now a non-debuggable release. Seed its private fixture
+# through same-signed instrumentation; run-as intentionally cannot open a release.
+fixture_dir='/data/local/tmp/audiobook-upgrade-fixture-'+marker
+run('adb','shell','mkdir','-p',fixture_dir)
+for source,name in [(markerfile,'marker.txt'),(audio,'audio.wav'),(new,'candidate.apk')]:
+ run('adb','push',str(source),fixture_dir+'/'+name)
 run('adb','shell','pm','grant',package,'android.permission.READ_MEDIA_AUDIO');run('adb','shell','pm','grant',package,'android.permission.POST_NOTIFICATIONS')
-def instrument(method,argument,value):
- result=run('adb','shell','am','instrument','-w','-r','-e','class','com.audiobookdownloader.UpgradeCandidateTest#'+method,'-e',argument,value,'-e','upgrade_audio_sha',audio_sha,package+'.test/androidx.test.runner.AndroidJUnitRunner')
+def instrument(method,argument,value,extra=()):
+ result=run('adb','shell','am','instrument','-w','-r','-e','class','com.audiobookdownloader.UpgradeCandidateTest#'+method,'-e',argument,value,'-e','upgrade_audio_sha',audio_sha,*extra,package+'.test/androidx.test.runner.AndroidJUnitRunner')
  (out/(method+'.txt')).write_text(result);assert re.search(r'OK \(1 test\)',result),result
  return result
+instrument('seedInstalledUpgradeData','upgrade_fixture_dir',fixture_dir,
+ ('-e','upgrade_marker',marker,'-e','upgrade_candidate_sha',hashlib.sha256(new.read_bytes()).hexdigest()))
 candidate_result=instrument('oldUpdaterAcceptsNewSignedApk','upgrade_apk','/data/user/0/'+package+'/cache/upgrade-candidate.apk')
 assert 'OLD_UPDATER_INSTALLER_CONFIRMATION_VERIFIED' in candidate_result,'Old installed updater did not show Android installation confirmation'
 assert 'Success' in run('adb','install','-r',str(new))
 instrument('installedUpgradeKeepsDataAndNewName','upgrade_marker',marker)
-previous=json.loads(Path('upgrade-baseline/preview-update.json').read_text());result={'baselineCode':previous['versionCode'],'newCode':100000+int(os.environ['GITHUB_RUN_NUMBER']),'oldUpdaterAcceptedNewApk':True,'oldUpdaterOpenedSystemConfirmation':True,'systemConfirmationCancelledForHostReplacement':True,'androidPackageReplacementSucceeded':True,'label':'Audiobook','settingsCollectionFolderAndPrivateFilePreserved':True,'certificateUnchanged':True,'installationMethod':'adb install -r in disposable emulator; user will confirm installer on phone','actualInAppNetworkDownloadTested':False,'physicalPhone':False,'newBuildType':'release','debuggable':False,'privateAudioFileChecksumPreserved':True,'googlePlayProtectVerdictTested':False}
+previous=json.loads(Path('upgrade-baseline/preview-update.json').read_text());result={'baselineCode':previous['versionCode'],'newCode':100000+int(os.environ['GITHUB_RUN_NUMBER']),'oldUpdaterAcceptedNewApk':True,'oldUpdaterOpenedSystemConfirmation':True,'systemConfirmationCancelledForHostReplacement':True,'releaseBaselineSeededBySameSignedInstrumentation':True,'androidPackageReplacementSucceeded':True,'label':'Audiobook','settingsCollectionFolderAndPrivateFilePreserved':True,'certificateUnchanged':True,'installationMethod':'adb install -r in disposable emulator; user will confirm installer on phone','actualInAppNetworkDownloadTested':False,'physicalPhone':False,'newBuildType':'release','debuggable':False,'privateAudioFileChecksumPreserved':True,'googlePlayProtectVerdictTested':False}
 (out/'installed-upgrade.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result))
