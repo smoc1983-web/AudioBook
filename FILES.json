@@ -54,8 +54,8 @@
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/SearchScrollTest.kt",
-      "bytes": 6246,
-      "sha256": "fa8741cadeba810ed2963756cad9a7c365579d7dfd12d55108179c7e6d11edc0"
+      "bytes": 6259,
+      "sha256": "af39b46d158f611d4a64e2c574ae37cea8bfa3b0656c845c9e110f32b0f2f51b"
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/SeriesRecoveryTest.kt",

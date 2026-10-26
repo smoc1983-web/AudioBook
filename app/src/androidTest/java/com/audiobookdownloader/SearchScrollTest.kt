@@ -72,6 +72,7 @@ class SearchScrollTest {
         assertTrue("All results were eagerly composed: ${peak.get()}",peak.get()<40)
         android.util.Log.i("SearchScrollTest","600 results; preparationMs=$preparedMs; peakComposed=${peak.get()}; open/return/append/end/back passed")
         prefs.edit().clear().commit()
+        Unit
     }
 
     @Test(timeout=30000) fun backgroundPreparationRetainsConfirmedSeriesAndUnambiguousDownloadedMatches()=runBlocking {
