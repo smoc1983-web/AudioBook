@@ -1,0 +1,14 @@
+Unsubmitted developer review notes for Audiobook 4.2.63
+
+App: Audiobook
+Package: com.audiobookdownloader.preview
+Version: 4.2.63 (100063)
+APK SHA-256: 0660727958123ecaf3dcee3906a3f49639ec25dffd23982ab535c16dcdd8508c
+Certificate SHA-256: 3a4cecd14bb3e983843871766909c3f07b3dc64379800f3e270e4a27d39affb7
+Public download page: https://audiobook-smoc1983-updates.amplecoot2048.chatgpt.site
+
+Users reported the sensitive-data installation block for 4.2.62. The app is an audiobook player. The prior optional legacy-collection migration used an AccessibilityService restricted to the old Audiobook UI and a separate Shizuku bridge. Version 4.2.63 removes both implementations and their manifest permissions/components, SDK dependency and AIDL interface. This is not a name change or concealed API replacement. No new privileged helper is installed.
+
+The new APK is a non-debuggable release with unchanged package and signing identity. It supports only user-selected JSON/XML collection backup import with preview, explicit confirmation, additive merge, backup and undo. It no longer reads other applications' screens or private settings. Ordinary media access, playback notifications and user-confirmed signed updates remain. The installed-APK permission/DEX audit and debug-to-release data-preservation tests are in docs/verification.
+
+The engineering environment cannot test Play Protect's server-side verdict on affected phones. This note has not been sent to Google and is not a Google approval. If a block persists, attach the actual new APK and the current warning screenshot to the official developer review/appeal form linked by https://developers.google.com/android/play-protect/warning-dev-guidance . Do not attach signing keys or disable protection as a workaround.

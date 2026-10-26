@@ -1,0 +1,52 @@
+{
+  "date": "2026-10-26T07:13:51.654Z",
+  "origin": "http://127.0.0.1:8765",
+  "mobileEmulation": true,
+  "physicalSamsung": false,
+  "errors": [],
+  "downloads": [
+    {
+      "kind": "apk",
+      "path": "/workspace/source-audit/play-protect/browser/local-Audiobook-4.2.63.apk",
+      "bytes": 32577367,
+      "sha256": "0660727958123ecaf3dcee3906a3f49639ec25dffd23982ab535c16dcdd8508c",
+      "downloadCompleted": true
+    },
+    {
+      "kind": "zip",
+      "path": "/workspace/source-audit/play-protect/browser/local-Audiobook-4.2.63.zip",
+      "bytes": 32577505,
+      "sha256": "f1d80b2d40b73e1bf950b4a418a0bd53c3ea5a69a19ced8104b193d68c14ed3f",
+      "downloadCompleted": true
+    }
+  ],
+  "cases": [
+    {
+      "case": "interruption",
+      "passed": true,
+      "requests": [
+        1,
+        4,
+        1
+      ]
+    },
+    {
+      "case": "wrong-package",
+      "passed": true,
+      "requests": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "case": "corruption",
+      "passed": true,
+      "requests": [
+        3,
+        0,
+        0
+      ]
+    }
+  ]
+}

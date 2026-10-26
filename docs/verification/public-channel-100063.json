@@ -1,0 +1,11 @@
+{
+  "userAgent": "Audiobook-Updater/4.2.62",
+  "versionCode": 100063,
+  "partCount": 4,
+  "bytes": 32577367,
+  "sha256": "0660727958123ecaf3dcee3906a3f49639ec25dffd23982ab535c16dcdd8508c",
+  "allPartChecksumsMatch": true,
+  "completeApkChecksumMatches": true,
+  "googlePlayProtectVerdictTested": false,
+  "physicalPhone": false
+}

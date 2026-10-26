@@ -1,0 +1,24 @@
+{
+  "date": "2026-10-26T07:20:01.971Z",
+  "origin": "https://audiobook-smoc1983-updates.amplecoot2048.chatgpt.site",
+  "mobileEmulation": true,
+  "physicalSamsung": false,
+  "errors": [],
+  "downloads": [
+    {
+      "kind": "apk",
+      "path": "/workspace/source-audit/play-protect/browser/live-Audiobook-4.2.63.apk",
+      "bytes": 32577367,
+      "sha256": "0660727958123ecaf3dcee3906a3f49639ec25dffd23982ab535c16dcdd8508c",
+      "downloadCompleted": true
+    },
+    {
+      "kind": "zip",
+      "path": "/workspace/source-audit/play-protect/browser/live-Audiobook-4.2.63.zip",
+      "bytes": 32577505,
+      "sha256": "f1d80b2d40b73e1bf950b4a418a0bd53c3ea5a69a19ced8104b193d68c14ed3f",
+      "downloadCompleted": true
+    }
+  ],
+  "cases": []
+}
