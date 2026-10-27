@@ -8,6 +8,50 @@ concurrency:
   group: audiobook-audit-68-${{ github.ref }}
   cancel-in-progress: true
 jobs:
+  minimum-sdk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Android SDK
+        run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;35.0.0"'
+      - name: Build disposable debug test APKs only
+        run: GITHUB_RUN_NUMBER=69 gradle :app:assembleDebug :app:assembleDebugAndroidTest --stacktrace
+      - name: Android 23 emulator acceleration
+        run: |
+          gradle --stop
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Real minimum-SDK series, XML import and browser isolation checks
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 23
+          target: default
+          arch: x86
+          profile: Nexus 5
+          emulator-boot-timeout: 300
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -memory 2048 -cores 2
+          script: GITHUB_RUN_NUMBER=69 gradle :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.audiobookdownloader.MinimumSdkTest,com.audiobookdownloader.CollectionTransferTest,com.audiobookdownloader.WebViewIsolationTest,com.audiobookdownloader.SeriesAuthoritySafetyTest --stacktrace
+      - name: Save minimum SDK reports only
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android23-compatibility-reports
+          path: |
+            app/build/reports/androidTests/
+            app/build/outputs/androidTest-results/
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 35
@@ -102,6 +146,8 @@ jobs:
         run: |
           GITHUB_RUN_NUMBER=69 gradle :app:auditRuntimeDependencies
           python scripts/audit-dependencies.py --input app/build/reports/security/runtime-dependencies.json --output audit-evidence/dependency-advisories.json
+      - name: Require zero Android lint errors
+        run: python scripts/check-android-lint.py app/build/reports/lint-results-release.xml
       - name: Save private audit reports only; no APK or signing key
         if: always()
         uses: actions/upload-artifact@v4

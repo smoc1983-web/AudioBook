@@ -12515,8 +12515,9 @@ internal fun AbOfficialSeriesPanel(title:String,author:String,prefs:android.cont
     DisposableEffect(store){val listener=android.content.SharedPreferences.OnSharedPreferenceChangeListener{_,_->revision++}
         store.preferences.registerOnSharedPreferenceChangeListener(listener)
         onDispose{store.preferences.unregisterOnSharedPreferenceChangeListener(listener)}}
-    val snapshot by androidx.compose.runtime.produceState<OfficialSnapshot?>(null,title,author,revision) {
-        value=withContext(Dispatchers.IO){store.read(title,author)}
+    var snapshot by remember(title,author){mutableStateOf<OfficialSnapshot?>(null)}
+    LaunchedEffect(title,author,revision) {
+        snapshot=withContext(Dispatchers.IO){store.read(title,author)}
     }
     LaunchedEffect(title,author,refresh) {
         running=true;failure=""
