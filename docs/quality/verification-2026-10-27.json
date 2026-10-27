@@ -1,0 +1,50 @@
+{
+  "date": "2026-10-27",
+  "scope": "development tooling; no production source, APK, version or signing changes",
+  "instruction": {
+    "repository": "unclebob/ub-mode",
+    "commit": "57a8bdd28e45ed41900ace0bafa2ff76dd9ed70f",
+    "path": ".agents/skills/ub-mode/SKILL.md"
+  },
+  "checks": {
+    "fresh_locked_install": "passed",
+    "pip_check": "passed",
+    "tool_help_all_three": "passed",
+    "java_complexity_scan": "passed; coverage and CRAP N/A",
+    "java_duplicate_scan": "passed; no candidates at similarity >= 0.8",
+    "java_mutation_discovery_sites": 1435,
+    "continuation_rules_junit": "7 passed",
+    "targeted_mutation": {
+      "source": "app/src/main/java/com/audiobookdownloader/ContinuationRules.java",
+      "line": 37,
+      "before": {
+        "killed": 6,
+        "survived": 1
+      },
+      "after": {
+        "killed": 7,
+        "survived": 0
+      },
+      "command": "python3 scripts/quality-tools.py mutator --no-coverage --max-workers 1 --mutate-all --lines 37 --test-command \"bash JVM-compile-and-JUnit-command\" app/src/main/java/com/audiobookdownloader/ContinuationRules.java",
+      "scope_limit": "Only 7 selected mutations, not all 35 sites; no global mutation or coverage claim"
+    },
+    "production_java_unchanged": true
+  },
+  "limitations": [
+    "Kotlin unsupported by all three upstream tools",
+    "Dryer pinned version does not discover JS/CJS",
+    "Embedded JavaScript requires existing extraction/fixtures",
+    "No actual coverage collected: CRAP is unknown",
+    "No UML Viewer installed; no documented Java/Kotlin scanner",
+    "No new Android APK or physical-device check needed for developer-only tooling"
+  ],
+  "action_log": [
+    "Read upstream README, SKILL, package metadata and executable entry points.",
+    "Pinned tool commits, archive hashes and runtime package versions; installed isolated venv.",
+    "Ran project Java complexity, duplication and mutation site scans.",
+    "Ran targeted mutation against real ContinuationRules JUnit tests: 6 killed, 1 survivor.",
+    "Added high-water-mark regression; reran JUnit and all 7 selected mutants successfully.",
+    "Verified production Java files remain byte-identical to original release source.",
+    "Saved future instructions, reproducible installer and read-only analysis CI workflow."
+  ]
+}

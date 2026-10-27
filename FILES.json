@@ -1,21 +1,36 @@
 {
-  "revision": "audiobook-4.2.68-official-text-audio-continuations-verified",
+  "revision": "audiobook-4.2.68-ub-mode-development-tools",
   "storage": "GitHub export; see releases/ARCHIVE-PARTS.json for three multipart historical ZIPs",
   "files": [
+    {
+      "path": ".agents/skills/ub-mode/SKILL.md",
+      "bytes": 3958,
+      "sha256": "4120873db2e3681ea9b7de4d7105fc9d3406657c9ada91ce77b9b3c4962f3202"
+    },
     {
       "path": ".github/workflows/build-apk.yml",
       "bytes": 7549,
       "sha256": "254993cb072dafb6da7a7bb06faff79ec8de3f9e718204f7a6e2b8ca0913d152"
     },
     {
+      "path": ".github/workflows/quality.yml",
+      "bytes": 1639,
+      "sha256": "d6a9c7a57a75aa6f7e283ec49318976217d6416d1543ec7996cdec91cfa68ac3"
+    },
+    {
       "path": ".gitignore",
-      "bytes": 413,
-      "sha256": "52e2ca94bff420dbe4564f8dc9d999a45fce6d60102733d761383b1a4c266419"
+      "bytes": 557,
+      "sha256": "48eee7af797781cbae43d3271076eca2c3cca6b5d66cbb3921e98ebd98b5ecbf"
+    },
+    {
+      "path": "AGENTS.md",
+      "bytes": 1615,
+      "sha256": "9410d8d421beb84ae196c4bbe0bf802cd4eb5735f67e306e08b117e36c9535bb"
     },
     {
       "path": "README.md",
-      "bytes": 19266,
-      "sha256": "6f2e86122a155db68fdc2f830e189356a58fd1a2e90fa3498ba4c26798adc1a9"
+      "bytes": 19628,
+      "sha256": "f95ea698066353b0404a9a08f7f0e3d1ca324228ddd70b612188b05b7c13374e"
     },
     {
       "path": "app/build.gradle.kts",
@@ -409,8 +424,8 @@
     },
     {
       "path": "app/src/test/java/com/audiobookdownloader/ContinuationRulesTest.java",
-      "bytes": 2263,
-      "sha256": "1d002c3ce5ac82a2ed35eeec34c9e9a1ef76d1e2f39e4623fe02eee878674302"
+      "bytes": 2587,
+      "sha256": "2fd01f51e9caf352e28b61bc7d0f7874e3c64ee59cd7c5ecbce7d344c1d5d868"
     },
     {
       "path": "app/src/test/java/com/audiobookdownloader/CylinderPageMeshTest.java",
@@ -1349,8 +1364,8 @@
     },
     {
       "path": "docs/HANDOFF.md",
-      "bytes": 65390,
-      "sha256": "1b64a4a1894a7e9b78423f4bc846539d8548eb623e8c380503314d576617b43d"
+      "bytes": 66209,
+      "sha256": "bfbd767e1c31620b99c3e7814b11e1918fe073de8dd7c45d0a12d80fe2ada9e4"
     },
     {
       "path": "docs/INSTALL.md",
@@ -1406,6 +1421,11 @@
       "path": "docs/PREVIEW-UPDATES.md",
       "bytes": 9694,
       "sha256": "f222490e046c7230fc62800f905faba916c565d4fcf9f9f55e4ea9da47d385c4"
+    },
+    {
+      "path": "docs/QUALITY.md",
+      "bytes": 5530,
+      "sha256": "431ed31cfd80af6afed2d313a246f8afb3e0b0aa7b43e0d88b115471fb541b10"
     },
     {
       "path": "docs/SCREENSHOT-SOURCES.md",
@@ -1521,6 +1541,31 @@
       "path": "docs/previous/native_directory_update.txt",
       "bytes": 12981,
       "sha256": "02f5ccd2c0c8885ee395b5e0a328bb81afed8be3bcb8b0348c6c8b51dade121d"
+    },
+    {
+      "path": "docs/quality/baseline-crap.edn",
+      "bytes": 19901,
+      "sha256": "6fb1519c88d2d7e876c52161e42bfea6ecd2be4b3bfac819da42b9fabe4616fa"
+    },
+    {
+      "path": "docs/quality/baseline-dry.edn",
+      "bytes": 17,
+      "sha256": "d4096cccbc2108ff3f8dca9d20dbc6ebf313423ad28abf5b50a196ce923a91d5"
+    },
+    {
+      "path": "docs/quality/mutation-boundary.log",
+      "bytes": 1575,
+      "sha256": "4424423e94d5b594808908a68332cef638ee45d0521c3b0873cea0b2ffbdcf5a"
+    },
+    {
+      "path": "docs/quality/tools.lock.json",
+      "bytes": 938,
+      "sha256": "48233d0bbb0f2e595f46864afa2800cc151d4d6ba38ca4f4d40f561739f92bff"
+    },
+    {
+      "path": "docs/quality/verification-2026-10-27.json",
+      "bytes": 2320,
+      "sha256": "966f461d96f5244d9fdef06a560ca14dc6774100690d1849bc91c06467933b05"
     },
     {
       "path": "docs/screenshot-source-registry.json",
@@ -11101,6 +11146,11 @@
       "path": "scripts/previous/patch_search_modes.py",
       "bytes": 9322,
       "sha256": "df56f88c6a84f3bdbbcff0c73bace14ff801c945555ef280ddd1ff67f0ed8426"
+    },
+    {
+      "path": "scripts/quality-tools.py",
+      "bytes": 2615,
+      "sha256": "f37fefadb4f820de64749d4c347568a15c4b192b3fc0a30b9eb664418ca58708"
     },
     {
       "path": "scripts/sign-phone-update.sh",

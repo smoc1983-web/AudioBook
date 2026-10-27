@@ -18,3 +18,9 @@ local.properties
 /dist/
 *.p12
 *.pfx
+
+# Reproducible development tools and disposable analysis output.
+/.quality-tools/
+/.metrics/
+/target/mutation-workers/
+/target/mutator-backup/

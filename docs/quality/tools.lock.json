@@ -1,0 +1,30 @@
+{
+  "schema": 1,
+  "instruction": {
+    "repository": "unclebob/ub-mode",
+    "commit": "57a8bdd28e45ed41900ace0bafa2ff76dd9ed70f"
+  },
+  "packages": {
+    "setuptools": "80.9.0",
+    "wheel": "0.45.1",
+    "tree-sitter": "0.26.0",
+    "tree-sitter-language-pack": "1.22.1"
+  },
+  "tools": {
+    "crapper": {
+      "repository": "unclebob/crapper",
+      "commit": "6fd92c4c9bcc56efb64a2f8743d5a2993bcfd42d",
+      "archive_sha256": "b132c09e2902da8e433e6b372cdfc84a6af61a79a32b52e148f3bfdef8eaa77d"
+    },
+    "dryer": {
+      "repository": "unclebob/dryer",
+      "commit": "66ff6d21a42c04afcad89c78a80066176d1294b0",
+      "archive_sha256": "94609c58e1d35a74fba0f9b9385deddbd824d4cb00aa8c842436423eae20f62e"
+    },
+    "mutator": {
+      "repository": "unclebob/mutator",
+      "commit": "a5a0cb803b66e0cdb8bf471b3b08af701d424a41",
+      "archive_sha256": "6c104b9c5db1a85bec98c815e77baa5f458364242abdd41747ad0581dcdae7c3"
+    }
+  }
+}

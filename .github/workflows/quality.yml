@@ -1,0 +1,47 @@
+name: ub-mode source analysis
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'app/src/main/java/**/*.java'
+      - 'current/app/src/main/java/**/*.java'
+      - 'scripts/quality-tools.py'
+      - 'docs/quality/**'
+      - '.github/workflows/quality.yml'
+  pull_request:
+    paths:
+      - 'app/src/main/java/**/*.java'
+      - 'current/app/src/main/java/**/*.java'
+      - 'scripts/quality-tools.py'
+      - 'docs/quality/tools.lock.json'
+      - '.github/workflows/quality.yml'
+permissions:
+  contents: read
+jobs:
+  analysis:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned isolated tools
+        run: python scripts/quality-tools.py install
+      - name: Complexity only (coverage and CRAP are N/A)
+        run: python scripts/quality-tools.py crapper --no-coverage app/src/main/java current/app/src/main/java
+      - name: Duplication candidates (manual review required)
+        run: python scripts/quality-tools.py dryer --threshold 0.8 app/src/main/java current/app/src/main/java
+      - name: Mutation site discovery only (tests not mutated here)
+        run: python scripts/quality-tools.py mutator --scan app/src/main/java current/app/src/main/java
+      - name: Save analysis reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ub-mode-source-metrics
+          path: .metrics/
+          include-hidden-files: true
+          retention-days: 14
