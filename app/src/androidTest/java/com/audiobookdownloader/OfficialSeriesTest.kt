@@ -28,6 +28,8 @@ class OfficialSeriesTest {
     private var latest=1;private var offline=false;private var partial=false;private var conflicting=false
     private val visited=mutableSetOf<String>()
     private var originalShelves:String?=null
+    private var originalAuthority:Map<String,String> = emptyMap()
+    private var originalAuthorityRevision=0
     private fun name(i:Int)=if(i==1)title else "Продолжение $i"
     private fun cards(provider:String):String=(1..latest).joinToString(""){i->
         if(provider=="Author.Today")"<div class='work-row-content'><div class='work-title'><span class='label-row-index'>$i</span><a href='/work/${990000+i}'>${name(i)}</a></div><div class='work-author'>$author</div><div class='work-info'><i class='icon-book2'></i><i class='icon-check-bold'></i>100K зн.</div></div>"
@@ -41,6 +43,9 @@ class OfficialSeriesTest {
         else->error("Unexpected reference URL: $url")}}
     @Before fun setup(){
         originalShelves=prefs.getString("shelves_v1",null)
+        originalAuthority=prefs.all.filterKeys{it.startsWith("book_series_authority_v1_")}.mapValues{it.value as String}
+        originalAuthorityRevision=prefs.getInt("book_series_revision",0)
+        val cold=prefs.edit();originalAuthority.keys.forEach{cold.remove(it)};cold.commit()
         File(context.filesDir,"official-series-v1").deleteRecursively()
         File(context.filesDir,"continuations-v1").deleteRecursively()
         context.getSharedPreferences("official_series_v1",0).edit().clear().commit()
@@ -48,6 +53,9 @@ class OfficialSeriesTest {
         prefs.edit().putString("shelves_v1","""[{"n":"Official test","b":[{"t":"$title","u":"https://bookinfo.net/test-writer/test","c":""}]}]""").commit()
     }
     @After fun teardown(){
+        val restore=prefs.edit().putInt("book_series_revision",originalAuthorityRevision)
+        prefs.all.keys.filter{it.startsWith("book_series_authority_v1_")}.forEach{restore.remove(it)}
+        originalAuthority.forEach{(key,value)->restore.putString(key,value)};restore.commit()
         if(originalShelves==null)prefs.edit().remove("shelves_v1").commit() else prefs.edit().putString("shelves_v1",originalShelves).commit()
         store.notices().forEach{AbContinuationAlerts.consume(context,it.id)}
         store.preferences.edit().clear().commit()
