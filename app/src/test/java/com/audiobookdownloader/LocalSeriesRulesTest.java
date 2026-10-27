@@ -11,15 +11,18 @@ public class LocalSeriesRulesTest {
   assertFalse(LocalSeriesRules.sourceCycleConsistent("Путь","Путь",List.of(book("Путь"),book("Чужая книга"))));
   assertFalse(LocalSeriesRules.sourceCycleConsistent("","Путь",List.of(book("Путь"))));
   assertFalse(LocalSeriesRules.sourceCycleConsistent("Чужой цикл","Путь",List.of(book("Путь"))));
+  assertFalse(LocalSeriesRules.sourceCycleConsistent("Путь","Том 2",List.of(book("Путь. Том 2"))));
   assertFalse(LocalSeriesRules.sourceCycleConsistent("Путь","Путь",List.of()));
  }
  @Test public void broadSourceWorldsNeverBecomeLocalSeries(){
   List<ContinuationRules.Book> books=new ArrayList<>();for(int i=0;i<11;i++)books.add(book(i==0?"Путь":"Путь. Том "+(i+1)));
+  assertTrue(LocalSeriesRules.sourceCycleConsistent("Путь","Путь",books.subList(0,10)));
   assertFalse(LocalSeriesRules.sourceCycleConsistent("Путь","Путь",books));
  }
  @Test public void numberedSiblingsKeepVolumeOrderAndPlainFirstBook(){
   assertEquals(List.of("Путь","Путь. Том 2","Путь. Том 3"),LocalSeriesRules.siblings("Путь",List.of("Чужая книга","Путь. Том 3","Путь. Том 2","Путь")));
   assertTrue(LocalSeriesRules.siblings("Путь",List.of("Путь")).isEmpty());
   assertTrue(LocalSeriesRules.siblings("",List.of("Путь. Том 2")).isEmpty());
+  assertEquals(List.of("Путь. Том 1","Путь","Путь. Том 2"),LocalSeriesRules.siblings("Путь",List.of("Путь. Том 1","Путь","Путь. Том 2")));
  }
 }
