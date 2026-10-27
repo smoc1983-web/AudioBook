@@ -35,7 +35,7 @@ internal class ContinuationScanner(private val context:Context,private val fetch
         }
         val library=if(seeds.isNotEmpty())scanLibrary(context) else emptyList()
         val recovery=SeriesContinuationRecovery(context,fetcher)
-        if(seeds.isEmpty())return LitresReleaseScanner(context,fetcher).scan("В коллекциях пока нет книг")
+        if(seeds.isEmpty())return "В коллекциях пока нет книг"
         val errors=mutableListOf<String>();var checked=0;var added=0
         val start=store.preferences.getInt("cursor",0).mod(seeds.size)
         var cursor=start
@@ -146,6 +146,6 @@ internal class ContinuationScanner(private val context:Context,private val fetch
         }
         store.preferences.edit().putInt("cursor",cursor).putLong("last_check",System.currentTimeMillis())
             .putInt("checked",checked).putInt("official_checked",referenceChecked).putInt("new_count",added).putString("errors",JSONArray(errors.distinct().take(12)).toString()).commit()
-        return LitresReleaseScanner(context,fetcher).scan("Справочники: $referenceChecked из ${seeds.size} книг за проход. Проверено циклов: $checked. Новых продолжений: $added."+if(errors.isNotEmpty())" Не все книги удалось проверить." else "")
+        return "Справочники: $referenceChecked из ${seeds.size} книг за проход. Проверено циклов: $checked. Новых продолжений: $added."+if(errors.isNotEmpty())" Не все книги удалось проверить." else ""
     }
 }

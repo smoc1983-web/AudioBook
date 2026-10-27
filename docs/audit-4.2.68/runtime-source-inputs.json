@@ -1,0 +1,507 @@
+{
+  "testedSource": "51551e2affdaf84a049dd668354bae4f47073848",
+  "unchangedAtPeerAlignment": true,
+  "aggregateSha256": "0c12e661eb960d5a0a1f6733c26df48a9f68fa918cb8bc60cdeb1bbf2c8b7660",
+  "files": [
+    {
+      "path": "app/build.gradle.kts",
+      "sha256": "5b112cf5516ffe97d4ee189559e2a7e10e9047fb9e374667520b9ddf908bd4cc",
+      "bytes": 4950
+    },
+    {
+      "path": "app/src/main/AndroidManifest.xml",
+      "sha256": "425961ef04d842eb5733dfa5b4186e06dc76b659694ec39fd402a63f4070ba76",
+      "bytes": 4754
+    },
+    {
+      "path": "app/src/main/assets/licenses/Apache-2.0.txt",
+      "sha256": "c95bae1d1ce0235ecccd3560b772ec1efb97f348a79f0fbe0a634f0c2ccefe2c",
+      "bytes": 11358
+    },
+    {
+      "path": "app/src/main/assets/licenses/PAGE-CURL-NOTICE.txt",
+      "sha256": "df6ed8e64e61c42f9000456ab021ac621166607a8af3d58b5620749af8d83efd",
+      "bytes": 767
+    },
+    {
+      "path": "app/src/main/assets/release-notes.json",
+      "sha256": "9efd483d276e5286158defeb3baed92d30255994171024cc1a29e82d5fca3c97",
+      "bytes": 1441
+    },
+    {
+      "path": "app/src/main/java/com/audiobookdownloader/AbAudioDurations.kt",
+      "sha256": "1b78bec44e9109111e222993026611bb78749cc34d817292a792a60804f14535",
+      "bytes": 5675
+    },
+    {
+      "path": "app/src/main/java/com/audiobookdownloader/AbBookArtwork.kt",
+      "sha256": "dce0c0758b83d2dcd2cbfa493e64957ea13af2ed1ef87e7c5a7e21c06f554c4b",
+      "bytes": 1767
+    },
+    {
+      "path": "app/src/main/java/com/audiobookdownloader/AbBookTimeRules.java",
+      "sha256": "fd95f609c640a6d4b9ff18f1a1f1d1e5853d541d2fd8451594cdd604ef7390bd",
+      "bytes": 1990
+    },
+    {
+      "path": "app/src/main/java/com/audiobookdownloader/AbContinuationAlerts.kt",
+      "sha256": "f2fa93523c646f75ec87a68816d35285d64617c85ead412472806274f7194ddf",
+      "bytes": 7991
+    },
+    {
+      "path": "app/src/main/java/com/audiobookdownloader/AbDurationRanges.java",
+      "sha256": "8a4329d37804d7f809e46ea2acc740ed5ff6493fbb9fc60a01455a182dccd352",
+      "bytes": 6577
+    },
+    {
+      "path": "app/src/main/java/com/audiobookdownloader/AbMediaPresentation.java",
+      "sha256": "5f4c696919fa5141702c3352353c3e624693fb44dfd0301a7e8203154535db42",
+      "bytes": 955
+    },
+    {
+      "path": "app/src/main/java/com/audiobookdownloader/AbPageTurn.kt",
+      "sha256": "98113d86c880241391fd9ff6a3a8afd278a1e726eea77a1d810d1b12748b99f2",
+      "bytes": 9403
+    },
+    {
+      "path": "app/src/main/java/com/audiobookdownloader/AbSearchCoordinator.kt",
+      "sha256": "fde8bda9bc40198c75fa97d1bd0c5583b55b1b0faf2c038b6d95f7292e303790",
+      "bytes": 1618
+    },
+    {
+      "path": "app/src/main/java/com/audiobookdownloader/AbSearchRows.kt",
+      "sha256": "5992f11bc336601a6bbf72ae7feedad7e3642a7958decec1c9252d71ca7f5efc",
+      "bytes": 2021
+    },
+    {
+      "path": "app/src/main/java/com/audiobookdownloader/AdditionalBookSources.kt",
+      "sha256": "054267ba873420e8097caabed1d9fe65dfe4aa1a8cfb8e8515470b15f8d72e94",
+      "bytes": 20453
+    },
+    {
+      "path": "app/src/main/java/com/audiobookdownloader/AudioBookWidget.kt",
+      "sha256": "5397f9af2b1cdce45724974b32b5b3cb0a0e62851f5c11056dd71c67992a8107",
+      "bytes": 1032
+    },
+    {
+      "path": "app/src/main/java/com/audiobookdownloader/BookAudioHeaders.java",
+      "sha256": "4510b326ff5e429bb8899d742ad00c18546654ccde0c19fab5a0b9759db3083c",
+      "bytes": 1308
+    },
+    {
+      "path": "app/src/main/java/com/audiobookdownloader/BookAudioRequests.kt",
+      "sha256": "b806353a320e96cf5e072695e9c3ccda31a4352e34cb5e7676ff82ae1327303a",
+      "bytes": 888
+    },
+    {
+      "path": "app/src/main/java/com/audiobookdownloader/CollectionTransferActivity.java",
+      "sha256": "2e5bd92366d21f272ad643016dde1796ea15d5d1a233faf00b36ca8039fad35b",
+      "bytes": 7555
+    },
+    {
+      "path": "app/src/main/java/com/audiobookdownloader/CollectionTransferRules.java",
+      "sha256": "f7ba4ffd0683d902347bdc59f9003fd8ccf2cd23077f96e566dad24afcf61f17",
+      "bytes": 7499
+    },
+    {
+      "path": "app/src/main/java/com/audiobookdownloader/CollectionTransferStore.java",
+      "sha256": "40b4ed4aa66ca3b8f621e047a45e8e405502f254f3a536b703a31457e956fc95",
+      "bytes": 2847
+    },
+    {
+      "path": "app/src/main/java/com/audiobookdownloader/CollectionXmlReader.java",
+      "sha256": "52354768ac71fce68f2e38c953c14f0af87f4f580530a613baea60afe5e5d412",
+      "bytes": 3204
+    },
+    {
+      "path": "app/src/main/java/com/audiobookdownloader/ContinuationHttp.kt",
+      "sha256": "9b0572ef294ccf3c902309b9941e732bef5f497426a5ba411b59df83bf206005",
+      "bytes": 3688
+    },
+    {
+      "path": "app/src/main/java/com/audiobookdownloader/ContinuationParser.java",
+      "sha256": "ab063a053a824ece0af1c75dc518620b6b88bc893a2e4879e76632c10f8dd1b5",
+      "bytes": 8137
+    },
+    {
+      "path": "app/src/main/java/com/audiobookdownloader/ContinuationPolicy.java",
+      "sha256": "5b75348cc496823407c38214d22128a16a358e8504082cd0c02cf18190d8420f",
+      "bytes": 3468
+    },
+    {
+      "path": "app/src/main/java/com/audiobookdownloader/ContinuationRules.java",
+      "sha256": "d8cdcdb58de6aadcfe788d283b35726aed6e6dc937c0135ed39abd17e97c4f1e",
+      "bytes": 2707
+    },
+    {
+      "path": "app/src/main/java/com/audiobookdownloader/ContinuationScanner.kt",
+      "sha256": "e70f17b75f05ca89c77aced42e3c1ee7464efd380db0f2badf1b8366d936e807",
+      "bytes": 12253
+    },
+    {
+      "path": "app/src/main/java/com/audiobookdownloader/ContinuationStore.kt",
+      "sha256": "9fbb53edd7d6da843cafa477434f5943a9fa59f001d1baf53405d4d47e36863d",
+      "bytes": 4677
+    },
+    {
+      "path": "app/src/main/java/com/audiobookdownloader/CylinderPageMesh.java",
+      "sha256": "bc75781fce8fcfc096467218b6688e1e6e668f9e354e6423a9afb5059ae36bcf",
+      "bytes": 4042
+    },
+    {
+      "path": "app/src/main/java/com/audiobookdownloader/KnigobludSeriesParser.java",
+      "sha256": "feb94ae9f86d08148e467a5a72438288e0bba40dac4e94e29c9942fd3af3c717",
+      "bytes": 2926
+    },
+    {
+      "path": "app/src/main/java/com/audiobookdownloader/LitresReleaseParser.java",
+      "sha256": "965c7e269cb5029ce03c56a668b696759ad5d5f7f93ba31560dc794bbae2bf55",
+      "bytes": 2352
+    },
+    {
+      "path": "app/src/main/java/com/audiobookdownloader/LitresReleaseScanner.kt",
+      "sha256": "fca75e9308c72d4daa88b7019bf9ad66b82a056db7e953686b588d65fe170c25",
+      "bytes": 3419
+    },
+    {
+      "path": "app/src/main/java/com/audiobookdownloader/LocalSeriesRules.java",
+      "sha256": "479ccc85a79db9057b9a6f5f9f675f7944ebc445108b83456a507311386ca8e9",
+      "bytes": 1521
+    },
+    {
+      "path": "app/src/main/java/com/audiobookdownloader/OfficialSeriesCatalog.kt",
+      "sha256": "cc3a9a9e26bfaf65116bdaa65721b6c7644b9106308161a70662ba61d77a5312",
+      "bytes": 12251
+    },
+    {
+      "path": "app/src/main/java/com/audiobookdownloader/OfficialSeriesParser.java",
+      "sha256": "79144c4f7cbce71cc3f4fcff803983089d79c5e1115c951ff41a32d47ec6f72d",
+      "bytes": 5650
+    },
+    {
+      "path": "app/src/main/java/com/audiobookdownloader/OfficialTextNoticePolicy.java",
+      "sha256": "0655fbff60a318812da786bdf495091061e63badcc2d4ccf51372e0fda867384",
+      "bytes": 694
+    },
+    {
+      "path": "app/src/main/java/com/audiobookdownloader/OpenAudioCatalog.java",
+      "sha256": "39a8080718bb44004366c0ea153035d65251539dc7e2b4a0467d3e6d79d384b4",
+      "bytes": 10819
+    },
+    {
+      "path": "app/src/main/java/com/audiobookdownloader/PageCurlRenderer.java",
+      "sha256": "c1f4d153a92df20018600263d118749006923d60b0d50a095b243923cc6da54b",
+      "bytes": 3182
+    },
+    {
+      "path": "app/src/main/java/com/audiobookdownloader/PreviewUpdateRules.java",
+      "sha256": "466f6f49a77e097f5096f69ae9a96ecdaecab77335cb25b339cde704d0c3bc52",
+      "bytes": 3741
+    },
+    {
+      "path": "app/src/main/java/com/audiobookdownloader/PreviewUpdater.java",
+      "sha256": "169c692becb409e0800da5e08ee230c933ee621c4a0dfdc32c47b3360571c74e",
+      "bytes": 7527
+    },
+    {
+      "path": "app/src/main/java/com/audiobookdownloader/PreviewUpdatesActivity.java",
+      "sha256": "fd664f06f99a394f33400f22a032a46f9409a001c78b6caee5dc84eb9278888d",
+      "bytes": 11621
+    },
+    {
+      "path": "app/src/main/java/com/audiobookdownloader/ReleaseNotesActivity.java",
+      "sha256": "c52126a79c67eb1cd591158aa6c116d64831d4fe2d0032a820f3641dd277e665",
+      "bytes": 2664
+    },
+    {
+      "path": "app/src/main/java/com/audiobookdownloader/ReleaseNotesPolicy.java",
+      "sha256": "42db1d7a2030cb4e88092d4a321d77988dbf246ede376e757c95c5208a5ac1ea",
+      "bytes": 228
+    },
+    {
+      "path": "app/src/main/java/com/audiobookdownloader/SeriesAuthority.kt",
+      "sha256": "fbd67e0eda51bd45ccdf476006ee9e13bf28e317656c5d27cde2ab946c7fd351",
+      "bytes": 12578
+    },
+    {
+      "path": "app/src/main/java/com/audiobookdownloader/SeriesAuthorityParser.java",
+      "sha256": "e84f6487e1255fee43954783915c08646ecd3c7af83bee98a2070d378c2c89ef",
+      "bytes": 9488
+    },
+    {
+      "path": "app/src/main/java/com/audiobookdownloader/SeriesAuthorityRules.java",
+      "sha256": "0553ee658ae7bbef6864bfd4354b80e6e1ea93129c8443e672ed4839b12472e2",
+      "bytes": 3603
+    },
+    {
+      "path": "app/src/main/java/com/audiobookdownloader/SeriesContinuationRecovery.kt",
+      "sha256": "e232e4ff3374321d7f0e9e03980a74100276fbaad98f0d9326a34280a95ed400",
+      "bytes": 5871
+    },
+    {
+      "path": "app/src/main/java/com/audiobookdownloader/SleepShakeDetector.java",
+      "sha256": "a04d1d1fd53cd2241d464b05f414572266d23c96abd63b1bfd200bde38559bd1",
+      "bytes": 1753
+    },
+    {
+      "path": "app/src/main/java/com/audiobookdownloader/VerifiedBooks.kt",
+      "sha256": "59d7833be869f5fdc643a7cc915df69d49be5165481229e22bd6855a469fff95",
+      "bytes": 934
+    },
+    {
+      "path": "app/src/main/res/drawable-nodpi/ab_launcher_crescent_art.png",
+      "sha256": "6156f804c1b8ee4d0e3ac2413c84b555e34a6f0712fa462d91ebd8106080b09b",
+      "bytes": 2017550
+    },
+    {
+      "path": "app/src/main/res/drawable/ab_launcher_background.xml",
+      "sha256": "2cb3100cdd934e43da250e74c1cf2f44365ca53d98e7eaf7d1a5c7f21cb9df36",
+      "bytes": 108
+    },
+    {
+      "path": "app/src/main/res/drawable/ab_launcher_foreground.xml",
+      "sha256": "deeeb57e5080b58595798b17f286318a14d59c29a6815b49b61c3804c409db1b",
+      "bytes": 207
+    },
+    {
+      "path": "app/src/main/res/drawable/ab_launcher_monochrome.xml",
+      "sha256": "962734a32d21cff18a9a21e7839d17210b05e140c9fbc3b481f0e0043f52f3c0",
+      "bytes": 396
+    },
+    {
+      "path": "app/src/main/res/drawable/preview_icon.xml",
+      "sha256": "3178521933f64f6646bb495c0c1797b2f1e63a5c586fd68d1b2e8cf1bc55f628",
+      "bytes": 366
+    },
+    {
+      "path": "app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml",
+      "sha256": "0faa45d322e0fb636e41064d9cdf44225db054e096668c64dc3e4fc9e1fc8263",
+      "bytes": 226
+    },
+    {
+      "path": "app/src/main/res/mipmap-anydpi-v33/ic_launcher.xml",
+      "sha256": "6e72515e21468e9170f6a495d4ad0aa29aa7db93ad87e77c9f22fe7acd644229",
+      "bytes": 293
+    },
+    {
+      "path": "app/src/main/res/mipmap-anydpi/ic_launcher.xml",
+      "sha256": "b733c4ecaf5ca93af9c4b14cf8976251f9c6af21f6929698a1ecb4c64c7b3390",
+      "bytes": 1396
+    },
+    {
+      "path": "app/src/main/res/xml/preview_update_paths.xml",
+      "sha256": "7cf3e68ddc8f9e03584e4be4a45c864666348904f7da22f9fbcabc0ef36b8292",
+      "bytes": 117
+    },
+    {
+      "path": "build.gradle.kts",
+      "sha256": "b02c3022d8634e6265ee754386a4823376593d8948692d02be95d302dca20e08",
+      "bytes": 272
+    },
+    {
+      "path": "current/MainActivity.kt",
+      "sha256": "5f7a78a12ec4ab6c9c7c2441f8474ec5b0d335e12afb92fe913ef68a2c0fc4f4",
+      "bytes": 743406
+    },
+    {
+      "path": "current/PlaybackService.kt",
+      "sha256": "73fad154adaaeacf8f27bcbbfd16f2c231871d1f2e07bcdfbeb62f218055eec6",
+      "bytes": 58515
+    },
+    {
+      "path": "current/app/src/main/java/com/AbGlassWidgets.kt",
+      "sha256": "e66b9c8df33b8f60721cca22e3bf438833e464275c48d5b22e6038e3dd7b52c0",
+      "bytes": 32131
+    },
+    {
+      "path": "current/app/src/main/java/com/LibraryRecoveryRules.java",
+      "sha256": "c82028a0b399641e3c15510e9d5cb824df22eeed18315c2b4465cea9422aac0c",
+      "bytes": 785
+    },
+    {
+      "path": "current/app/src/main/java/com/SearchBookIndex.java",
+      "sha256": "7ed1864aefe99c837397e32c7b9b7c8a740ac339f1a3bfe7a60c77b9c1f6c010",
+      "bytes": 6638
+    },
+    {
+      "path": "current/app/src/main/res/drawable-nodpi/ab_genre_atlas.png",
+      "sha256": "8aea4e51c0df2dda1d929979b5aadec4204dad516186691738d7c3943c48405c",
+      "bytes": 3209220
+    },
+    {
+      "path": "current/app/src/main/res/drawable-nodpi/ab_glass_amber.png",
+      "sha256": "47d71cbe17e0e00f1749d26f7553bb1c705cce6e4c12d6561e956239373bf4e4",
+      "bytes": 2562996
+    },
+    {
+      "path": "current/app/src/main/res/drawable-nodpi/ab_glass_amethyst.png",
+      "sha256": "5449cc9375e6846c7a2ef85ffda6c04379bcd2d9d05d0058a36b7d0983279f6d",
+      "bytes": 2026847
+    },
+    {
+      "path": "current/app/src/main/res/drawable-nodpi/ab_glass_emerald.png",
+      "sha256": "f3cbd4e1d9ddf70e305864ef0371f330f88da27e6a4d7d0552034bc1a96335cb",
+      "bytes": 2769958
+    },
+    {
+      "path": "current/app/src/main/res/drawable-nodpi/ab_glass_ice.png",
+      "sha256": "6a3deadf76bbee00d05f8908744280230dbe58a24ae8d7847f2e3b023eefa9f9",
+      "bytes": 2183401
+    },
+    {
+      "path": "current/app/src/main/res/drawable-nodpi/ab_glass_lilac.png",
+      "sha256": "cdecaa6487af0b468a4ee1457c394132444341764712d95ca3428fca449c13e8",
+      "bytes": 2568598
+    },
+    {
+      "path": "current/app/src/main/res/drawable-nodpi/ab_glass_night.png",
+      "sha256": "91540845e5f8aac7da59adb8522b24ec1b06d95e4b429f29038ada8f17fe33e7",
+      "bytes": 2883412
+    },
+    {
+      "path": "current/app/src/main/res/drawable-nodpi/ab_glass_obsidian.png",
+      "sha256": "15af36f375433955a7ac267c84e93ca982d6fe358629c151712bf6baa9292a46",
+      "bytes": 1924775
+    },
+    {
+      "path": "current/app/src/main/res/drawable-nodpi/ab_glass_onyx.png",
+      "sha256": "714aa84f6199c805b12f87097108b80290c428c94ee1ff370c236f565a94d2a9",
+      "bytes": 1805757
+    },
+    {
+      "path": "current/app/src/main/res/drawable-nodpi/ab_glass_pearl.png",
+      "sha256": "85e8c5dc8bef7c9610f194034bcc61f0493e75f73ad93befb868a5c7d963ae00",
+      "bytes": 2656684
+    },
+    {
+      "path": "current/app/src/main/res/drawable/ab_notification_book.xml",
+      "sha256": "ea92e0f8d7c0f8f48b6c143748f58f71f3f1c92534a5feb3a981648881f287dd",
+      "bytes": 338
+    },
+    {
+      "path": "current/app/src/main/res/drawable/ab_widget_book_placeholder.xml",
+      "sha256": "5a2bf47c299c207df478e4d56bb30a3003901c193b861df26e8d66adebdbb246",
+      "bytes": 489
+    },
+    {
+      "path": "current/app/src/main/res/drawable/ab_widget_placeholder.xml",
+      "sha256": "1aa1bc76b6b46ceada9bbb1e28b5714511d97b9d3bb8dfd4bbce658ae0511403",
+      "bytes": 334
+    },
+    {
+      "path": "current/app/src/main/res/drawable/ab_widget_preview_compact.xml",
+      "sha256": "c05a0ce4bc59645ad0e3d19cf4677b919e678ba8e931616f81632ffd895ad243",
+      "bytes": 834
+    },
+    {
+      "path": "current/app/src/main/res/drawable/ab_widget_preview_configure_icon.xml",
+      "sha256": "9e684b550d2da73428f41816e1718873d3c658eaa56dd435adca444ec6cb584d",
+      "bytes": 319
+    },
+    {
+      "path": "current/app/src/main/res/drawable/ab_widget_preview_cover.xml",
+      "sha256": "957541c0aded3a901e97d7ee5c7ee2730dd19faad49161fdcc8004ad041c7b42",
+      "bytes": 825
+    },
+    {
+      "path": "current/app/src/main/res/drawable/ab_widget_preview_next_icon.xml",
+      "sha256": "366c2d1723120a9a5529d7b59f9cdb9291620e1f875359de10aae34f4492194e",
+      "bytes": 315
+    },
+    {
+      "path": "current/app/src/main/res/drawable/ab_widget_preview_player.xml",
+      "sha256": "bbfd356ecfaeca1f84b95af7ac156f85d23e4bde310d005801d45bdc37bfe72a",
+      "bytes": 825
+    },
+    {
+      "path": "current/app/src/main/res/drawable/ab_widget_preview_previous_icon.xml",
+      "sha256": "59d6e5c80e481f47fd4adfabf2830131a2ae2bb453981e21f3c925111db7ae4c",
+      "bytes": 313
+    },
+    {
+      "path": "current/app/src/main/res/drawable/ab_widget_preview_progress.xml",
+      "sha256": "cea1449b9f200a48112ff2ae4e2f0a93b8db7038174b93bc74fde3824bf3f38d",
+      "bytes": 177
+    },
+    {
+      "path": "current/app/src/main/res/drawable/ab_widget_preview_timer_icon.xml",
+      "sha256": "17c1d9bdd03fd052d69bab7da8b9650656de92530bf5497f6dbec558c12584e5",
+      "bytes": 312
+    },
+    {
+      "path": "current/app/src/main/res/drawable/ab_widget_preview_toggle_icon.xml",
+      "sha256": "2ff80164acfe5254090d5bbfdfae8a6cbbd673d1f77004824df2f956fdbffcd6",
+      "bytes": 287
+    },
+    {
+      "path": "current/app/src/main/res/layout/ab_widget_compact.xml",
+      "sha256": "5dad6857e414d9640b371e9f230d73ad6a8abbee2f7e7adbb8eb2ed8ae3bcc3a",
+      "bytes": 3293
+    },
+    {
+      "path": "current/app/src/main/res/layout/ab_widget_cover.xml",
+      "sha256": "d1b3b2c99e571e043bd1de016c1d1925f15c5eb0e0f11e62d96efad700bffd03",
+      "bytes": 2887
+    },
+    {
+      "path": "current/app/src/main/res/layout/ab_widget_player.xml",
+      "sha256": "9c98cd7869e1242a31484f1262bc1c8dec77fa9ce9a346cf24407e292a3f9d8b",
+      "bytes": 4783
+    },
+    {
+      "path": "current/app/src/main/res/layout/ab_widget_preview_compact.xml",
+      "sha256": "6678e7a9245b9f9910fcba447d187282df37b39f23187a59c2f2e0639bafd62c",
+      "bytes": 280
+    },
+    {
+      "path": "current/app/src/main/res/layout/ab_widget_preview_cover.xml",
+      "sha256": "aacd2855df052afc2959e9a0cac12a6447adb53e31876c7c04d050b9ab44dc9c",
+      "bytes": 281
+    },
+    {
+      "path": "current/app/src/main/res/layout/ab_widget_preview_player.xml",
+      "sha256": "b0df9fa3c4da2cd8c8ac69d5c7e42e946fa64690bfaaa0de93dec42a40f5555c",
+      "bytes": 282
+    },
+    {
+      "path": "current/app/src/main/res/values/ab_widget_strings.xml",
+      "sha256": "0fbeb91f1da2f5cb65dbda6eeebd67cb5d54af50930cb29723f8352290214e01",
+      "bytes": 1281
+    },
+    {
+      "path": "current/app/src/main/res/values/audiobook_branding.xml",
+      "sha256": "e8587e587a4697c4d3fe50461dd1ea6ee85cebf066a467f2fbe611f01239a337",
+      "bytes": 146
+    },
+    {
+      "path": "current/app/src/main/res/xml/ab_widget_compact_info.xml",
+      "sha256": "32ee54a16b6275f433d2cd334fcfaa5bd84d355ebc48dc4d76ae7c500edc28c9",
+      "bytes": 735
+    },
+    {
+      "path": "current/app/src/main/res/xml/ab_widget_cover_info.xml",
+      "sha256": "be279c3d5576b7ed88463b75b4bb91c76fd7bde44ef61a061158b26eaaaea77f",
+      "bytes": 729
+    },
+    {
+      "path": "current/app/src/main/res/xml/ab_widget_player_info.xml",
+      "sha256": "ddf70289605ac3588a5126b9762e968fab94bb701ffa7838eb92dcbab5475182",
+      "bytes": 733
+    },
+    {
+      "path": "current/app/src/main/res/xml/audiobook_diagnostic_paths.xml",
+      "sha256": "b36fb15bd80ccd1fab1533d502e4e8d63f15ecb8b910c067dc3e92f202a88686",
+      "bytes": 187
+    },
+    {
+      "path": "gradle.properties",
+      "sha256": "54e80429e98a222d8712887622f10d2c76d76ff7bf508ddfca33df2e7678f123",
+      "bytes": 212
+    },
+    {
+      "path": "settings.gradle.kts",
+      "sha256": "baa802736d7c98da4426a29f093907068a9397bf6cd61b095bd9aa251edd6758",
+      "bytes": 302
+    }
+  ]
+}

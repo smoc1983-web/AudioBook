@@ -1,0 +1,8 @@
+10-27 08:50:12.515   633  1285 E ActivityManager: ANR in system
+10-27 08:50:12.515   633  1285 E ActivityManager: PID: 633
+10-27 08:50:12.515   633  1285 E ActivityManager: Reason: No response to onStartJob
+10-27 08:50:12.515   633  1285 E ActivityManager: ErrorId: 83a26845-a6b8-463d-87b9-d916a96fd231
+10-27 08:50:12.515   633  1285 E ActivityManager: Frozen: false
+10-27 08:50:12.515   633  1285 E ActivityManager: Load: 2.92 / 0.78 / 0.27
+10-27 08:50:12.515   633  1285 E ActivityManager: ----- Output from /proc/pressure/memory -----
+Installer ActivityTaskManager displayed com.android.packageinstaller/.PackageInstallerActivity at 08:51:01.785, but UI automation could not access confirmation. No installation success claimed.

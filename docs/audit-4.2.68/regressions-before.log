@@ -1,0 +1,49 @@
+JUnit version 4.13.2
+...E.E....................E..E
+Time: 0.314
+There were 4 failures:
+1) mobileSeriesWithEnclosingWorkLinksKeepsAllVolumesAndOrders(com.audiobookdownloader.OfficialSeriesParserTest)
+java.lang.IllegalArgumentException: Не прочитан список книг указанного автора
+	at com.audiobookdownloader.OfficialSeriesParser.page(OfficialSeriesParser.java:36)
+	at com.audiobookdownloader.OfficialSeriesParserTest.mobileSeriesWithEnclosingWorkLinksKeepsAllVolumesAndOrders(OfficialSeriesParserTest.java:9)
+2) legacyMembersCannotCallAPaginatedNavigationListComplete(com.audiobookdownloader.OfficialSeriesParserTest)
+java.lang.AssertionError: Expected exception: java.lang.IllegalArgumentException
+	at org.junit.internal.runners.statements.ExpectException.evaluate(ExpectException.java:34)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.junit.runners.BlockJUnit4ClassRunner$1.evaluate(BlockJUnit4ClassRunner.java:100)
+	at org.junit.runners.ParentRunner.runLeaf(ParentRunner.java:366)
+	at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:103)
+	at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:63)
+	at org.junit.runners.ParentRunner$4.run(ParentRunner.java:331)
+	at org.junit.runners.ParentRunner$1.schedule(ParentRunner.java:79)
+	at org.junit.runners.ParentRunner.runChildren(ParentRunner.java:329)
+	at org.junit.runners.ParentRunner.access$100(ParentRunner.java:66)
+	at org.junit.runners.ParentRunner$2.evaluate(ParentRunner.java:293)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.junit.runners.ParentRunner.run(ParentRunner.java:413)
+	at org.junit.runners.Suite.runChild(Suite.java:128)
+	at org.junit.runners.Suite.runChild(Suite.java:27)
+	at org.junit.runners.ParentRunner$4.run(ParentRunner.java:331)
+	at org.junit.runners.ParentRunner$1.schedule(ParentRunner.java:79)
+	at org.junit.runners.ParentRunner.runChildren(ParentRunner.java:329)
+	at org.junit.runners.ParentRunner.access$100(ParentRunner.java:66)
+	at org.junit.runners.ParentRunner$2.evaluate(ParentRunner.java:293)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.junit.runners.ParentRunner.run(ParentRunner.java:413)
+	at org.junit.runner.JUnitCore.run(JUnitCore.java:137)
+	at org.junit.runner.JUnitCore.run(JUnitCore.java:115)
+	at org.junit.runner.JUnitCore.runMain(JUnitCore.java:77)
+	at org.junit.runner.JUnitCore.main(JUnitCore.java:36)
+3) deeplyNestedXmlWithUniqueNamespacesIsRejectedBeforeBuildingATree(com.audiobookdownloader.CollectionTransferRulesTest)
+java.lang.AssertionError: Invalid input accepted
+	at org.junit.Assert.fail(Assert.java:89)
+	at com.audiobookdownloader.CollectionTransferRulesTest.reject(CollectionTransferRulesTest.java:28)
+	at com.audiobookdownloader.CollectionTransferRulesTest.deeplyNestedXmlWithUniqueNamespacesIsRejectedBeforeBuildingATree(CollectionTransferRulesTest.java:20)
+4) malformedXmlAndNestedMarkupInPreferencesAreRejected(com.audiobookdownloader.CollectionTransferRulesTest)
+java.lang.AssertionError: Invalid input accepted
+	at org.junit.Assert.fail(Assert.java:89)
+	at com.audiobookdownloader.CollectionTransferRulesTest.reject(CollectionTransferRulesTest.java:28)
+	at com.audiobookdownloader.CollectionTransferRulesTest.malformedXmlAndNestedMarkupInPreferencesAreRejected(CollectionTransferRulesTest.java:23)
+
+FAILURES!!!
+Tests run: 26,  Failures: 4

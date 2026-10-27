@@ -1,0 +1,182 @@
+name: Audit Audiobook 4.2.68 without publishing
+on:
+  push:
+    branches: ['audit/4.2.68-ub-mode-hardening']
+    paths-ignore: ['docs/**', 'README.md', 'FILES.json']
+  workflow_dispatch:
+concurrency:
+  group: audiobook-audit-68-${{ github.ref }}-${{ contains(github.event.head_commit.message, '[minimum-sdk-only]') && 'minimum' || 'full' }}
+  cancel-in-progress: true
+jobs:
+  minimum-sdk:
+    if: ${{ !contains(github.event.head_commit.message, '[full-audit-only]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+          cache-read-only: false
+      - name: Android SDK
+        run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;35.0.0"'
+      - name: Build disposable debug test APKs only
+        run: GITHUB_RUN_NUMBER=69 gradle :app:assembleDebug :app:assembleDebugAndroidTest --stacktrace
+      - name: Android 23 emulator acceleration
+        run: |
+          gradle --stop
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android/sdk/ndk
+          df -h
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Real minimum-SDK series, XML import and browser isolation checks
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 23
+          target: default
+          arch: x86
+          profile: Nexus 5
+          emulator-boot-timeout: 300
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -memory 2048 -cores 2
+          script: GITHUB_RUN_NUMBER=69 gradle :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.audiobookdownloader.MinimumSdkTest,com.audiobookdownloader.CollectionTransferTest,com.audiobookdownloader.WebViewIsolationTest,com.audiobookdownloader.SeriesAuthoritySafetyTest --stacktrace
+      - name: Save minimum SDK reports only
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android23-compatibility-reports
+          overwrite: true
+          path: |
+            app/build/reports/androidTests/
+            app/build/outputs/androidTest-results/
+  build:
+    if: ${{ !contains(github.event.head_commit.message, '[minimum-sdk-only]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+          cache-read-only: false
+      - name: Signing workspace
+        run: |
+          echo "PREVIEW_KEYSTORE=$RUNNER_TEMP/audiobook-preview-signing/preview.keystore" >> "$GITHUB_ENV"
+      - uses: actions/cache/restore@v4
+        with:
+          path: ${{ runner.temp }}/audiobook-preview-signing
+          key: audiobook-preview-signing-v1
+      - name: Preserve Preview signing identity
+        env:
+          GH_TOKEN: ${{ github.token }}
+          KEYSTORE_BASE64: ${{ secrets.AUDIOBOOK_PREVIEW_KEYSTORE_BASE64 }}
+        run: bash scripts/preview-signing.sh
+      - name: Restored source adapters and playlist regressions
+        run: |
+          python scripts/test-permission-audit.py
+          python current/check.py
+          node current/tests/test-additional-sources.cjs
+          node current/tests/test-predanie.cjs
+          node current/test-catalog.cjs
+          node current/test-native-genres.cjs
+          node current/test-online-source.cjs
+          node current/test-online-player-load.cjs
+          node current/test-php-playlist.cjs
+          node current/tests/test-author-search.cjs
+          node current/tests/test-source-directory.cjs
+      - name: Record current source availability
+        run: python scripts/audit-book-sources.py
+      - name: Fetch published baseline for upgrade verification
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: GITHUB_RUN_NUMBER=69 python scripts/fetch-upgrade-baseline.py
+      - name: Android SDK
+        run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;35.0.0"'
+      - name: Tests and isolated Preview APK
+        run: GITHUB_RUN_NUMBER=69 gradle :app:testDebugUnitTest :app:testReleaseUnitTest :app:assembleDebug :app:assembleRelease :app:assembleDebugAndroidTest :upgradeProbe:assembleDebug --stacktrace
+      - name: Verify private candidate permissions and alignment
+        run: |
+          python scripts/audit-installable-apk.py --apk app/build/outputs/apk/release/app-release.apk --build-tools "$ANDROID_HOME/build-tools/35.0.0" --output audit-evidence/permission-audit.json
+          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -P 16 4 app/build/outputs/apk/release/app-release.apk
+          python docs/tools/dex_registers.py app/build/outputs/apk/release/app-release.apk > audit-evidence/dex-registers.txt
+      - name: Android lint (report retained even when legacy findings exist)
+        id: lint
+        continue-on-error: true
+        run: GITHUB_RUN_NUMBER=69 gradle :app:lintRelease --stacktrace
+      - name: Resolved runtime dependencies and OSV advisories
+        run: |
+          GITHUB_RUN_NUMBER=69 gradle :app:auditRuntimeDependencies
+          python scripts/audit-dependencies.py --input app/build/reports/security/runtime-dependencies.json --output audit-evidence/dependency-advisories.json
+      - name: Require zero Android lint errors
+        run: python scripts/check-android-lint.py app/build/reports/lint-results-release.xml
+      - name: Enable Android emulator acceleration
+        run: |
+          gradle --stop
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android/sdk/ndk
+          df -h
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Actual Android 36 startup and recovery tests
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 36
+          emulator-boot-timeout: 300
+          target: aosp_atd
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: false
+          emulator-options: -no-window -gpu software -feature -Vulkan -no-snapshot -noaudio -no-boot-anim -camera-back none -memory 2048 -cores 2
+          script: GITHUB_RUN_NUMBER=69 bash scripts/test-android-startup.sh
+      - name: Save Android runtime evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-startup-test-reports
+          overwrite: true
+          path: |
+            startup-evidence/
+            source-evidence/
+            app/build/reports/androidTests/connected/
+            app/build/outputs/androidTest-results/connected/
+      - name: Save private audit reports only; no APK or signing key
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release68-audit-evidence
+          overwrite: true
+          path: |
+            audit-evidence/
+            app/build/reports/lint-results-release.*
+            app/build/reports/security/
+      - name: Publication remains disabled
+        if: always()
+        run: echo 'Publication disabled; inspect lint report and step outcome.'
+      - name: Save source verification reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: source-test-reports
+          overwrite: true
+          path: |
+            app/build/test-results/testDebugUnitTest/
+            app/build/reports/tests/testDebugUnitTest/
+            app/build/test-results/testReleaseUnitTest/
+            app/build/reports/tests/testReleaseUnitTest/

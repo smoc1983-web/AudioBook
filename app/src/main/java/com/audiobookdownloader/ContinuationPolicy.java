@@ -14,7 +14,7 @@ public final class ContinuationPolicy {
   for(int i=0;i<rows.length();i++){JSONObject row=rows.getJSONObject(i);String id=row.getString("id");books.put(id,row.getString("book"));JSONArray hs=row.getJSONArray("hosts");for(int j=0;j<hs.length();j++)hosts.put(hs.getString(j),id);}
  }
  private void add(String id,String...names){for(String name:names)hosts.put(name,id);}
- public String source(String address){try{URI u=URI.create(address);if(!Arrays.asList("http","https").contains(u.getScheme())||u.getUserInfo()!=null||(u.getPort()!=-1&&u.getPort()!=80&&u.getPort()!=443))return "";return hosts.getOrDefault(String.valueOf(u.getHost()).toLowerCase(Locale.ROOT),"");}catch(Exception e){return "";}}
+ public String source(String address){try{URI u=URI.create(address);if(!Arrays.asList("http","https").contains(u.getScheme())||u.getUserInfo()!=null||(u.getPort()!=-1&&u.getPort()!=80&&u.getPort()!=443))return "";String result=hosts.get(String.valueOf(u.getHost()).toLowerCase(Locale.ROOT));return result==null?"":result;}catch(Exception e){return "";}}
  public boolean same(String a,String b){String id=source(a);return !id.isEmpty()&&id.equals(source(b));}
  public String canonical(String address){try{
   if(source(address).isEmpty())return "";URI u=URI.create(address);String host=u.getHost().toLowerCase(Locale.ROOT),path=u.getRawPath();if(path==null||path.isEmpty())path="/";

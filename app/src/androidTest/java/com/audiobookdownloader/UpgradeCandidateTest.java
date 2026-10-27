@@ -5,6 +5,22 @@ import org.junit.*;import org.junit.runner.RunWith;import static org.junit.Asser
 /** Opt-in second pass: executes against the actually installed old/new APKs in a disposable emulator. */
 @RunWith(AndroidJUnit4.class)
 public class UpgradeCandidateTest {
+ private static Class<?> targetClass(Context context,String name)throws Exception{
+  return Class.forName("com.audiobookdownloader."+name,true,context.getClassLoader());
+ }
+ private static Object updater(Context context)throws Exception{
+  java.lang.reflect.Constructor<?> constructor=targetClass(context,"PreviewUpdater").getDeclaredConstructor(Context.class);
+  constructor.setAccessible(true);return constructor.newInstance(context);
+ }
+ private static boolean hasShelf(Context context,android.content.SharedPreferences preferences,String name)throws Exception{
+  java.lang.reflect.Method load=targetClass(context,"MainActivityKt").getDeclaredMethod("loadShelves",android.content.SharedPreferences.class);
+  load.setAccessible(true);Object rows=load.invoke(null,preferences);
+  for(Object row:(java.util.List<?>)rows){
+   java.lang.reflect.Method getter=row.getClass().getDeclaredMethod("getName");getter.setAccessible(true);
+   if(name.equals(getter.invoke(row)))return true;
+  }
+  return false;
+ }
  /** Test fixture only: supports an actually installed non-debuggable baseline, with no run-as. */
  @Test public void seedInstalledUpgradeData()throws Exception{
   Bundle args=InstrumentationRegistry.getArguments();String dir=args.getString("upgrade_fixture_dir");
@@ -36,18 +52,18 @@ public class UpgradeCandidateTest {
   assertTrue("Candidate missing: "+path,apk.isFile());assertTrue("Candidate unreadable: "+path,apk.canRead());assertTrue("Candidate incomplete: "+apk.length(),apk.length()>1000000);
   PackageInfo installed=c.getPackageManager().getPackageInfo(c.getPackageName(),0),archive=c.getPackageManager().getPackageArchiveInfo(path,PackageManager.GET_SIGNING_CERTIFICATES);
   assertNotNull("PackageManager rejected candidate bytes: "+apk.length(),archive);
-  assertEquals(c.getPackageName(),archive.packageName);assertEquals(c.getPackageName(),PreviewUpdateRules.PACKAGE);
+  assertEquals(c.getPackageName(),archive.packageName);assertEquals(c.getPackageName(),targetClass(c,"PreviewUpdateRules").getDeclaredField("PACKAGE").get(null));
   assertTrue("Candidate "+archive.getLongVersionCode()+" is not newer than installed "+installed.getLongVersionCode(),archive.getLongVersionCode()>installed.getLongVersionCode());
   System.out.println("Installed "+installed.getLongVersionCode()+", candidate "+archive.getLongVersionCode()+", bytes "+apk.length());
-  new PreviewUpdater(c).verifyApk(apk,null);
+  Object updater=updater(c);java.lang.reflect.Method verify=updater.getClass().getDeclaredMethod("verifyApk",File.class,Long.class);verify.setAccessible(true);verify.invoke(updater,apk,null);
   PackageInfo p=c.getPackageManager().getPackageArchiveInfo(path,0);assertNotNull(p);p.applicationInfo.sourceDir=path;p.applicationInfo.publicSourceDir=path;
   assertEquals("Audiobook",c.getPackageManager().getApplicationLabel(p.applicationInfo).toString());
   if(installed.getLongVersionCode()>=100055){
-   File target=new PreviewUpdater(c).target();target.getParentFile().mkdirs();Files.copy(apk.toPath(),target.toPath(),StandardCopyOption.REPLACE_EXISTING);
+   java.lang.reflect.Method targetMethod=updater.getClass().getDeclaredMethod("target");targetMethod.setAccessible(true);File target=(File)targetMethod.invoke(updater);target.getParentFile().mkdirs();Files.copy(apk.toPath(),target.toPath(),StandardCopyOption.REPLACE_EXISTING);
    UiDevice device=UiDevice.getInstance(InstrumentationRegistry.getInstrumentation());device.executeShellCommand("appops set "+c.getPackageName()+" REQUEST_INSTALL_PACKAGES allow");
-   try(ActivityScenario<PreviewUpdatesActivity> scenario=ActivityScenario.launch(PreviewUpdatesActivity.class)){
+   try(ActivityScenario<android.app.Activity> scenario=ActivityScenario.launch(new Intent().setClassName(c,c.getPackageName().replace(".preview","")+".PreviewUpdatesActivity"))){
     // This method runs from the actually installed old APK, using its provider and updater.
-    scenario.onActivity(a->a.launchInstaller());
+    scenario.onActivity(a->{try{java.lang.reflect.Method launch=a.getClass().getDeclaredMethod("launchInstaller");launch.setAccessible(true);launch.invoke(a);}catch(Exception error){throw new AssertionError(error);}});
     assertNotNull("Old updater must open Android installer",device.wait(Until.findObject(By.pkg(Pattern.compile("com\\.(?:google\\.android|android)\\.(?:packageinstaller|permissioncontroller)"))),15000));
     assertNotNull("Real newer candidate must reach Update confirmation",device.wait(Until.findObject(By.text(Pattern.compile("(?i)update|install"))),5000));
     Bundle phase=new Bundle();phase.putString("stream","OLD_UPDATER_INSTALLER_CONFIRMATION_VERIFIED\n");InstrumentationRegistry.getInstrumentation().sendStatus(2,phase);device.pressBack();
@@ -68,15 +84,15 @@ public class UpgradeCandidateTest {
   android.content.SharedPreferences prefs=c.getSharedPreferences("audiobook_downloader",0);
   assertEquals(marker,prefs.getString("upgrade_marker",""));assertEquals(54321,prefs.getInt("player_last_position",-1));
   assertEquals("content://com.android.externalstorage.documents/tree/primary%3ADownload%2FAudioBooks",prefs.getString("library_tree_uri",""));
-  assertTrue(MainActivityKt.loadShelves(prefs).stream().anyMatch(s->s.getName().equals("Проверка обновления")));
+  assertTrue(hasShelf(c,prefs,"Проверка обновления"));
   assertEquals(marker,new String(Files.readAllBytes(new File(c.getFilesDir(),"upgrade-marker.txt").toPath()),StandardCharsets.UTF_8));
-  try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(MainActivity.class)){
+  try(ActivityScenario<android.app.Activity> scenario=ActivityScenario.launch(new Intent().setClassName(c,c.getPackageName().replace(".preview","")+".MainActivity"))){
    scenario.onActivity(a->assertEquals("Audiobook",a.getTitle().toString()));
    long until=SystemClock.uptimeMillis()+30000;while(c.getSharedPreferences("audiobook_startup",0).getBoolean("pending",true)&&SystemClock.uptimeMillis()<until)SystemClock.sleep(100);
    assertFalse("Release home did not finish startup",c.getSharedPreferences("audiobook_startup",0).getBoolean("pending",true));
    assertFalse("Release home entered recovery",c.getSharedPreferences("audiobook_startup",0).getBoolean("failed",false));
    new PermissionSurfaceTest().installedPlayerHasNoScreenReaderOrPrivilegedTransferComponents();
   }
-  assertEquals(marker,prefs.getString("upgrade_marker",""));assertTrue(MainActivityKt.loadShelves(prefs).stream().anyMatch(s->s.getName().equals("Проверка обновления")));
+  assertEquals(marker,prefs.getString("upgrade_marker",""));assertTrue(hasShelf(c,prefs,"Проверка обновления"));
  }
 }

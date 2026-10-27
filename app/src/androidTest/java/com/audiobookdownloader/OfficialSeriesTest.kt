@@ -28,6 +28,8 @@ class OfficialSeriesTest {
     private var latest=1;private var offline=false;private var partial=false;private var conflicting=false
     private val visited=mutableSetOf<String>()
     private var originalShelves:String?=null
+    private var originalAuthority:Map<String,String> = emptyMap()
+    private var originalAuthorityRevision=0
     private fun name(i:Int)=if(i==1)title else "Продолжение $i"
     private fun cards(provider:String):String=(1..latest).joinToString(""){i->
         if(provider=="Author.Today")"<div class='work-row-content'><div class='work-title'><span class='label-row-index'>$i</span><a href='/work/${990000+i}'>${name(i)}</a></div><div class='work-author'>$author</div><div class='work-info'><i class='icon-book2'></i><i class='icon-check-bold'></i>100K зн.</div></div>"
@@ -41,6 +43,9 @@ class OfficialSeriesTest {
         else->error("Unexpected reference URL: $url")}}
     @Before fun setup(){
         originalShelves=prefs.getString("shelves_v1",null)
+        originalAuthority=prefs.all.filterKeys{it.startsWith("book_series_authority_v1_")}.mapValues{it.value as String}
+        originalAuthorityRevision=prefs.getInt("book_series_revision",0)
+        val cold=prefs.edit();originalAuthority.keys.forEach{cold.remove(it)};cold.commit()
         File(context.filesDir,"official-series-v1").deleteRecursively()
         File(context.filesDir,"continuations-v1").deleteRecursively()
         context.getSharedPreferences("official_series_v1",0).edit().clear().commit()
@@ -48,6 +53,9 @@ class OfficialSeriesTest {
         prefs.edit().putString("shelves_v1","""[{"n":"Official test","b":[{"t":"$title","u":"https://bookinfo.net/test-writer/test","c":""}]}]""").commit()
     }
     @After fun teardown(){
+        val restore=prefs.edit().putInt("book_series_revision",originalAuthorityRevision)
+        prefs.all.keys.filter{it.startsWith("book_series_authority_v1_")}.forEach{restore.remove(it)}
+        originalAuthority.forEach{(key,value)->restore.putString(key,value)};restore.commit()
         if(originalShelves==null)prefs.edit().remove("shelves_v1").commit() else prefs.edit().putString("shelves_v1",originalShelves).commit()
         store.notices().forEach{AbContinuationAlerts.consume(context,it.id)}
         store.preferences.edit().clear().commit()
@@ -72,6 +80,36 @@ class OfficialSeriesTest {
         partial=false;catalog.refresh(title,author,true);assertEquals(2,store.notices().size)
         store.preferences.edit().putStringSet("muted_titles",setOf(SeriesAuthorityRules.title(title))).commit();latest=4;catalog.refresh(title,author,true);assertEquals(2,store.notices().size)
         assertTrue(store.notices().all{SeriesAuthorityRules.work(it.url)})
+    }
+    @Test(timeout=60000) fun litresAudioFollowsOnlyTheCollectedDirectSeries()=runBlocking {
+        store.preferences.edit().putBoolean("text_enabled",false).putBoolean("litres_enabled",true).commit()
+        val catalog=OfficialSeriesCatalog(context,fetcher)
+        catalog.refresh(title,author,true);assertTrue("First series snapshot is silent",store.notices().isEmpty())
+        latest=2;catalog.refresh(title,author,true)
+        val notice=store.notices().single()
+        assertEquals(store.seeds().single().id,notice.seed)
+        assertEquals("audio",notice.format);assertEquals(name(2),notice.title)
+        assertTrue(notice.url.startsWith("https://www.litres.ru/audiobook/"))
+        assertFalse("No general new-release feed request",visited.contains(LitresReleaseParser.FEED))
+        catalog.refresh(title,author,true);assertEquals(1,store.notices().size)
+        latest=3;partial=true;catalog.refresh(title,author,true);assertEquals(1,store.notices().size)
+        partial=false;catalog.refresh(title,author,true);assertEquals(2,store.notices().size)
+        prefs.edit().putString("shelves_v1","[]").commit()
+        latest=4;catalog.refresh(title,author,true)
+        assertEquals("Removed books cannot create notices",2,store.notices().size)
+        assertTrue("Removed collection history is hidden",store.collectionNotices().isEmpty())
+    }
+    @Test(timeout=60000) fun removedDuringReferenceFetchCannotCreateAudioNotice()=runBlocking {
+        store.preferences.edit().putBoolean("text_enabled",false).putBoolean("litres_enabled",true).commit()
+        OfficialSeriesCatalog(context,fetcher).refresh(title,author,true)
+        latest=2
+        val removing=SeriesAuthorityFetcher{url->
+            val html=fetcher.html(url)
+            if(url==lt)prefs.edit().putString("shelves_v1","[]").commit()
+            html
+        }
+        OfficialSeriesCatalog(context,removing).refresh(title,author,true)
+        assertTrue(store.notices().isEmpty())
     }
     @Test(timeout=60000) fun officialPanelGroupsFormatsAndCanFilterTextAndAudio()=runBlocking {
         latest=2;OfficialSeriesCatalog(context,fetcher).refresh(title,author,true)
@@ -99,5 +137,31 @@ class OfficialSeriesTest {
         assertTrue(snapshot.copy(sources=listOf(first,conflicting)).orderConflict)
         val duplicate=first.copy(books=first.books+first.books.first().copy(title="Чужое произведение"))
         assertTrue(snapshot.copy(sources=listOf(duplicate)).orderConflict)
+    }
+    @Test(timeout=30000) fun watchingTwoVolumesSharesBaselineAndMigratesOldTextStateSilently()=runBlocking {
+        latest=2
+        val shelves=org.json.JSONArray(prefs.getString("shelves_v1","[]"))
+        shelves.getJSONObject(0).getJSONArray("b").put(org.json.JSONObject().put("t",name(2)).put("u","https://bookinfo.net/test-writer/second").put("c",""))
+        prefs.edit().putString("shelves_v1",shelves.toString()).commit()
+        val oldKey=ContinuationStore.hash("official-text|"+SeriesAuthorityRules.author(author)+"|"+SeriesAuthorityRules.series("Тестовая серия"))
+        store.writeState(oldKey,ContinuationRules.State(emptySet(),null))
+        val existing=ContinuationNotice("preserved-text-notice","old-seed","Сохранённое уведомление","https://author.today/work/99","Тестовая серия",author,1,read=true,notified=true,format="text")
+        store.mergeNotices(listOf(existing))
+        val refs=SeriesAuthorityFetcher {url->
+            when(url){
+                "https://author.today/work/990002"->"<h1>"+name(2)+"</h1><div class='work-header-content'><div class='card-author'><a>"+author+"</a></div><div><a href='"+at+"'>Тестовая серия</a> #2</div></div>"
+                "https://www.litres.ru/book/test-writer/work-990002","https://www.litres.ru/audiobook/test-writer/work-990002"->"<h1>"+name(2)+"</h1><a data-testid='book__author--link'>"+author+"</a><div data-testid='book__seriesSlider--title'><a href='"+lt+"'>2 книга в серии «Тестовая серия»</a></div>"
+                else->fetcher.html(url)
+            }
+        }
+        val catalog=OfficialSeriesCatalog(context,refs)
+        assertTrue(catalog.refresh(name(2),author,true).sources.all{it.complete})
+        assertTrue(catalog.refresh(title,author,true).sources.all{it.complete})
+        assertEquals("Existing published second volume must stay silent",listOf(existing),store.notices())
+        latest=3;catalog.refresh(title,author,true)
+        assertEquals(2,store.notices().size)
+        assertEquals(1,store.notices().count{it.title==name(3)})
+        assertTrue(store.notices().first{it.id==existing.id}.read)
+        assertTrue(store.notices().first{it.id==existing.id}.notified)
     }
 }

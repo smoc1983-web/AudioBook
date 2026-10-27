@@ -74,7 +74,7 @@ public final class OpenAudioCatalog {
         for(int i=0;i<files.length();i++){JSONObject f=files.optJSONObject(i);if(f==null)continue;String name=f.optString("name");if(!name.toLowerCase(Locale.ROOT).endsWith(".mp3")||f.optBoolean("private"))continue;
             String key=f.optString("original",name);JSONObject old=chosen.get(key);if(old==null||rank(f)<rank(old))chosen.put(key,f);
         }
-        List<JSONObject> sorted=new ArrayList<>(chosen.values());sorted.sort(Comparator.comparing(OpenAudioCatalog::order));
+        List<JSONObject> sorted=new ArrayList<>(chosen.values());Collections.sort(sorted,(a,b)->order(a).compareTo(order(b)));
         List<Track> tracks=new ArrayList<>();for(JSONObject f:sorted){String name=f.optString("name");StringBuilder path=new StringBuilder();for(String part:name.split("/")){if(path.length()>0)path.append('/');path.append(encode(part));}
             String url="https://archive.org/download/"+encode(id)+"/"+path;int seconds=0;try{seconds=(int)Double.parseDouble(f.optString("length","0"));}catch(Exception ignored){}
             tracks.add(new Track(String.format(Locale.ROOT,"%03d · %s",tracks.size()+1,f.optString("title",name)),url,url,seconds));}

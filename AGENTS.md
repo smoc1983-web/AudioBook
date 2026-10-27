@@ -1,5 +1,13 @@
 # Audiobook development instructions
 
+Publication explicitly authorized 2026-10-27 after fixing collection notifications.
+The user now requests publication through the in-app Updates menu. The earlier
+hold has ended for this verified fix and the previously audited changes.
+Preserve package/signature/library/settings. Publish from main through the normal
+checks, then update the existing public feed. Version69 was delivered manually;
+normal workflow run69 uses scripts/with-release-number.sh to build version70.
+Never publish signing keys. Do not silently rotate the installed signing identity.
+
 The user explicitly requested ub-mode on 2026-10-27. For future code changes,
 read and apply [.agents/skills/ub-mode/SKILL.md](.agents/skills/ub-mode/SKILL.md)
 and [docs/QUALITY.md](docs/QUALITY.md). Treat this file as durable project memory.

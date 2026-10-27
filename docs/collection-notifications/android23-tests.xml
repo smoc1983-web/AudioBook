@@ -1,0 +1,19 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuite name="com.audiobookdownloader.CollectionNotificationTest" tests="11" failures="0" errors="0" skipped="0" time="13.509" timestamp="2026-10-27T17:29:53" hostname="localhost">
+  <properties>
+    <property name="device" value="emulator-5554 - 6.0" />
+    <property name="flavor" value="" />
+    <property name="project" value=":app" />
+  </properties>
+  <testcase name="noCollectionsNeverFetchesGeneralFeedEvenWithOldOptIn" classname="com.audiobookdownloader.CollectionNotificationTest" time="0.03" />
+  <testcase name="legacyGlobalAndUnrelatedAlertsAreCancelledWhileCollectionAlertAndPlayerRemain" classname="com.audiobookdownloader.CollectionNotificationTest" time="0.151" />
+  <testcase name="removedDuringReferenceFetchCannotCreateAudioNotice" classname="com.audiobookdownloader.OfficialSeriesTest" time="1.934" />
+  <testcase name="bothProvidersRefreshTextBaselineFutureVolumesFailureAndPartialLists" classname="com.audiobookdownloader.OfficialSeriesTest" time="1.382" />
+  <testcase name="conflictingSeriesOrOrdersDoNotCreateTextAlerts" classname="com.audiobookdownloader.OfficialSeriesTest" time="0.815" />
+  <testcase name="officialPanelGroupsFormatsAndCanFilterTextAndAudio" classname="com.audiobookdownloader.OfficialSeriesTest" time="3.012" />
+  <testcase name="watchingTwoVolumesSharesBaselineAndMigratesOldTextStateSilently" classname="com.audiobookdownloader.OfficialSeriesTest" time="1.264" />
+  <testcase name="litresAudioFollowsOnlyTheCollectedDirectSeries" classname="com.audiobookdownloader.OfficialSeriesTest" time="1.273" />
+  <testcase name="workerBaselinesConfirmsDeduplicatesAndPreservesSnapshotOnFailure" classname="com.audiobookdownloader.ContinuationWorkerTest" time="1.599" />
+  <testcase name="explicitSourceCycleWorksWhenReferenceSearchHasNoMatch" classname="com.audiobookdownloader.SeriesRecoveryTest" time="0.122" />
+  <testcase name="legacyOriginRecoveryShowsExistingSecondVolumeAndExcludesAnotherDirectSeries" classname="com.audiobookdownloader.SeriesRecoveryTest" time="0.361" />
+</testsuite>

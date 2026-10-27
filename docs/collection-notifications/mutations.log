@@ -1,0 +1,11 @@
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.CollectionNoticePolicy.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.CollectionXmlReader.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.ContinuationRules.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.LocalSeriesRules.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.OfficialSeriesParser.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.OfficialTextNoticePolicy.edn
+Function Namespace                                       Killed  Survived  Uncovered  Sites   Score
+---------------------------------------------------------------------------------------------------
+allows   com.audiobookdownloader.CollectionNoticePolicy       0         0          0      0    n/a
+---------------------------------------------------------------------------------------------------
+Total                                                         0         0          0      0     n/a

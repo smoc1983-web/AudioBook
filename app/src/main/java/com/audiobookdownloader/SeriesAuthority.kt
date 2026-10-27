@@ -119,11 +119,12 @@ internal class SeriesAuthorityResolver(private val fetcher:SeriesAuthorityFetche
         run {
             currentCoroutineContext().ensureActive()
             try {
-                val possible=SeriesAuthorityParser.search(fetcher.html(search),search).filter{
+                val matching=SeriesAuthorityParser.search(fetcher.html(search),search).filter{
                     (author.isBlank()||SeriesAuthorityRules.sameAuthor(author,it.authors))&&SeriesAuthorityRules.sameTitle(title,it.title,it.seriesTitle)}
-                    .distinctBy{it.bookUrl}.take(3)
-                val writers=possible.flatMap{it.authors}.map{SeriesAuthorityRules.author(it)}.distinct()
+                    .distinctBy{it.bookUrl}
+                val writers=matching.flatMap{it.authors}.map{SeriesAuthorityRules.author(it)}.distinct()
                 if(author.isBlank()&&writers.size>1)return null to "ambiguous"
+                val possible=matching.take(3)
                 val expectedAuthor=author.ifBlank{possible.firstOrNull()?.authors?.firstOrNull().orEmpty()}
                 val confirmed=mutableListOf<SeriesAuthorityParser.Record>()
                 for(candidate in possible) {

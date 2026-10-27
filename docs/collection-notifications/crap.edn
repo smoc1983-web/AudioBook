@@ -1,0 +1,3 @@
+{:entries [
+  {:name "allows", :namespace "com.audiobookdownloader.CollectionNoticePolicy", :complexity 1, :coverage 100.0, :crap 1.0}
+]}

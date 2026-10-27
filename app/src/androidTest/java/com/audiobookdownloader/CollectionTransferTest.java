@@ -1,5 +1,5 @@
 package com.audiobookdownloader;
-import android.content.*;import android.view.*;import android.widget.*;import java.io.*;import java.nio.charset.StandardCharsets;import java.nio.file.Files;import java.util.*;import org.json.*;
+import android.content.*;import android.view.*;import android.widget.*;import java.io.*;import java.nio.charset.StandardCharsets;import java.util.*;import org.json.*;
 import androidx.test.core.app.ActivityScenario;import androidx.test.platform.app.InstrumentationRegistry;import androidx.test.ext.junit.runners.AndroidJUnit4;import org.junit.*;import org.junit.runner.RunWith;import static org.junit.Assert.*;
 @RunWith(AndroidJUnit4.class)
 public class CollectionTransferTest {
@@ -17,7 +17,7 @@ public class CollectionTransferTest {
  @Test public void nativeScreenDoesNotImportWithoutConfirmation()throws Exception{
   String before=app.getSharedPreferences("audiobook_downloader",0).getString("shelves_v1","[]");
   try(ActivityScenario<CollectionTransferActivity> scenario=ActivityScenario.launch(CollectionTransferActivity.class)){
-   scenario.onActivity(a->{ArrayDeque<View> q=new ArrayDeque<>();q.add(a.getWindow().getDecorView());Set<String> buttons=new HashSet<>();while(!q.isEmpty()){View v=q.remove();if(v instanceof Button){Button b=(Button)v;buttons.add(b.getText().toString());if(b.getText().toString().equals("Добавить найденные коллекции"))assertFalse(b.isEnabled());}if(v instanceof ViewGroup){ViewGroup g=(ViewGroup)v;for(int i=0;i<g.getChildCount();i++)q.add(g.getChildAt(i));}}assertTrue(buttons.contains("Импортировать JSON/XML"));assertTrue(buttons.contains("Сохранить копию коллекций"));assertTrue(buttons.stream().noneMatch(t->t.contains("Shizuku")||t.contains("экранов")||t.contains("Считать коллекции")));});
+   scenario.onActivity(a->{ArrayDeque<View> q=new ArrayDeque<>();q.add(a.getWindow().getDecorView());Set<String> buttons=new HashSet<>();while(!q.isEmpty()){View v=q.remove();if(v instanceof Button){Button b=(Button)v;buttons.add(b.getText().toString());if(b.getText().toString().equals("Добавить найденные коллекции"))assertFalse(b.isEnabled());}if(v instanceof ViewGroup){ViewGroup g=(ViewGroup)v;for(int i=0;i<g.getChildCount();i++)q.add(g.getChildAt(i));}}assertTrue(buttons.contains("Импортировать JSON/XML"));assertTrue(buttons.contains("Сохранить копию коллекций"));for(String label:buttons)assertFalse(label.contains("Shizuku")||label.contains("экранов")||label.contains("Считать коллекции"));});
   }
   assertEquals(before,app.getSharedPreferences("audiobook_downloader",0).getString("shelves_v1","[]"));
  }
@@ -25,7 +25,7 @@ public class CollectionTransferTest {
   Context c=isolated();var prefs=c.getSharedPreferences("audiobook_downloader",0);prefs.edit().clear().putString("shelves_v1",row("Существующая")).putInt("player_last_position",54321).commit();var store=new CollectionTransferStore(c);String before=store.current();
   String xml="<map><string name='private_token'>do-not-copy</string><string name='shelves_v1'>"+row("Из файла")+"</string></map>";
   File copy=new File(c.getCacheDir(),"collections-import-roundtrip.xml");try{
-   Files.write(copy.toPath(),xml.getBytes(StandardCharsets.UTF_8));String input=CollectionTransferActivity.read(new FileInputStream(copy));
+   try(FileOutputStream output=new FileOutputStream(copy)){output.write(xml.getBytes(StandardCharsets.UTF_8));}String input=CollectionTransferActivity.read(new FileInputStream(copy));
    assertEquals(1,store.preview(input).addedShelves);assertEquals(before,store.current());
    assertEquals(1,store.apply(input).addedShelves);assertEquals(0,store.apply(input).addedShelves);
    assertEquals(54321,prefs.getInt("player_last_position",0));assertNull(prefs.getString("private_token",null));assertFalse(CollectionTransferRules.export(store.current()).contains("do-not-copy"));

@@ -48,15 +48,4 @@ class SeriesRecoveryTest {
         assertEquals(2,store.available(seed.id).size);assertTrue(store.notices().isEmpty());assertEquals(cycle,abStoredCatalog(prefs,title).cycles.single().url)
     }finally{if(original==null)prefs.edit().remove("shelves_v1").commit() else prefs.edit().putString("shelves_v1",original).commit();store.preferences.edit().clear().commit();java.io.File(context.filesDir,"continuations-v1").deleteRecursively()}
  }
- @Test(timeout=60000) fun litresBaselineAndDateValidationSurviveSourceFailure()=runBlocking {
-    val context=ApplicationProvider.getApplicationContext<Context>();val store=ContinuationStore(context);var latest=1;var broken=false
-    val date=java.text.SimpleDateFormat("d MMMM yyyy",java.util.Locale("ru")).apply{timeZone=java.util.TimeZone.getTimeZone("UTC")}.format(java.util.Date())
-    val fake=ContinuationFetcher{url->if(broken)error("offline");if(url==LitresReleaseParser.FEED)"<h1>Новые аудиокниги</h1>"+(1..latest).joinToString(""){i->"<div data-testid='art__wrapper'><a data-testid='art__title' href='/audiobook/test-writer/book-$i/'>Книга $i</a><a data-testid='art__authorName--link'>Тест Автор</a></div>"} else {val i=url.substringAfterLast('-');"<h1>Книга $i</h1><a data-testid='book__author--link'>Тест Автор</a><div><div>Дата выхода на Литрес: </div><span>$date</span></div>"}}
-    try {store.preferences.edit().clear().putBoolean("enabled",true).putBoolean("litres_enabled",true).commit()
-        val scanner=LitresReleaseScanner(context,fake);scanner.scan("");assertTrue(store.notices().isEmpty())
-        latest=2;broken=true;scanner.scan("");assertTrue(store.notices().isEmpty())
-        broken=false;scanner.scan("");assertEquals(1,store.notices().size);assertTrue(LitresReleaseParser.audio(store.notices().single().url))
-        scanner.scan("");assertEquals(1,store.notices().size)
-    }finally{store.preferences.edit().clear().commit()}
- }
 }

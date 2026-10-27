@@ -1,0 +1,37 @@
+Wrote .metrics/mutate/com.audiobookdownloader.CollectionXmlReader.edn
+Wrote .metrics/mutate/com.audiobookdownloader.ContinuationRules.edn
+KILLED    app/src/main/java/com/audiobookdownloader/CollectionXmlReader.java:16 || -> &&
+KILLED    app/src/main/java/com/audiobookdownloader/CollectionXmlReader.java:19 true -> false
+SURVIVED  app/src/main/java/com/audiobookdownloader/CollectionXmlReader.java:22 false -> true
+SURVIVED  app/src/main/java/com/audiobookdownloader/CollectionXmlReader.java:23 false -> true
+KILLED    app/src/main/java/com/audiobookdownloader/CollectionXmlReader.java:29 != -> ==
+KILLED    app/src/main/java/com/audiobookdownloader/CollectionXmlReader.java:29 1 -> 0
+KILLED    app/src/main/java/com/audiobookdownloader/CollectionXmlReader.java:33 > -> >=
+KILLED    app/src/main/java/com/audiobookdownloader/CollectionXmlReader.java:35 == -> !=
+KILLED    app/src/main/java/com/audiobookdownloader/CollectionXmlReader.java:35 1 -> 0
+KILLED    app/src/main/java/com/audiobookdownloader/CollectionXmlReader.java:39 delete !
+KILLED    app/src/main/java/com/audiobookdownloader/CollectionXmlReader.java:39 || -> &&
+KILLED    app/src/main/java/com/audiobookdownloader/CollectionXmlReader.java:39 delete !
+KILLED    app/src/main/java/com/audiobookdownloader/CollectionXmlReader.java:42 == -> !=
+KILLED    app/src/main/java/com/audiobookdownloader/CollectionXmlReader.java:42 && -> ||
+KILLED    app/src/main/java/com/audiobookdownloader/CollectionXmlReader.java:42 && -> ||
+KILLED    app/src/main/java/com/audiobookdownloader/CollectionXmlReader.java:42 && -> ||
+KILLED    app/src/main/java/com/audiobookdownloader/CollectionXmlReader.java:45 > -> >=
+KILLED    app/src/main/java/com/audiobookdownloader/CollectionXmlReader.java:45 1 -> 0
+KILLED    app/src/main/java/com/audiobookdownloader/CollectionXmlReader.java:46 true -> false
+KILLED    app/src/main/java/com/audiobookdownloader/CollectionXmlReader.java:49 == -> !=
+KILLED    app/src/main/java/com/audiobookdownloader/CollectionXmlReader.java:49 false -> true
+KILLED    app/src/main/java/com/audiobookdownloader/CollectionXmlReader.java:53 delete !
+Function         Namespace                                    Killed  Survived  Uncovered  Sites   Score
+--------------------------------------------------------------------------------------------------------
+error            com.audiobookdownloader.CollectionXmlReader       0         0          0      0    n/a
+fatalError       com.audiobookdownloader.CollectionXmlReader       0         0          0      0    n/a
+read             com.audiobookdownloader.CollectionXmlReader       4         2          0      6  66.7%
+beginCollection  com.audiobookdownloader.CollectionXmlReader       3         0          0      3 100.0%
+characters       com.audiobookdownloader.CollectionXmlReader       1         0          0      1 100.0%
+collectionString com.audiobookdownloader.CollectionXmlReader       4         0          0      4 100.0%
+endElement       com.audiobookdownloader.CollectionXmlReader       2         0          0      2 100.0%
+requireRoot      com.audiobookdownloader.CollectionXmlReader       3         0          0      3 100.0%
+startElement     com.audiobookdownloader.CollectionXmlReader       3         0          0      3 100.0%
+--------------------------------------------------------------------------------------------------------
+Total                                                             20         2          0     22   90.9%

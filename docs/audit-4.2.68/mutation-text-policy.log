@@ -1,0 +1,12 @@
+Wrote .metrics/mutate/com.audiobookdownloader.CollectionXmlReader.edn
+Wrote .metrics/mutate/com.audiobookdownloader.ContinuationRules.edn
+Wrote .metrics/mutate/com.audiobookdownloader.OfficialSeriesParser.edn
+Wrote .metrics/mutate/com.audiobookdownloader.OfficialTextNoticePolicy.edn
+KILLED    app/src/main/java/com/audiobookdownloader/OfficialTextNoticePolicy.java:12 != -> ==
+KILLED    app/src/main/java/com/audiobookdownloader/OfficialTextNoticePolicy.java:12 && -> ||
+KILLED    app/src/main/java/com/audiobookdownloader/OfficialTextNoticePolicy.java:12 > -> >=
+Function Namespace                                         Killed  Survived  Uncovered  Sites   Score
+-----------------------------------------------------------------------------------------------------
+evaluate com.audiobookdownloader.OfficialTextNoticePolicy       3         0          0      3 100.0%
+-----------------------------------------------------------------------------------------------------
+Total                                                           3         0          0      3  100.0%

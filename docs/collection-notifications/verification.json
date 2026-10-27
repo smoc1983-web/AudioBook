@@ -1,0 +1,108 @@
+{
+  "status": "passed Android23/36; source saved; publication held",
+  "sourceCommit": "2475a54b0cc78cbbdce04252bbcec51fc0429676",
+  "branch": "fix/collection-notices-only",
+  "ciRun": 40550108807,
+  "red": {
+    "scope": "extracted old delivery eligibility predicate",
+    "tests": 4,
+    "failures": 2,
+    "reason": "provider-wide Litres opt-in incorrectly overrides collection ownership"
+  },
+  "localJunit": {
+    "tests": 111,
+    "failures": 0,
+    "optionalLiveSkip": 1
+  },
+  "crapper": {
+    "scope": "CollectionNoticePolicy only; fresh real JaCoCo",
+    "crap": 1.0,
+    "lineCoveragePercent": 100
+  },
+  "dryer": {
+    "scope": "active Java source",
+    "threshold": 0.8,
+    "candidates": 0
+  },
+  "mutator": {
+    "generatedSites": 0,
+    "conclusion": "N/A, not mutation coverage or successful mutation-test gate; method-call expression has no supported mutation sites in pinned tool"
+  },
+  "kotlin": "Not supported by pinned quality tools; tested through actual Android components",
+  "publication": {
+    "mainChanged": false,
+    "inAppFeedChanged": false,
+    "apkOrReleasePublished": false
+  },
+  "migration": "Retire only legacy seed=litres notices; valid collection history, libraries and per-series snapshots preserved",
+  "firstCi": {
+    "run": 40548734022,
+    "android36": {
+      "tests": 11,
+      "failures": 1,
+      "errors": 0,
+      "skipped": 0,
+      "notificationScopeTestsPassed": true,
+      "failure": "Existing cold-search test reused shared authority-cache entries from new cases; isolated and restored cache per test without weakening assertions"
+    },
+    "android23": {
+      "tests": 11,
+      "failures": 1,
+      "errors": 0,
+      "skipped": 0,
+      "failure": "Same authority-cache isolation at OfficialSeriesTest.kt:61; notification tests passed"
+    }
+  },
+  "testIsolationSource": "c6a0104700dc7763b74042a4d51bd215ff78e21c",
+  "testedSourceCommit": "c6a0104700dc7763b74042a4d51bd215ff78e21c",
+  "productionSourceCommit": "2475a54b0cc78cbbdce04252bbcec51fc0429676",
+  "android": {
+    "23": {
+      "tests": 11,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "job": 122351223977,
+      "report": "android23-tests.xml"
+    },
+    "36": {
+      "tests": 11,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "job": 122351223364,
+      "report": "android36-tests.xml"
+    }
+  },
+  "gradleJunit": {
+    "tests": 127,
+    "failures": 0,
+    "errors": 0,
+    "skippedOptionalLive": 1,
+    "variants": [
+      "Debug"
+    ],
+    "bothMatrixJobsPassed": true
+  },
+  "ciArtifacts": [
+    {
+      "id": 12754189869,
+      "api": 23,
+      "sha256": "3499d40865b592b128a6c61cb56d62d44769d2c4d89abf2fabe5263d97beddbf",
+      "downloadChecksumVerified": true
+    },
+    {
+      "id": 12755730725,
+      "api": 36,
+      "sha256": "837c6af3a83fdf7a8b9acacfa77a201865c17ff7a9db913f93ed4d3c73107ece",
+      "downloadChecksumVerified": true
+    }
+  ],
+  "runtimeInputsSha256": "d26b5db12515bc8c95a128ffcf9ef1fbd8d2d601d51470966ddfab5f3622e002",
+  "runtimeFiles": 100,
+  "limits": [
+    "Tests ran on disposable emulators, not physical Samsung S24",
+    "Official references use deterministic metadata fixtures, not live Android web/network release tests",
+    "No new installable release APK, in-app feed or public download was published for this fix"
+  ]
+}

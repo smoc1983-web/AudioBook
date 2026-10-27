@@ -1,3 +1,65 @@
+## Публикация разрешена: исправление уведомлений 4.2.70
+
+Пользователь явно попросил выпустить исправление через меню обновлений.
+Прежний publication hold снят для исправления и проверенных audit-изменений.
+Ручной APK69 уже выдан; normal build-apk run69 должен выпустить100070.
+Один wrapper scripts/with-release-number.sh с постоянным offset+1 применяется
+к Gradle, baseline, upgrade probe и упаковке, сохраняя их общую нумерацию.
+Проверить обычный CI, прежнюю подпись и сохранение данных; затем обновить Site feed.
+
+## Исправление области уведомлений после ручной 4.2.69
+
+Рабочая ветка fix/collection-notices-only. [Причина и изменение](COLLECTION-NOTIFICATIONS.md).
+Глобальный LitresReleaseScanner удалён: теперь официальный audio baseline по прямой
+серии коллекционной книги. Виртуальный seed «litres» больше не разрешает уведомления.
+Legacy global inbox удаляется, posted уведомления отменяются без влияния на плеер;
+текущие коллекции фильтруют inbox, route и send. Текстовый v2 baseline сохраняется.
+Android23/36 CI40550108807 success: по11/11; Debug JVM127 (1 optional skip).
+CI40548734022: notification tests passed, one cold-search assertion in each API
+failed due test-cache carryover; fixed isolation, assertions kept.
+Итог в collection-notifications/verification.json.
+Publication hold продолжается: main, in-app feed100068 и phone APK69 не менялись.
+
+## Ручной APK 4.2.69 для телефона (после аудита)
+
+Пользователь разрешил прямую ссылку, без повторных тестов. См. [PHONE-CANDIDATE.md](audit-4.2.68/PHONE-CANDIDATE.md).
+Доставка только в delivery/audit69-phone; main/release/in-app feed остаются прежними.
+Номер100069 выдан вручную; дальнейшее обновление владельца требует >=100070.
+
+## Проверка 4.2.68 — публикация запрещена до разрешения пользователя (2026-10-27)
+
+Рабочая ветка audit/4.2.68-ub-mode-hardening, не main. [Отчёт](AUDIT-4.2.68.md).
+Hold также в AGENTS.md. Не публиковать APK/релиз/feed/Site и не сливать main
+до явного разрешения. CI-кандидат 100069 не распространяется; опубликована 100068.
+
+Исправления: jsoup 1.23.2, потоковый XML импорт, мобильные внешние ссылки AT,
+позиции/пагинация, все полученные авторы до take(3), общий текстовый baseline,
+тихая миграция official-text-v2 (старые уведомления сохраняются), один DOM,
+WebView isolation, независимые временные APK, точечная совместимость Java API с Android 23,
+константы ориентации и состояние Compose. Jsoup на API23 требует сохранённый
+coreLibraryDesugaring 2.1.5. Отдельный upgradeProbe не содержит копий приложения/j$
+и выравнивает AndroidX ABI с установленным target.
+
+Прежний build-apk сохранял private key в artifact/cache. В audit-ветке новые такие
+копии запрещены: artifact upload удалён, cache только restore. Старые копии не удалять
+до гарантированного постоянного Actions secret AUDIOBOOK_PREVIEW_KEYSTORE_BASE64.
+Аудит ключ не скачивал и не публиковал. Без доступного исходного ключа сборка обязана
+остановиться, сохранив возможность дальнейшего обновления установленных приложений.
+
+Lint впервые показал 18 ошибок; зелёный continue-on-error не означал чистый XML.
+scripts/check-android-lint.py и его gate + OSV добавлены перед публикацией build-apk.yml.
+Не путать Error/Fatal с оставшимися Warning/Information.
+
+Два XML mutation survivors эквивалентны из-за независимых запретов DTD/entities;
+не удалять эти настройки и не тестировать исходный текст ради процента.
+Шесть чистых Java-компонентов проверены JaCoCo/Crapper, max CRAP 9.0;
+это не покрытие всех Android/Kotlin классов. CI — audit-4.2.68/verification.json.
+Итог: Android23 7/7; Android36 31 (3 opt-in skip) + 3 отдельные фазы реального
+release upgrade, всё без ошибок. Full run40474299508 attempt2 success; attempt1
+системный ANR эмулятора. Debug/Release JVM по123 (1 необязательный skip), Lint0Error
+при76Warning/59Information; OSV68 зависимостей без найденных advisories.
+Обновление не опубликовано. Перед публикацией проверить постоянный signing secret.
+
 ## Правила следующих изменений: ub-mode (2026-10-27)
 
 По явной просьбе пользователя сохранены AGENTS.md, точный upstream SKILL.md

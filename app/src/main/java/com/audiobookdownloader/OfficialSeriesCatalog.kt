@@ -120,24 +120,35 @@ internal class OfficialSeriesCatalog(private val context:Context,private val fet
                 store.save(snapshot,author)
             }
             if(!snapshot.conflict)resolved.firstOrNull()?.let{SeriesAuthorityCache.save(prefs,title,author,it,"confirmed")}
-            updateTextNotices(snapshot)
+            updateNotices(snapshot)
             snapshot
         }
     }
-    private fun updateTextNotices(snapshot:OfficialSnapshot) {
+    private fun updateNotices(snapshot:OfficialSnapshot) {
         val continuations=ContinuationStore(context)
-        if(!AbContinuationAlerts.enabled(context)||!continuations.preferences.getBoolean("text_enabled",false)||snapshot.conflict||snapshot.orderConflict)return
+        if(!AbContinuationAlerts.enabled(context)||snapshot.conflict||snapshot.orderConflict)return
         val seed=continuations.seeds().firstOrNull{SeriesAuthorityRules.title(it.title)==SeriesAuthorityRules.title(snapshot.title)} ?: return
         val sources=snapshot.sources.filter{it.checked==it.attempted&&it.error.isBlank()&&it.complete&&it.seedOrder!=null}
+        if(continuations.preferences.getBoolean("text_enabled",false))
+            updateFormatNotices(snapshot,seed,sources,"text","official-text-v2")
+        if(continuations.preferences.getBoolean("litres_enabled",false))
+            updateFormatNotices(snapshot,seed,sources.filter{it.provider=="Литрес"},"audio","official-audio-v1")
+    }
+    private fun updateFormatNotices(snapshot:OfficialSnapshot,seed:ContinuationSeed,
+        sources:List<OfficialSource>,format:String,namespace:String) {
+        val continuations=ContinuationStore(context)
         for(group in sources.groupBy{SeriesAuthorityRules.series(it.series)}.values) {
             val name=group.first().series
-            val editions=group.flatMap{s->s.books.filter{it.format=="text"&&it.status in listOf("published","ongoing")&&it.order!=null&&it.order>s.seedOrder!!}}
+            val statuses=if(format=="text")setOf("published","ongoing") else setOf("published")
+            val editions=group.flatMap{s->s.books.filter{it.format==format&&it.status in statuses&&it.order!=null}}
                 .distinctBy{SeriesAuthorityRules.title(it.title)}
-            val key=ContinuationStore.hash("official-text|"+SeriesAuthorityRules.author(snapshot.author)+"|"+SeriesAuthorityRules.series(name))
-            val update=ContinuationRules.evaluate(continuations.readState(key),editions.map{ContinuationRules.Book(it.title,it.url,it.author,it.order)},snapshot.author)
+            // Each format shares a complete silent baseline across collected volumes.
+            val key=ContinuationStore.hash(namespace+"|"+SeriesAuthorityRules.author(snapshot.author)+"|"+SeriesAuthorityRules.series(name))
+            val update=OfficialTextNoticePolicy.evaluate(continuations.readState(key),editions.map{ContinuationRules.Book(it.title,it.url,it.author,it.order)},group.minOf{it.seedOrder!!},snapshot.author)
+            if(!AbContinuationAlerts.enabled(context)||continuations.seeds().none{it.id==seed.id})return
             val now=System.currentTimeMillis()
             continuations.mergeNotices(update.additions.map{b->ContinuationNotice(ContinuationStore.hash(key+"|"+SeriesAuthorityRules.title(b.title)),seed.id,
-                b.title,b.url,name,b.author,now,format="text")})
+                b.title,b.url,name,b.author,now,format=format)})
             continuations.writeState(key,update.state)
         }
     }

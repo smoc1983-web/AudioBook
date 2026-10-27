@@ -33,7 +33,10 @@ android {
             if(!stableChannel && System.getenv("PREVIEW_KEYSTORE")!=null) signingConfig=signingConfigs.getByName("preview")
         }
     }
-    compileOptions { sourceCompatibility=JavaVersion.VERSION_17;targetCompatibility=JavaVersion.VERSION_17 }
+    compileOptions {
+        sourceCompatibility=JavaVersion.VERSION_17;targetCompatibility=JavaVersion.VERSION_17
+        isCoreLibraryDesugaringEnabled=true
+    }
     kotlinOptions { jvmTarget="17" }
     sourceSets {
         getByName("main") { java.srcDirs("../current/app/src/main/java",layout.buildDirectory.dir("generated/currentSources"));res.srcDirs("../current/app/src/main/res") }
@@ -45,6 +48,7 @@ val syncCurrentSources by tasks.registering(Copy::class) {
 }
 tasks.named("preBuild").configure { dependsOn(syncCurrentSources) }
 dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
     implementation(platform("androidx.compose:compose-bom:2024.09.03"))
     implementation("androidx.activity:activity-compose:1.9.3")
     implementation("androidx.core:core-ktx:1.15.0")
@@ -52,7 +56,7 @@ dependencies {
     implementation("androidx.compose.foundation:foundation")
     implementation("androidx.compose.material3:material3")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
-    implementation("org.jsoup:jsoup:1.18.3")
+    implementation("org.jsoup:jsoup:1.23.2")
     implementation("androidx.work:work-runtime-ktx:2.10.1")
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.json:json:20240303")
@@ -67,3 +71,16 @@ dependencies {
 }
 
 tasks.withType<org.gradle.api.tasks.testing.Test>().configureEach { testLogging { showStandardStreams=true; events("passed","failed","skipped") } }
+
+// Read-only audit inventory of the actual resolved runtime graph; never included in APK.
+tasks.register("auditRuntimeDependencies") {
+    doLast {
+        val modules = configurations.getByName("releaseRuntimeClasspath").resolvedConfiguration.resolvedArtifacts
+            .map { it.moduleVersion.id }
+            .map { mapOf("name" to (it.group + ":" + it.name), "version" to it.version) }
+            .distinct().sortedBy { it["name"] }
+        val report = layout.buildDirectory.file("reports/security/runtime-dependencies.json").get().asFile
+        report.parentFile.mkdirs()
+        report.writeText(groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(modules)) + "\n")
+    }
+}

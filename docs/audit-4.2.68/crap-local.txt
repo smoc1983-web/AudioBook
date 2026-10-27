@@ -1,0 +1,71 @@
+CRAP Report
+===========
+Languages: java
+
+Function                       Namespace                                                   CC    Cov%     CRAP
+--------------------------------------------------------------------------------------------------------------
+string                         com.audiobookdownloader.CollectionTransferRules              9 100.0%      9.0
+sourceCycleConsistent          com.audiobookdownloader.LocalSeriesRules                     8 100.0%      8.0
+format                         com.audiobookdownloader.OfficialSeriesParser                 8 100.0%      8.0
+page                           com.audiobookdownloader.OfficialSeriesParser                 8 100.0%      8.0
+detail                         com.audiobookdownloader.SeriesAuthorityParser                7  78.3%      7.5
+listing                        com.audiobookdownloader.SeriesAuthorityParser                7  87.0%      7.1
+pageUrl                        com.audiobookdownloader.OfficialSeriesParser                 7  92.7%      7.0
+status                         com.audiobookdownloader.OfficialSeriesParser                 7  94.9%      7.0
+listed                         com.audiobookdownloader.SeriesAuthorityParser                7  96.9%      7.0
+accept                         com.audiobookdownloader.CollectionTransferRules.JsonDepth    7 100.0%      7.0
+members                        com.audiobookdownloader.SeriesAuthorityParser                6  81.9%      6.2
+normalize                      com.audiobookdownloader.CollectionTransferRules              6  94.7%      6.0
+unwrap                         com.audiobookdownloader.CollectionTransferRules              6 100.0%      6.0
+web                            com.audiobookdownloader.CollectionTransferRules              6 100.0%      6.0
+siblings                       com.audiobookdownloader.LocalSeriesRules                     6 100.0%      6.0
+pagination                     com.audiobookdownloader.OfficialSeriesParser                 6 100.0%      6.0
+order                          com.audiobookdownloader.SeriesAuthorityParser                5  72.5%      5.5
+document                       com.audiobookdownloader.SeriesAuthorityParser                5  74.4%      5.4
+requireComplete                com.audiobookdownloader.SeriesAuthorityParser                4  55.9%      5.4
+document                       com.audiobookdownloader.CollectionTransferRules              5  87.2%      5.1
+parent                         com.audiobookdownloader.SeriesAuthorityParser                5  90.0%      5.0
+startElement                   com.audiobookdownloader.CollectionXmlReader                  5 100.0%      5.0
+titleAndLink                   com.audiobookdownloader.SeriesAuthorityParser                4  77.6%      4.2
+interactiveMore                com.audiobookdownloader.OfficialSeriesParser                 4  96.3%      4.0
+cardOrder                      com.audiobookdownloader.SeriesAuthorityParser                4  96.6%      4.0
+fillReferences                 com.audiobookdownloader.CollectionTransferRules              4 100.0%      4.0
+quoted                         com.audiobookdownloader.CollectionTransferRules.JsonDepth    4 100.0%      4.0
+books                          com.audiobookdownloader.CollectionTransferRules.Merge        4 100.0%      4.0
+collectionString               com.audiobookdownloader.CollectionXmlReader                  4 100.0%      4.0
+read                           com.audiobookdownloader.CollectionXmlReader                  4 100.0%      4.0
+published                      com.audiobookdownloader.OfficialSeriesParser                 4 100.0%      4.0
+evaluate                       com.audiobookdownloader.OfficialTextNoticePolicy             4 100.0%      4.0
+authors                        com.audiobookdownloader.SeriesAuthorityParser                4 100.0%      4.0
+seriesLink                     com.audiobookdownloader.SeriesAuthorityParser                4 100.0%      4.0
+belongs                        com.audiobookdownloader.OfficialSeriesParser                 3  65.0%      3.4
+detailScope                    com.audiobookdownloader.SeriesAuthorityParser                3  73.7%      3.2
+text                           com.audiobookdownloader.SeriesAuthorityParser                3  76.2%      3.1
+ownWork                        com.audiobookdownloader.SeriesAuthorityParser                3  85.0%      3.0
+root                           com.audiobookdownloader.CollectionTransferRules              3 100.0%      3.0
+shelf                          com.audiobookdownloader.CollectionTransferRules.Merge        3 100.0%      3.0
+requireRoot                    com.audiobookdownloader.CollectionXmlReader                  3 100.0%      3.0
+ongoing                        com.audiobookdownloader.OfficialSeriesParser                 3 100.0%      3.0
+parse                          com.audiobookdownloader.CollectionTransferRules              2 100.0%      2.0
+open                           com.audiobookdownloader.CollectionTransferRules.JsonDepth    2 100.0%      2.0
+add                            com.audiobookdownloader.CollectionTransferRules.Merge        2 100.0%      2.0
+result                         com.audiobookdownloader.CollectionTransferRules.Merge        2 100.0%      2.0
+beginCollection                com.audiobookdownloader.CollectionXmlReader                  2 100.0%      2.0
+characters                     com.audiobookdownloader.CollectionXmlReader                  2 100.0%      2.0
+endElement                     com.audiobookdownloader.CollectionXmlReader                  2 100.0%      2.0
+error                          com.audiobookdownloader.CollectionXmlReader                  1   0.0%      2.0
+volume                         com.audiobookdownloader.LocalSeriesRules                     2 100.0%      2.0
+planned                        com.audiobookdownloader.OfficialSeriesParser                 2 100.0%      2.0
+skipLink                       com.audiobookdownloader.OfficialSeriesParser                 2 100.0%      2.0
+detailAuthors                  com.audiobookdownloader.SeriesAuthorityParser                2 100.0%      2.0
+label                          com.audiobookdownloader.SeriesAuthorityParser                2 100.0%      2.0
+matches                        com.audiobookdownloader.SeriesAuthorityParser                2 100.0%      2.0
+search                         com.audiobookdownloader.SeriesAuthorityParser                2 100.0%      2.0
+book                           com.audiobookdownloader.CollectionTransferRules              1 100.0%      1.0
+export                         com.audiobookdownloader.CollectionTransferRules              1 100.0%      1.0
+key                            com.audiobookdownloader.CollectionTransferRules              1 100.0%      1.0
+merge                          com.audiobookdownloader.CollectionTransferRules              1 100.0%      1.0
+fatalError                     com.audiobookdownloader.CollectionXmlReader                  1 100.0%      1.0
+base                           com.audiobookdownloader.LocalSeriesRules                     1 100.0%      1.0
+cardTitle                      com.audiobookdownloader.SeriesAuthorityParser                1 100.0%      1.0
+Wrote .metrics/crap.edn
