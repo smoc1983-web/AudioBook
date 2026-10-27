@@ -5,7 +5,7 @@ on:
     paths-ignore: ['docs/**', 'README.md', 'FILES.json']
   workflow_dispatch:
 concurrency:
-  group: audiobook-audit-68-${{ github.ref }}
+  group: audiobook-audit-68-${{ github.ref }}-${{ contains(github.event.head_commit.message, '[minimum-sdk-only]') && 'minimum' || 'full' }}
   cancel-in-progress: true
 jobs:
   minimum-sdk:
@@ -31,6 +31,8 @@ jobs:
       - name: Android 23 emulator acceleration
         run: |
           gradle --stop
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android/sdk/ndk
+          df -h
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
@@ -53,6 +55,7 @@ jobs:
             app/build/reports/androidTests/
             app/build/outputs/androidTest-results/
   build:
+    if: ${{ !contains(github.event.head_commit.message, '[minimum-sdk-only]') }}
     runs-on: ubuntu-latest
     timeout-minutes: 35
     permissions:
