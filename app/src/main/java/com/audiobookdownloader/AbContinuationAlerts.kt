@@ -28,13 +28,13 @@ internal object AbContinuationAlerts {
     fun initialize(context:Context) {
         val app=context.applicationContext
         listener=SharedPreferences.OnSharedPreferenceChangeListener {_,key ->
-            if(key=="shelves_v1")scope.launch{schedule(app,true)}
+            if(key=="shelves_v1")scope.launch{deliver(app);schedule(app,true)}
         }.also{app.getSharedPreferences("audiobook_downloader",0).registerOnSharedPreferenceChangeListener(it)}
         scope.launch{schedule(app,ContinuationStore(app).preferences.getLong("last_check",0)==0L);deliver(app)}
     }
     fun setEnabled(context:Context,value:Boolean) {
         ContinuationStore(context).preferences.edit().putBoolean("enabled",value).apply()
-        scope.launch{schedule(context.applicationContext,true)}
+        scope.launch{deliver(context.applicationContext);schedule(context.applicationContext,true)}
     }
     private fun schedule(context:Context,baseline:Boolean) {
         val manager=WorkManager.getInstance(context)
@@ -74,18 +74,28 @@ internal object AbContinuationAlerts {
     fun canNotify(context:Context)=NotificationManagerCompat.from(context).areNotificationsEnabled() &&
         (Build.VERSION.SDK_INT<33||context.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)==android.content.pm.PackageManager.PERMISSION_GRANTED)
     fun deliver(context:Context) {
-        if(!enabled(context)||!canNotify(context))return
+        val store=ContinuationStore(context)
+        store.retireGlobalLitresNotices()
+        val eligible=if(enabled(context))store.collectionNotices().filter {
+            (it.format!="text"||store.preferences.getBoolean("text_enabled",false)) &&
+                (it.format!="audio"||SeriesAuthorityRules.provider(it.url)!="Литрес"||store.preferences.getBoolean("litres_enabled",false))
+        } else emptyList()
         val manager=context.getSystemService(NotificationManager::class.java)
+        val currentIds=eligible.map{it.id}.toSet()
+        // Tagged id=1 notifications belong to this feature, never to the media player.
+        manager.activeNotifications.filter{it.id==1&&it.tag!=null&&it.tag !in currentIds}
+            .forEach{manager.cancel(it.tag,it.id)}
+        if(!enabled(context)||!canNotify(context))return
         if(Build.VERSION.SDK_INT>=26)manager.createNotificationChannel(NotificationChannel(CHANNEL,"Продолжения книжных серий",NotificationManager.IMPORTANCE_DEFAULT))
         if(Build.VERSION.SDK_INT>=26&&manager.getNotificationChannel(CHANNEL)?.importance==NotificationManager.IMPORTANCE_NONE)return
-        val store=ContinuationStore(context);val seeds=store.seeds().map{it.id}.toMutableSet().apply{if(store.preferences.getBoolean("litres_enabled",false))add("litres")}
-        store.notices().filter{!it.notified&&!it.read&&it.seed in seeds&&(it.format!="text"||store.preferences.getBoolean("text_enabled",false))}.forEach {notice ->
+        eligible.filter{!it.notified&&!it.read}.forEach {notice ->
+            if(!CollectionNoticePolicy.allows(notice.seed,store.seeds().map{it.id}.toSet()))return@forEach
             val intent=Intent(context,MainActivity::class.java).setAction(OPEN).putExtra("continuation_id",notice.id)
                 .setData(android.net.Uri.parse("audiobook://continuation/"+notice.id))
                 .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
             val pending=PendingIntent.getActivity(context,0,intent,PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
             val notification=NotificationCompat.Builder(context,CHANNEL).setSmallIcon(R.drawable.ab_notification_book)
-                .setContentTitle(if(notice.seed=="litres")"Новая аудиокнига на Литрес" else if(notice.format=="text")"Новый текстовый том: "+notice.series else "Новое продолжение: "+notice.series).setContentText(notice.title)
+                .setContentTitle(if(notice.format=="text")"Новый текстовый том: "+notice.series else "Новое продолжение: "+notice.series).setContentText(notice.title)
                 .setStyle(NotificationCompat.BigTextStyle().bigText(notice.title+if(notice.author.isBlank())"" else "\n"+notice.author))
                 .setContentIntent(pending).setAutoCancel(true).setOnlyAlertOnce(true).build()
             try {manager.notify(notice.id,1,notification);store.updateNotice(notice.id,notified=true)}catch(_:SecurityException){}
@@ -94,7 +104,7 @@ internal object AbContinuationAlerts {
     fun accept(context:Context,intent:Intent?) {
         if(intent?.action!=OPEN)return
         val id=intent.getStringExtra("continuation_id") ?: return
-        if(ContinuationStore(context).notices().any{it.id==id})mutableRoute.value=id
+        if(ContinuationStore(context).collectionNotices().any{it.id==id})mutableRoute.value=id
     }
     fun consume(context:Context,id:String) {
         ContinuationStore(context).updateNotice(id,read=true)

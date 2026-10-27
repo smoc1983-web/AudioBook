@@ -10928,14 +10928,19 @@ private fun AbContinuationSettings(theme:AbTheme,onOpen:(BookRef)->Unit) {
     val store=remember{ContinuationStore(context)}
     var revision by remember{mutableStateOf(0)}
     DisposableEffect(store) {
-        val listener=android.content.SharedPreferences.OnSharedPreferenceChangeListener{_,_->revision++}
+        val listener=android.content.SharedPreferences.OnSharedPreferenceChangeListener{changed,key->if(changed===store.preferences||key=="shelves_v1")revision++}
+        val shelves=context.getSharedPreferences("audiobook_downloader",0)
         store.preferences.registerOnSharedPreferenceChangeListener(listener)
-        onDispose{store.preferences.unregisterOnSharedPreferenceChangeListener(listener)}
+        shelves.registerOnSharedPreferenceChangeListener(listener)
+        onDispose{
+            store.preferences.unregisterOnSharedPreferenceChangeListener(listener)
+            shelves.unregisterOnSharedPreferenceChangeListener(listener)
+        }
     }
     val permission=androidx.activity.compose.rememberLauncherForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.RequestPermission()) {AbContinuationAlerts.deliver(context);revision++}
     val enabled=remember(revision){AbContinuationAlerts.enabled(context)}
-    val notices=remember(revision){store.notices()}
+    val notices=remember(revision){store.collectionNotices()}
     Text("Уведомлять о новых продолжениях книг из моих коллекций",color=theme.text,fontSize=15.sp)
     AbOptions(listOf("Включено","Выключено"),if(enabled)0 else 1,theme){AbContinuationAlerts.setEnabled(context,it==0)}
     Text("Первая успешная проверка запоминает уже вышедшие книги без уведомлений. Затем приложение проверяет циклы примерно раз в 12 часов при наличии интернета. Android может отложить фоновую проверку.",color=theme.muted,fontSize=12.sp,lineHeight=18.sp)
@@ -10957,16 +10962,17 @@ private fun AbContinuationSettings(theme:AbTheme,onOpen:(BookRef)->Unit) {
     Text("Текстовые продолжения серий",color=theme.text,fontSize=15.sp)
     AbOptions(listOf("Уведомлять","Выключено"),if(store.preferences.getBoolean("text_enabled",false))0 else 1,theme){
         store.preferences.edit().putBoolean("text_enabled",it==0).apply()
+        AbContinuationAlerts.deliver(context)
         if(it==0){AbContinuationAlerts.setEnabled(context,true);AbContinuationAlerts.checkNow(context)}
     }
     Text("Первая полная сверка запоминает уже вышедшие тексты без оповещений. Затем уведомления появляются для новых опубликованных томов; покупка и чтение — на сайте правообладателя.",color=theme.muted,fontSize=12.sp)
-    Text("Новинки аудиокниг Литрес",color=theme.text,fontSize=15.sp)
+    Text("Продолжения моих серий на Литрес",color=theme.text,fontSize=15.sp)
     AbOptions(listOf("Уведомлять","Выключено"),if(store.preferences.getBoolean("litres_enabled",false))0 else 1,theme){
         store.preferences.edit().putBoolean("litres_enabled",it==0).apply()
+        AbContinuationAlerts.deliver(context)
         if(it==0){AbContinuationAlerts.setEnabled(context,true);AbContinuationAlerts.checkNow(context)}
     }
-    Text("Отдельная подписка на новые аудиокниги Литрес. Первая проверка — без уведомлений; затем проверяются дата выхода и аудиоформат. Книга открывается на сайте Литрес.",color=theme.muted,fontSize=12.sp)
-    Text(remember(revision){store.preferences.getString("litres_status","").orEmpty()},color=theme.muted,fontSize=12.sp)
+    Text("Только новые аудиотома подтверждённых серий книг из ваших коллекций. Первая полная сверка — без уведомлений. Общая лента новинок Литрес не используется.",color=theme.muted,fontSize=12.sp)
     val available=remember(revision){store.available().filter{item->store.seeds().any{it.id==item.seed}}.distinctBy{it.title+"|"+it.url}}
     AbHeading("Уже вышедшие и найденные книги",theme)
     if(available.isEmpty())Text("Выполните проверку. Уже скачанные тома также доступны в разделе «Серия» плеера.",color=theme.muted,fontSize=12.sp)
@@ -10980,7 +10986,7 @@ private fun AbContinuationSettings(theme:AbTheme,onOpen:(BookRef)->Unit) {
         val settings=context.getSharedPreferences("audiobook_downloader",0)
         AbOfficialSeriesPanel(referenceTitle,abStoredCatalog(settings,referenceTitle).author,settings,theme)
     }
-    AbHeading("Новые продолжения и уведомления Литрес",theme)
+    AbHeading("Новые продолжения из моих коллекций",theme)
     if(notices.isEmpty())Text("Новых продолжений пока нет",color=theme.muted,fontSize=13.sp)
     notices.forEach {notice ->
         Column(Modifier.fillMaxWidth().abGlass(theme,16).padding(12.dp),verticalArrangement=Arrangement.spacedBy(6.dp)) {

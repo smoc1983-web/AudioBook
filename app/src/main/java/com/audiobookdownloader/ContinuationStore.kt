@@ -49,6 +49,15 @@ internal class ContinuationStore(private val context:Context) {
                 n.getString("series"),n.optString("author"),n.getLong("at"),n.optBoolean("read"),n.optBoolean("notified"),n.optString("format","audio"))
         }catch(_:Exception){null}}
     }catch(_:Exception){emptyList()}
+    fun collectionNotices():List<ContinuationNotice> {
+        val collected=seeds().map{it.id}.toSet()
+        return notices().filter{CollectionNoticePolicy.allows(it.seed,collected)}
+    }
+    // Preserve valid collection history; retire only the former independent global feed.
+    fun retireGlobalLitresNotices()=synchronized(inboxLock) {
+        val saved=notices()
+        if(saved.any{it.seed=="litres"})saveNotices(saved.filter{it.seed!="litres"})
+    }
     fun mergeNotices(fresh:List<ContinuationNotice>) = synchronized(inboxLock) {
         val saved=notices().associateBy{it.id}.toMutableMap()
         fresh.forEach{if(!saved.containsKey(it.id))saved[it.id]=it}

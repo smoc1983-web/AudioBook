@@ -73,6 +73,36 @@ class OfficialSeriesTest {
         store.preferences.edit().putStringSet("muted_titles",setOf(SeriesAuthorityRules.title(title))).commit();latest=4;catalog.refresh(title,author,true);assertEquals(2,store.notices().size)
         assertTrue(store.notices().all{SeriesAuthorityRules.work(it.url)})
     }
+    @Test(timeout=60000) fun litresAudioFollowsOnlyTheCollectedDirectSeries()=runBlocking {
+        store.preferences.edit().putBoolean("text_enabled",false).putBoolean("litres_enabled",true).commit()
+        val catalog=OfficialSeriesCatalog(context,fetcher)
+        catalog.refresh(title,author,true);assertTrue("First series snapshot is silent",store.notices().isEmpty())
+        latest=2;catalog.refresh(title,author,true)
+        val notice=store.notices().single()
+        assertEquals(store.seeds().single().id,notice.seed)
+        assertEquals("audio",notice.format);assertEquals(name(2),notice.title)
+        assertTrue(notice.url.startsWith("https://www.litres.ru/audiobook/"))
+        assertFalse("No general new-release feed request",visited.contains(LitresReleaseParser.FEED))
+        catalog.refresh(title,author,true);assertEquals(1,store.notices().size)
+        latest=3;partial=true;catalog.refresh(title,author,true);assertEquals(1,store.notices().size)
+        partial=false;catalog.refresh(title,author,true);assertEquals(2,store.notices().size)
+        prefs.edit().putString("shelves_v1","[]").commit()
+        latest=4;catalog.refresh(title,author,true)
+        assertEquals("Removed books cannot create notices",2,store.notices().size)
+        assertTrue("Removed collection history is hidden",store.collectionNotices().isEmpty())
+    }
+    @Test(timeout=60000) fun removedDuringReferenceFetchCannotCreateAudioNotice()=runBlocking {
+        store.preferences.edit().putBoolean("text_enabled",false).putBoolean("litres_enabled",true).commit()
+        OfficialSeriesCatalog(context,fetcher).refresh(title,author,true)
+        latest=2
+        val removing=SeriesAuthorityFetcher{url->
+            val html=fetcher.html(url)
+            if(url==lt)prefs.edit().putString("shelves_v1","[]").commit()
+            html
+        }
+        OfficialSeriesCatalog(context,removing).refresh(title,author,true)
+        assertTrue(store.notices().isEmpty())
+    }
     @Test(timeout=60000) fun officialPanelGroupsFormatsAndCanFilterTextAndAudio()=runBlocking {
         latest=2;OfficialSeriesCatalog(context,fetcher).refresh(title,author,true)
         compose.setContent {Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())){AbOfficialSeriesPanel(title,author,prefs,abTheme(2))}}
