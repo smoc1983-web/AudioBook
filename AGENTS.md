@@ -1,14 +1,12 @@
 # Audiobook development instructions
 
-Publication hold requested 2026-10-27: audit/review branch only until the user
-explicitly approves publication. Do not merge into main, run the publishing
-workflow, create/publish a release, change the public Site/feed, or distribute
-a new APK. Test builds and saved source/report commits are authorized.
-
-2026-10-27 follow-up: the user authorized a direct phone download of the audited
-4.2.69 APK, without repeating tests. This permits that manual-download page only;
-main, normal releases and the in-app update feed remain held. See
-docs/audit-4.2.68/PHONE-CANDIDATE.md before the next update.
+Publication explicitly authorized 2026-10-27 after fixing collection notifications.
+The user now requests publication through the in-app Updates menu. The earlier
+hold has ended for this verified fix and the previously audited changes.
+Preserve package/signature/library/settings. Publish from main through the normal
+checks, then update the existing public feed. Version69 was delivered manually;
+normal workflow run69 uses scripts/with-release-number.sh to build version70.
+Never publish signing keys. Do not silently rotate the installed signing identity.
 
 The user explicitly requested ub-mode on 2026-10-27. For future code changes,
 read and apply [.agents/skills/ub-mode/SKILL.md](.agents/skills/ub-mode/SKILL.md)

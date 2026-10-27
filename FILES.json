@@ -1,5 +1,5 @@
 {
-  "revision": "audiobook-collection-scoped-notices-verified-publication-held",
+  "revision": "audiobook-4.2.70-authorized-collection-notification-release",
   "storage": "GitHub export; see releases/ARCHIVE-PARTS.json for three multipart historical ZIPs",
   "files": [
     {
@@ -14,8 +14,8 @@
     },
     {
       "path": ".github/workflows/build-apk.yml",
-      "bytes": 8183,
-      "sha256": "b06f80789b6363e4007b1f068dd84dfbea49d7315caf63f03c651e53cbeb11c2"
+      "bytes": 8532,
+      "sha256": "9ff487549620c58d81a2303ceb8310eb84544a24daa379ee3d9021b8dbf56b97"
     },
     {
       "path": ".github/workflows/collection-notices.yml",
@@ -39,8 +39,8 @@
     },
     {
       "path": "AGENTS.md",
-      "bytes": 2212,
-      "sha256": "df7ceb6fcc7a971d74774277847576f66f7bd7b56093cc1df1c5a66fbcfb2774"
+      "bytes": 2175,
+      "sha256": "3e9aab51cbf4752f7865eff67def9a2620ba2bc996436a95867046e6576b6527"
     },
     {
       "path": "README.md",
@@ -159,8 +159,8 @@
     },
     {
       "path": "app/src/main/assets/release-notes.json",
-      "bytes": 1441,
-      "sha256": "9efd483d276e5286158defeb3baed92d30255994171024cc1a29e82d5fca3c97"
+      "bytes": 1426,
+      "sha256": "b0b2ce4d27c8c4cca429c5bf093ecdb54f9c889839b95a933b06c785dd87356f"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/AbAudioDurations.kt",
@@ -1434,8 +1434,8 @@
     },
     {
       "path": "docs/HANDOFF.md",
-      "bytes": 71184,
-      "sha256": "9942902c31f34767b907a1f5cd6f69f513d4b10c92526874fc3892a2f386ceda"
+      "bytes": 71999,
+      "sha256": "52c4fd7936ede94aa80f0208032c4502314d6cdb6a0087114fd5f9a66d7d4966"
     },
     {
       "path": "docs/INSTALL.md",
@@ -11496,6 +11496,11 @@
       "path": "scripts/tests/test-phone-signing.py",
       "bytes": 9133,
       "sha256": "abb61d84f1841ff2b417005a066cbca64e176ed8e8ceebd09c0bacef78f588bd"
+    },
+    {
+      "path": "scripts/with-release-number.sh",
+      "bytes": 408,
+      "sha256": "c69795aa130a506319bd3dee0321c18588174f9f1260b210713a0c3dcaac2e4a"
     },
     {
       "path": "settings.gradle.kts",

@@ -57,11 +57,11 @@ jobs:
       - name: Fetch published baseline for upgrade verification
         env:
           GH_TOKEN: ${{ github.token }}
-        run: python scripts/fetch-upgrade-baseline.py
+        run: bash scripts/with-release-number.sh python scripts/fetch-upgrade-baseline.py
       - name: Android SDK
         run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;35.0.0"'
       - name: Tests and isolated Preview APK
-        run: gradle :app:testDebugUnitTest :app:testReleaseUnitTest :app:assembleDebug :app:assembleRelease :app:assembleDebugAndroidTest :upgradeProbe:assembleDebug --stacktrace
+        run: bash scripts/with-release-number.sh gradle :app:testDebugUnitTest :app:testReleaseUnitTest :app:assembleDebug :app:assembleRelease :app:assembleDebugAndroidTest :upgradeProbe:assembleDebug --stacktrace
       - name: Enable Android emulator acceleration
         run: |
           gradle --stop
@@ -80,7 +80,7 @@ jobs:
           profile: pixel_6
           disable-animations: false
           emulator-options: -no-window -gpu software -feature -Vulkan -no-snapshot -noaudio -no-boot-anim -camera-back none -memory 2048 -cores 2
-          script: bash scripts/test-android-startup.sh
+          script: bash scripts/with-release-number.sh bash scripts/test-android-startup.sh
       - name: Save Android runtime evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -92,17 +92,17 @@ jobs:
             app/build/reports/androidTests/connected/
             app/build/outputs/androidTest-results/connected/
       - name: Android lint before publishing
-        run: gradle :app:lintRelease --stacktrace
+        run: bash scripts/with-release-number.sh gradle :app:lintRelease --stacktrace
       - name: Require zero Android lint errors
         run: python scripts/check-android-lint.py app/build/reports/lint-results-release.xml
       - name: Check resolved runtime dependencies before publishing
         run: |
-          gradle :app:auditRuntimeDependencies
+          bash scripts/with-release-number.sh gradle :app:auditRuntimeDependencies
           python scripts/audit-dependencies.py --input app/build/reports/security/runtime-dependencies.json --output audit-evidence/dependency-advisories.json
       - name: Package verified update
         env:
           GH_TOKEN: ${{ github.token }}
-        run: python scripts/preview-release.py
+        run: bash scripts/with-release-number.sh python scripts/preview-release.py
       - name: Save installed APK permission audit
         uses: actions/upload-artifact@v4
         with:
@@ -115,7 +115,7 @@ jobs:
         run: |
           tag="$(cat dist/tag.txt)"
           if ! gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release create "$tag" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --draft --prerelease --title "Audiobook $tag" --notes "Audiobook: текстовые и аудиопродолжения по прямым сериям Литрес и Author.Today, сверка мобильной разметки, фильтры форматов и отдельные текстовые уведомления. Прежние пакет и подпись; данные сохраняются."
+            gh release create "$tag" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --draft --prerelease --title "Audiobook $tag" --notes "Audiobook 4.2.70: уведомления только для серий книг из коллекций; общая лента новинок Литрес исключена, посторонние уведомления очищаются. Исправлены серии и усилена защита импорта и браузера. Прежние пакет и подпись; библиотека и настройки сохраняются."
           fi
           gh release upload "$tag" dist/Audiobook-Preview.apk dist/preview-update.json --repo "$GITHUB_REPOSITORY" --clobber
           gh release edit "$tag" --repo "$GITHUB_REPOSITORY" --draft=false --prerelease --latest=false
@@ -140,7 +140,7 @@ jobs:
           path: dist-inspection/Audiobook-Preview.apk.part-01
       - name: Prepare unsigned stable-compatible candidate (original signer required)
         run: |
-          gradle :app:testReleaseUnitTest :app:assembleRelease -PaudiobookChannel=stable --stacktrace
+          bash scripts/with-release-number.sh gradle :app:testReleaseUnitTest :app:assembleRelease -PaudiobookChannel=stable --stacktrace
           mkdir -p dist-stable
           cp app/build/outputs/apk/release/app-release-unsigned.apk dist-stable/Audiobook-stable-UNSIGNED.apk
           cp docs/STABLE-INSTALL.md dist-stable/READ-ME.md
