@@ -1,0 +1,110 @@
+{
+  "status": "published; verified public feed and all APK parts",
+  "dateUtc": "2026-10-27",
+  "version": "4.2.70",
+  "versionCode": 100070,
+  "repository": "smoc1983-web/AudioBook",
+  "pr": 2,
+  "sourceMergeCommit": "3bf976e4af88d46a7ee045fc88a5a0ea0e364657",
+  "sourceTree": "b8106417e580c9abd2a1ab051734b4453b9f8825",
+  "pipeline": {
+    "run": 40552492346,
+    "job": 122359691510,
+    "runNumber": 69,
+    "effectiveBuildNumber": 70,
+    "conclusion": "success",
+    "url": "https://github.com/smoc1983-web/AudioBook/actions/runs/40552492346"
+  },
+  "sourceQualityRun": {
+    "run": 40552493440,
+    "conclusion": "success"
+  },
+  "junit": {
+    "debug": {
+      "tests": 127,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    },
+    "release": {
+      "tests": 127,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    },
+    "skipReason": "optional archive/live scenario"
+  },
+  "android36": {
+    "tests": 34,
+    "failures": 0,
+    "errors": 0,
+    "skippedInMainPass": 3,
+    "optInUpgradePhasesPassed": 3
+  },
+  "android23And36ScopedPreRelease": {
+    "run": 40550108807,
+    "testsPerApi": 11,
+    "failures": 0
+  },
+  "lint": {
+    "errors": 0,
+    "warnings": 74,
+    "information": 59
+  },
+  "runtimeOsv": {
+    "resolvedModules": 68,
+    "knownAdvisoryFindings": 0,
+    "complete": true
+  },
+  "apk": {
+    "bytes": 32937225,
+    "sha256": "4c1096ab3ceb681a9910c4275ae6da85140f56b6b01a6151170a788e3e0ea6ef",
+    "package": "com.audiobookdownloader.preview",
+    "certificateSha256": "3a4cecd14bb3e983843871766909c3f07b3dc64379800f3e270e4a27d39affb7",
+    "release": true,
+    "debuggable": false,
+    "retiredGlobalScannerAbsent": true,
+    "collectionNoticePolicyPresent": true,
+    "newReleaseNotesPresent": true
+  },
+  "publicFeed": "https://audiobook-smoc1983-updates.amplecoot2048.chatgpt.site/updates/preview-update.json",
+  "site": {
+    "project": "appgprj_6add1a69b6f481918b5e390c8f413992",
+    "version": 13,
+    "savedVersion": "appgprj_6add1a69b6f481918b5e390c8f413992~appgver_58484988e60081919202ef3070e2a403",
+    "source": "cc6bce5b43dad57cfbaaaa404c970a02e05edad9",
+    "deployment": "appgdep_6ae0e6629fac8191bc41237b564ed920",
+    "status": "succeeded",
+    "url": "https://audiobook-smoc1983-updates.amplecoot2048.chatgpt.site",
+    "audience": "public"
+  },
+  "downloadVerification": {
+    "userAgents": [
+      "Audiobook-Updater/4.2.68",
+      "Audiobook-Updater/4.2.69"
+    ],
+    "metadataHttpStatus": 200,
+    "eachPartHttpStatus": 200,
+    "parts": 4,
+    "partAndWholeSha256Verified": true,
+    "metadataNewerThanBothInstalledVersions": true
+  },
+  "preservation": {
+    "oldReleaseCode": 100068,
+    "newReleaseCode": 100070,
+    "actualOldUpdaterOpenedSystemConfirmation": true,
+    "packageReplacement": "adb install -r in disposable emulator",
+    "settingsCollectionsUriPrivateFileAndAudioSha256Preserved": true,
+    "manual69SamePackageAndSigningCertificate": true,
+    "originalStablePackageUntouched": true,
+    "newPermissionsAdded": false,
+    "newSigningKeyOrRecoveryArtifactsCreated": false
+  },
+  "hostingMaintenance": "Unreferenced old55 chunks removed from active deployment for256MiB archive cap; retained in source Git and local archive. Previous68 and manual69 parts remain. No library files affected.",
+  "limits": [
+    "No physical Samsung S24 install/network/FPS/shake verification",
+    "Actual in-app Android network APK download not exercised; public downloads verified with original client headers",
+    "Google Play Protect verdict not tested",
+    "No known OSV findings does not prove absence of unknown vulnerabilities"
+  ]
+}

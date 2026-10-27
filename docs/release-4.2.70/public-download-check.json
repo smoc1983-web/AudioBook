@@ -1,0 +1,45 @@
+[
+  {
+    "userAgent": "Audiobook-Updater/4.2.68",
+    "metadataHttpStatus": 200,
+    "code": 100070,
+    "metadataSha256": "740fde46489026907f3a0ad22a632452d6307a7ac380773340084b99ad3c01d7",
+    "newerThanInstalled": true
+  },
+  {
+    "userAgent": "Audiobook-Updater/4.2.69",
+    "metadataHttpStatus": 200,
+    "code": 100070,
+    "metadataSha256": "740fde46489026907f3a0ad22a632452d6307a7ac380773340084b99ad3c01d7",
+    "newerThanInstalled": true,
+    "parts": [
+      {
+        "url": "parts/preview-100070-4c1096ab3ceb681a-00.bin",
+        "httpStatus": 200,
+        "bytes": 8388608,
+        "sha256Verified": true
+      },
+      {
+        "url": "parts/preview-100070-4c1096ab3ceb681a-01.bin",
+        "httpStatus": 200,
+        "bytes": 8388608,
+        "sha256Verified": true
+      },
+      {
+        "url": "parts/preview-100070-4c1096ab3ceb681a-02.bin",
+        "httpStatus": 200,
+        "bytes": 8388608,
+        "sha256Verified": true
+      },
+      {
+        "url": "parts/preview-100070-4c1096ab3ceb681a-03.bin",
+        "httpStatus": 200,
+        "bytes": 7771401,
+        "sha256Verified": true
+      }
+    ],
+    "totalBytes": 32937225,
+    "wholeSha256": "4c1096ab3ceb681a9910c4275ae6da85140f56b6b01a6151170a788e3e0ea6ef",
+    "physicalPhone": false
+  }
+]

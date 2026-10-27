@@ -1,0 +1,11 @@
+{
+  "wrapper": "scripts/with-release-number.sh",
+  "checks": {
+    "68": "69",
+    "69": "70",
+    "70": "71",
+    "0070": "71",
+    "invalid": "rejected"
+  },
+  "conclusion": "passed"
+}

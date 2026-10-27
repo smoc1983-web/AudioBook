@@ -1,5 +1,5 @@
 {
-  "revision": "audiobook-4.2.70-authorized-collection-notification-release",
+  "revision": "audiobook-4.2.70-published-through-inapp-updates",
   "storage": "GitHub export; see releases/ARCHIVE-PARTS.json for three multipart historical ZIPs",
   "files": [
     {
@@ -1394,8 +1394,8 @@
     },
     {
       "path": "docs/AUDIT-4.2.68.md",
-      "bytes": 17259,
-      "sha256": "6b678c3397914b2d515054999469fb4d4539f4326fac864a8d3e8f5a78a3c361"
+      "bytes": 17496,
+      "sha256": "7900cfc6230788a64f21212a695af4da12a47bb4aff80d11ddc606173659a535"
     },
     {
       "path": "docs/BUILD-4.1.md",
@@ -1414,8 +1414,8 @@
     },
     {
       "path": "docs/COLLECTION-NOTIFICATIONS.md",
-      "bytes": 6193,
-      "sha256": "a45d6614981b64310e596e5f009fd623a3a97f5d8c3f40547c4c9fddb0cd2ea5"
+      "bytes": 6416,
+      "sha256": "df97ab6849f9eb7867ea948cd3ff4d76bcf899aa62af1db7325b76b95871eb6b"
     },
     {
       "path": "docs/COLLECTION-TRANSFER.md",
@@ -1434,8 +1434,8 @@
     },
     {
       "path": "docs/HANDOFF.md",
-      "bytes": 71999,
-      "sha256": "52c4fd7936ede94aa80f0208032c4502314d6cdb6a0087114fd5f9a66d7d4966"
+      "bytes": 73149,
+      "sha256": "e888512c865429b98f23972af6f885cd4cdd72d97ba23e16d6fdc40f11e5722e"
     },
     {
       "path": "docs/INSTALL.md",
@@ -1496,6 +1496,11 @@
       "path": "docs/QUALITY.md",
       "bytes": 5973,
       "sha256": "fe3265bbc47ac41c3524096fd78859c2fd77ee0d4bb6b725e636bbd89088a94a"
+    },
+    {
+      "path": "docs/RELEASE-4.2.70.md",
+      "bytes": 3910,
+      "sha256": "08d9a80232e24db5a307ea34afad07d51c40e55eeff713568ca25532c5a3fff6"
     },
     {
       "path": "docs/SCREENSHOT-SOURCES.md",
@@ -1876,6 +1881,51 @@
       "path": "docs/quality/verification-2026-10-27.json",
       "bytes": 2590,
       "sha256": "89dfb1db0a4be56bf935b2408723d3d08f5cc8442c394986ab0707d3e8fe1fcc"
+    },
+    {
+      "path": "docs/release-4.2.70/android36-tests.xml",
+      "bytes": 5449,
+      "sha256": "a7ca94633d05a8c870da38f505efa55646b88fae3abe5dfafab1225d51dcb1d1"
+    },
+    {
+      "path": "docs/release-4.2.70/dependency-advisories.json",
+      "bytes": 6401,
+      "sha256": "ebe414e4bfc4e3fb44b8e0b3553236358e0e8515bd7476bdcfd019314e84c4fe"
+    },
+    {
+      "path": "docs/release-4.2.70/installed-upgrade.json",
+      "bytes": 844,
+      "sha256": "04ab83a0bb5dcf09ab1b31e8ed3a418a4379496d00d507b7b623ce7082a35a1a"
+    },
+    {
+      "path": "docs/release-4.2.70/lint-results-release.xml",
+      "bytes": 190799,
+      "sha256": "fedf4de9bdf0c07c77a92681e1d856676b345e716b68b89d70d7cfeb85b71bb8"
+    },
+    {
+      "path": "docs/release-4.2.70/permission-audit.json",
+      "bytes": 1029,
+      "sha256": "760795b6345fc507d86cdb0bd045dae9a82cac27b0dc54c954d148299e5bd074"
+    },
+    {
+      "path": "docs/release-4.2.70/public-download-check.json",
+      "bytes": 1275,
+      "sha256": "d4b39a10161b43e53df7f7c541cc82310baa193356726737a9e652f4b7cd234a"
+    },
+    {
+      "path": "docs/release-4.2.70/public-manifest.json",
+      "bytes": 935,
+      "sha256": "dc14297620698df4cf04bd65779e4a5746b9fb0bc5fea46854c18ce9ad22b8cd"
+    },
+    {
+      "path": "docs/release-4.2.70/release-number-checks.json",
+      "bytes": 187,
+      "sha256": "f9f9c08ed94ab1bb3f56615328fc2c16ef3510020b138b7ed35850182f2a33d3"
+    },
+    {
+      "path": "docs/release-4.2.70/verification.json",
+      "bytes": 3622,
+      "sha256": "874f8847b8dd13309888703526fe7c424b8fd51441cc654eeff44007361bb0f2"
     },
     {
       "path": "docs/screenshot-source-registry.json",
