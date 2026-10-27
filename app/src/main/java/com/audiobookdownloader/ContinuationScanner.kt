@@ -4,11 +4,13 @@ import android.content.Context
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.TimeoutCancellationException
 import org.json.JSONArray
 import org.json.JSONObject
 
 /** No UI/WebView or title guessing in background. Only completed, verified series snapshots advance. */
-internal class ContinuationScanner(private val context:Context,private val fetcher:ContinuationFetcher) {
+internal class ContinuationScanner(private val context:Context,private val fetcher:ContinuationFetcher,private val forceReferences:Boolean=false) {
     private val policy=ContinuationPolicy(AB_EXTRA_SOURCE_JSON)
     private val parser=ContinuationParser(policy)
     private val store=ContinuationStore(context)
@@ -16,6 +18,21 @@ internal class ContinuationScanner(private val context:Context,private val fetch
     private val visited=mutableSetOf<String>()
     suspend fun scan():String {
         val seeds=store.seeds()
+        var referenceChecked=0
+        // Reference catalogues use a separate bounded client in production; source failures do not hide text books.
+        if(seeds.isNotEmpty()) {
+            val start=store.preferences.getInt("official_cursor",0).mod(seeds.size)
+            for(offset in 0 until minOf(seeds.size,2)) {
+                val index=(start+offset)%seeds.size;val seed=seeds[index]
+                val reference=if(fetcher is ContinuationHttp)OfficialSeriesHttp() else SeriesAuthorityFetcher{fetcher.html(it)}
+                try {val result=withTimeout(60_000L){OfficialSeriesCatalog(context,reference).refresh(seed.title,abStoredCatalog(settings,seed.title).author,forceReferences)}
+                    if(result.sources.any{it.checked>0&&it.books.isNotEmpty()})referenceChecked++}
+                catch(e:TimeoutCancellationException){currentCoroutineContext().ensureActive()}
+                catch(e:CancellationException){throw e}
+                catch(_:Exception){}
+                store.preferences.edit().putInt("official_cursor",(index+1)%seeds.size).apply()
+            }
+        }
         val library=if(seeds.isNotEmpty())scanLibrary(context) else emptyList()
         val recovery=SeriesContinuationRecovery(context,fetcher)
         if(seeds.isEmpty())return LitresReleaseScanner(context,fetcher).scan("В коллекциях пока нет книг")
@@ -128,7 +145,7 @@ internal class ContinuationScanner(private val context:Context,private val fetch
             cursor=(index+1)%seeds.size
         }
         store.preferences.edit().putInt("cursor",cursor).putLong("last_check",System.currentTimeMillis())
-            .putInt("checked",checked).putInt("new_count",added).putString("errors",JSONArray(errors.distinct().take(12)).toString()).commit()
-        return LitresReleaseScanner(context,fetcher).scan("Проверено циклов: $checked. Новых продолжений: $added."+if(errors.isNotEmpty())" Не все книги удалось проверить." else "")
+            .putInt("checked",checked).putInt("official_checked",referenceChecked).putInt("new_count",added).putString("errors",JSONArray(errors.distinct().take(12)).toString()).commit()
+        return LitresReleaseScanner(context,fetcher).scan("Справочники: $referenceChecked из ${seeds.size} книг за проход. Проверено циклов: $checked. Новых продолжений: $added."+if(errors.isNotEmpty())" Не все книги удалось проверить." else "")
     }
 }

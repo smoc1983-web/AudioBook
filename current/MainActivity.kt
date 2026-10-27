@@ -2684,7 +2684,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
     LaunchedEffect(continuationRoute) {
         continuationRoute?.let {id ->
             ContinuationStore(context).notices().firstOrNull{it.id==id}?.let {notice ->
-                if(LitresReleaseParser.audio(notice.url))context.startActivity(Intent(Intent.ACTION_VIEW,Uri.parse(notice.url)))
+                if(SeriesAuthorityRules.work(notice.url))context.startActivity(Intent(Intent.ACTION_VIEW,Uri.parse(notice.url)))
                 else openBookRef(BookRef(notice.title,notice.url,""),false)
                 AbContinuationAlerts.consume(context,id)
             }
@@ -10939,7 +10939,7 @@ private fun AbContinuationSettings(theme:AbTheme,onOpen:(BookRef)->Unit) {
     Text("Уведомлять о новых продолжениях книг из моих коллекций",color=theme.text,fontSize=15.sp)
     AbOptions(listOf("Включено","Выключено"),if(enabled)0 else 1,theme){AbContinuationAlerts.setEnabled(context,it==0)}
     Text("Первая успешная проверка запоминает уже вышедшие книги без уведомлений. Затем приложение проверяет циклы примерно раз в 12 часов при наличии интернета. Android может отложить фоновую проверку.",color=theme.muted,fontSize=12.sp,lineHeight=18.sp)
-    Text("Уведомления появляются только для подтверждённых продолжений с доступным аудио. Сайт должен указывать цикл и полный список его книг; если этих данных нет, ниже появится причина.",color=theme.muted,fontSize=12.sp,lineHeight=18.sp)
+    Text("Аудио проверяется на источниках. Текстовые тома можно отслеживать отдельно по прямым сериям Литрес и Author.Today. Неполные списки и анонсы не создают уведомлений.",color=theme.muted,fontSize=12.sp,lineHeight=18.sp)
     if(!AbContinuationAlerts.canNotify(context)) {
         Text("Системные уведомления отключены. Новинки сохранятся в списке ниже.",color=theme.accent,fontSize=13.sp)
         AbButton("Разрешить уведомления",theme){
@@ -10954,6 +10954,12 @@ private fun AbContinuationSettings(theme:AbTheme,onOpen:(BookRef)->Unit) {
     if(last>0)Text("Последняя проверка: "+java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.SHORT,java.text.DateFormat.SHORT).format(java.util.Date(last)),color=theme.muted,fontSize=12.sp)
     val errors=remember(revision){try{val a=JSONArray(store.preferences.getString("errors","[]"));(0 until a.length()).map{a.getString(it)}}catch(_:Exception){emptyList()}}
     errors.forEach{Text(it,color=theme.muted,fontSize=12.sp)}
+    Text("Текстовые продолжения серий",color=theme.text,fontSize=15.sp)
+    AbOptions(listOf("Уведомлять","Выключено"),if(store.preferences.getBoolean("text_enabled",false))0 else 1,theme){
+        store.preferences.edit().putBoolean("text_enabled",it==0).apply()
+        if(it==0){AbContinuationAlerts.setEnabled(context,true);AbContinuationAlerts.checkNow(context)}
+    }
+    Text("Первая полная сверка запоминает уже вышедшие тексты без оповещений. Затем уведомления появляются для новых опубликованных томов; покупка и чтение — на сайте правообладателя.",color=theme.muted,fontSize=12.sp)
     Text("Новинки аудиокниг Литрес",color=theme.text,fontSize=15.sp)
     AbOptions(listOf("Уведомлять","Выключено"),if(store.preferences.getBoolean("litres_enabled",false))0 else 1,theme){
         store.preferences.edit().putBoolean("litres_enabled",it==0).apply()
@@ -10965,13 +10971,22 @@ private fun AbContinuationSettings(theme:AbTheme,onOpen:(BookRef)->Unit) {
     AbHeading("Уже вышедшие и найденные книги",theme)
     if(available.isEmpty())Text("Выполните проверку. Уже скачанные тома также доступны в разделе «Серия» плеера.",color=theme.muted,fontSize=12.sp)
     available.forEach{item->AbButton(item.title+if(item.url.isBlank())" · на устройстве" else " · в списке источника",theme){onOpen(if(item.url.isBlank())bookRefFor(context.getSharedPreferences("audiobook_downloader",0),item.title) else BookRef(item.title,item.url,""))}}
+    AbHeading("Продолжения: текст и аудио",theme)
+    val watched=remember(revision){store.seeds().distinctBy{SeriesAuthorityRules.title(it.title)}}
+    if(watched.isEmpty())Text("Добавьте книгу в коллекцию для отслеживания её серии.",color=theme.muted,fontSize=12.sp)
+    var referenceTitle by remember{mutableStateOf("")}
+    watched.forEach{seed->AbButton(seed.title+if(referenceTitle==seed.title)" · свернуть" else " · открыть каталог серии",theme){referenceTitle=if(referenceTitle==seed.title)"" else seed.title}}
+    if(referenceTitle.isNotBlank()) {
+        val settings=context.getSharedPreferences("audiobook_downloader",0)
+        AbOfficialSeriesPanel(referenceTitle,abStoredCatalog(settings,referenceTitle).author,settings,theme)
+    }
     AbHeading("Новые продолжения и уведомления Литрес",theme)
     if(notices.isEmpty())Text("Новых продолжений пока нет",color=theme.muted,fontSize=13.sp)
     notices.forEach {notice ->
         Column(Modifier.fillMaxWidth().abGlass(theme,16).padding(12.dp),verticalArrangement=Arrangement.spacedBy(6.dp)) {
             Text((if(notice.read)"" else "● ")+notice.title,color=theme.text,fontWeight=FontWeight.SemiBold)
-            Text(notice.series,color=theme.muted,fontSize=12.sp)
-            AbButton(if(LitresReleaseParser.audio(notice.url))"Открыть на Литрес" else "Открыть книгу",theme){AbContinuationAlerts.consume(context,notice.id);if(LitresReleaseParser.audio(notice.url))context.startActivity(Intent(Intent.ACTION_VIEW,Uri.parse(notice.url))) else onOpen(BookRef(notice.title,notice.url,""))}
+            Text(notice.series+if(notice.format=="text")" · текст" else " · аудио",color=theme.muted,fontSize=12.sp)
+            AbButton(if(SeriesAuthorityRules.work(notice.url))"Открыть на "+SeriesAuthorityRules.provider(notice.url) else "Открыть книгу",theme){AbContinuationAlerts.consume(context,notice.id);if(SeriesAuthorityRules.work(notice.url))context.startActivity(Intent(Intent.ACTION_VIEW,Uri.parse(notice.url))) else onOpen(BookRef(notice.title,notice.url,""))}
         }
     }
     if(notices.isNotEmpty())AbButton("Очистить список",theme){notices.forEach{AbContinuationAlerts.consume(context,it.id)};store.clearNotices()}
@@ -12488,6 +12503,77 @@ private fun AbSeriesBlock(cycles: List<BookCycle>,theme: AbTheme,actions: AbActi
 }
 
 @Composable
+internal fun AbOfficialSeriesPanel(title:String,author:String,prefs:android.content.SharedPreferences,theme:AbTheme) {
+    val context=androidx.compose.ui.platform.LocalContext.current.applicationContext
+    val store=remember(context){OfficialSeriesStore(context)}
+    var revision by remember{mutableStateOf(0)}
+    var refresh by remember(title,author){mutableStateOf(0)}
+    var running by remember(title,author){mutableStateOf(false)}
+    var failure by remember(title,author){mutableStateOf("")}
+    var filter by androidx.compose.runtime.saveable.rememberSaveable(title,author){mutableStateOf(0)}
+    var scope by androidx.compose.runtime.saveable.rememberSaveable(title,author){mutableStateOf(0)}
+    DisposableEffect(store){val listener=android.content.SharedPreferences.OnSharedPreferenceChangeListener{_,_->revision++}
+        store.preferences.registerOnSharedPreferenceChangeListener(listener)
+        onDispose{store.preferences.unregisterOnSharedPreferenceChangeListener(listener)}}
+    val snapshot by androidx.compose.runtime.produceState<OfficialSnapshot?>(null,title,author,revision) {
+        value=withContext(Dispatchers.IO){store.read(title,author)}
+    }
+    LaunchedEffect(title,author,refresh) {
+        running=true;failure=""
+        try{OfficialSeriesCatalog(context).refresh(title,author,force=refresh>0)}
+        catch(error:kotlinx.coroutines.CancellationException){throw error}
+        catch(error:Exception){failure=error.message ?: "Не удалось сверить серию"}
+        finally{running=false}
+    }
+    Column(Modifier.fillMaxWidth().abGlass(theme,17).padding(12.dp),verticalArrangement=Arrangement.spacedBy(9.dp)) {
+        Text("Продолжения: текст и аудио",color=theme.text,fontSize=16.sp,fontWeight=FontWeight.SemiBold)
+        Text("Сверка прямой серии по Литрес и Author.Today. Ссылки открывают официальные страницы книг.",color=theme.muted,fontSize=12.sp)
+        AbButton(if(running)"Сверяем справочники…" else "Сверить Литрес и Author.Today",theme,enabled=!running){refresh++}
+        if(failure.isNotBlank())Text(failure,color=theme.muted,fontSize=12.sp)
+        val current=snapshot?.takeIf{SeriesAuthorityRules.sameTitle(title,it.title,"")}
+        if(current!=null) {
+            current.sources.forEach{s->
+                val checked=if(s.checked>0)java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.SHORT,java.text.DateFormat.SHORT).format(java.util.Date(s.checked)) else "успешной сверки ещё нет"
+                Text(s.provider+" · "+checked+if(s.error.isBlank())"" else "\n"+s.error,color=theme.muted,fontSize=11.sp)
+            }
+            if(current.conflict)Text("Справочники указывают разные прямые серии. Они показаны раздельно; уведомления по противоречивым сведениям не создаются.",color=theme.accent,fontSize=12.sp)
+            if(current.orderConflict)Text("Нумерация томов различается или неоднозначна. Книги доступны в каталоге; уведомления по их порядку приостановлены.",color=theme.accent,fontSize=12.sp)
+            AbOptions(listOf("Все форматы","Текст","Аудио"),filter,theme){filter=it}
+            AbOptions(listOf("Продолжения","Вся серия"),scope,theme){scope=it}
+            val grouped=remember(current,filter,scope) {
+                current.sources.flatMap{s->s.books.filter{b->
+                    (filter==0||b.format==if(filter==1)"text" else "audio")&&
+                        (scope==1||s.seedOrder==null||b.order==null||b.order>s.seedOrder)&&
+                        (scope==1||!SeriesAuthorityRules.sameTitle(title,b.title,s.series))
+                }}.groupBy{SeriesAuthorityRules.series(it.series)+"|"+SeriesAuthorityRules.author(it.author)+"|"+SeriesAuthorityRules.title(it.title)}
+                    .values.sortedWith(compareBy<List<OfficialEdition>>{it.first().series}.thenBy{it.mapNotNull{b->b.order}.minOrNull() ?: Double.MAX_VALUE})
+            }
+            if(grouped.isEmpty())Text(if(running)"Загружаем сведения…" else "Подтверждённых продолжений для выбранного формата пока не найдено. Можно открыть всю серию или повторить сверку.",color=theme.muted,fontSize=12.sp)
+            var shown by androidx.compose.runtime.saveable.rememberSaveable(title,filter,scope){mutableStateOf(20)}
+            grouped.take(shown).forEach{editions->
+                val book=editions.first();val orders=editions.mapNotNull{it.order}.distinct()
+                Column(Modifier.fillMaxWidth().abGlass(theme,13,field=true).padding(10.dp),verticalArrangement=Arrangement.spacedBy(6.dp)) {
+                    Text(book.title,color=theme.text,fontSize=14.sp,fontWeight=FontWeight.SemiBold)
+                    Text(book.series+" · "+book.author,color=theme.muted,fontSize=11.sp)
+                    Text(when{orders.size>1->"Порядок различается в справочниках";orders.size==1->"Том "+abVolumeLabel(BookCycle(book.series,order=orders.first())).removePrefix("Том ");else->"Порядок в серии не указан"},color=theme.muted,fontSize=11.sp)
+                    if(orders.size!=1||current.sources.any{it.seedOrder==null})Text("Последовательность относительно текущей книги не подтверждена",color=theme.muted,fontSize=10.sp)
+                    editions.distinctBy{it.url}.forEach{edition->
+                        val format=when(edition.format){"text"->"Текст";"audio"->"Аудио";else->"Формат не указан"}
+                        val status=when(edition.status){"published"->"опубликовано";"ongoing"->"в процессе";"planned"->"анонс / предзаказ";else->"в каталоге; доступность не подтверждена"}
+                        Text(format+" · "+status,color=theme.muted,fontSize=11.sp)
+                        AbButton("Открыть · "+edition.provider+" · "+format,theme){
+                            if(SeriesAuthorityRules.work(edition.url))try{context.startActivity(Intent(Intent.ACTION_VIEW,Uri.parse(edition.url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))}
+                            catch(_:android.content.ActivityNotFoundException){Toast.makeText(context,"Не найден браузер",Toast.LENGTH_SHORT).show()}
+                        }
+                    }
+                }
+            }
+            if(shown<grouped.size)AbButton("Показать ещё · ${minOf(shown,grouped.size)} из ${grouped.size}",theme){shown+=20}
+        }else if(!running)Text("Сведения пока не сохранены. Нажмите сверку; при недоступности сайтов аудиокниги на устройстве продолжат работать.",color=theme.muted,fontSize=12.sp)
+    }
+}
+
+@Composable
 private fun AbPlayerSeries(metadata:BookLink,ref:BookRef,books:List<LibraryBook>,prefs:android.content.SharedPreferences,
     theme:AbTheme,actions:AbActions,onShelf:(BookRef)->Unit,onSettings:(AbSettingsSection)->Unit) {
     val context=androidx.compose.ui.platform.LocalContext.current
@@ -12501,7 +12587,8 @@ private fun AbPlayerSeries(metadata:BookLink,ref:BookRef,books:List<LibraryBook>
     if(progress.isNotBlank())Text(progress,color=theme.muted,fontSize=12.sp)
     AbSeriesBlock(metadata.cycles,theme,actions)
     if(metadata.cycles.isEmpty()&&progress.isBlank())Text("Серия пока не подтверждена. Выполните сверку справочников или посмотрите книги с похожим названием ниже.",color=theme.muted,fontSize=12.sp)
-    AbButton("Обновить сведения о серии",theme){retry++}
+    AbOfficialSeriesPanel(metadata.title,metadata.author,prefs,theme)
+    AbButton("Обновить сведения аудиоисточника",theme){retry++}
     val nameCandidates=LocalSeriesRules.siblings(metadata.title,books.map{it.title})
     val confirmed=metadata.cycles.firstOrNull{it.referenceUrl.isNotBlank()}
     val local=books.filter{book->val entry=abStoredCatalog(prefs,book.title)

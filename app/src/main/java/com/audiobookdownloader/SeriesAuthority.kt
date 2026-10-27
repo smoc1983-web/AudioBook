@@ -82,7 +82,7 @@ internal class SeriesAuthorityHttp:SeriesAuthorityFetcher {
                         val buffer=ByteArray(8192)
                         while(true){currentCoroutineContext().ensureActive();val n=input.read(buffer);if(n<0)break
                             require(out.size()+n<=3*1024*1024){"Слишком большая страница справочника"};out.write(buffer,0,n)
-                            if(android.os.SystemClock.elapsedRealtime()>deadline)break
+                            if(android.os.SystemClock.elapsedRealtime()>deadline)throw java.io.IOException("Время загрузки справочника истекло; неполный ответ отброшен")
                         }
                     }
                     val body=String(out.toByteArray(),Charsets.UTF_8)
@@ -97,8 +97,17 @@ internal class SeriesAuthorityHttp:SeriesAuthorityFetcher {
 }
 internal class SeriesAuthorityResolver(private val fetcher:SeriesAuthorityFetcher=SeriesAuthorityHttp()) {
     suspend fun resolve(title:String,author:String):Pair<SeriesEvidence?,String> {
+        for(provider in listOf("Author.Today","Литрес")) {
+            val result=resolveFrom(provider,title,author)
+            if(result.first!=null||result.second=="ambiguous")return result
+        }
+        return null to "unconfirmed"
+    }
+    suspend fun resolveFrom(provider:String,title:String,author:String):Pair<SeriesEvidence?,String> {
         val query=URLEncoder.encode(SeriesAuthorityRules.queryTitle(title),"UTF-8")
-        for(search in listOf("https://author.today/search?category=works&q=$query","https://www.litres.ru/search/?q=$query")) {
+        require(provider in listOf("Author.Today","Литрес"))
+        val search=if(provider=="Author.Today")"https://author.today/search?category=works&q=$query" else "https://www.litres.ru/search/?q=$query"
+        run {
             currentCoroutineContext().ensureActive()
             try {
                 val possible=SeriesAuthorityParser.search(fetcher.html(search),search).filter{
