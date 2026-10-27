@@ -1,0 +1,32 @@
+{
+  "checkedAt": "2026-10-27T01:37:38.344815+00:00",
+  "screenshotInstalledVersion": 100062,
+  "screenshotErrors": [
+    "HTTP 401 or 403 translated to channel closed",
+    "Unable to resolve host; no address associated with hostname"
+  ],
+  "currentSiteAudience": "public",
+  "currentFeedVersion": 100066,
+  "exact62RequestFromExecutorHttpStatus": 200,
+  "exact63And66RequestsFromExecutorHttpStatus": 200,
+  "googleAndCloudflarePublicDnsBothReturnAddresses": true,
+  "physicalPhoneNetworkFixed": false,
+  "androidNativeNetworkDownloadOnPhoneTested": false,
+  "codeAndHostedBytesUnchanged": true,
+  "apkUpgradeIdentities": [
+    {
+      "version": "4.2.62",
+      "package": "com.audiobookdownloader.preview",
+      "versionCode": 100062,
+      "certificateSha256": "3a4cecd14bb3e983843871766909c3f07b3dc64379800f3e270e4a27d39affb7",
+      "apkSha256": "744135becfa5b1cbfe0df9124a4d78d62361d1dedfb1ea95040dbd2d75242fc1"
+    },
+    {
+      "version": "4.2.66",
+      "package": "com.audiobookdownloader.preview",
+      "versionCode": 100066,
+      "certificateSha256": "3a4cecd14bb3e983843871766909c3f07b3dc64379800f3e270e4a27d39affb7",
+      "apkSha256": "4ca319ad2f1fbedc8acb09938e1d8fb59ec4a148c99509a9c4a837a8f0d14055"
+    }
+  ]
+}

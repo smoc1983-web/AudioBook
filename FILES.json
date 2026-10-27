@@ -1,5 +1,5 @@
 {
-  "revision": "audiobook-4.2.66-large-search-scroll-release-verified",
+  "revision": "audiobook-4.2.66-update-access-diagnosed-2026-10-27",
   "storage": "GitHub export; see releases/ARCHIVE-PARTS.json for three multipart historical ZIPs",
   "files": [
     {
@@ -1309,8 +1309,8 @@
     },
     {
       "path": "docs/HANDOFF.md",
-      "bytes": 58131,
-      "sha256": "62a12ea401a5af5abe8a98b4469a989a8bea499bfd19aa935f3b0f6c3c1eef1d"
+      "bytes": 58807,
+      "sha256": "22474fbda5f40416908d960b709c90a8d835b016f6cdb966d4cf606adfc41940"
     },
     {
       "path": "docs/INSTALL.md",
@@ -1421,6 +1421,11 @@
       "path": "docs/TEST-UPDATE-4.2.md",
       "bytes": 6383,
       "sha256": "ade1b4066d2cc8c014ea60e07f5547b59c7d7d534de28286fb8ebf321b440d82"
+    },
+    {
+      "path": "docs/UPDATE-NETWORK.md",
+      "bytes": 2936,
+      "sha256": "b67a42d0c1af5f6c4eb94b200f3875542765871eb466bd4a8adbd8bc6dc02022"
     },
     {
       "path": "docs/VALIDATION.log",
@@ -2051,6 +2056,11 @@
       "path": "docs/verification/unit-tests-100063.json",
       "bytes": 180,
       "sha256": "359693868e4def1f53cf5c68afdf5599c7764aab36c63e66da297ca48e914578"
+    },
+    {
+      "path": "docs/verification/update-access-2026-10-27.json",
+      "bytes": 1234,
+      "sha256": "166fffb72fa8deff9f6a08cc51c4c9fcdca49d5e43172395df1ced9aad016634"
     },
     {
       "path": "docs/verification/widget-preview-100038-0.png",
