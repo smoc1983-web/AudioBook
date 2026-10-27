@@ -39,8 +39,8 @@
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/OfficialSeriesTest.kt",
-      "bytes": 8380,
-      "sha256": "fc0683f6b1871b7fe17674ba9475b3401f09496bd37734d3558fb9bb9d8fc26a"
+      "bytes": 8729,
+      "sha256": "04b433d90d7b1d2eee1a5c9866ebc51bcee153d5b4274a315bc62f1b07a64be3"
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/OnlineDurationTest.java",
@@ -249,13 +249,13 @@
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/OfficialSeriesCatalog.kt",
-      "bytes": 11629,
-      "sha256": "1bad2748e8ac66bc3661e2b8745167de1d21f58553bc0668ba6c298a5cb36112"
+      "bytes": 12047,
+      "sha256": "4ca3018919ba58b6865473e1b050d42e19b97be7c67c7826196bd35be71a8a7f"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/OfficialSeriesParser.java",
-      "bytes": 5170,
-      "sha256": "9f9bdfaa0c8e46662300bdb9cedfb74beb0c7b13ee2e36028868773e70cf8356"
+      "bytes": 5322,
+      "sha256": "e8382f3d930847ee1330511ddd1d884526d5ed5b4381fdb26d60497e5385d64c"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/OpenAudioCatalog.java",
@@ -294,13 +294,13 @@
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/SeriesAuthority.kt",
-      "bytes": 11700,
-      "sha256": "392683c9305cec8e0f0f50066a8cc69011d23443723e893c817624ececb06d1d"
+      "bytes": 12540,
+      "sha256": "3d18b0f311b75aab08b30fe022eda9264f05d1652632bb47e8a569ab877dc80d"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/SeriesAuthorityParser.java",
-      "bytes": 7710,
-      "sha256": "12e179c3993a8bac069f7c408678aca60e1bd7814d564cde273a36387cff6d14"
+      "bytes": 8184,
+      "sha256": "2631528bc1bab2d4616c4cfba997e43ed001f93aba407635d5f688b8715af4a3"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/SeriesAuthorityRules.java",
@@ -424,8 +424,8 @@
     },
     {
       "path": "app/src/test/java/com/audiobookdownloader/OfficialSeriesParserTest.java",
-      "bytes": 3823,
-      "sha256": "2c60bd9edb510f77b2f5f727cbc2d228b05832c37cbdd685923f06da3b248796"
+      "bytes": 5212,
+      "sha256": "e9e8aff5195b3d3b71541a1fd308c059441cd21e8c9d60c5ab12ae01fc262cf0"
     },
     {
       "path": "app/src/test/java/com/audiobookdownloader/OpenAudioCatalogTest.java",
@@ -471,6 +471,11 @@
       "path": "app/src/test/resources/series-metadata/at-gold.html",
       "bytes": 570,
       "sha256": "0140d1217491f39621602479b20ad4dea85b2f5e72a5b5b49b505269a6bf2085"
+    },
+    {
+      "path": "app/src/test/resources/series-metadata/at-search-mobile.html",
+      "bytes": 1133,
+      "sha256": "f3fd7ea6949029060d656f4fc2d348e037695f2853fafcf7e0fc63c199accd43"
     },
     {
       "path": "app/src/test/resources/series-metadata/at-series-mobile.html",
@@ -1459,8 +1464,8 @@
     },
     {
       "path": "docs/TEXT-SERIES-CATALOG.md",
-      "bytes": 5118,
-      "sha256": "f17ac457d8918882e8d20066ded87306e48cd12f284a383552f9153730749b3d"
+      "bytes": 5545,
+      "sha256": "d66673f84caeaa7c7b998f5f3a9b70d9e6cd45971051b1c35fe3657a6974d11e"
     },
     {
       "path": "docs/UPDATE-NETWORK.md",

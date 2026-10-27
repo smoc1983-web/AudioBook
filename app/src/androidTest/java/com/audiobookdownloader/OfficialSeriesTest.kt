@@ -57,9 +57,11 @@ class OfficialSeriesTest {
     @Test(timeout=60000) fun bothProvidersRefreshTextBaselineFutureVolumesFailureAndPartialLists()=runBlocking {
         val catalog=OfficialSeriesCatalog(context,fetcher)
         val initial=catalog.refresh(title,author,true)
-        assertEquals(2,initial.sources.size);assertTrue(initial.sources.all{it.complete});assertTrue(store.notices().isEmpty())
+        assertEquals(2,initial.sources.size);assertTrue(initial.sources.joinToString{"${it.provider}: ${it.error}"},initial.sources.all{it.complete});assertTrue(store.notices().isEmpty())
         assertTrue(visited.any{it.startsWith("https://author.today/search")});assertTrue(visited.any{it.startsWith("https://www.litres.ru/search")})
+        visited.clear()
         latest=2;val next=catalog.refresh(title,author,true)
+        assertFalse("Recheck must use validated known work pages instead of broad search",visited.any{it.contains("/search")})
         assertEquals(1,store.notices().size);assertEquals("text",store.notices().single().format)
         assertEquals("Продолжение 2",store.notices().single().title);assertFalse(next.conflict)
         catalog.refresh(title,author,true);assertEquals("Same title on two providers must alert once",1,store.notices().size)
@@ -74,6 +76,7 @@ class OfficialSeriesTest {
     @Test(timeout=60000) fun officialPanelGroupsFormatsAndCanFilterTextAndAudio()=runBlocking {
         latest=2;OfficialSeriesCatalog(context,fetcher).refresh(title,author,true)
         compose.setContent {Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())){AbOfficialSeriesPanel(title,author,prefs,abTheme(2))}}
+        compose.waitUntil(timeoutMillis=5_000){compose.onAllNodesWithText("Продолжение 2").fetchSemanticsNodes().isNotEmpty()}
         compose.onNodeWithText("Продолжение 2").performScrollTo().assertIsDisplayed()
         compose.onAllNodesWithText("Продолжение 2").assertCountEquals(1)
         compose.onNodeWithText("Текст",useUnmergedTree=true).performScrollTo().performClick()

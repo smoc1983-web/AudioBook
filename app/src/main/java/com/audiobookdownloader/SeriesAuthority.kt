@@ -103,7 +103,16 @@ internal class SeriesAuthorityResolver(private val fetcher:SeriesAuthorityFetche
         }
         return null to "unconfirmed"
     }
-    suspend fun resolveFrom(provider:String,title:String,author:String):Pair<SeriesEvidence?,String> {
+    suspend fun resolveFrom(provider:String,title:String,author:String,hint:String=""):Pair<SeriesEvidence?,String> {
+        if(SeriesAuthorityRules.work(hint)&&SeriesAuthorityRules.provider(hint)==provider)try {
+            var record=SeriesAuthorityParser.detail(fetcher.html(SeriesAuthorityRules.canonical(hint)),hint)
+            val expected=author.ifBlank{record.authors.singleOrNull().orEmpty()}
+            if(SeriesAuthorityParser.matches(title,expected,record)) {
+                if(provider=="Литрес")try{record=SeriesAuthorityParser.parent(fetcher.html(record.seriesUrl),record.seriesUrl,record)}
+                catch(e:CancellationException){throw e}catch(_:Exception){}
+                return SeriesEvidence(record.title,expected,record.seriesTitle,record.seriesUrl,record.bookUrl,provider,record.order,record.parentTitle) to "confirmed"
+            }
+        }catch(e:CancellationException){throw e}catch(_:Exception){}
         val query=URLEncoder.encode(SeriesAuthorityRules.queryTitle(title),"UTF-8")
         require(provider in listOf("Author.Today","Литрес"))
         val search=if(provider=="Author.Today")"https://author.today/search?category=works&q=$query" else "https://www.litres.ru/search/?q=$query"

@@ -3,6 +3,16 @@ import org.junit.*;import static org.junit.Assert.*;
 public class OfficialSeriesParserTest {
  private final String at="https://author.today/work/series/7666",lt="https://www.litres.ru/series/hranitel-kladov-714498";
  private String fixture(String name)throws Exception{return new String(getClass().getResourceAsStream("/series-metadata/"+name+".html").readAllBytes(),java.nio.charset.StandardCharsets.UTF_8);}
+ @Test public void absoluteOwnSeriesLinksAreAcceptedButForeignProvidersAreRejected(){
+  String html="<h1>Первая книга</h1><div class='work-header-content'><div class='card-author'><a>Тест Автор</a></div><div><a href='https://author.today/work/series/7'>Путь</a><span>#1</span></div></div>";
+  assertEquals("Путь",SeriesAuthorityParser.detail(html,"https://author.today/work/7").seriesTitle);
+  try{SeriesAuthorityParser.detail(html.replace("https://author.today/work/series/7","https://www.litres.ru/series/path-7"),"https://author.today/work/7");fail("Foreign provider must not become an Author.Today series");}catch(IllegalArgumentException expected){}
+ }
+ @Test public void mobileSearchUsesTheEnclosingWorkLinkAndDoesNotGuessFromSimilarWords()throws Exception {
+  var records=SeriesAuthorityParser.search(fixture("at-search-mobile"),"https://author.today/search?category=works&q=test");
+  assertEquals(1,records.size());var book=records.get(0);assertEquals("https://author.today/work/98164",book.bookUrl);assertEquals("Золотая кобра",book.title);
+  assertFalse(SeriesAuthorityParser.matches("Золото мертвых","Андрей Васильев",book));
+ }
  @Test public void currentMobileAuthorTodayHasFourTextVolumesAndExplicitOrder()throws Exception {
   var evidence=SeriesAuthorityParser.detail(fixture("at-gold-mobile"),"https://author.today/work/72647");assertEquals("Хранитель кладов",evidence.seriesTitle);assertEquals(2d,evidence.order,0);
   var p=OfficialSeriesParser.page(fixture("at-series-mobile"),at,at,evidence.seriesTitle,"Андрей Васильев");assertEquals(4,p.books.size());assertEquals(4d,p.books.get(3).order,0);assertFalse(p.incomplete);
@@ -15,7 +25,7 @@ public class OfficialSeriesParserTest {
  @Test(expected=IllegalArgumentException.class)public void anotherAuthorCannotBecomeAContinuation()throws Exception {OfficialSeriesParser.page(fixture("litres-series-formats"),lt,lt,"Хранитель кладов","Другой Автор");}
  @Test public void paginationStaysOnTheExactOfficialCycleAndFlagsInteractivePartialLists()throws Exception {
   String html=fixture("at-series-mobile").replace("</body>","<nav><a rel='next' href='?page=2'>Далее</a><a rel='next' href='https://evil.invalid/?page=2'>Чужой</a></nav><button>Показать ещё</button></body>");
-  var p=OfficialSeriesParser.page(html,at,at,"Хранитель кладов","Андрей Васильев");assertEquals(1,p.next.size());assertEquals(at+"?page=2",p.next.get(0));assertTrue(p.incomplete);
+  var p=OfficialSeriesParser.page(html,at,at,"Хранитель кладов","Андрей Васильев");assertEquals(1,p.next.size());assertEquals(at+"?page=2",p.next.get(0));assertTrue(p.incomplete);assertTrue(OfficialSeriesParser.page(html.replace("<button>Показать ещё</button>",""),at,at,"Хранитель кладов","Андрей Васильев").incomplete);
   assertEquals("",OfficialSeriesParser.pageUrl(at+"?redirect=https://evil.invalid",at));assertEquals("",OfficialSeriesParser.pageUrl(at.replace("7666","1234")+"?page=2",at));assertEquals("",OfficialSeriesParser.pageUrl("http://author.today/work/series/7666",at));
  }
  @Test public void announcementsAndOngoingTextAreDifferentFromPublishedBooks(){

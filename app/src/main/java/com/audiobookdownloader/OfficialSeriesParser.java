@@ -34,8 +34,8 @@ public final class OfficialSeriesParser {
    books.add(new Edition(r.title,r.bookUrl,author,series,provider,format,status,number(card)));
   }
   if(books.isEmpty())throw new IllegalArgumentException("Не прочитан список книг указанного автора");
-  LinkedHashSet<String> next=new LinkedHashSet<>();for(Element a:d.select("a[rel=next],.pagination a[href],.paginator a[href],[data-testid*=pagination] a[href]")){String u=pageUrl(a.absUrl("href"),seriesUrl);if(!u.isEmpty()&&!u.equals(pageUrl(address,seriesUrl)))next.add(u);}
-  boolean more=records.size()>=80;for(Element b:d.select("button,[role=button]"))if(!b.hasAttr("disabled")&&b.text().matches("(?iu).*(?:показать|загрузить)\\s+(?:ещё|еще).*"))more=true;
+  LinkedHashSet<String> next=new LinkedHashSet<>();boolean rejectedPage=false;for(Element a:d.select("a[rel=next],.pagination a[href],.paginator a[href],[data-testid*=pagination] a[href]")){if(!a.hasAttr("href")||a.attr("href").isBlank()||a.attr("rel").equals("prev"))continue;String u=pageUrl(a.absUrl("href"),seriesUrl);if(u.isEmpty())rejectedPage=true;else if(!u.equals(pageUrl(address,seriesUrl)))next.add(u);}
+  boolean more=records.size()>=80||rejectedPage;for(Element b:d.select("button,[role=button]"))if(!b.hasAttr("disabled")&&b.text().matches("(?iu).*(?:показать|загрузить)\\s+(?:ещё|еще).*"))more=true;
   return new Page(books,new ArrayList<>(next),more);
  }
 }
