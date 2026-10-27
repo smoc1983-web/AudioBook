@@ -12643,7 +12643,7 @@ private class AbBrowserHost(context:Context,private val viewportWidth:Int,
     override fun dispatchTouchEvent(event:android.view.MotionEvent):Boolean=false
 }
 
-private fun abCreateBrowser(context: Context,failed:(String)->Unit,
+internal fun abCreateBrowser(context: Context,failed:(String)->Unit,
     setup:WebView.()->Unit):WebView? {
     var browser:WebView?=null
     fun failure(error:Throwable):WebView? {
@@ -12667,6 +12667,14 @@ private fun abCreateBrowser(context: Context,failed:(String)->Unit,
         web.layout(0,0,width,height)
         web.onResume()
         web.setup()
+        // Source pages only need HTTPS/HTML. Device files are opened by native player/SAF code.
+        web.settings.apply {
+            allowFileAccess=false
+            allowContentAccess=false
+            allowFileAccessFromFileURLs=false
+            allowUniversalAccessFromFileURLs=false
+            mixedContentMode=android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW
+        }
         AbCrashReport.install(context)
         web
     }catch(error:RuntimeException){failure(error)}

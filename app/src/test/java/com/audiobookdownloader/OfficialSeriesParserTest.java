@@ -3,6 +3,18 @@ import org.junit.*;import static org.junit.Assert.*;
 public class OfficialSeriesParserTest {
  private final String at="https://author.today/work/series/7666",lt="https://www.litres.ru/series/hranitel-kladov-714498";
  private String fixture(String name)throws Exception{return new String(getClass().getResourceAsStream("/series-metadata/"+name+".html").readAllBytes(),java.nio.charset.StandardCharsets.UTF_8);}
+ @Test public void mobileSeriesWithEnclosingWorkLinksKeepsAllVolumesAndOrders(){
+  String html="<h1>Путь</h1><a class='work-row' href='/work/11'><div class='work-row-content'><h4 class='work-title'><span class='label-row-index'>2</span>Продолжение</h4><div class='work-author'>Тест Автор</div><div class='work-info'><i class='icon-book2'></i><i class='icon-check-bold'></i>100K зн.</div></div></a>";
+  String cycle="https://author.today/work/series/7";
+  var page=OfficialSeriesParser.page(html,cycle,cycle,"Путь","Тест Автор");
+  assertEquals(1,page.books.size());assertEquals("https://author.today/work/11",page.books.get(0).url);
+  assertEquals("Продолжение",page.books.get(0).title);
+  assertEquals(2d,page.books.get(0).order,0);assertEquals("text",page.books.get(0).format);
+  assertEquals(2d,SeriesAuthorityParser.members(html,cycle,"Путь").get(0).order,0);
+ }
+ @Test(expected=IllegalArgumentException.class)public void legacyMembersCannotCallAPaginatedNavigationListComplete()throws Exception{
+  SeriesAuthorityParser.members(fixture("at-series-mobile")+"<nav class='pagination'><a href='?page=2'>2</a></nav>",at,"Хранитель кладов");
+ }
  @Test public void absoluteOwnSeriesLinksAreAcceptedButForeignProvidersAreRejected(){
   String html="<h1>Первая книга</h1><div class='work-header-content'><div class='card-author'><a>Тест Автор</a></div><div><a href='https://author.today/work/series/7'>Путь</a><span>#1</span></div></div>";
   assertEquals("Путь",SeriesAuthorityParser.detail(html,"https://author.today/work/7").seriesTitle);

@@ -14,6 +14,15 @@ public class CollectionTransferRulesTest {
  @Test public void corruptUnrelatedAndUnsupportedFilesAreRejected()throws Exception{for(String raw:new String[]{"broken","[] trailing","{}","[{\"n\":\"x\"}]","{\"format\":\"AudiobookCollections\",\"version\":2,\"collections\":[]}","<map><string name=\"other\">[]</string></map>","<!DOCTYPE x><map><string name=\"shelves_v1\">[]</string></map>"})reject(raw);}
  @Test public void duplicatedXmlKeyIsRejected()throws Exception{reject("<map><string name=\"shelves_v1\">[]</string><string name=\"shelves_v1\">[]</string></map>");}
  @Test public void documentAndStructuralBoundsAreEnforced()throws Exception{reject(" ".repeat(CollectionTransferRules.MAX_BYTES+1));reject("[".repeat(80)+"]".repeat(80));JSONArray a=new JSONArray();for(int i=0;i<257;i++)a.put(new JSONObject().put("n","x"+i).put("b",new JSONArray()));reject(a.toString());}
+ @Test(timeout=3000) public void deeplyNestedXmlWithUniqueNamespacesIsRejectedBeforeBuildingATree()throws Exception{
+  StringBuilder xml=new StringBuilder("<map><string name='shelves_v1'>[]</string>");
+  for(int i=0;i<100;i++)xml.append("<n xmlns:p").append(i).append("='urn:").append(i).append("'>");
+  xml.append("x").append("</n>".repeat(100)).append("</map>");reject(xml.toString());
+ }
+ @Test public void malformedXmlAndNestedMarkupInPreferencesAreRejected()throws Exception{
+  reject("<map><string name='shelves_v1'>[]</string>");
+  reject("<map><string name='shelves_v1'><hidden>[]</hidden></string></map>");
+ }
  @Test public void exportedPreferencesJsonFieldIsAccepted()throws Exception{String s=shelf("Мои","Книга","");assertEquals(CollectionTransferRules.parse(s).toString(),CollectionTransferRules.parse(new JSONObject().put("shelves_v1",s).put("unrelated",true).toString()).toString());}
  @Test public void bomAndEscapedNamesSurviveRoundTrip()throws Exception{String s=shelf("Книги & \"цитаты\"","Название <том>","");assertEquals(CollectionTransferRules.parse(s).toString(),CollectionTransferRules.parse("\ufeff"+CollectionTransferRules.export(s)).toString());}
  private void reject(String s)throws Exception{try{CollectionTransferRules.parse(s);fail("Invalid input accepted");}catch(Exception expected){}}

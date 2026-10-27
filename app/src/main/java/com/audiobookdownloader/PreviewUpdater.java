@@ -73,8 +73,10 @@ final class PreviewUpdater {
             throw new IOException("Подпись APK отличается от установленного приложения. Установка отменена.");
     }
     File download(Release release,Progress progress) throws Exception {
-        File target=target(), temp=new File(target.getParentFile(),"update.part.apk");
+        File target=target();
         if(!target.getParentFile().isDirectory()&&!target.getParentFile().mkdirs())throw new IOException("Не удалось создать папку обновлений");
+        // An interrupted activity must never delete a newer activity's partial download.
+        File temp=File.createTempFile("update-",".part.apk",target.getParentFile());
         try {
             MessageDigest digest=MessageDigest.getInstance("SHA-256");long total=0;int previous=-1;
             try(OutputStream out=new FileOutputStream(temp)){
