@@ -1,0 +1,56 @@
+Wrote .metrics/mutate/com.audiobookdownloader.CollectionXmlReader.edn
+Wrote .metrics/mutate/com.audiobookdownloader.ContinuationRules.edn
+Wrote .metrics/mutate/com.audiobookdownloader.OfficialSeriesParser.edn
+Wrote .metrics/mutate/com.audiobookdownloader.OfficialTextNoticePolicy.edn
+KILLED    app/src/main/java/com/audiobookdownloader/OfficialSeriesParser.java:21 delete !
+KILLED    app/src/main/java/com/audiobookdownloader/OfficialSeriesParser.java:23 delete !
+KILLED    app/src/main/java/com/audiobookdownloader/OfficialSeriesParser.java:23 || -> &&
+KILLED    app/src/main/java/com/audiobookdownloader/OfficialSeriesParser.java:23 != -> ==
+KILLED    app/src/main/java/com/audiobookdownloader/OfficialSeriesParser.java:25 == -> !=
+KILLED    app/src/main/java/com/audiobookdownloader/OfficialSeriesParser.java:26 + -> -
+KILLED    app/src/main/java/com/audiobookdownloader/OfficialSeriesParser.java:26 + -> -
+KILLED    app/src/main/java/com/audiobookdownloader/OfficialSeriesParser.java:30 && -> ||
+KILLED    app/src/main/java/com/audiobookdownloader/OfficialSeriesParser.java:30 || -> &&
+KILLED    app/src/main/java/com/audiobookdownloader/OfficialSeriesParser.java:34 delete !
+KILLED    app/src/main/java/com/audiobookdownloader/OfficialSeriesParser.java:35 == -> !=
+KILLED    app/src/main/java/com/audiobookdownloader/OfficialSeriesParser.java:37 delete !
+KILLED    app/src/main/java/com/audiobookdownloader/OfficialSeriesParser.java:37 || -> &&
+KILLED    app/src/main/java/com/audiobookdownloader/OfficialSeriesParser.java:39 delete !
+KILLED    app/src/main/java/com/audiobookdownloader/OfficialSeriesParser.java:39 || -> &&
+KILLED    app/src/main/java/com/audiobookdownloader/OfficialSeriesParser.java:44 delete !
+KILLED    app/src/main/java/com/audiobookdownloader/OfficialSeriesParser.java:44 || -> &&
+KILLED    app/src/main/java/com/audiobookdownloader/OfficialSeriesParser.java:48 || -> &&
+KILLED    app/src/main/java/com/audiobookdownloader/OfficialSeriesParser.java:48 || -> &&
+KILLED    app/src/main/java/com/audiobookdownloader/OfficialSeriesParser.java:48 delete !
+KILLED    app/src/main/java/com/audiobookdownloader/OfficialSeriesParser.java:51 || -> &&
+KILLED    app/src/main/java/com/audiobookdownloader/OfficialSeriesParser.java:51 || -> &&
+KILLED    app/src/main/java/com/audiobookdownloader/OfficialSeriesParser.java:51 || -> &&
+KILLED    app/src/main/java/com/audiobookdownloader/OfficialSeriesParser.java:52 delete !
+KILLED    app/src/main/java/com/audiobookdownloader/OfficialSeriesParser.java:56 delete !
+KILLED    app/src/main/java/com/audiobookdownloader/OfficialSeriesParser.java:57 == -> !=
+KILLED    app/src/main/java/com/audiobookdownloader/OfficialSeriesParser.java:65 true -> false
+KILLED    app/src/main/java/com/audiobookdownloader/OfficialSeriesParser.java:67 false -> true
+KILLED    app/src/main/java/com/audiobookdownloader/OfficialSeriesParser.java:70 || -> &&
+KILLED    app/src/main/java/com/audiobookdownloader/OfficialSeriesParser.java:73 || -> &&
+KILLED    app/src/main/java/com/audiobookdownloader/OfficialSeriesParser.java:78 true -> false
+KILLED    app/src/main/java/com/audiobookdownloader/OfficialSeriesParser.java:78 delete !
+KILLED    app/src/main/java/com/audiobookdownloader/OfficialSeriesParser.java:83 || -> &&
+KILLED    app/src/main/java/com/audiobookdownloader/OfficialSeriesParser.java:85 true -> false
+KILLED    app/src/main/java/com/audiobookdownloader/OfficialSeriesParser.java:87 delete !
+KILLED    app/src/main/java/com/audiobookdownloader/OfficialSeriesParser.java:93 delete !
+KILLED    app/src/main/java/com/audiobookdownloader/OfficialSeriesParser.java:98 >= -> >
+Function        Namespace                                     Killed  Survived  Uncovered  Sites   Score
+--------------------------------------------------------------------------------------------------------
+belongs         com.audiobookdownloader.OfficialSeriesParser       2         0          0      2 100.0%
+format          com.audiobookdownloader.OfficialSeriesParser       6         0          0      6 100.0%
+interactiveMore com.audiobookdownloader.OfficialSeriesParser       2         0          0      2 100.0%
+ongoing         com.audiobookdownloader.OfficialSeriesParser       3         0          0      3 100.0%
+page            com.audiobookdownloader.OfficialSeriesParser       5         0          0      5 100.0%
+pageUrl         com.audiobookdownloader.OfficialSeriesParser       7         0          0      7 100.0%
+pagination      com.audiobookdownloader.OfficialSeriesParser       3         0          0      3 100.0%
+planned         com.audiobookdownloader.OfficialSeriesParser       2         0          0      2 100.0%
+published       com.audiobookdownloader.OfficialSeriesParser       4         0          0      4 100.0%
+skipLink        com.audiobookdownloader.OfficialSeriesParser       1         0          0      1 100.0%
+status          com.audiobookdownloader.OfficialSeriesParser       2         0          0      2 100.0%
+--------------------------------------------------------------------------------------------------------
+Total                                                             37         0          0     37  100.0%

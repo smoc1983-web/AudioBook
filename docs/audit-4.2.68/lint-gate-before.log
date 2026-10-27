@@ -1,0 +1,19 @@
+Android lint findings: {'Warning': 76, 'Error': 18, 'Information': 59}
+NewApi Call requires API level 24, or core library desugaring (current min is 23): `java.util.Map#getOrDefault`
+NewApi Call requires API level 24, or core library desugaring (current min is 23): `java.util.Map#putIfAbsent`
+NewApi Call requires API level 24, or core library desugaring (current min is 23): `java.util.Collection#stream`
+NewApi Call requires API level 24, or core library desugaring (current min is 23): `java.util.Collection#stream`
+NewApi Call requires API level 24, or core library desugaring (current min is 23): `java.util.stream.Stream#allMatch`
+NewApi Call requires API level 24, or core library desugaring (current min is 23): `java.util.stream.Stream#anyMatch`
+NewApi Call requires API level 24, or core library desugaring (current min is 23): `java.util.Collection#stream`
+NewApi Call requires API level 24, or core library desugaring (current min is 23): `java.util.Comparator#comparingDouble`
+NewApi Call requires API level 24, or core library desugaring (current min is 23): `java.util.List#sort`
+NewApi Call requires API level 24, or core library desugaring (current min is 23): `java.util.stream.Stream#noneMatch`
+NewApi Call requires API level 24, or core library desugaring (current min is 23): `java.util.Comparator#comparing`
+NewApi Call requires API level 24, or core library desugaring (current min is 23): `java.util.List#sort`
+NewApi Call requires API level 24, or core library desugaring (current min is 23): `java.util.Map#putIfAbsent`
+NewApi Call requires API level 24, or core library desugaring (current min is 23): `java.util.Collection#stream`
+NewApi Call requires API level 24, or core library desugaring (current min is 23): `java.util.stream.Stream#anyMatch`
+WrongConstant Must be one of: LinearLayout.HORIZONTAL, LinearLayout.VERTICAL
+WrongConstant Must be one of: LinearLayout.HORIZONTAL, LinearLayout.VERTICAL
+ProduceStateDoesNotAssignValue produceState calls should assign `value` inside the producer lambda

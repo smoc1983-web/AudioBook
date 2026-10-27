@@ -1,0 +1,15 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuite name="com.audiobookdownloader.MinimumSdkTest" tests="7" failures="0" errors="0" skipped="0" time="7.86" timestamp="2026-10-27T08:14:35" hostname="localhost">
+  <properties>
+    <property name="device" value="emulator-5554 - 6.0" />
+    <property name="flavor" value="" />
+    <property name="project" value=":app" />
+  </properties>
+  <testcase name="javaCollectionOperationsUsedBySeriesWorkOnTheDeclaredMinimumSdk" classname="com.audiobookdownloader.MinimumSdkTest" time="0.016" />
+  <testcase name="importBacksUpAndUndoPreservesOtherSettings" classname="com.audiobookdownloader.CollectionTransferTest" time="0.0" />
+  <testcase name="nativeScreenDoesNotImportWithoutConfirmation" classname="com.audiobookdownloader.CollectionTransferTest" time="1.987" />
+  <testcase name="laterChangesAndCorruptInputCannotBeOverwritten" classname="com.audiobookdownloader.CollectionTransferTest" time="0.047" />
+  <testcase name="fileBackupRoundTripRequiresConfirmationAndCopiesOnlyCollections" classname="com.audiobookdownloader.CollectionTransferTest" time="0.061" />
+  <testcase name="sourceBrowserCannotReadLocalFilesOrContentProviders" classname="com.audiobookdownloader.WebViewIsolationTest" time="3.732" />
+  <testcase name="differentAuthorBeyondFirstThreeResultsStillMakesUnknownAuthorAmbiguous" classname="com.audiobookdownloader.SeriesAuthoritySafetyTest" time="0.185" />
+</testsuite>

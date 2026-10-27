@@ -1,0 +1,30 @@
+Wrote .metrics/mutate/com.audiobookdownloader.CollectionXmlReader.edn
+Wrote .metrics/mutate/com.audiobookdownloader.ContinuationRules.edn
+Wrote .metrics/mutate/com.audiobookdownloader.LocalSeriesRules.edn
+Wrote .metrics/mutate/com.audiobookdownloader.OfficialSeriesParser.edn
+Wrote .metrics/mutate/com.audiobookdownloader.OfficialTextNoticePolicy.edn
+KILLED    app/src/main/java/com/audiobookdownloader/LocalSeriesRules.java:11 || -> &&
+KILLED    app/src/main/java/com/audiobookdownloader/LocalSeriesRules.java:11 delete !
+KILLED    app/src/main/java/com/audiobookdownloader/LocalSeriesRules.java:11 || -> &&
+KILLED    app/src/main/java/com/audiobookdownloader/LocalSeriesRules.java:11 || -> &&
+KILLED    app/src/main/java/com/audiobookdownloader/LocalSeriesRules.java:11 > -> >=
+KILLED    app/src/main/java/com/audiobookdownloader/LocalSeriesRules.java:11 false -> true
+KILLED    app/src/main/java/com/audiobookdownloader/LocalSeriesRules.java:12 false -> true
+KILLED    app/src/main/java/com/audiobookdownloader/LocalSeriesRules.java:14 delete !
+KILLED    app/src/main/java/com/audiobookdownloader/LocalSeriesRules.java:14 false -> true
+KILLED    app/src/main/java/com/audiobookdownloader/LocalSeriesRules.java:15 true -> false
+KILLED    app/src/main/java/com/audiobookdownloader/LocalSeriesRules.java:20 == -> !=
+KILLED    app/src/main/java/com/audiobookdownloader/LocalSeriesRules.java:20 1 -> 0
+KILLED    app/src/main/java/com/audiobookdownloader/LocalSeriesRules.java:24 false -> true
+KILLED    app/src/main/java/com/audiobookdownloader/LocalSeriesRules.java:26 delete !
+KILLED    app/src/main/java/com/audiobookdownloader/LocalSeriesRules.java:27 != -> ==
+KILLED    app/src/main/java/com/audiobookdownloader/LocalSeriesRules.java:27 true -> false
+KILLED    app/src/main/java/com/audiobookdownloader/LocalSeriesRules.java:29 delete !
+Function              Namespace                                 Killed  Survived  Uncovered  Sites   Score
+----------------------------------------------------------------------------------------------------------
+base                  com.audiobookdownloader.LocalSeriesRules       0         0          0      0    n/a
+siblings              com.audiobookdownloader.LocalSeriesRules       5         0          0      5 100.0%
+sourceCycleConsistent com.audiobookdownloader.LocalSeriesRules      10         0          0     10 100.0%
+volume                com.audiobookdownloader.LocalSeriesRules       2         0          0      2 100.0%
+----------------------------------------------------------------------------------------------------------
+Total                                                               17         0          0     17  100.0%

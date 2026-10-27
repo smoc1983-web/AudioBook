@@ -1,5 +1,5 @@
 {
-  "revision": "audiobook-4.2.68-ub-mode-development-tools",
+  "revision": "audiobook-4.2.68-audited-hold-for-approval",
   "storage": "GitHub export; see releases/ARCHIVE-PARTS.json for three multipart historical ZIPs",
   "files": [
     {
@@ -8,9 +8,14 @@
       "sha256": "4120873db2e3681ea9b7de4d7105fc9d3406657c9ada91ce77b9b3c4962f3202"
     },
     {
+      "path": ".github/workflows/audit-release68.yml",
+      "bytes": 8375,
+      "sha256": "fb1f7e0d4dd1351cbf73fc5e949ed2d754f3726392cf223c93d1053b91ee15e1"
+    },
+    {
       "path": ".github/workflows/build-apk.yml",
-      "bytes": 7549,
-      "sha256": "254993cb072dafb6da7a7bb06faff79ec8de3f9e718204f7a6e2b8ca0913d152"
+      "bytes": 8183,
+      "sha256": "b06f80789b6363e4007b1f068dd84dfbea49d7315caf63f03c651e53cbeb11c2"
     },
     {
       "path": ".github/workflows/quality.yml",
@@ -19,13 +24,13 @@
     },
     {
       "path": ".gitignore",
-      "bytes": 557,
-      "sha256": "48eee7af797781cbae43d3271076eca2c3cca6b5d66cbb3921e98ebd98b5ecbf"
+      "bytes": 602,
+      "sha256": "d7f87e85a5f597e07ffba395a3352cb0b3cebbfff8ff69c7cf8bae27859e8ff8"
     },
     {
       "path": "AGENTS.md",
-      "bytes": 1615,
-      "sha256": "9410d8d421beb84ae196c4bbe0bf802cd4eb5735f67e306e08b117e36c9535bb"
+      "bytes": 1921,
+      "sha256": "94d18ce90cd003802785f8ff332a89d13b1c5b9241b65282176997e4ae294472"
     },
     {
       "path": "README.md",
@@ -34,13 +39,13 @@
     },
     {
       "path": "app/build.gradle.kts",
-      "bytes": 4124,
-      "sha256": "e7fc6463d6512317632863da48fdfa92807436c6a42117ea5c2b7f4d0f26a6dd"
+      "bytes": 4950,
+      "sha256": "5b112cf5516ffe97d4ee189559e2a7e10e9047fb9e374667520b9ddf908bd4cc"
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/CollectionTransferTest.java",
-      "bytes": 4797,
-      "sha256": "9a569b6487364e7422053c956695edc6303331503cd72afc84debd11d3002713"
+      "bytes": 4821,
+      "sha256": "4726e652eac74d692bbd0d07c42aea80e61e458c17c81f74f2db6bff78afc4a8"
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/ContinuationWorkerTest.kt",
@@ -53,9 +58,14 @@
       "sha256": "47453eefe0ccf50154585426000d91486f03795dd19c7607e20298774fcac5bc"
     },
     {
+      "path": "app/src/androidTest/java/com/audiobookdownloader/MinimumSdkTest.kt",
+      "bytes": 763,
+      "sha256": "888458966af023d2c26f40a2f1b15c56affd6c5f39a8dea37bbd466426381f95"
+    },
+    {
       "path": "app/src/androidTest/java/com/audiobookdownloader/OfficialSeriesTest.kt",
-      "bytes": 8729,
-      "sha256": "04b433d90d7b1d2eee1a5c9866ebc51bcee153d5b4274a315bc62f1b07a64be3"
+      "bytes": 10991,
+      "sha256": "f5518c2835cbe84501716f26e221d7e0950eb98e34646d144087c24f96057240"
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/OnlineDurationTest.java",
@@ -76,6 +86,11 @@
       "path": "app/src/androidTest/java/com/audiobookdownloader/SearchScrollTest.kt",
       "bytes": 6259,
       "sha256": "af39b46d158f611d4a64e2c574ae37cea8bfa3b0656c845c9e110f32b0f2f51b"
+    },
+    {
+      "path": "app/src/androidTest/java/com/audiobookdownloader/SeriesAuthoritySafetyTest.kt",
+      "bytes": 1355,
+      "sha256": "0a0b54f201e3fde63f9803245cd56c419f29d7b1e197e0df1111651131a9d727"
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/SeriesRecoveryTest.kt",
@@ -99,8 +114,13 @@
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/UpgradeCandidateTest.java",
-      "bytes": 8732,
-      "sha256": "02abaa413a82f44f267596133b05ddb0b90db9e70e1ab9b064ac94b154adc705"
+      "bytes": 10247,
+      "sha256": "fce1b55b5a806e8415867f91d42291c5b21b527aae90f4be17ee22dca24a8d04"
+    },
+    {
+      "path": "app/src/androidTest/java/com/audiobookdownloader/WebViewIsolationTest.kt",
+      "bytes": 1174,
+      "sha256": "c0af734f3edad3fa5a36ffcc31107be7db6b41ac6b6ca5bf48c346f28af1684a"
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/WidgetPreviewTest.java",
@@ -194,18 +214,23 @@
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/CollectionTransferActivity.java",
-      "bytes": 7535,
-      "sha256": "03b9056b9612f6a7c22c6c796e1b46f7a91760a849f349f81f7f57db57eeffc8"
+      "bytes": 7555,
+      "sha256": "2e5bd92366d21f272ad643016dde1796ea15d5d1a233faf00b36ca8039fad35b"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/CollectionTransferRules.java",
-      "bytes": 6509,
-      "sha256": "2d5a444a75a2cd9ac7ab121eb593f90239c111bcaabd32dc77fccff6942487db"
+      "bytes": 7499,
+      "sha256": "f7ba4ffd0683d902347bdc59f9003fd8ccf2cd23077f96e566dad24afcf61f17"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/CollectionTransferStore.java",
       "bytes": 2847,
       "sha256": "40b4ed4aa66ca3b8f621e047a45e8e405502f254f3a536b703a31457e956fc95"
+    },
+    {
+      "path": "app/src/main/java/com/audiobookdownloader/CollectionXmlReader.java",
+      "bytes": 3204,
+      "sha256": "52354768ac71fce68f2e38c953c14f0af87f4f580530a613baea60afe5e5d412"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/ContinuationHttp.kt",
@@ -219,8 +244,8 @@
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/ContinuationPolicy.java",
-      "bytes": 3443,
-      "sha256": "4c525aeb26b632cac1331af3ed6a2ef1443d2d125a38cebbf4548ee383745574"
+      "bytes": 3468,
+      "sha256": "5b75348cc496823407c38214d22128a16a358e8504082cd0c02cf18190d8420f"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/ContinuationRules.java",
@@ -234,8 +259,8 @@
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/ContinuationStore.kt",
-      "bytes": 4660,
-      "sha256": "a824de014b99f5010e5ef01c977e3ed2cc013ff552a2663e71a239013516e57e"
+      "bytes": 4677,
+      "sha256": "9fbb53edd7d6da843cafa477434f5943a9fa59f001d1baf53405d4d47e36863d"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/CylinderPageMesh.java",
@@ -259,23 +284,28 @@
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/LocalSeriesRules.java",
-      "bytes": 1234,
-      "sha256": "4d6853e956d268cc8b88e1d195a7752e5eb8f3e5949bd17bc352289bb0166bbb"
+      "bytes": 1521,
+      "sha256": "479ccc85a79db9057b9a6f5f9f675f7944ebc445108b83456a507311386ca8e9"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/OfficialSeriesCatalog.kt",
-      "bytes": 12047,
-      "sha256": "4ca3018919ba58b6865473e1b050d42e19b97be7c67c7826196bd35be71a8a7f"
+      "bytes": 12251,
+      "sha256": "cc3a9a9e26bfaf65116bdaa65721b6c7644b9106308161a70662ba61d77a5312"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/OfficialSeriesParser.java",
-      "bytes": 5322,
-      "sha256": "e8382f3d930847ee1330511ddd1d884526d5ed5b4381fdb26d60497e5385d64c"
+      "bytes": 5650,
+      "sha256": "79144c4f7cbce71cc3f4fcff803983089d79c5e1115c951ff41a32d47ec6f72d"
+    },
+    {
+      "path": "app/src/main/java/com/audiobookdownloader/OfficialTextNoticePolicy.java",
+      "bytes": 694,
+      "sha256": "0655fbff60a318812da786bdf495091061e63badcc2d4ccf51372e0fda867384"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/OpenAudioCatalog.java",
-      "bytes": 10817,
-      "sha256": "df7cc2f4de439e3bdc25eeb35b5676b36a4fc653d4e7a5a0bfd52c3f1ea4f726"
+      "bytes": 10819,
+      "sha256": "39a8080718bb44004366c0ea153035d65251539dc7e2b4a0467d3e6d79d384b4"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/PageCurlRenderer.java",
@@ -289,8 +319,8 @@
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/PreviewUpdater.java",
-      "bytes": 7409,
-      "sha256": "4469430f773c3ed22066c6ed6246a5f18d06fc48ea1c5594ad4d9173217ffac5"
+      "bytes": 7527,
+      "sha256": "169c692becb409e0800da5e08ee230c933ee621c4a0dfdc32c47b3360571c74e"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/PreviewUpdatesActivity.java",
@@ -299,8 +329,8 @@
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/ReleaseNotesActivity.java",
-      "bytes": 2644,
-      "sha256": "7e8899786147910ed038f41d7e188c2523ceae0cf073a7a506da3dd9b431039f"
+      "bytes": 2664,
+      "sha256": "c52126a79c67eb1cd591158aa6c116d64831d4fe2d0032a820f3641dd277e665"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/ReleaseNotesPolicy.java",
@@ -309,18 +339,18 @@
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/SeriesAuthority.kt",
-      "bytes": 12540,
-      "sha256": "3d18b0f311b75aab08b30fe022eda9264f05d1652632bb47e8a569ab877dc80d"
+      "bytes": 12578,
+      "sha256": "fbd67e0eda51bd45ccdf476006ee9e13bf28e317656c5d27cde2ab946c7fd351"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/SeriesAuthorityParser.java",
-      "bytes": 8184,
-      "sha256": "2631528bc1bab2d4616c4cfba997e43ed001f93aba407635d5f688b8715af4a3"
+      "bytes": 9488,
+      "sha256": "e84f6487e1255fee43954783915c08646ecd3c7af83bee98a2070d378c2c89ef"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/SeriesAuthorityRules.java",
-      "bytes": 3558,
-      "sha256": "d9ea444d83e51e549e751769c2f30f16d0abb4ccb566277fecb69bbc467bc49c"
+      "bytes": 3603,
+      "sha256": "0553ee658ae7bbef6864bfd4354b80e6e1ea93129c8443e672ed4839b12472e2"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/SeriesContinuationRecovery.kt",
@@ -414,8 +444,8 @@
     },
     {
       "path": "app/src/test/java/com/audiobookdownloader/CollectionTransferRulesTest.java",
-      "bytes": 5389,
-      "sha256": "e37ef441167888017bacedc76fbc9e9965a74295393947d96f9069ce9152be80"
+      "bytes": 7969,
+      "sha256": "ba6f78084c7bc12dd6cabf292fdcd5c06ab0db7ef9b1b79db9f13c2fa107cd07"
     },
     {
       "path": "app/src/test/java/com/audiobookdownloader/ContinuationParserTest.java",
@@ -438,9 +468,19 @@
       "sha256": "7b20f179133450e64ed456577efa23b3eb2c0b9f6e863750a00981111b0441fb"
     },
     {
+      "path": "app/src/test/java/com/audiobookdownloader/LocalSeriesRulesTest.java",
+      "bytes": 2131,
+      "sha256": "c582a2692015c1544ad5e358e833220cbb071b568d67a1e5fac63e0fd4d99b26"
+    },
+    {
       "path": "app/src/test/java/com/audiobookdownloader/OfficialSeriesParserTest.java",
-      "bytes": 5212,
-      "sha256": "e9e8aff5195b3d3b71541a1fd308c059441cd21e8c9d60c5ab12ae01fc262cf0"
+      "bytes": 9179,
+      "sha256": "74ffa0014922173527f5d065b9af73fc6385e9c589964a10b1a03461d3bebc9b"
+    },
+    {
+      "path": "app/src/test/java/com/audiobookdownloader/OfficialTextNoticePolicyTest.java",
+      "bytes": 1898,
+      "sha256": "690792bb8b7fd8554a4fc9e1e1f091359060016c7c4fc2c0d826157a64f6085e"
     },
     {
       "path": "app/src/test/java/com/audiobookdownloader/OpenAudioCatalogTest.java",
@@ -534,8 +574,8 @@
     },
     {
       "path": "build.gradle.kts",
-      "bytes": 217,
-      "sha256": "61cd8e15a65a3ded440013250aa5c2bbc875158d0cf2db2e8fc5185ec3c69105"
+      "bytes": 272,
+      "sha256": "b02c3022d8634e6265ee754386a4823376593d8948692d02be95d302dca20e08"
     },
     {
       "path": "current/INSTALL-Search-Modes.txt",
@@ -544,8 +584,8 @@
     },
     {
       "path": "current/MainActivity.kt",
-      "bytes": 742995,
-      "sha256": "ddb6c61d46b05162e0c9e1f7fee5f6de8ee2e2e28bb2775630d68aba3f9c8944"
+      "bytes": 743406,
+      "sha256": "5f7a78a12ec4ab6c9c7c2441f8474ec5b0d335e12afb92fe913ef68a2c0fc4f4"
     },
     {
       "path": "current/PlaybackService.kt",
@@ -1333,6 +1373,11 @@
       "sha256": "66e2e58aab627232dbf6e61f3ff58363ff48ef1d4990e0bf143dea2d694ae992"
     },
     {
+      "path": "docs/AUDIT-4.2.68.md",
+      "bytes": 15219,
+      "sha256": "a83f07d9191fedaf2c6c1f7c268696b1b225078cff7f88d4ba75d088806c9887"
+    },
+    {
       "path": "docs/BUILD-4.1.md",
       "bytes": 3054,
       "sha256": "884a495152896c92c0292e51953eb70b410c0dde78d04196a9c76c7d29cca978"
@@ -1364,8 +1409,8 @@
     },
     {
       "path": "docs/HANDOFF.md",
-      "bytes": 66209,
-      "sha256": "bfbd767e1c31620b99c3e7814b11e1918fe073de8dd7c45d0a12d80fe2ada9e4"
+      "bytes": 68987,
+      "sha256": "191521faa64821705a32cef3677581cf600eac19c96d00f88faeed5b376429b6"
     },
     {
       "path": "docs/INSTALL.md",
@@ -1419,8 +1464,8 @@
     },
     {
       "path": "docs/PREVIEW-UPDATES.md",
-      "bytes": 9694,
-      "sha256": "f222490e046c7230fc62800f905faba916c565d4fcf9f9f55e4ea9da47d385c4"
+      "bytes": 10195,
+      "sha256": "90310bf2f06498addcb39721198604bb6dfbbafb33942c3fe80aa1ba60bac147"
     },
     {
       "path": "docs/QUALITY.md",
@@ -1496,6 +1541,161 @@
       "path": "docs/VALIDATION.log",
       "bytes": 25335,
       "sha256": "c0dddf5e386ae9395ecc8cd83e924975b64805da91ffa3c4a057777c3e0cb19c"
+    },
+    {
+      "path": "docs/audit-4.2.68/android23-tests.xml",
+      "bytes": 1431,
+      "sha256": "9e0c16829021bbeffacead2d65d3013638c8758a10ab4fdcbe79c547fc2f5dca"
+    },
+    {
+      "path": "docs/audit-4.2.68/crap-local.txt",
+      "bytes": 7327,
+      "sha256": "132daf2e5a70cb19c088a87ffdd1e8d9a6473fcafb9385f68b06a99f2e7edda1"
+    },
+    {
+      "path": "docs/audit-4.2.68/crap.edn",
+      "bytes": 8053,
+      "sha256": "be0dce7006586d2e414254407eebeb434f7ed90e3c388757a11126797350e41e"
+    },
+    {
+      "path": "docs/audit-4.2.68/dependency-advisories-before.json",
+      "bytes": 1205,
+      "sha256": "151018b71d072b07bf8e07eecccd8847718c29d6b75e98ca53f0986a10b769d1"
+    },
+    {
+      "path": "docs/audit-4.2.68/dependency-advisories.json",
+      "bytes": 6401,
+      "sha256": "ebe414e4bfc4e3fb44b8e0b3553236358e0e8515bd7476bdcfd019314e84c4fe"
+    },
+    {
+      "path": "docs/audit-4.2.68/desugar-advisories.json",
+      "bytes": 258,
+      "sha256": "485c3a09712e1932c26af7ceb361ac5394fbb9fa93744f24e65ae4601aa52c0c"
+    },
+    {
+      "path": "docs/audit-4.2.68/dry.edn",
+      "bytes": 17,
+      "sha256": "d4096cccbc2108ff3f8dca9d20dbc6ebf313423ad28abf5b50a196ce923a91d5"
+    },
+    {
+      "path": "docs/audit-4.2.68/duplication-local.txt",
+      "bytes": 54,
+      "sha256": "4a1bfcbc3743b8aed9387308a849acbe243b0009af5b6b08b93836b2a9cd7fe9"
+    },
+    {
+      "path": "docs/audit-4.2.68/emulator-system-failure.log",
+      "bytes": 732,
+      "sha256": "791d470993f564d2c8a797e35080d22831bb2b87faf0ba2a1ac185cc107633e3"
+    },
+    {
+      "path": "docs/audit-4.2.68/jsoup-advisories-after.json",
+      "bytes": 17,
+      "sha256": "53b3ac278f475fb300235142f9144657f04fc1dff194b0526e5f1262da5d0979"
+    },
+    {
+      "path": "docs/audit-4.2.68/jvm-local.log",
+      "bytes": 457,
+      "sha256": "cdfa82f5ce7339ae29da6e76bab0f349782999334e043a376ca88d5d8e7dae2d"
+    },
+    {
+      "path": "docs/audit-4.2.68/jvm-tools.json",
+      "bytes": 1029,
+      "sha256": "3b96dc5392b4e6456974bb8b59c15d3dba2a4132bfdb5f904b660f2a29a7acc6"
+    },
+    {
+      "path": "docs/audit-4.2.68/lint-gate-before.log",
+      "bytes": 2031,
+      "sha256": "e14d085d2d0050cace53eb58904f97f197a1643d66f0ce60993fcb82d257c2e5"
+    },
+    {
+      "path": "docs/audit-4.2.68/lint-results-release.xml",
+      "bytes": 193254,
+      "sha256": "f1124c1bfd026acb0956bbba9d56a5ec3cd30194661229c07612a100d4e3612d"
+    },
+    {
+      "path": "docs/audit-4.2.68/live-reference-fetch.json",
+      "bytes": 425,
+      "sha256": "f155afaf38ead78c8fd305ecec32d08ad8659a5ea88750ce385fbb49b5a8de26"
+    },
+    {
+      "path": "docs/audit-4.2.68/live-reference-parse.log",
+      "bytes": 86,
+      "sha256": "561a91dee8ed60d0a09b5a56c1a06dcc35da6e4be8823a556cc182ea6fb11b5f"
+    },
+    {
+      "path": "docs/audit-4.2.68/mutation-catalogue.log",
+      "bytes": 5193,
+      "sha256": "cf56cf3b58e58c12978998ed127d51c372d944c16f8c2e56c4f098d725e87e30"
+    },
+    {
+      "path": "docs/audit-4.2.68/mutation-local-series.log",
+      "bytes": 2692,
+      "sha256": "2250c206f521b1e72e287d4e84a8b73748be5ac251efa630e61ea8c8e2e9a492"
+    },
+    {
+      "path": "docs/audit-4.2.68/mutation-text-policy.log",
+      "bytes": 1074,
+      "sha256": "487afd271342abef26c1bf62387fd50e07715a39e768717a8bebd1ef36d4e145"
+    },
+    {
+      "path": "docs/audit-4.2.68/mutation-xml.log",
+      "bytes": 3469,
+      "sha256": "3091bb59ba1203b2f13153f97a1d6a9242059b34fd50dd2585ec9a03d749bcbb"
+    },
+    {
+      "path": "docs/audit-4.2.68/permission-audit.json",
+      "bytes": 1029,
+      "sha256": "87feecbc8dcd8edd9597c1680158a8dfeab348f01c31684f16584f4205774d21"
+    },
+    {
+      "path": "docs/audit-4.2.68/published-apk-audit.json",
+      "bytes": 1029,
+      "sha256": "0198a36364caefc407f12861aee635a8ceb516328018f7a655a99e0e13f4f2d0"
+    },
+    {
+      "path": "docs/audit-4.2.68/published-feed-unchanged.json",
+      "bytes": 252,
+      "sha256": "169c24014a7d443720ed6c092f30f135da9289344082d9456496066fb1e20a27"
+    },
+    {
+      "path": "docs/audit-4.2.68/regressions-before.log",
+      "bytes": 3444,
+      "sha256": "6c54a73acf9ee0e41cf2d384b8dc0a56489d38e0705e32e07c0f9bd027c4241c"
+    },
+    {
+      "path": "docs/audit-4.2.68/reproduce-jvm.py",
+      "bytes": 1814,
+      "sha256": "59de15240d50ae966f168122fa888055aa065a844356b2dd67fe0ee7a7c2e6d0"
+    },
+    {
+      "path": "docs/audit-4.2.68/runtime-dependencies.json",
+      "bytes": 6567,
+      "sha256": "0805c3a4e74a4c27728e7feeacc5196989fd1699abe4695e379ad8838f9c8d27"
+    },
+    {
+      "path": "docs/audit-4.2.68/runtime-source-inputs.json",
+      "bytes": 19448,
+      "sha256": "427f1f7ebe8aacf65c4bedc63459915047ddbe013ccb510a7c02563384e47a7a"
+    },
+    {
+      "path": "docs/audit-4.2.68/text-baseline-before.log",
+      "bytes": 761,
+      "sha256": "024909229f58f7c350b4d1e86937d13c25c530cfc9d0b40a5101dcd2bc2feb20"
+    },
+    {
+      "path": "docs/audit-4.2.68/verification.json",
+      "bytes": 6034,
+      "sha256": "87938ffa89526ffacb945e4cb68c9e8dddcbbc8ad4565b582f3caa034afc087b"
+    },
+    {
+      "path": "docs/audit-4.2.68/xml-probe-after.log",
+      "bytes": 1835,
+      "sha256": "6b5b319cf599358ddc817ac5e4d62a7d826bec58ece8c169e947cbb0315fee99"
+    },
+    {
+      "path": "docs/audit-4.2.68/xml-probe-before.log",
+      "bytes": 28,
+      "sha256": "67e840252f258e2883f702254fff70a965d40ef2cecd10d749f2280917b9f18f"
     },
     {
       "path": "docs/previous/AudioBook-4.0-History.docx",
@@ -11113,9 +11313,19 @@
       "sha256": "b2b67d79c4f73518cd8e98ec10ef6e07efda6664675aaad07d484dd8d56c5d2b"
     },
     {
+      "path": "scripts/audit-dependencies.py",
+      "bytes": 1973,
+      "sha256": "08234db0106186676fdf57c2ed26c86b016eaf3707a98fc0000079c6fe279c13"
+    },
+    {
       "path": "scripts/audit-installable-apk.py",
       "bytes": 4128,
       "sha256": "83f635a1c3ab7ff7449c2e6cd36dd36f2717e2e75baf06f24158ef247d438efb"
+    },
+    {
+      "path": "scripts/check-android-lint.py",
+      "bytes": 622,
+      "sha256": "9acb39270240e4550ae38a7815bf07658959c6bdfd13af214bbe6f2d3bc80b5e"
     },
     {
       "path": "scripts/fetch-upgrade-baseline.py",
@@ -11174,8 +11384,8 @@
     },
     {
       "path": "scripts/test-preview-upgrade.py",
-      "bytes": 4257,
-      "sha256": "a804c5007c14ef64b4f622e3a6efcb2fc5b7f6479bdc39c5acac85c28e623a7d"
+      "bytes": 5944,
+      "sha256": "9a2d6f988ac5e52e62cba3213b21341f01aafb8614ecd6fb76f4efbd992977a1"
     },
     {
       "path": "scripts/tests/test-phone-signing.py",
@@ -11184,8 +11394,8 @@
     },
     {
       "path": "settings.gradle.kts",
-      "bytes": 286,
-      "sha256": "8e24c7a31ca1c2b9d363946363944b45b8edc6b7bcab62d9a5da4888b87e38d0"
+      "bytes": 302,
+      "sha256": "baa802736d7c98da4426a29f093907068a9397bf6cd61b095bd9aa251edd6758"
     },
     {
       "path": "tools/package-public-update.py",
@@ -11201,6 +11411,16 @@
       "path": "tools/run_checks.py",
       "bytes": 1419,
       "sha256": "83bbcf1662c857bf4f68140a964191f81e158ab5c60464d3dd133807d2ce45aa"
+    },
+    {
+      "path": "upgradeProbe/build.gradle.kts",
+      "bytes": 2392,
+      "sha256": "c4730911621caa628da6b4ba6ed036e086dec1de7061ba8c9df4fa5e57dba81e"
+    },
+    {
+      "path": "upgradeProbe/src/main/AndroidManifest.xml",
+      "bytes": 184,
+      "sha256": "56db15a8db81238ffa7babf399e7d88fd44aa5f6f9eb01f52ce60671d0987bac"
     }
   ]
 }

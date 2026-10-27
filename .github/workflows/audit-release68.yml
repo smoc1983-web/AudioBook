@@ -53,6 +53,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: android23-compatibility-reports
+          overwrite: true
           path: |
             app/build/reports/androidTests/
             app/build/outputs/androidTest-results/
@@ -149,6 +150,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: android-startup-test-reports
+          overwrite: true
           path: |
             startup-evidence/
             source-evidence/
@@ -159,6 +161,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: release68-audit-evidence
+          overwrite: true
           path: |
             audit-evidence/
             app/build/reports/lint-results-release.*

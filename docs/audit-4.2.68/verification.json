@@ -1,0 +1,191 @@
+{
+  "dateUtc": "2026-10-27",
+  "status": "awaiting-final-ci; publication explicitly prohibited",
+  "repository": "smoc1983-web/AudioBook",
+  "branch": "audit/4.2.68-ub-mode-hardening",
+  "applicationSourceCommit": "51551e2affdaf84a049dd668354bae4f47073848",
+  "fullCiSourceCommit": "30b6cafb71310fd344a14e23ad9dccc5085101cb",
+  "runtimeInputs": "runtime-source-inputs.json",
+  "mainUnchanged": "9806b677894ecdd86e693c6740dca36067a1cf69",
+  "publishedVersionCode": 100068,
+  "testOnlyCandidateVersionCode": 100069,
+  "publishedFeedUnchanged": {
+    "url": "https://audiobook-smoc1983-updates.amplecoot2048.chatgpt.site/updates/preview-update.json",
+    "httpStatus": 200,
+    "sha256": "207fd2bc50ad4646e559390a9519eeab8cea2ae104cea991fc356517f121a747",
+    "unchanged": true,
+    "versionCode": 100068
+  },
+  "publication": {
+    "mergedMain": false,
+    "pushedMain": false,
+    "releasePublished": false,
+    "feedOrSiteChanged": false,
+    "apkDistributed": false,
+    "signingKeyDownloadedOrCommitted": false
+  },
+  "local": {
+    "junit": {
+      "tests": 107,
+      "failures": 0,
+      "skippedOptionalLive": 1,
+      "reproducer": "reproduce-jvm.py"
+    },
+    "javascriptFixtures": 171,
+    "offlinePermissionGates": 6,
+    "libraryRecoveryRules": 22,
+    "indexStress": {
+      "operations": 40000,
+      "desktopJvmSeconds": 0.772,
+      "physicalPhone": false
+    },
+    "crapper": {
+      "supportedScope": "six named changed pure-Java components; actual JaCoCo 0.8.12 coverage",
+      "maximumCrap": 9.0,
+      "threshold": 9.99,
+      "kotlinSupported": false,
+      "wholeAppCoverage": false
+    },
+    "dryer": {
+      "scope": "active Java",
+      "threshold": 0.8,
+      "candidates": 0,
+      "kotlinOrEmbeddedJsSupported": false
+    },
+    "mutations": {
+      "officialSeriesParser": {
+        "killed": 37,
+        "survived": 0
+      },
+      "officialTextNoticePolicy": {
+        "killed": 3,
+        "survived": 0
+      },
+      "localSeriesRules": {
+        "killed": 17,
+        "survived": 0
+      },
+      "collectionXmlReader": {
+        "killed": 20,
+        "survived": 2,
+        "rawExitCode": 3,
+        "reason": "independent DTD/ENTITY precheck and resolver mask each external-entity feature flip; equivalent under current input policy; defenses retained"
+      },
+      "total": 79,
+      "killedTotal": 77,
+      "equivalentSurvivors": 2
+    }
+  },
+  "android23": {
+    "run": 40471247663,
+    "job": 122078610672,
+    "tests": 7,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "conclusion": "success",
+    "report": "android23-tests.xml",
+    "sameProductInputsAsFinalFullRun": true
+  },
+  "android36": {
+    "run": 40474299508,
+    "job": 122088603822,
+    "conclusion": "retry-in-progress",
+    "firstAttempt": {
+      "conclusion": "failure",
+      "nativeTestCounts": {
+        "name": "com.audiobookdownloader.CollectionTransferTest",
+        "tests": "31",
+        "failures": "1",
+        "errors": "0",
+        "skipped": "3",
+        "time": "66.454",
+        "timestamp": "2026-10-27T08:52:03",
+        "hostname": "localhost"
+      },
+      "reason": "emulator system_server ANR: No response to onStartJob; installation Activity displayed, UI automation could not reach it; new isolated upgrade probe not yet executed"
+    }
+  },
+  "previousRuns": [
+    {
+      "run": 40463422993,
+      "result": "success conclusion but actual Lint XML contains 18 errors; tolerant step masked findings; not clean acceptance"
+    },
+    {
+      "run": 40464933020,
+      "result": "superseded by subsequent source run"
+    },
+    {
+      "run": 40465517922,
+      "result": "native tests passed; old-target instrumentation wrongly assumed new desugared Java runtime; API23 emulator not booted: insufficient disk"
+    },
+    {
+      "run": 40467078536,
+      "result": "API23 6/7 pass; remaining test used File.toPath API26; replaced test-only IO"
+    },
+    {
+      "run": 40468906623,
+      "result": "attempt to remove desugaring disproved: jsoup requires Java functional interfaces on API23; restored core library desugaring 2.1.5"
+    },
+    {
+      "run": 40471247663,
+      "result": "API23 7/7 pass; Android36 native tests pass, standalone upgrade probe hit AndroidX 2.3/2.8 ABI shadowing; fixed test-only peer alignment"
+    }
+  ],
+  "security": {
+    "jsoupBefore": "1.18.3",
+    "jsoupAfter": "1.23.2",
+    "dependencyAdvisoriesBefore": [
+      "CVE-2026-75140",
+      "CVE-2026-71497"
+    ],
+    "confirmedAppExploits": false,
+    "originalNamespaceProbeCausedOutOfMemory": false,
+    "xmlDepthLimit": 32,
+    "xmlInputLimitBytes": 1048576,
+    "webviewFileContentAccess": false,
+    "webviewMixedContentAllowed": false,
+    "newSigningKeyArtifactOrCacheCopiesInPreparedWorkflow": false,
+    "legacyKeyCopiesDeleted": false,
+    "remainingKeyRisk": "existing private recovery artifact/cache until permanent Actions secret is verified; key rotation would break installed updates"
+  },
+  "limits": [
+    "No physical Samsung S24/FPS/hardware-shake verification",
+    "No Google Play Protect verdict",
+    "No full native Android network APK download or concurrent download stress",
+    "No phone DNS verification",
+    "Official platform live checks are HTML/JVM, not paid playback",
+    "OSV absence does not exclude unknown vulnerabilities",
+    "Author disambiguation is bounded to returned search page",
+    "Crapper scope is pure Java, not whole Android/Kotlin app"
+  ],
+  "jvmCi": {
+    "Debug": {
+      "tests": 123,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    },
+    "Release": {
+      "tests": 123,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    }
+  },
+  "lint": {
+    "errors": 0,
+    "warnings": 76,
+    "information": 59,
+    "report": "lint-results-release.xml",
+    "previousErrorCount": 18,
+    "strictGateRejectedOriginalReport": true
+  },
+  "resolvedRuntimeDependencies": {
+    "modules": 68,
+    "findings": 0,
+    "complete": true,
+    "report": "dependency-advisories.json",
+    "coreDesugarSeparatelyChecked": true
+  }
+}

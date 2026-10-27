@@ -1,0 +1,18 @@
+{
+  "query": {
+    "queries": [
+      {
+        "package": {
+          "ecosystem": "Maven",
+          "name": "com.android.tools:desugar_jdk_libs"
+        },
+        "version": "2.1.5"
+      }
+    ]
+  },
+  "response": {
+    "results": [
+      {}
+    ]
+  }
+}
