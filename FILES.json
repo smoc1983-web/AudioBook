@@ -1374,8 +1374,8 @@
     },
     {
       "path": "docs/AUDIT-4.2.68.md",
-      "bytes": 15219,
-      "sha256": "a83f07d9191fedaf2c6c1f7c268696b1b225078cff7f88d4ba75d088806c9887"
+      "bytes": 17259,
+      "sha256": "6b678c3397914b2d515054999469fb4d4539f4326fac864a8d3e8f5a78a3c361"
     },
     {
       "path": "docs/BUILD-4.1.md",
@@ -1409,8 +1409,8 @@
     },
     {
       "path": "docs/HANDOFF.md",
-      "bytes": 68987,
-      "sha256": "191521faa64821705a32cef3677581cf600eac19c96d00f88faeed5b376429b6"
+      "bytes": 69545,
+      "sha256": "e03307a23c8303fb0a6a823693d3bbedff0900280f330595527e8a662e208d4c"
     },
     {
       "path": "docs/INSTALL.md",
@@ -1548,6 +1548,11 @@
       "sha256": "9e0c16829021bbeffacead2d65d3013638c8758a10ab4fdcbe79c547fc2f5dca"
     },
     {
+      "path": "docs/audit-4.2.68/android36-tests.xml",
+      "bytes": 4981,
+      "sha256": "970ccc9478aea4d81a9dd2318866efc201e1c6125aae8d9e060fa5c214df7f22"
+    },
+    {
       "path": "docs/audit-4.2.68/crap-local.txt",
       "bytes": 7327,
       "sha256": "132daf2e5a70cb19c088a87ffdd1e8d9a6473fcafb9385f68b06a99f2e7edda1"
@@ -1586,6 +1591,16 @@
       "path": "docs/audit-4.2.68/emulator-system-failure.log",
       "bytes": 732,
       "sha256": "791d470993f564d2c8a797e35080d22831bb2b87faf0ba2a1ac185cc107633e3"
+    },
+    {
+      "path": "docs/audit-4.2.68/installed-upgrade.json",
+      "bytes": 844,
+      "sha256": "cfefa67e15e5cd84c8a9b56596764e58a6d0860043ac870830c682fd34cb9b0e"
+    },
+    {
+      "path": "docs/audit-4.2.68/installedUpgradeKeepsDataAndNewName.txt",
+      "bytes": 768,
+      "sha256": "85379c7a4b9aca7d356888206ef95a7be26475efeab55e3efc5e06a26a492d5e"
     },
     {
       "path": "docs/audit-4.2.68/jsoup-advisories-after.json",
@@ -1643,6 +1658,11 @@
       "sha256": "3091bb59ba1203b2f13153f97a1d6a9242059b34fd50dd2585ec9a03d749bcbb"
     },
     {
+      "path": "docs/audit-4.2.68/oldUpdaterAcceptsNewSignedApk.txt",
+      "bytes": 862,
+      "sha256": "14614a5cd396025a36d7237b5dc1f281f64116dc0c0de09be2353a8d8dbd471a"
+    },
+    {
       "path": "docs/audit-4.2.68/permission-audit.json",
       "bytes": 1029,
       "sha256": "87feecbc8dcd8edd9597c1680158a8dfeab348f01c31684f16584f4205774d21"
@@ -1678,14 +1698,19 @@
       "sha256": "427f1f7ebe8aacf65c4bedc63459915047ddbe013ccb510a7c02563384e47a7a"
     },
     {
+      "path": "docs/audit-4.2.68/seedInstalledUpgradeData.txt",
+      "bytes": 746,
+      "sha256": "9904d76900becdfbbb1a811694ae2219bc8f88c30f72fa4909c0f390a1951d30"
+    },
+    {
       "path": "docs/audit-4.2.68/text-baseline-before.log",
       "bytes": 761,
       "sha256": "024909229f58f7c350b4d1e86937d13c25c530cfc9d0b40a5101dcd2bc2feb20"
     },
     {
       "path": "docs/audit-4.2.68/verification.json",
-      "bytes": 6034,
-      "sha256": "87938ffa89526ffacb945e4cb68c9e8dddcbbc8ad4565b582f3caa034afc087b"
+      "bytes": 8256,
+      "sha256": "9e97f22f9348f4b82af8263c461dbd3190b5a47cf04f6eca49125c5d818a7423"
     },
     {
       "path": "docs/audit-4.2.68/xml-probe-after.log",

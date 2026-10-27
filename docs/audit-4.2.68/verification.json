@@ -1,6 +1,6 @@
 {
   "dateUtc": "2026-10-27",
-  "status": "awaiting-final-ci; publication explicitly prohibited",
+  "status": "verified; saved in audit branch; publication prohibited pending explicit user approval",
   "repository": "smoc1983-web/AudioBook",
   "branch": "audit/4.2.68-ub-mode-hardening",
   "applicationSourceCommit": "51551e2affdaf84a049dd668354bae4f47073848",
@@ -89,8 +89,8 @@
   },
   "android36": {
     "run": 40474299508,
-    "job": 122088603822,
-    "conclusion": "retry-in-progress",
+    "job": 122096972617,
+    "conclusion": "success",
     "firstAttempt": {
       "conclusion": "failure",
       "nativeTestCounts": {
@@ -104,7 +104,22 @@
         "hostname": "localhost"
       },
       "reason": "emulator system_server ANR: No response to onStartJob; installation Activity displayed, UI automation could not reach it; new isolated upgrade probe not yet executed"
-    }
+    },
+    "attempt": 2,
+    "tests": {
+      "tests": 31,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 3
+    },
+    "report": "android36-tests.xml",
+    "upgradePhases": {
+      "seedInstalledUpgradeData": "passed",
+      "oldUpdaterAcceptsNewSignedApk": "passed",
+      "installedUpgradeKeepsDataAndNewName": "passed"
+    },
+    "upgrade": "installed-upgrade.json",
+    "url": "https://github.com/smoc1983-web/AudioBook/actions/runs/40474299508"
   },
   "previousRuns": [
     {
@@ -147,7 +162,8 @@
     "webviewMixedContentAllowed": false,
     "newSigningKeyArtifactOrCacheCopiesInPreparedWorkflow": false,
     "legacyKeyCopiesDeleted": false,
-    "remainingKeyRisk": "existing private recovery artifact/cache until permanent Actions secret is verified; key rotation would break installed updates"
+    "remainingKeyRisk": "existing private recovery artifact/cache until permanent Actions secret is verified; key rotation would break installed updates",
+    "signingSecretMetadataAvailableThroughConnector": false
   },
   "limits": [
     "No physical Samsung S24/FPS/hardware-shake verification",
@@ -179,7 +195,30 @@
     "information": 59,
     "report": "lint-results-release.xml",
     "previousErrorCount": 18,
-    "strictGateRejectedOriginalReport": true
+    "strictGateRejectedOriginalReport": true,
+    "warningIdsReviewed": {
+      "ApplySharedPref": 7,
+      "DefaultLocale": 6,
+      "InlinedApi": 1,
+      "UnusedAttribute": 13,
+      "ManifestOrder": 1,
+      "RedundantLabel": 1,
+      "VectorRaster": 2,
+      "GradleDependency": 10,
+      "ComposableNaming": 1,
+      "SetJavaScriptEnabled": 2,
+      "DataExtractionRules": 1,
+      "ObsoleteSdkInt": 5,
+      "NestedWeights": 1,
+      "UnusedResources": 2,
+      "MonochromeLauncherIcon": 1,
+      "SmallSp": 4,
+      "ViewConstructor": 1,
+      "SetTextI18n": 10,
+      "HardcodedText": 6,
+      "RtlEnabled": 1
+    },
+    "javaScriptWarnings": "Source pages require JavaScript; no Java bridge, file/content access disabled in shared browser; warnings retained"
   },
   "resolvedRuntimeDependencies": {
     "modules": 68,
@@ -187,5 +226,36 @@
     "complete": true,
     "report": "dependency-advisories.json",
     "coreDesugarSeparatelyChecked": true
-  }
+  },
+  "ciArtifacts": [
+    {
+      "id": 12721029819,
+      "kind": "native",
+      "attempt": 2,
+      "sha256": "4de05d73a414d52d8f8fc52ff8e6ca542e6a5d478ef14ef940b001b981459271",
+      "downloadChecksumVerified": true
+    },
+    {
+      "id": 12721294355,
+      "kind": "audit",
+      "attempt": 2,
+      "sha256": "ca6dd6452951b515968cb275190526d711f7777ea136a5356a819a56e9e7d637",
+      "downloadChecksumVerified": true
+    },
+    {
+      "id": 12721119540,
+      "kind": "unit",
+      "attempt": 2,
+      "sha256": "361aa1cc2a612c8e8a96c105969924f2a209df8d12dc81da8c5c837dc580ceb5",
+      "downloadChecksumVerified": true
+    },
+    {
+      "id": 12719770728,
+      "kind": "android23",
+      "run": 40471247663,
+      "sha256": "57f708971083bfe02ab962f3f9ddde9a3e7455cfe8b15bc2cb91c3494fe31c89",
+      "downloadChecksumVerified": true
+    }
+  ],
+  "reportNormalization": "Copied Android XML uses LF line endings; original artifact SHA-256 recorded above"
 }

@@ -26,6 +26,11 @@ scripts/check-android-lint.py и его gate + OSV добавлены перед
 не удалять эти настройки и не тестировать исходный текст ради процента.
 Шесть чистых Java-компонентов проверены JaCoCo/Crapper, max CRAP 9.0;
 это не покрытие всех Android/Kotlin классов. CI — audit-4.2.68/verification.json.
+Итог: Android23 7/7; Android36 31 (3 opt-in skip) + 3 отдельные фазы реального
+release upgrade, всё без ошибок. Full run40474299508 attempt2 success; attempt1
+системный ANR эмулятора. Debug/Release JVM по123 (1 необязательный skip), Lint0Error
+при76Warning/59Information; OSV68 зависимостей без найденных advisories.
+Обновление не опубликовано. Перед публикацией проверить постоянный signing secret.
 
 ## Правила следующих изменений: ub-mode (2026-10-27)
 
