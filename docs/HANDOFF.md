@@ -1,3 +1,16 @@
+## Исправление области уведомлений после ручной 4.2.69
+
+Рабочая ветка fix/collection-notices-only. [Причина и изменение](COLLECTION-NOTIFICATIONS.md).
+Глобальный LitresReleaseScanner удалён: теперь официальный audio baseline по прямой
+серии коллекционной книги. Виртуальный seed «litres» больше не разрешает уведомления.
+Legacy global inbox удаляется, posted уведомления отменяются без влияния на плеер;
+текущие коллекции фильтруют inbox, route и send. Текстовый v2 baseline сохраняется.
+Android23/36 CI40550108807 success: по11/11; Debug JVM127 (1 optional skip).
+CI40548734022: notification tests passed, one cold-search assertion in each API
+failed due test-cache carryover; fixed isolation, assertions kept.
+Итог в collection-notifications/verification.json.
+Publication hold продолжается: main, in-app feed100068 и phone APK69 не менялись.
+
 ## Ручной APK 4.2.69 для телефона (после аудита)
 
 Пользователь разрешил прямую ссылку, без повторных тестов. См. [PHONE-CANDIDATE.md](audit-4.2.68/PHONE-CANDIDATE.md).
