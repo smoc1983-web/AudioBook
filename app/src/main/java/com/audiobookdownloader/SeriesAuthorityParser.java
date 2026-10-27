@@ -116,7 +116,8 @@ public final class SeriesAuthorityParser {
   for(Element card:d.select(selector)){
    if(card.closest("nav")!=null)continue;
    Listed row=listing(card,provider);if(row==null)continue;
-   out.putIfAbsent(row.record.bookUrl,row);if(out.size()>=80)break;
+   if(!out.containsKey(row.record.bookUrl))out.put(row.record.bookUrl,row);
+   if(out.size()>=80)break;
   }
   return new ArrayList<>(out.values());
  }

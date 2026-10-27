@@ -95,6 +95,14 @@ jobs:
             source-evidence/
             app/build/reports/androidTests/connected/
             app/build/outputs/androidTest-results/connected/
+      - name: Android lint before publishing
+        run: gradle :app:lintRelease --stacktrace
+      - name: Require zero Android lint errors
+        run: python scripts/check-android-lint.py app/build/reports/lint-results-release.xml
+      - name: Check resolved runtime dependencies before publishing
+        run: |
+          gradle :app:auditRuntimeDependencies
+          python scripts/audit-dependencies.py --input app/build/reports/security/runtime-dependencies.json --output audit-evidence/dependency-advisories.json
       - name: Package verified update
         env:
           GH_TOKEN: ${{ github.token }}
@@ -162,4 +170,7 @@ jobs:
             app/build/test-results/testDebugUnitTest/
             app/build/reports/tests/testDebugUnitTest/
             app/build/test-results/testReleaseUnitTest/
+            app/build/reports/lint-results-release.*
+            app/build/reports/security/
+            audit-evidence/dependency-advisories.json
             app/build/reports/tests/testReleaseUnitTest/

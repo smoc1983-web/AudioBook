@@ -51,7 +51,7 @@ internal class ContinuationStore(private val context:Context) {
     }catch(_:Exception){emptyList()}
     fun mergeNotices(fresh:List<ContinuationNotice>) = synchronized(inboxLock) {
         val saved=notices().associateBy{it.id}.toMutableMap()
-        fresh.forEach{saved.putIfAbsent(it.id,it)}
+        fresh.forEach{if(!saved.containsKey(it.id))saved[it.id]=it}
         saveNotices(saved.values.sortedByDescending{it.at}.take(100))
     }
     fun updateNotice(id:String,read:Boolean?=null,notified:Boolean?=null) = synchronized(inboxLock) {saveNotices(notices().map {
