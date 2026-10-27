@@ -36,6 +36,13 @@ python3 scripts/quality-tools.py mutator --scan app/src/main/java
    этот файл. Для Java здесь Gradle, а стандарт Mutator — Maven: обязательно
    передать --test-command с профильной Gradle/JVM командой. Никогда не использовать
    команду публикации, подписи APK, git push или деплоя как тест мутанта.
+   Воспроизводимая команда для проверенной границы продолжений:
+
+   ```bash
+   export QUALITY_JUNIT_CLASSPATH=/path/junit-4.13.2.jar:/path/hamcrest-core-1.3.jar
+   python3 scripts/quality-tools.py mutator --no-coverage --max-workers 1 --mutate-all --lines 37 --test-command "bash docs/quality/continuation-tests.sh" app/src/main/java/com/audiobookdownloader/ContinuationRules.java
+   ```
+
 5. Для мутаций общий Gradle build/cache может конфликтовать между workers:
    начинать с --max-workers 1. Тайм-аут/ошибка компиляции считается killed самим
    инструментом, поэтому изучать причины, а не объявлять тесты исчерпывающими.

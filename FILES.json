@@ -1424,8 +1424,8 @@
     },
     {
       "path": "docs/QUALITY.md",
-      "bytes": 5530,
-      "sha256": "431ed31cfd80af6afed2d313a246f8afb3e0b0aa7b43e0d88b115471fb541b10"
+      "bytes": 5973,
+      "sha256": "fe3265bbc47ac41c3524096fd78859c2fd77ee0d4bb6b725e636bbd89088a94a"
     },
     {
       "path": "docs/SCREENSHOT-SOURCES.md",
@@ -1553,6 +1553,11 @@
       "sha256": "d4096cccbc2108ff3f8dca9d20dbc6ebf313423ad28abf5b50a196ce923a91d5"
     },
     {
+      "path": "docs/quality/continuation-tests.sh",
+      "bytes": 531,
+      "sha256": "dbf9f4fd1fa2df1e0a2689580e227c0af4e4fad0ef9f2dbde1253f11c01bdee7"
+    },
+    {
       "path": "docs/quality/mutation-boundary.log",
       "bytes": 1575,
       "sha256": "4424423e94d5b594808908a68332cef638ee45d0521c3b0873cea0b2ffbdcf5a"
@@ -1564,8 +1569,8 @@
     },
     {
       "path": "docs/quality/verification-2026-10-27.json",
-      "bytes": 2320,
-      "sha256": "966f461d96f5244d9fdef06a560ca14dc6774100690d1849bc91c06467933b05"
+      "bytes": 2590,
+      "sha256": "89dfb1db0a4be56bf935b2408723d3d08f5cc8442c394986ab0707d3e8fe1fcc"
     },
     {
       "path": "docs/screenshot-source-registry.json",
