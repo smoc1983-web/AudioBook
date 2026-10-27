@@ -1,5 +1,5 @@
 {
-  "revision": "audiobook-official-text-audio-series-catalog",
+  "revision": "audiobook-4.2.68-official-text-audio-continuations-verified",
   "storage": "GitHub export; see releases/ARCHIVE-PARTS.json for three multipart historical ZIPs",
   "files": [
     {
@@ -14,8 +14,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 18553,
-      "sha256": "91fd40a5bc6ea9ae6219d6e81e68fc6c1351370cc580e3ea237b0c35c115f2ce"
+      "bytes": 19266,
+      "sha256": "6f2e86122a155db68fdc2f830e189356a58fd1a2e90fa3498ba4c26798adc1a9"
     },
     {
       "path": "app/build.gradle.kts",
@@ -1349,8 +1349,8 @@
     },
     {
       "path": "docs/HANDOFF.md",
-      "bytes": 58807,
-      "sha256": "22474fbda5f40416908d960b709c90a8d835b016f6cdb966d4cf606adfc41940"
+      "bytes": 65390,
+      "sha256": "1b64a4a1894a7e9b78423f4bc846539d8548eb623e8c380503314d576617b43d"
     },
     {
       "path": "docs/INSTALL.md",
@@ -1464,8 +1464,8 @@
     },
     {
       "path": "docs/TEXT-SERIES-CATALOG.md",
-      "bytes": 5545,
-      "sha256": "d66673f84caeaa7c7b998f5f3a9b70d9e6cd45971051b1c35fe3657a6974d11e"
+      "bytes": 6920,
+      "sha256": "af2924832bbd5a632e5b2f0a7d4fa7acbc520a5c5a886d2b14dd6aa8dcbf8662"
     },
     {
       "path": "docs/UPDATE-NETWORK.md",
@@ -1618,6 +1618,11 @@
       "sha256": "c2c94f9a93fbb7a92d13c8b908936914bab88d11e8f263521c7e1c93a6888606"
     },
     {
+      "path": "docs/verification/checks-100068.json",
+      "bytes": 1972,
+      "sha256": "8d4ec5b4c7f3fe5acd5a0817e78e7a2ad9f4203372a02204a68a621a6a242912"
+    },
+    {
       "path": "docs/verification/collection-transfer-100053.json",
       "bytes": 508,
       "sha256": "f493ad3b08db0ffd44d1b269d655625649bdbdcfd7081acfa8a08f30630a9b04"
@@ -1693,6 +1698,11 @@
       "sha256": "e1ea79b1b9c49cf654b8104bb6ac9fbed4d3aaed04d496e6632c51431696e4df"
     },
     {
+      "path": "docs/verification/download-browser-100068.json",
+      "bytes": 763,
+      "sha256": "a3f200efcd9613b44d753d92612c6489fac67b39de000159e8522d45e2360839"
+    },
+    {
       "path": "docs/verification/download-local-browser-100062.json",
       "bytes": 1099,
       "sha256": "01bf8e03e28d4f523b702f8bfbb3ea4c2b4a4030fc108013e4fc29ab1eaadabf"
@@ -1708,6 +1718,11 @@
       "sha256": "e5a1bbee377d90bf519716e0bd8f142bafea00499f57efb0a2b6dcf368e9924c"
     },
     {
+      "path": "docs/verification/download-local-browser-100068.json",
+      "bytes": 1101,
+      "sha256": "d70a14a23ae70110ae7a1b0ada27977f2f6faff1b22a868748ec8a464049370f"
+    },
+    {
       "path": "docs/verification/installed-release-upgrade-100063.json",
       "bytes": 663,
       "sha256": "c98879fca2010efa1a0d1019adedfa144676c9bc0537ab8d7c887afaece86c7a"
@@ -1716,6 +1731,11 @@
       "path": "docs/verification/installed-release-upgrade-100066.json",
       "bytes": 724,
       "sha256": "079a2ff87308893b439d55059111d05d3c96334daad9cbca7851b74aca8a7575"
+    },
+    {
+      "path": "docs/verification/installed-release-upgrade-100068.json",
+      "bytes": 724,
+      "sha256": "a3da406c7053efe3dc4b39d50c144c98ad336572b248f64a2a7e55a7de65f7fa"
     },
     {
       "path": "docs/verification/installed-upgrade-100048-to-100050.json",
@@ -1763,6 +1783,11 @@
       "sha256": "c9c29a6203634422c3beed8870996edfeace66ea9812a1012d1ca284f8f5d8e0"
     },
     {
+      "path": "docs/verification/live-reference-metadata-100068.json",
+      "bytes": 1367,
+      "sha256": "bdc82be49a17fe8727c6fef86afedea00edbab33d38de1a15bce82187408b9d2"
+    },
+    {
       "path": "docs/verification/live-search-syny-groma.json",
       "bytes": 869,
       "sha256": "f83c6d12e050d5de2d3f68b68c5c00e01af74a5dfde9049ddecd15e3ca9dd02c"
@@ -1776,6 +1801,16 @@
       "path": "docs/verification/media-widgets-100038-android36.xml",
       "bytes": 984,
       "sha256": "33028e6ad4f87a748aed60b8784fa400594709263e6bc30f289cf70e897d7951"
+    },
+    {
+      "path": "docs/verification/official-series-100068-android36.xml",
+      "bytes": 4366,
+      "sha256": "ad5ceb9ba6fe7514bf7b3fd8a591ad7dbd53d283d4fdd8a91515724799207519"
+    },
+    {
+      "path": "docs/verification/official-series-runtime-100068.json",
+      "bytes": 1762,
+      "sha256": "71c77f42ec29721b4decda03154c6d2cfe8131a66b35a311823e8122d3eb3800"
     },
     {
       "path": "docs/verification/online-duration-search-100041-android36.xml",
@@ -1801,6 +1836,11 @@
       "path": "docs/verification/permission-audit-100066.json",
       "bytes": 1029,
       "sha256": "239c9743a6867e06d3bae0c978d42f78e70249efabc9b4bb31f88b297f325cbf"
+    },
+    {
+      "path": "docs/verification/permission-audit-100068.json",
+      "bytes": 1029,
+      "sha256": "0198a36364caefc407f12861aee635a8ceb516328018f7a655a99e0e13f4f2d0"
     },
     {
       "path": "docs/verification/permission-update-100063-android36.xml",
@@ -1953,6 +1993,11 @@
       "sha256": "80270a6c8ba4ced7dc3be611758344da31c187f17afbc00e35b0668eff5d44fe"
     },
     {
+      "path": "docs/verification/public-channel-100068.json",
+      "bytes": 1500,
+      "sha256": "fff76279bb21fc177e13dab4815eaf0cc075da51dccd9ea2ce18e343bc7ef518"
+    },
+    {
       "path": "docs/verification/public-download-2026-10-25.json",
       "bytes": 2866,
       "sha256": "b62cffb194343954c3c90d634ef4c56a21249cedad4b54aeb69d8de8d6acc70f"
@@ -2006,6 +2051,11 @@
       "path": "docs/verification/site-asset-pruning-100066.json",
       "bytes": 705,
       "sha256": "218dbbe5156d9af46ef35cfed4c49c355bd525a27f13d9877619d72a241cfb7d"
+    },
+    {
+      "path": "docs/verification/site-asset-pruning-100068.json",
+      "bytes": 733,
+      "sha256": "38bc0a5c57f9b02fccabace7cf8297a4ef9a4878399f559bce7f4fc5f1dfeacc"
     },
     {
       "path": "docs/verification/source-availability-100048.json",
@@ -10709,8 +10759,8 @@
     },
     {
       "path": "hosting/updates/index.html",
-      "bytes": 7265,
-      "sha256": "beb03839cba5f7279aa48ab6bd25f2e6aeae06fe3faf9fd8f1739a333fe361ed"
+      "bytes": 8089,
+      "sha256": "484bd3266509733eb876998055fe849a97570301e9a6640fa86f5192cb32d751"
     },
     {
       "path": "legacyFixture/build.gradle.kts",

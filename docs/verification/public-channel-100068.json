@@ -1,0 +1,41 @@
+{
+  "origin": "https://audiobook-smoc1983-updates.amplecoot2048.chatgpt.site/updates/",
+  "userAgent": "Audiobook-Updater/4.2.62",
+  "exactAcceptAndIdentityHeaders": true,
+  "metadata": {
+    "packageName": "com.audiobookdownloader.preview",
+    "versionCode": 100068,
+    "versionName": "4.2.68",
+    "size": 32626692,
+    "sha256": "06fc6db6c81d085c575f5647a80635c2ff01f025a64aff613e28403f68d229cb",
+    "certificateSha256": "3a4cecd14bb3e983843871766909c3f07b3dc64379800f3e270e4a27d39affb7",
+    "apk": "Audiobook-Preview.apk",
+    "parts": [
+      {
+        "url": "parts/preview-100068-06fc6db6c81d085c-00.bin",
+        "size": 8388608,
+        "sha256": "4f9a7153cfbc7d3d00076b17a552c80ae76f322bc948c5ffa7903bdc56bc05ff"
+      },
+      {
+        "url": "parts/preview-100068-06fc6db6c81d085c-01.bin",
+        "size": 8388608,
+        "sha256": "6be7abff1bda0faa2d0645c32dd321fc1bee1c3932244ae06b309ea4f2ed19a0"
+      },
+      {
+        "url": "parts/preview-100068-06fc6db6c81d085c-02.bin",
+        "size": 8388608,
+        "sha256": "93d392a4ae5cdb978aede6886ad4ddb12af3e4e2633bb9087226c123507f0c61"
+      },
+      {
+        "url": "parts/preview-100068-06fc6db6c81d085c-03.bin",
+        "size": 7460868,
+        "sha256": "bd27da68ce1d75a5d52ef86e82f7af17a2d30e39e1cb18e1f37de887a8408ae8"
+      }
+    ]
+  },
+  "allPartsVerified": true,
+  "fullApkVerified": true,
+  "stableChannelStillUnavailable": true,
+  "physicalPhoneDnsFixed": false,
+  "actualNativeAndroidNetworkDownloadTested": false
+}

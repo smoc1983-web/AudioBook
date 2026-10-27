@@ -1,0 +1,47 @@
+{
+  "scope": "Current public page metadata parsed on JVM; not a native Android live-network integration test",
+  "probe": [
+    {
+      "name": "at-series",
+      "status": 200,
+      "url": "https://author.today/work/series/7666",
+      "bytes": 99841
+    },
+    {
+      "name": "at-gold",
+      "status": 200,
+      "url": "https://author.today/work/72647",
+      "bytes": 116644
+    },
+    {
+      "name": "lt-series",
+      "status": 200,
+      "url": "https://www.litres.ru/series/hranitel-kladov-714498/",
+      "bytes": 238907
+    },
+    {
+      "name": "lt-gold",
+      "status": 200,
+      "url": "https://www.litres.ru/book/andrey-vasilev-4/zoloto-mertvyh-55833750/",
+      "bytes": 382103
+    },
+    {
+      "name": "lt-audio",
+      "status": 200,
+      "url": "https://www.litres.ru/audiobook/andrey-vasilev-4/zoloto-mertvyh-57100363/",
+      "bytes": 377378
+    }
+  ],
+  "confirmedExample": "Золото мертвых — Андрей Васильев — прямая серия Хранитель кладов, том 2",
+  "authorTodayCatalog": {
+    "url": "https://author.today/work/series/7666",
+    "textEditions": 4
+  },
+  "litresCatalog": {
+    "url": "https://www.litres.ru/series/hranitel-kladov-714498/",
+    "textEditions": 4,
+    "audioEditions": 4
+  },
+  "searchDiscoveryMayBeIncomplete": true,
+  "knownWorkHintsAreRevalidated": true
+}

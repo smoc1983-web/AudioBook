@@ -1,0 +1,28 @@
+{
+  "reason": "Known Site archive input limit 256 MiB; new release adds 32.6 MB to prior 250.6 MB archive",
+  "removedOnlyObsoletePartsFromVersion": 100050,
+  "files": [
+    {
+      "name": "preview-100050-a9c921fa75896760-01.bin",
+      "bytes": 8388608
+    },
+    {
+      "name": "preview-100050-a9c921fa75896760-00.bin",
+      "bytes": 8388608
+    },
+    {
+      "name": "preview-100050-a9c921fa75896760-04.bin",
+      "bytes": 3469871
+    },
+    {
+      "name": "preview-100050-a9c921fa75896760-02.bin",
+      "bytes": 8388608
+    },
+    {
+      "name": "preview-100050-a9c921fa75896760-03.bin",
+      "bytes": 8388608
+    }
+  ],
+  "retainedInGitSiteHistoryAndGitHubRelease": true,
+  "currentAndPrevious66FeedsPreserved": true
+}
