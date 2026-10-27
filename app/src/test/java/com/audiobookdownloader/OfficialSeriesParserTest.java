@@ -3,6 +3,42 @@ import org.junit.*;import static org.junit.Assert.*;
 public class OfficialSeriesParserTest {
  private final String at="https://author.today/work/series/7666",lt="https://www.litres.ru/series/hranitel-kladov-714498";
  private String fixture(String name)throws Exception{return new String(getClass().getResourceAsStream("/series-metadata/"+name+".html").readAllBytes(),java.nio.charset.StandardCharsets.UTF_8);}
+ private String mobileCard(String info,String extra){
+  return "<div class='work-row-content'><div class='work-title'><span class='label-row-index'>2</span><a href='/work/11'>Продолжение</a></div><div class='work-author'>Тест Автор</div>"+
+   (info==null?"":"<div class='work-info'>"+info+"</div>")+extra+"</div>";
+ }
+ private OfficialSeriesParser.Page mobilePage(String body){return OfficialSeriesParser.page("<h1>Путь</h1>"+body,at,at,"Путь","Тест Автор");}
+ @Test public void independentFormatAndPublicationSignalsAreReadWithoutGuessing(){
+  String[][] cases={
+   {"<i class='icon-headphones'></i>","audio","catalog"},
+   {"аудиокнига","audio","catalog"},
+   {"<i class='icon-book2'></i>","text","catalog"},
+   {"100K зн.","text","catalog"},
+   {"Неизвестный формат","unknown","catalog"},
+   {"пишется","unknown","ongoing"},
+   {"<i class='icon-pencil'></i>","unknown","ongoing"},
+   {"завершен","unknown","published"},
+   {"завершён","unknown","published"},
+   {"весь текст","unknown","published"},
+   {"<i class='icon-check'></i>","unknown","published"}
+  };
+  for(String[] row:cases){var b=mobilePage(mobileCard(row[0],"")).books.get(0);assertEquals(row[0],row[1],b.format);assertEquals(row[0],row[2],b.status);}
+  assertEquals("unknown",mobilePage(mobileCard(null,"")).books.get(0).format);
+  assertEquals("planned",mobilePage(mobileCard("весь текст","<span class='preorder'>Анонс</span>")).books.get(0).status);
+  assertEquals("planned",mobilePage(mobileCard("весь текст","Предзаказ")).books.get(0).status);
+ }
+ @Test public void paginationControlsAreIndependentAndExactlyEightyCardsArePartial(){
+  String card=mobileCard("100K зн.","");
+  assertTrue(mobilePage(card+"<button>Показать ещё</button>").incomplete);
+  assertFalse(mobilePage(card+"<button disabled>Показать ещё</button>").incomplete);
+  assertFalse(mobilePage(card+"<a rel='next'>Далее</a><a rel='next' href=' '>Далее</a><nav class='pagination'><a rel='prev' href='?page=0'>Назад</a></nav>").incomplete);
+  StringBuilder cards=new StringBuilder();for(int i=0;i<80;i++)cards.append(card.replace("/work/11","/work/"+(1000+i)));
+  var capped=mobilePage(cards.toString());assertEquals(80,capped.books.size());assertTrue(capped.incomplete);
+ }
+ @Test public void fragmentsAndOtherCyclePagesCannotBecomeVerifiedCatalogues(){
+  assertEquals("",OfficialSeriesParser.pageUrl(at+"#fragment",at));
+  try{OfficialSeriesParser.page("<h1>Путь</h1>"+mobileCard("100K зн.",""),at,at.replace("7666","1234"),"Путь","Тест Автор");fail("Wrong cycle must be rejected");}catch(IllegalArgumentException expected){}
+ }
  @Test public void mobileSeriesWithEnclosingWorkLinksKeepsAllVolumesAndOrders(){
   String html="<h1>Путь</h1><a class='work-row' href='/work/11'><div class='work-row-content'><h4 class='work-title'><span class='label-row-index'>2</span>Продолжение</h4><div class='work-author'>Тест Автор</div><div class='work-info'><i class='icon-book2'></i><i class='icon-check-bold'></i>100K зн.</div></div></a>";
   String cycle="https://author.today/work/series/7";

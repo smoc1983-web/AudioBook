@@ -1,5 +1,10 @@
 # Audiobook development instructions
 
+Publication hold requested 2026-10-27: audit/review branch only until the user
+explicitly approves publication. Do not merge into main, run the publishing
+workflow, create/publish a release, change the public Site/feed, or distribute
+a new APK. Test builds and saved source/report commits are authorized.
+
 The user explicitly requested ub-mode on 2026-10-27. For future code changes,
 read and apply [.agents/skills/ub-mode/SKILL.md](.agents/skills/ub-mode/SKILL.md)
 and [docs/QUALITY.md](docs/QUALITY.md). Treat this file as durable project memory.

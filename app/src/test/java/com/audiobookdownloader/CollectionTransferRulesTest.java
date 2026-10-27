@@ -25,5 +25,27 @@ public class CollectionTransferRulesTest {
  }
  @Test public void exportedPreferencesJsonFieldIsAccepted()throws Exception{String s=shelf("Мои","Книга","");assertEquals(CollectionTransferRules.parse(s).toString(),CollectionTransferRules.parse(new JSONObject().put("shelves_v1",s).put("unrelated",true).toString()).toString());}
  @Test public void bomAndEscapedNamesSurviveRoundTrip()throws Exception{String s=shelf("Книги & \"цитаты\"","Название <том>","");assertEquals(CollectionTransferRules.parse(s).toString(),CollectionTransferRules.parse("\ufeff"+CollectionTransferRules.export(s)).toString());}
+ @Test public void invalidNamesAndOversizedReferencesNeverReachCollections()throws Exception{
+  for(Object name:new Object[]{JSONObject.NULL,""," \t ","x".repeat(201),"x\u0000y"}){
+   JSONArray rows=new JSONArray(shelf("Мои","Книга",""));rows.getJSONObject(0).put("n",name);reject(rows.toString());
+  }
+  for(Object title:new Object[]{JSONObject.NULL,"","x".repeat(1001),"x\u0000y"}){
+   JSONArray rows=new JSONArray(shelf("Мои","Книга",""));rows.getJSONObject(0).getJSONArray("b").getJSONObject(0).put("t",title);reject(rows.toString());
+  }
+  JSONArray rows=new JSONArray(shelf("Мои","Книга",""));rows.getJSONObject(0).getJSONArray("b").getJSONObject(0).put("u","https://bookinfo.net/"+"x".repeat(8192));reject(rows.toString());
+ }
+ @Test public void optionalNullReferencesAreEmptyAndXmlCdataPreservesNames()throws Exception{
+  JSONArray rows=new JSONArray(shelf("Мои","Книга",""));rows.getJSONObject(0).getJSONArray("b").getJSONObject(0).put("u",JSONObject.NULL).put("c",JSONObject.NULL);
+  assertEquals("",CollectionTransferRules.parse(rows.toString()).getJSONObject(0).getJSONArray("b").getJSONObject(0).getString("u"));
+  String raw=shelf("Книги & цитаты","Название <том>","");
+  assertEquals(CollectionTransferRules.parse(raw).toString(),CollectionTransferRules.parse("<map><string name='shelves_v1'><![CDATA["+raw+"]]></string></map>").toString());
+  reject("<wrong><string name='shelves_v1'>[]</string></wrong>");
+  reject("<map xmlns='urn:unexpected'><string name='shelves_v1'>[]</string></map>");
+ }
+ @Test public void unrelatedXmlPreferencesAfterCollectionsAreIgnoredAndDepthBudgetIsExact()throws Exception{
+  String pref="<map><string name='shelves_v1'>[]</string><string name='private_key'>must-not-import</string>";
+  assertEquals("[]",CollectionTransferRules.parse(pref+"<x>".repeat(31)+"</x>".repeat(31)+"</map>").toString());
+  reject(pref+"<x>".repeat(32)+"</x>".repeat(32)+"</map>");
+ }
  private void reject(String s)throws Exception{try{CollectionTransferRules.parse(s);fail("Invalid input accepted");}catch(Exception expected){}}
 }

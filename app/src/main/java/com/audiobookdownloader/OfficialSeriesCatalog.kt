@@ -131,10 +131,12 @@ internal class OfficialSeriesCatalog(private val context:Context,private val fet
         val sources=snapshot.sources.filter{it.checked==it.attempted&&it.error.isBlank()&&it.complete&&it.seedOrder!=null}
         for(group in sources.groupBy{SeriesAuthorityRules.series(it.series)}.values) {
             val name=group.first().series
-            val editions=group.flatMap{s->s.books.filter{it.format=="text"&&it.status in listOf("published","ongoing")&&it.order!=null&&it.order>s.seedOrder!!}}
+            val editions=group.flatMap{s->s.books.filter{it.format=="text"&&it.status in listOf("published","ongoing")&&it.order!=null}}
                 .distinctBy{SeriesAuthorityRules.title(it.title)}
-            val key=ContinuationStore.hash("official-text|"+SeriesAuthorityRules.author(snapshot.author)+"|"+SeriesAuthorityRules.series(name))
-            val update=ContinuationRules.evaluate(continuations.readState(key),editions.map{ContinuationRules.Book(it.title,it.url,it.author,it.order)},snapshot.author)
+            // v1 remembered only successors of the first selected book. Re-baseline v2 silently
+            // once so an old incomplete snapshot cannot announce already published volumes.
+            val key=ContinuationStore.hash("official-text-v2|"+SeriesAuthorityRules.author(snapshot.author)+"|"+SeriesAuthorityRules.series(name))
+            val update=OfficialTextNoticePolicy.evaluate(continuations.readState(key),editions.map{ContinuationRules.Book(it.title,it.url,it.author,it.order)},group.minOf{it.seedOrder!!},snapshot.author)
             val now=System.currentTimeMillis()
             continuations.mergeNotices(update.additions.map{b->ContinuationNotice(ContinuationStore.hash(key+"|"+SeriesAuthorityRules.title(b.title)),seed.id,
                 b.title,b.url,name,b.author,now,format="text")})

@@ -100,4 +100,30 @@ class OfficialSeriesTest {
         val duplicate=first.copy(books=first.books+first.books.first().copy(title="Чужое произведение"))
         assertTrue(snapshot.copy(sources=listOf(duplicate)).orderConflict)
     }
+    @Test(timeout=30000) fun watchingTwoVolumesSharesBaselineAndMigratesOldTextStateSilently()=runBlocking {
+        latest=2
+        val shelves=org.json.JSONArray(prefs.getString("shelves_v1","[]"))
+        shelves.getJSONObject(0).getJSONArray("b").put(org.json.JSONObject().put("t",name(2)).put("u","https://bookinfo.net/test-writer/second").put("c",""))
+        prefs.edit().putString("shelves_v1",shelves.toString()).commit()
+        val oldKey=ContinuationStore.hash("official-text|"+SeriesAuthorityRules.author(author)+"|"+SeriesAuthorityRules.series("Тестовая серия"))
+        store.writeState(oldKey,ContinuationRules.State(emptySet(),null))
+        val existing=ContinuationNotice("preserved-text-notice","old-seed","Сохранённое уведомление","https://author.today/work/99","Тестовая серия",author,1,read=true,notified=true,format="text")
+        store.mergeNotices(listOf(existing))
+        val refs=SeriesAuthorityFetcher {url->
+            when(url){
+                "https://author.today/work/990002"->"<h1>"+name(2)+"</h1><div class='work-header-content'><div class='card-author'><a>"+author+"</a></div><div><a href='"+at+"'>Тестовая серия</a> #2</div></div>"
+                "https://www.litres.ru/book/test-writer/work-990002","https://www.litres.ru/audiobook/test-writer/work-990002"->"<h1>"+name(2)+"</h1><a data-testid='book__author--link'>"+author+"</a><div data-testid='book__seriesSlider--title'><a href='"+lt+"'>2 книга в серии «Тестовая серия»</a></div>"
+                else->fetcher.html(url)
+            }
+        }
+        val catalog=OfficialSeriesCatalog(context,refs)
+        assertTrue(catalog.refresh(name(2),author,true).sources.all{it.complete})
+        assertTrue(catalog.refresh(title,author,true).sources.all{it.complete})
+        assertEquals("Existing published second volume must stay silent",listOf(existing),store.notices())
+        latest=3;catalog.refresh(title,author,true)
+        assertEquals(2,store.notices().size)
+        assertEquals(1,store.notices().count{it.title==name(3)})
+        assertTrue(store.notices().first{it.id==existing.id}.read)
+        assertTrue(store.notices().first{it.id==existing.id}.notified)
+    }
 }

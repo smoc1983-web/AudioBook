@@ -18,7 +18,7 @@ public final class OfficialSeriesParser {
  }
  public static String pageUrl(String address,String series){
   try{
-   if(!SeriesAuthorityRules.cycle(address)||!SeriesAuthorityRules.cycle(series))return "";
+   if(!SeriesAuthorityRules.cycle(address))return "";
    URI uri=URI.create(address);String canonical=SeriesAuthorityRules.canonical(address);
    if(!canonical.equals(SeriesAuthorityRules.canonical(series))||uri.getRawFragment()!=null)return "";
    String query=uri.getRawQuery();
@@ -67,7 +67,7 @@ public final class OfficialSeriesParser {
   return false;
  }
  private static boolean skipLink(Element link){
-  return !link.hasAttr("href")||link.attr("href").isBlank()||link.attr("rel").equals("prev");
+  return link.attr("href").isBlank()||link.attr("rel").equals("prev");
  }
  private static Page pagination(Document d,String address,String series,List<Edition> books,boolean capped){
   Set<String> next=new LinkedHashSet<>();boolean partial=capped||interactiveMore(d);

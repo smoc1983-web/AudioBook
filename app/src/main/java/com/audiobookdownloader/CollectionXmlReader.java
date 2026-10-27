@@ -5,7 +5,7 @@ import javax.xml.parsers.SAXParserFactory;
 import org.xml.sax.*;
 import org.xml.sax.helpers.DefaultHandler;
 
-/** Read one Android preference from bounded XML without constructing an untrusted DOM. */
+/** Read one Android preference; caller enforces MAX_BYTES before this streaming parser. */
 final class CollectionXmlReader extends DefaultHandler {
     private static final int MAX_DEPTH=32;
     private final StringBuilder value=new StringBuilder();
@@ -49,9 +49,8 @@ final class CollectionXmlReader extends DefaultHandler {
         if(depth==2)collecting=false;
         depth--;
     }
-    @Override public void characters(char[] chars,int start,int length)throws SAXException {
+    @Override public void characters(char[] chars,int start,int length) {
         if(!collecting)return;
-        if(value.length()+length>CollectionTransferRules.MAX_BYTES)throw new SAXException("Слишком большой список коллекций");
         value.append(chars,start,length);
     }
     @Override public void error(SAXParseException error)throws SAXException {throw error;}
