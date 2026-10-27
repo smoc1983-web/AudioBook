@@ -9,6 +9,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   minimum-sdk:
+    if: ${{ !contains(github.event.head_commit.message, '[full-audit-only]') }}
     runs-on: ubuntu-latest
     timeout-minutes: 25
     permissions:
@@ -24,6 +25,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
+          cache-read-only: false
       - name: Android SDK
         run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;35.0.0"'
       - name: Build disposable debug test APKs only
@@ -72,6 +74,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
+          cache-read-only: false
       - name: Signing workspace
         run: |
           echo "PREVIEW_KEYSTORE=$RUNNER_TEMP/audiobook-preview-signing/preview.keystore" >> "$GITHUB_ENV"
@@ -107,6 +110,21 @@ jobs:
         run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;35.0.0"'
       - name: Tests and isolated Preview APK
         run: GITHUB_RUN_NUMBER=69 gradle :app:testDebugUnitTest :app:testReleaseUnitTest :app:assembleDebug :app:assembleRelease :app:assembleDebugAndroidTest :upgradeProbe:assembleDebug --stacktrace
+      - name: Verify private candidate permissions and alignment
+        run: |
+          python scripts/audit-installable-apk.py --apk app/build/outputs/apk/release/app-release.apk --build-tools "$ANDROID_HOME/build-tools/35.0.0" --output audit-evidence/permission-audit.json
+          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -P 16 4 app/build/outputs/apk/release/app-release.apk
+          python docs/tools/dex_registers.py app/build/outputs/apk/release/app-release.apk > audit-evidence/dex-registers.txt
+      - name: Android lint (report retained even when legacy findings exist)
+        id: lint
+        continue-on-error: true
+        run: GITHUB_RUN_NUMBER=69 gradle :app:lintRelease --stacktrace
+      - name: Resolved runtime dependencies and OSV advisories
+        run: |
+          GITHUB_RUN_NUMBER=69 gradle :app:auditRuntimeDependencies
+          python scripts/audit-dependencies.py --input app/build/reports/security/runtime-dependencies.json --output audit-evidence/dependency-advisories.json
+      - name: Require zero Android lint errors
+        run: python scripts/check-android-lint.py app/build/reports/lint-results-release.xml
       - name: Enable Android emulator acceleration
         run: |
           gradle --stop
@@ -136,21 +154,6 @@ jobs:
             source-evidence/
             app/build/reports/androidTests/connected/
             app/build/outputs/androidTest-results/connected/
-      - name: Verify private candidate permissions and alignment
-        run: |
-          python scripts/audit-installable-apk.py --apk app/build/outputs/apk/release/app-release.apk --build-tools "$ANDROID_HOME/build-tools/35.0.0" --output audit-evidence/permission-audit.json
-          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -P 16 4 app/build/outputs/apk/release/app-release.apk
-          python docs/tools/dex_registers.py app/build/outputs/apk/release/app-release.apk > audit-evidence/dex-registers.txt
-      - name: Android lint (report retained even when legacy findings exist)
-        id: lint
-        continue-on-error: true
-        run: GITHUB_RUN_NUMBER=69 gradle :app:lintRelease --stacktrace
-      - name: Resolved runtime dependencies and OSV advisories
-        run: |
-          GITHUB_RUN_NUMBER=69 gradle :app:auditRuntimeDependencies
-          python scripts/audit-dependencies.py --input app/build/reports/security/runtime-dependencies.json --output audit-evidence/dependency-advisories.json
-      - name: Require zero Android lint errors
-        run: python scripts/check-android-lint.py app/build/reports/lint-results-release.xml
       - name: Save private audit reports only; no APK or signing key
         if: always()
         uses: actions/upload-artifact@v4

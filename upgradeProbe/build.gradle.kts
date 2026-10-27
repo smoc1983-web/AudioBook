@@ -39,3 +39,20 @@ dependencies {
     implementation("androidx.test.ext:junit:1.2.1")
     implementation("androidx.test.uiautomator:uiautomator:2.3.0")
 }
+
+// The installed baseline and candidate share AndroidX versions. A standalone test
+// must not shadow their Lifecycle/Core classes with older transitive test copies.
+val targetPeerVersions by lazy {
+    project(":app").configurations.getByName("debugRuntimeClasspath").incoming.resolutionResult.allComponents
+        .mapNotNull { it.moduleVersion }
+        .filter { it.group.isNotBlank() && it.version != "unspecified" }
+        .associate { (it.group + ":" + it.name) to it.version }
+}
+configurations.configureEach {
+    resolutionStrategy.eachDependency {
+        targetPeerVersions[requested.group + ":" + requested.name]?.let {
+            useVersion(it)
+            because("Standalone probe must match the tested application's shared library ABI")
+        }
+    }
+}
