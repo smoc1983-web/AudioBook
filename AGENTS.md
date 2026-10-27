@@ -5,6 +5,11 @@ explicitly approves publication. Do not merge into main, run the publishing
 workflow, create/publish a release, change the public Site/feed, or distribute
 a new APK. Test builds and saved source/report commits are authorized.
 
+2026-10-27 follow-up: the user authorized a direct phone download of the audited
+4.2.69 APK, without repeating tests. This permits that manual-download page only;
+main, normal releases and the in-app update feed remain held. See
+docs/audit-4.2.68/PHONE-CANDIDATE.md before the next update.
+
 The user explicitly requested ub-mode on 2026-10-27. For future code changes,
 read and apply [.agents/skills/ub-mode/SKILL.md](.agents/skills/ub-mode/SKILL.md)
 and [docs/QUALITY.md](docs/QUALITY.md). Treat this file as durable project memory.
