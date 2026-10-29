@@ -6,13 +6,13 @@ before applying or bypassing that workflow. The user approved ub-mode for the
 context-menu downloads / edition details task (2026-10-29).
 This supersedes the earlier unconditional ub-mode instruction below.
 
-Publication explicitly authorized 2026-10-27 after fixing collection notifications.
-The user now requests publication through the in-app Updates menu. The earlier
-hold has ended for this verified fix and the previously audited changes.
-Preserve package/signature/library/settings. Publish from main through the normal
-checks, then update the existing public feed. Version69 was delivered manually;
-normal workflow run69 uses scripts/with-release-number.sh to build version70.
-Never publish signing keys. Do not silently rotate the installed signing identity.
+Current released version is4.2.71 /100071 (2026-10-29), including verified context-menu
+downloads and edition details. PR3 merged; normal CI40926084946 and public Site14
+completed. See docs/RELEASE-4.2.71.md. Do not repeat completed publication for a
+memory-only request. Preserve package/signature/library/settings and original
+stable installation. Next normal workflow run71 uses the permanent offset+1
+wrapper to produce72 /100072. Never replace a published version with another APK.
+Never publish signing keys or silently rotate the installed signing identity.
 
 The user explicitly requested ub-mode on 2026-10-27. For future code changes,
 read and apply [.agents/skills/ub-mode/SKILL.md](.agents/skills/ub-mode/SKILL.md)

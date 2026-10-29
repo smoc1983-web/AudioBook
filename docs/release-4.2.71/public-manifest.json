@@ -1,0 +1,32 @@
+{
+  "packageName": "com.audiobookdownloader.preview",
+  "versionCode": 100071,
+  "versionName": "4.2.71",
+  "size": 32953564,
+  "sha256": "2121d367e800d9fc15b6c62e8111692eb3781a22efb828c27777e07560e2af01",
+  "certificateSha256": "3a4cecd14bb3e983843871766909c3f07b3dc64379800f3e270e4a27d39affb7",
+  "apk": "Audiobook-Preview.apk",
+  "commit": "bd1486fcd3a6f9ea607707aa876b1861f28beb8b",
+  "parts": [
+    {
+      "url": "parts/preview-100071-2121d367e800d9fc-00.bin",
+      "size": 8388608,
+      "sha256": "a89968356b553118f4fa9e149a4de7fe00c69623424f7de5ebfddab96d91157d"
+    },
+    {
+      "url": "parts/preview-100071-2121d367e800d9fc-01.bin",
+      "size": 8388608,
+      "sha256": "ecba854fadaed2d1b07e5588ca11e0680ffc17b313defa9ac7b947f6f784a87a"
+    },
+    {
+      "url": "parts/preview-100071-2121d367e800d9fc-02.bin",
+      "size": 8388608,
+      "sha256": "145d0972e111b81fba9961698a948eea455fde33068c884797bbc0d9316e8598"
+    },
+    {
+      "url": "parts/preview-100071-2121d367e800d9fc-03.bin",
+      "size": 7787740,
+      "sha256": "df0ddaff85d9f6573d39cfb2094a6598004b117b57f2d08359e1a21250d64924"
+    }
+  ]
+}

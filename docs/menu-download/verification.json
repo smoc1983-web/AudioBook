@@ -100,5 +100,12 @@
     "Size/chapter count cannot prove edition completeness",
     "No physical Samsung S24 or live-provider/DownloadManager end-to-end check in scoped run",
     "No public feed change during development"
-  ]
+  ],
+  "release": {
+    "name": "4.2.71",
+    "code": 100071,
+    "normalCi": 40926084946,
+    "status": "published",
+    "evidence": "../release-4.2.71/verification.json"
+  }
 }

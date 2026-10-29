@@ -50,3 +50,7 @@ Java JaCoCo100% instruction/branch coverage, Crapper max2.0. Dryer по теку
 Java-каталогу не нашёл кандидатов >=0.8. Mutator сгенерировал1 site (OR→AND),
 он уничтожен тестами. Это не доказательство покрытия всех возможных изменений
 regex или Kotlin. Снимки — [menu-download/](menu-download/).
+
+Итог: [4.2.71 опубликована](RELEASE-4.2.71.md). Normal pipeline40926084946,
+upgrade release70→71 с сохранением контрольных данных и public Site14 проверены.
+Канонический код и проверки в AudioBook; общий контекст в ai-project-memory.

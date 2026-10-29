@@ -1,5 +1,5 @@
 {
-  "revision": "audiobook-context-menu-downloads-verified-candidate",
+  "revision": "audiobook-4.2.71-context-downloads-published",
   "storage": "GitHub export; see releases/ARCHIVE-PARTS.json for three multipart historical ZIPs",
   "files": [
     {
@@ -44,8 +44,8 @@
     },
     {
       "path": "AGENTS.md",
-      "bytes": 2544,
-      "sha256": "0ab9f0c6cd9c5cb7c5d59197f6281ee19025d6e8bd7b9607c32e63b822879894"
+      "bytes": 2550,
+      "sha256": "43ac94aebcab5d92093dc4fc82aa3980ec817828fd86c66b0a1a62cee1e62d5c"
     },
     {
       "path": "README.md",
@@ -1454,8 +1454,8 @@
     },
     {
       "path": "docs/HANDOFF.md",
-      "bytes": 74901,
-      "sha256": "415c4d1a937710f2b49a5c19b826bc11666ebda1c74011d8d5f4503876ff5c5c"
+      "bytes": 76691,
+      "sha256": "1098fae47cad837a645877e1afd7f093798e813d77a7f083c7e9871be86fef17"
     },
     {
       "path": "docs/INSTALL.md",
@@ -1474,8 +1474,8 @@
     },
     {
       "path": "docs/MENU-DOWNLOAD.md",
-      "bytes": 5544,
-      "sha256": "ee85b3bf7d11590d090ebb406a504ff9b0aa720ad183245c6a2374faa0eccc82"
+      "bytes": 5875,
+      "sha256": "c40085396d77ca0020ecfea482c2163bebbe9f41f03e0c4edd2ab560499eeb13"
     },
     {
       "path": "docs/ONLINE-TIME-SEARCH.md",
@@ -1526,6 +1526,11 @@
       "path": "docs/RELEASE-4.2.70.md",
       "bytes": 3910,
       "sha256": "08d9a80232e24db5a307ea34afad07d51c40e55eeff713568ca25532c5a3fff6"
+    },
+    {
+      "path": "docs/RELEASE-4.2.71.md",
+      "bytes": 3671,
+      "sha256": "adb0a973500dd9d449ad4744838d589317f7717b547018b8690bcd062452e973"
     },
     {
       "path": "docs/SCREENSHOT-SOURCES.md",
@@ -1864,8 +1869,8 @@
     },
     {
       "path": "docs/menu-download/verification.json",
-      "bytes": 2284,
-      "sha256": "1b71668a957aa69e2a44cd50a335a0cafcb54ae797b790c1374fa272d71a44e1"
+      "bytes": 2456,
+      "sha256": "88e4abb712cdeaab92afef07492252c48e6e4d4edf5f6b463d8c74edb50b3b9b"
     },
     {
       "path": "docs/previous/AudioBook-4.0-History.docx",
@@ -1991,6 +1996,46 @@
       "path": "docs/release-4.2.70/verification.json",
       "bytes": 3622,
       "sha256": "874f8847b8dd13309888703526fe7c424b8fd51441cc654eeff44007361bb0f2"
+    },
+    {
+      "path": "docs/release-4.2.71/android36-tests.xml",
+      "bytes": 6083,
+      "sha256": "c3341d1eee3067bb2efec84ddeeabfcf17e621be00ee5ad00558187d601aec89"
+    },
+    {
+      "path": "docs/release-4.2.71/dependency-advisories.json",
+      "bytes": 6401,
+      "sha256": "ebe414e4bfc4e3fb44b8e0b3553236358e0e8515bd7476bdcfd019314e84c4fe"
+    },
+    {
+      "path": "docs/release-4.2.71/installed-upgrade.json",
+      "bytes": 844,
+      "sha256": "00be01c10d8b4ae9e5a4d18fd3fb6a3d973f3694e7e6cf77dda86432a32679a4"
+    },
+    {
+      "path": "docs/release-4.2.71/lint-results-release.xml",
+      "bytes": 192158,
+      "sha256": "be1cc4c7174bad63335169e21fa5cf6d2d92c7fce5b0201e7166af3446cd9ea4"
+    },
+    {
+      "path": "docs/release-4.2.71/permission-audit.json",
+      "bytes": 1029,
+      "sha256": "c3239bae5940587039a1d9b52f70f72b3cbf4e28a70b4e48c95e94fa853fc505"
+    },
+    {
+      "path": "docs/release-4.2.71/public-download-check.json",
+      "bytes": 1307,
+      "sha256": "222ec25fd0175d2d43bbc4a105373f46c991c2b25537527cf8f7309929119a35"
+    },
+    {
+      "path": "docs/release-4.2.71/public-manifest.json",
+      "bytes": 1125,
+      "sha256": "f74e56ae1600a2ddd17cf3e1c355e886dbb9fbc05f4e5f32a605562a2c78c1c0"
+    },
+    {
+      "path": "docs/release-4.2.71/verification.json",
+      "bytes": 3892,
+      "sha256": "867c1384b1bf70d4001dc2bdbe2b3137d1a280e3aa3cbfe0d1c4cae53fce2d1a"
     },
     {
       "path": "docs/screenshot-source-registry.json",

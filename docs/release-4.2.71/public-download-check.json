@@ -1,0 +1,63 @@
+{
+  "origin": "https://audiobook-smoc1983-updates.amplecoot2048.chatgpt.site",
+  "clients": [
+    {
+      "client": "4.2.70",
+      "metadataStatus": 200,
+      "versionCode": 100071,
+      "parts": [
+        {
+          "status": 200,
+          "size": 8388608,
+          "sha256Verified": true
+        },
+        {
+          "status": 200,
+          "size": 8388608,
+          "sha256Verified": true
+        },
+        {
+          "status": 200,
+          "size": 8388608,
+          "sha256Verified": true
+        },
+        {
+          "status": 200,
+          "size": 7787740,
+          "sha256Verified": true
+        }
+      ],
+      "size": 32953564,
+      "wholeSha256Verified": true
+    },
+    {
+      "client": "4.2.69",
+      "metadataStatus": 200,
+      "versionCode": 100071,
+      "parts": [
+        {
+          "status": 200,
+          "size": 8388608,
+          "sha256Verified": true
+        },
+        {
+          "status": 200,
+          "size": 8388608,
+          "sha256Verified": true
+        },
+        {
+          "status": 200,
+          "size": 8388608,
+          "sha256Verified": true
+        },
+        {
+          "status": 200,
+          "size": 7787740,
+          "sha256Verified": true
+        }
+      ],
+      "size": 32953564,
+      "wholeSha256Verified": true
+    }
+  ]
+}
