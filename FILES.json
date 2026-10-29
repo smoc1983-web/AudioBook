@@ -1,5 +1,5 @@
 {
-  "revision": "audiobook-4.2.70-published-through-inapp-updates",
+  "revision": "audiobook-context-menu-downloads-verified-candidate",
   "storage": "GitHub export; see releases/ARCHIVE-PARTS.json for three multipart historical ZIPs",
   "files": [
     {
@@ -14,13 +14,18 @@
     },
     {
       "path": ".github/workflows/build-apk.yml",
-      "bytes": 8532,
-      "sha256": "9ff487549620c58d81a2303ceb8310eb84544a24daa379ee3d9021b8dbf56b97"
+      "bytes": 8505,
+      "sha256": "74023a7b16f91c6040c98c7a11fe9b6ce62056d17a753b821646f6abfaae864c"
     },
     {
       "path": ".github/workflows/collection-notices.yml",
       "bytes": 2656,
       "sha256": "0010adaf1a3e2582c9cc6a050d66685b1efe1b445e2bdfd2d338bfaf849a9822"
+    },
+    {
+      "path": ".github/workflows/edition-download.yml",
+      "bytes": 2649,
+      "sha256": "90cfa8521c5695b16f50b523734429aacbc0a0d1bfcc505a5137493027c34a39"
     },
     {
       "path": ".github/workflows/phone-candidate.yml",
@@ -34,13 +39,13 @@
     },
     {
       "path": ".gitignore",
-      "bytes": 602,
-      "sha256": "d7f87e85a5f597e07ffba395a3352cb0b3cebbfff8ff69c7cf8bae27859e8ff8"
+      "bytes": 625,
+      "sha256": "feb04dec4fff0f2ee6b39eeb3102d745ea224e70d8c56053800de3c787bf416c"
     },
     {
       "path": "AGENTS.md",
-      "bytes": 2175,
-      "sha256": "3e9aab51cbf4752f7865eff67def9a2620ba2bc996436a95867046e6576b6527"
+      "bytes": 2544,
+      "sha256": "0ab9f0c6cd9c5cb7c5d59197f6281ee19025d6e8bd7b9607c32e63b822879894"
     },
     {
       "path": "README.md",
@@ -66,6 +71,11 @@
       "path": "app/src/androidTest/java/com/audiobookdownloader/ContinuationWorkerTest.kt",
       "bytes": 6253,
       "sha256": "22953b3bba4dccfb728eb4817e39f4af7cac19785fa1502ebf9850adfc4cd0ad"
+    },
+    {
+      "path": "app/src/androidTest/java/com/audiobookdownloader/EditionDownloadTest.kt",
+      "bytes": 4417,
+      "sha256": "d4f6e0019b62b0ad2630418eb9a805b2e1e94038827faa1d327a19d96ea65a3c"
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/InstallerLaunchTest.java",
@@ -159,8 +169,8 @@
     },
     {
       "path": "app/src/main/assets/release-notes.json",
-      "bytes": 1426,
-      "sha256": "b0b2ce4d27c8c4cca429c5bf093ecdb54f9c889839b95a933b06c785dd87356f"
+      "bytes": 1164,
+      "sha256": "d3acc33b3a9d317e777c6bd19b6ee8c7516328e0857f869fe32972dbb98794a8"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/AbAudioDurations.kt",
@@ -286,6 +296,11 @@
       "path": "app/src/main/java/com/audiobookdownloader/CylinderPageMesh.java",
       "bytes": 4042,
       "sha256": "bc75781fce8fcfc096467218b6688e1e6e668f9e354e6423a9afb5059ae36bcf"
+    },
+    {
+      "path": "app/src/main/java/com/audiobookdownloader/EditionDownloadRules.java",
+      "bytes": 949,
+      "sha256": "fd36b4a05c8538e364f574423a5be7ee476a09ba51f4fa8b529ea8b773aaa10e"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/KnigobludSeriesParser.java",
@@ -483,6 +498,11 @@
       "sha256": "abbd5d1aae790c46bed5dd6c5d26a3488a581274e9182367411fa6320651a8a0"
     },
     {
+      "path": "app/src/test/java/com/audiobookdownloader/EditionDownloadRulesTest.java",
+      "bytes": 1812,
+      "sha256": "3a568582cd4415503e607e0174ca5af78cb77ef21b473019b6da0080f06d536e"
+    },
+    {
       "path": "app/src/test/java/com/audiobookdownloader/LiveCatalogTest.java",
       "bytes": 2965,
       "sha256": "7b20f179133450e64ed456577efa23b3eb2c0b9f6e863750a00981111b0441fb"
@@ -604,8 +624,8 @@
     },
     {
       "path": "current/MainActivity.kt",
-      "bytes": 743674,
-      "sha256": "b615f3c7fbdaa3729f41913bf14273485c35e01d47fb59cfe0aa1fa514536449"
+      "bytes": 749310,
+      "sha256": "74d7decc898bc15dfc650c3f1c702b0993ff9dfdd13e98b146537f6eb354f86e"
     },
     {
       "path": "current/PlaybackService.kt",
@@ -1434,8 +1454,8 @@
     },
     {
       "path": "docs/HANDOFF.md",
-      "bytes": 73149,
-      "sha256": "e888512c865429b98f23972af6f885cd4cdd72d97ba23e16d6fdc40f11e5722e"
+      "bytes": 74901,
+      "sha256": "415c4d1a937710f2b49a5c19b826bc11666ebda1c74011d8d5f4503876ff5c5c"
     },
     {
       "path": "docs/INSTALL.md",
@@ -1451,6 +1471,11 @@
       "path": "docs/MEDIA-WIDGETS-STABLE.md",
       "bytes": 7300,
       "sha256": "b57b996aa1eb0062ffb56bd133ddc31eb5428838edcb9d126a92d49ebbe677c0"
+    },
+    {
+      "path": "docs/MENU-DOWNLOAD.md",
+      "bytes": 5544,
+      "sha256": "ee85b3bf7d11590d090ebb406a504ff9b0aa720ad183245c6a2374faa0eccc82"
     },
     {
       "path": "docs/ONLINE-TIME-SEARCH.md",
@@ -1808,6 +1833,41 @@
       "sha256": "a1dd9fc595232e88be00ecd16a0c7158b51463abe0dfb4ae9f416a50e67f4079"
     },
     {
+      "path": "docs/menu-download/android23.xml",
+      "bytes": 1321,
+      "sha256": "8df6aa42d40ec3442dc3f46bb6fe2372b08e2ad3f675377544abda9124f01d2a"
+    },
+    {
+      "path": "docs/menu-download/android36.xml",
+      "bytes": 1321,
+      "sha256": "9634079bad73fc62e0bfa82e6977b8e78925e251bfc541aded61fd21fe0670ad"
+    },
+    {
+      "path": "docs/menu-download/crap.txt",
+      "bytes": 486,
+      "sha256": "8daa5cd3f82745d0d02fead0e95f5448d9388bcd65470b25a557e10f571ead33"
+    },
+    {
+      "path": "docs/menu-download/dryer.txt",
+      "bytes": 85,
+      "sha256": "f2f4826243851f1decbbf50ccb29671e7476fe06a7d24c6afbfd76dc5fcfa172"
+    },
+    {
+      "path": "docs/menu-download/jacoco.xml",
+      "bytes": 5601,
+      "sha256": "1a2fd839e4665212209e7b2ba2f9086dd9bea1794be7ca40bff851c8bb42195d"
+    },
+    {
+      "path": "docs/menu-download/mutations.edn",
+      "bytes": 887,
+      "sha256": "34827977ffcdffee83920e71259ffc80c2acd6025215a092da4cc81009c4ee9a"
+    },
+    {
+      "path": "docs/menu-download/verification.json",
+      "bytes": 2284,
+      "sha256": "1b71668a957aa69e2a44cd50a335a0cafcb54ae797b790c1374fa272d71a44e1"
+    },
+    {
       "path": "docs/previous/AudioBook-4.0-History.docx",
       "bytes": 62173,
       "sha256": "cbdb17d4b51b7ef270c47f1b9685141faf0c51a1c6d641a92ead3066f1bbcdc5"
@@ -1866,6 +1926,11 @@
       "path": "docs/quality/continuation-tests.sh",
       "bytes": 531,
       "sha256": "dbf9f4fd1fa2df1e0a2689580e227c0af4e4fad0ef9f2dbde1253f11c01bdee7"
+    },
+    {
+      "path": "docs/quality/edition-download-tests.sh",
+      "bytes": 500,
+      "sha256": "c0002adcdfbca264c4b75e53e2f5b5e496bb6327394cd185784ea4231bd816a7"
     },
     {
       "path": "docs/quality/mutation-boundary.log",

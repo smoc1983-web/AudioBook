@@ -3063,6 +3063,13 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
             }
         },
         download = { track, book -> requestModernDownload(track, book) },
+        downloadEdition = { ref, tracks ->
+            // Downloading an edition must not select it in PlaybackService or navigate.
+            abRememberCatalog(prefs,BookLink(ref.title,ref.url,ref.cover))
+            prefs.edit().putString(bookUrlKey(ref.title),ref.url)
+                .putString(bookCoverKey(ref.title),ref.cover).putInt(bookTotalKey(ref.title),tracks.size).apply()
+            tracks.forEach {requestModernDownload(it,ref.title)}
+        },
         cancelDownload = { cancelModernDownload(it) },
         deleteBook = deleteModernBook,
         skin = { setAppSkin(it) },
@@ -9536,6 +9543,7 @@ private data class AbActions(
     val cycle: (BookCycle) -> Unit,
     val playOnline: (Int) -> Unit,
     val download: (AudioTrack, String) -> Unit,
+    val downloadEdition: (BookRef, List<AudioTrack>) -> Unit,
     val cancelDownload: (String) -> Unit,
     val deleteBook: (LibraryBook, (Boolean,String)->Unit) -> Unit,
     val skin: (Int) -> Unit,
@@ -9972,7 +9980,8 @@ private fun AbModernApp(data: AbScreenData, actions: AbActions, sync: LibrarySyn
     }
     menuBook?.let { ref ->
         AbBookMenu(ref,abFindLocal(sync.books.value,ref.title),prefs,theme,actions,
-            version=data.version,onShelf={menuBook=null;shelfBook=ref},dismiss={menuBook=null})
+            version=data.version,index=data.downloadedIndex,downloads=data.downloads,
+            onShelf={menuBook=null;shelfBook=ref},dismiss={menuBook=null})
     }
     shelfBook?.let { ref -> AbShelfPicker(ref,prefs,theme,data.version) { shelfBook=null } }
     }
@@ -11300,9 +11309,86 @@ private fun AbOptions(labels: List<String>,selected: Int,theme: AbTheme,enabled:
     }
 }
 
+internal data class AbDownloadEdition(val ref:BookRef,val tracks:List<AudioTrack>,val preview:Boolean)
+
+internal fun abDownloadEdition(ref:BookRef,root:JSONObject,url:String):AbDownloadEdition? {
+    val parsed=root.optJSONObject("player")?.let{parsePlayer(it)} ?: return null
+    return AbDownloadEdition(ref.copy(url=url,cover=root.optString("cover").ifBlank{ref.cover}),parsed.tracks,
+        EditionDownloadRules.isPreview(ref.title+" "+root.optString("title"),parsed.tracks.map{it.src}))
+}
+
+/** The very same controls are used in the real context menu and Android UI tests. */
+@Composable
+internal fun AbEditionDownloadControls(edition:AbDownloadEdition,index:DownloadedChapterIndex,
+    activeChapters:Set<String>,theme:AbTheme,onDownload:(BookRef,List<AudioTrack>)->Unit) {
+    val remaining=edition.tracks.count{!isTrackDownloaded(it,edition.ref.title,index)}
+    val active=edition.tracks.any{it.title in activeChapters}
+    Text("Доступно глав: ${edition.tracks.size}",color=theme.text,fontSize=13.sp)
+    AbBookSize(edition.ref.title,edition.tracks,null,edition.ref.url,theme,"Размер доступного аудио")
+    if(edition.preview)Text("Ознакомительный фрагмент. Скачивание отключено.",color=theme.error,fontSize=12.sp)
+    else Text("Полнота издания источником не подтверждена. Проверьте число глав и объём доступного аудио.",
+        color=theme.muted,fontSize=11.sp)
+    AbButton(when {
+        edition.preview->"Фрагмент · скачивание недоступно"
+        active->"Загружается…"
+        remaining==0->"Скачана"
+        remaining<edition.tracks.size->"Дозагрузить глав: $remaining"
+        else->"Скачать"
+    },theme,enabled=!edition.preview&&!active&&remaining>0) {
+        onDownload(edition.ref,edition.tracks)
+    }
+}
+
+/** A separate browser session reads metadata only: no player state or navigation writes. */
+@Composable
+private fun AbReadDownloadEdition(ref:BookRef,done:(AbDownloadEdition?,String)->Unit) {
+    val report by androidx.compose.runtime.rememberUpdatedState(done)
+    if(OpenAudioCatalog.fromPage(ref.url)!=null) {
+        LaunchedEffect(ref.url) {
+            try {
+                val loaded=withContext(Dispatchers.IO){VerifiedBooks.load(ref.url)}
+                report(AbDownloadEdition(ref.copy(cover=loaded.cover.ifBlank{ref.cover}),loaded.data.tracks,
+                    EditionDownloadRules.isPreview(loaded.title,loaded.data.tracks.map{it.src})),"")
+            }catch(cancel:kotlinx.coroutines.CancellationException){throw cancel}
+            catch(_:Exception){report(null,"Не удалось проверить издание. Повторите позже.")}
+        }
+    } else HiddenBookWebView(onFailure={report(null,it)}) {web ->
+        AbOpenPageTask(web,ref.url,{}) {root,url,error ->
+            val parsed=root?.let{abDownloadEdition(ref,it,url)}
+            if(error.isNotBlank()||parsed==null)report(null,error.ifBlank{"Источник не передал список глав. Скачивание не начато."})
+            else report(parsed,"")
+        }
+    }
+}
+
+@Composable
+private fun AbMenuEditionDownload(ref:BookRef,local:LibraryBook?,index:DownloadedChapterIndex,
+    downloads:List<AbDownloadItem>,theme:AbTheme,onDownload:(BookRef,List<AudioTrack>)->Unit) {
+    var edition by remember(ref){mutableStateOf<AbDownloadEdition?>(null)}
+    var error by remember(ref){mutableStateOf("")}
+    var retry by remember(ref){mutableStateOf(0)}
+    if(supportedBookUrl(ref.url)==null&&OpenAudioCatalog.fromPage(ref.url)==null) {
+        Text(if(local==null) "Число глав и размер неизвестны: нет ссылки на издание."
+            else "Сведения об онлайн-издании неизвестны: нет ссылки на источник.",color=theme.muted,fontSize=12.sp)
+        AbButton("Скачать",theme,enabled=false){}
+        return
+    }
+    val loaded=edition
+    if(loaded!=null) AbEditionDownloadControls(loaded,index,
+        downloads.filter{it.state==TrackState.DOWNLOADING&&it.book==loaded.ref.title}.map{it.track.title}.toSet(),
+        theme,onDownload)
+    else {
+        Text(if(error.isBlank()) "Проверяем число глав и размер издания…" else error,color=theme.muted,fontSize=12.sp)
+        AbButton("Скачать",theme,enabled=false){}
+        if(error.isNotBlank())AbButton("Повторить проверку издания",theme){error="";retry++}
+        else key(ref.url,retry) {AbReadDownloadEdition(ref) {result,message ->edition=result;error=message}}
+    }
+}
+
 @Composable
 private fun AbBookMenu(ref: BookRef,local: LibraryBook?,prefs: android.content.SharedPreferences,
-    theme: AbTheme,actions: AbActions,version: Int,onShelf:()->Unit,dismiss:()->Unit) {
+    theme: AbTheme,actions: AbActions,version: Int,index:DownloadedChapterIndex,
+    downloads:List<AbDownloadItem>,onShelf:()->Unit,dismiss:()->Unit) {
     val context=androidx.compose.ui.platform.LocalContext.current
     var confirmDelete by remember(ref.title){mutableStateOf(false)}
     var deleting by remember(ref.title){mutableStateOf(false)}
@@ -11312,7 +11398,7 @@ private fun AbBookMenu(ref: BookRef,local: LibraryBook?,prefs: android.content.S
     val queueTitle=local?.title ?: ref.title
     AbDialog(if(confirmDelete) "Удалить книгу?" else "Действия с книгой",theme,{if(!deleting)dismiss()}) {
         Text(ref.title,color=theme.text,fontSize=17.sp,fontWeight=FontWeight.SemiBold)
-        if(local!=null)Text(abLocalSize(local),color=theme.muted,fontSize=12.sp)
+        if(local!=null)Text("На устройстве: ${local.files.size} глав · "+abLocalSize(local),color=theme.muted,fontSize=12.sp)
         if(confirmDelete && local!=null) {
             Text("Будут удалены все скачанные главы этой книги. Отменить удаление нельзя.",color=theme.muted,fontSize=14.sp)
             if(deleteMessage.isNotBlank())Text(deleteMessage,color=theme.muted,fontSize=13.sp,lineHeight=20.sp)
@@ -11330,6 +11416,7 @@ private fun AbBookMenu(ref: BookRef,local: LibraryBook?,prefs: android.content.S
             }
             AbButton("Отмена",theme,enabled=!deleting) {confirmDelete=false;deleteMessage=""}
         } else {
+            AbMenuEditionDownload(ref,local,index,downloads,theme,actions.downloadEdition)
             AbButton("Открыть книгу",theme,primary=true){dismiss();actions.openRef(ref)}
             AbButton(if(favorite) "Убрать из избранного" else "В избранное",theme){toggleFavorite(prefs,ref)}
             AbButton(if(queue.contains(queueTitle)) "Убрать из очереди" else "В очередь",theme,enabled=local!=null) {
@@ -14835,7 +14922,7 @@ private fun abDownloadReason(reason: Int): String=when(reason) {
 }
 
 /** Bounded session metadata cache, shared with DownloadManager totals. Never fetches a whole audio body. */
-private object AbAudioSizes {
+internal object AbAudioSizes {
     private val values=kotlinx.coroutines.flow.MutableStateFlow<Map<String,Long>>(emptyMap())
     val state:kotlinx.coroutines.flow.StateFlow<Map<String,Long>> get()=values
     private val tried=linkedMapOf<String,Long>()
@@ -14918,7 +15005,8 @@ private object AbAudioSizes {
 }
 
 @Composable
-private fun AbBookSize(title:String,tracks:List<AudioTrack>,local:LibraryBook?,page:String,theme:AbTheme) {
+private fun AbBookSize(title:String,tracks:List<AudioTrack>,local:LibraryBook?,page:String,theme:AbTheme,
+    label:String="Размер книги") {
     val known by AbAudioSizes.state.collectAsState()
     var checking by remember(title,tracks){mutableStateOf(false)}
     var retry by remember(title,tracks){mutableStateOf(0)}
@@ -14938,10 +15026,10 @@ private fun AbBookSize(title:String,tracks:List<AudioTrack>,local:LibraryBook?,p
     }
     Column(verticalArrangement=Arrangement.spacedBy(3.dp)) {
         Text(when {
-            complete->"Размер книги: "+formatFileSize(sum)
-            checking && sum==0L->"Определяем размер книги…"
+            complete->label+": "+formatFileSize(sum)
+            checking && sum==0L->"Определяем размер аудиофайлов…"
             sum>0L->"Известный объём: "+formatFileSize(sum)+" · "+bytes.count{it!=null}+" из ${tracks.size} глав"
-            else->"Размер книги не определён"
+            else->"Размер аудиофайлов неизвестен"
         },color=theme.muted,fontSize=11.sp)
         if(!complete && !checking && tracks.any{isNetworkAudio(it.src)})Text("Уточнить размер",color=theme.accent,fontSize=11.sp,
             modifier=Modifier.heightIn(min=36.dp).clickable{retry++}.padding(vertical=8.dp))

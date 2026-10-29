@@ -1,0 +1,14 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuite name="com.audiobookdownloader.EditionDownloadTest" tests="6" failures="0" errors="0" skipped="0" time="8.786" timestamp="2026-10-29T17:53:46" hostname="localhost">
+  <properties>
+    <property name="device" value="emulator-5554 - 6.0" />
+    <property name="flavor" value="" />
+    <property name="project" value=":app" />
+  </properties>
+  <testcase name="downloadHasDetailsAndDoesNotChangeTheCurrentPlayer" classname="com.audiobookdownloader.EditionDownloadTest" time="1.59" />
+  <testcase name="parserUsesTheSelectedEditionAndRejectsMissingAudio" classname="com.audiobookdownloader.EditionDownloadTest" time="0.73" />
+  <testcase name="alreadyDownloadedChaptersAreRecognizedAndPartialSizeIsNotATotal" classname="com.audiobookdownloader.EditionDownloadTest" time="1.877" />
+  <testcase name="explicitExcerptCannotBeDownloadedEvenWithKnownSize" classname="com.audiobookdownloader.EditionDownloadTest" time="0.739" />
+  <testcase name="noCollectionsNeverFetchesGeneralFeedEvenWithOldOptIn" classname="com.audiobookdownloader.CollectionNotificationTest" time="0.058" />
+  <testcase name="legacyGlobalAndUnrelatedAlertsAreCancelledWhileCollectionAlertAndPlayerRemain" classname="com.audiobookdownloader.CollectionNotificationTest" time="2.074" />
+</testsuite>

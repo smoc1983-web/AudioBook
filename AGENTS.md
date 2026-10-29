@@ -1,5 +1,11 @@
 # Audiobook development instructions
 
+Latest user preference (2026-10-29): before starting each application development
+task, ask whether to use https://github.com/unclebob/ub-mode. Await the choice
+before applying or bypassing that workflow. The user approved ub-mode for the
+context-menu downloads / edition details task (2026-10-29).
+This supersedes the earlier unconditional ub-mode instruction below.
+
 Publication explicitly authorized 2026-10-27 after fixing collection notifications.
 The user now requests publication through the in-app Updates menu. The earlier
 hold has ended for this verified fix and the previously audited changes.

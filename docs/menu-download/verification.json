@@ -1,0 +1,104 @@
+{
+  "schema": 1,
+  "task": "Context-menu edition downloads",
+  "branch": "feature/menu-download-edition",
+  "sourceCommit": "55f48c30cbe57fcf6fe04cfff9f27ec98ca65d5b",
+  "sourceTree": "c72cff6f431a795db4819e943c63c79cac8a4542",
+  "firstCi": {
+    "run": 40921942040,
+    "source": "e42aff5c4c6e1a236a99e5e9868f402e6364f16e",
+    "conclusion": "success",
+    "android23": {
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "android36": {
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "jvm": {
+      "tests": 131,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    }
+  },
+  "finalCi": {
+    "run": 40924074169,
+    "conclusion": "success",
+    "jobs": {
+      "23": 123624791294,
+      "36": 123624791965
+    },
+    "results": {
+      "23": {
+        "jvm": {
+          "tests": 132,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 1
+        },
+        "android": {
+          "tests": 6,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        "lint": {
+          "Warning": 74,
+          "Information": 60
+        }
+      },
+      "36": {
+        "jvm": {
+          "tests": 132,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 1
+        },
+        "android": {
+          "tests": 6,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        "lint": {
+          "Warning": 74,
+          "Information": 60
+        }
+      }
+    }
+  },
+  "javaQuality": {
+    "junitTests": 5,
+    "failures": 0,
+    "crapMax": 2.0,
+    "jacocoInstructionPercent": 100,
+    "jacocoBranchPercent": 100,
+    "dryerCandidatesAt08": 0,
+    "mutationSites": 1,
+    "killed": 1,
+    "survivors": 0,
+    "kotlin": "unsupported; native tests required"
+  },
+  "red": {
+    "firstStub": {
+      "tests": 4,
+      "failures": 2
+    },
+    "rawUriBeforeFix": {
+      "tests": 5,
+      "failures": 1,
+      "exception": "IllegalArgumentException from URI.create with unescaped space"
+    }
+  },
+  "limits": [
+    "Size/chapter count cannot prove edition completeness",
+    "No physical Samsung S24 or live-provider/DownloadManager end-to-end check in scoped run",
+    "No public feed change during development"
+  ]
+}
