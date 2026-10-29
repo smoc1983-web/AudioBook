@@ -22,4 +22,10 @@ public class EditionDownloadRulesTest {
         assertFalse(EditionDownloadRules.isPreview("Книга", Arrays.asList(
                 "https://cdn.example/get_mp3_trial_book.mp3", "https://cdn.example/full.mp3?next=/get_mp3_trial/1")));
     }
+    @Test public void rawSourceAddressesMustNotCrashTheMenu() {
+        assertFalse(EditionDownloadRules.isPreview("Книга", Arrays.asList(
+                "https://cdn.example/part one.mp3", "https://cdn.example/bad%zz.mp3", "https://")));
+        assertTrue(EditionDownloadRules.isPreview("Книга", Collections.singletonList(
+                "https://cdn.example/path/get_mp3_trial/part one.mp3")));
+    }
 }
