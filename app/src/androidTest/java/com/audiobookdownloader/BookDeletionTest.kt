@@ -108,4 +108,26 @@ class BookDeletionTest {
         }finally {resolver.delete(uri,null,null)}
     }
 
+    @Test fun staleDocumentUriCannotDeleteAFileInAnotherBook()=fixture {root ->
+        val selected=File(root,"Selected").apply{mkdirs()}
+        val documents=File(context.cacheDir,"deletion-documents").apply{mkdirs()}
+        val foreign=File(documents,"foreign.mp3").apply{writeText("keep")}
+        val tree=android.provider.DocumentsContract.buildTreeDocumentUri(context.packageName+".deletion-fixture","root")
+        val uri=android.provider.DocumentsContract.buildDocumentUriUsingTree(tree,"root/foreign.mp3")
+        try {
+            val stale=LibraryAudioFile(File(selected,"01.mp3").path,uri.toString())
+            assertTrue(AbBookDeletion.remove(context,LibraryBook("Selected",selected,listOf(stale))).success)
+            assertEquals("keep",foreign.readText())
+        }finally{documents.deleteRecursively()}
+    }
+    @Test fun chapterSymlinkNeverDeletesTheTargetInAnotherBook()=fixture {root ->
+        val folder=File(root,"Selected").apply{mkdirs()}
+        val foreign=File(root,"foreign.mp3").apply{writeText("keep")}
+        val link=File(folder,"01.mp3")
+        android.system.Os.symlink(foreign.path,link.path)
+        val result=AbBookDeletion.remove(context,LibraryBook(folder.name,folder,listOf(link)))
+        assertFalse(result.success);assertEquals("keep",foreign.readText())
+        link.delete()
+    }
+
 }

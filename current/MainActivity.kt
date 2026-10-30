@@ -7809,12 +7809,13 @@ private data class AbDeleteTarget(val file:File,val uri:Uri?=null)
 
 /** All calls to this backend run on IO; a result never equates an inaccessible path with deletion. */
 internal object AbBookDeletion {
-    private val deleting=java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
-    fun busy(title:String)=AbLibraryHousekeeping.bookKey(title) in deleting
-    fun begin(title:String)=deleting.add(AbLibraryHousekeeping.bookKey(title))
+    private val deleting=java.util.Collections.newSetFromMap(java.util.concurrent.ConcurrentHashMap<String,Boolean>())
+    private val running=java.util.Collections.newSetFromMap(java.util.concurrent.ConcurrentHashMap<String,Boolean>())
+    fun busy(title:String)=AbLibraryHousekeeping.bookKey(title).let{it in deleting || it in running}
+    fun begin(title:String)=!busy(title) && deleting.add(AbLibraryHousekeeping.bookKey(title))
     fun end(title:String) {deleting.remove(AbLibraryHousekeeping.bookKey(title))}
     private fun privatePath(context:Context,file:File):Boolean = listOf(context.filesDir,context.cacheDir).any {
-        file.absolutePath.startsWith(it.absolutePath+File.separator)
+        file.canonicalPath.startsWith(it.canonicalPath+File.separator)
     }
     private fun directAudio(book:LibraryBook,file:File):Boolean =
         LibraryRecoveryRules.isAudio(file.name) && file.parentFile?.canonicalFile==book.folder.canonicalFile &&
@@ -7874,7 +7875,12 @@ internal object AbBookDeletion {
             if(found && !matches) {
                 // An ID restored from an old installation must never cancel a different download.
                 AbPlaybackTrace.append(context,"Удаление: устаревший номер загрузки $id пропущен")
-            } else if(found) manager.remove(id)
+            } else if(found) {
+                manager.remove(id)
+                manager.query(DownloadManager.Query().setFilterById(id))?.use {
+                    if(it.moveToFirst())throw java.io.IOException("Загрузка ещё не остановлена")
+                } ?: throw java.io.IOException("Не удалось подтвердить отмену загрузки")
+            }
             prefs.edit().remove(entry.key).apply()
         }
     }
@@ -7886,11 +7892,14 @@ internal object AbBookDeletion {
 
     private fun targets(context:Context,book:LibraryBook):List<AbDeleteTarget> {
         val result=linkedMapOf<String,AbDeleteTarget>()
+        val documents=if(book.folderUri.isBlank())emptyList() else {
+            val uri=Uri.parse(book.folderUri)
+            if(missingDocument(context,uri))emptyList() else libraryDocuments(context,uri,uri)
+        }
         book.files.forEach {file ->
-            val savedUri=(file as? LibraryAudioFile)?.audioUri?.let{Uri.parse(it)}
             require(directAudio(book,file)) { "Глава находится вне выбранной папки" }
-            // MediaStore IDs may be stale: bind them again by the exact current file path below.
-            val uri=savedUri?.takeIf{it.authority!="media"}
+            // Rebind every URI through the selected folder/path; stale snapshots cannot authorize a different document.
+            val uri=documents.firstOrNull{!it.isDirectory && it.name==file.name}?.uri
             result[file.absolutePath]=AbDeleteTarget(file,uri)
         }
         // Use exactly the formats accepted by the library, including zero-byte/partial audio.
@@ -7917,13 +7926,10 @@ internal object AbBookDeletion {
                 }
             }
         }catch(_:Exception){}
-        if(book.folderUri.isNotBlank()) {
-            val uri=Uri.parse(book.folderUri)
-            (if(missingDocument(context,uri))emptyList() else libraryDocuments(context,uri,uri))
-                .filter{!it.isDirectory && LibraryRecoveryRules.isAudio(it.name)}.forEach {item ->
-                val file=File(book.folder,item.name)
-                result[file.absolutePath]=AbDeleteTarget(file,item.uri)
-            }
+        documents.filter{!it.isDirectory && LibraryRecoveryRules.isAudio(it.name)}.forEach {item ->
+            val file=File(book.folder,item.name)
+            require(directAudio(book,file)) { "Глава находится вне выбранной папки" }
+            result[file.absolutePath]=AbDeleteTarget(file,item.uri)
         }
         return result.values.map {target ->
             if(target.uri==null && target.file.canonicalFile==File(book.folder.canonicalFile,target.file.name))
@@ -7943,9 +7949,12 @@ internal object AbBookDeletion {
             val remaining=libraryDocuments(context,uri,uri)
             if(remaining.any{!it.isDirectory && (it.name in sidecars || LibraryRecoveryRules.isAudio(it.name))})false
             else {
-                val rootName=book.folder.name in setOf("AudioBooks",BuildConfig.LIBRARY_DIRECTORY)
-                if(!rootName && remaining.isEmpty())android.provider.DocumentsContract.deleteDocument(context.contentResolver,uri)
-                true
+                val roots=setOf("AudioBooks",BuildConfig.LIBRARY_DIRECTORY)
+                val rootName=book.folder.name in roots || book.title in roots
+                if(!rootName && remaining.isEmpty()) {
+                    android.provider.DocumentsContract.deleteDocument(context.contentResolver,uri)
+                    missingDocument(context,uri)
+                } else true
             }
         } else {
             for(name in sidecars) {
@@ -7964,11 +7973,16 @@ internal object AbBookDeletion {
     }catch(_:Exception){false}}
 
     fun remove(context:Context,book:LibraryBook):AbDeleteAttempt {
+        val name=AbLibraryHousekeeping.bookKey(book.title)
+        if(!running.add(name))return AbDeleteAttempt(message="Эта книга уже удаляется")
         val release=AbLibraryHousekeeping.hold(book.title)
-        return try {perform(context,book)}finally{release()}
+        return try {perform(context,book)}finally{release();running.remove(name)}
     }
 
     private fun perform(context:Context,book:LibraryBook):AbDeleteAttempt {
+        if(book.files.isEmpty() && book.folderUri.isBlank() && !privatePath(context,book.folder) &&
+            book.folder.canonicalFile.parentFile!=libraryRoot().canonicalFile)
+            return AbDeleteAttempt(message="Выберите точную папку книги для удаления.",needsFolder=true)
         try {cancelDownloads(context,book)}catch(error:Exception) {
             AbPlaybackTrace.append(context,"Удаление: не удалось отменить загрузки книги ${book.title}: ${error.javaClass.simpleName}")
             return AbDeleteAttempt(message="Не удалось отменить активную загрузку этой книги. Повторите удаление после её остановки.")
