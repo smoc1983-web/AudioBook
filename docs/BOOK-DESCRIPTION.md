@@ -36,3 +36,5 @@ pass; fresh JaCoCo/Crapper<10/Dryer and3 guard mutants regenerated. Both source 
 URL must identify this work. Live Bookinfo HTTP200/120091bytes: Сыны грома returned
 1252chars of annotation; frozen Новый каменный век6 returned522chars. Raw HTML
 retained only in scratch, not published as app/user content. Native rerun required.
+
+Final native41014370607 on sourcee1cf58ec672b65601a2c98f222528d8a2068136d succeeded on API23 and36:15 tests started/finished each; JVM142 passed+1optional skip each. Actual completed job logs verified; artifacts12959181462/12959580815 retained. PR source-analysis41014583440 succeeded; targeted Java metrics/mutations recorded separately. The local execution environment became unavailable before XML extraction; all code is on GitHub. Full signed74/upgrade gate can run there; APK inspection and same-Site publication require restored execution access. Public feed remains73 until verified deployment.

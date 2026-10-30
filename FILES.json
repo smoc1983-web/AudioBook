@@ -1,5 +1,5 @@
 {
-  "revision": "book-descriptions-native-verification",
+  "revision": "book-description-native-passed-signed74-pending",
   "storage": "GitHub export; see releases/ARCHIVE-PARTS.json for three multipart historical ZIPs",
   "files": [
     {
@@ -1479,8 +1479,8 @@
     },
     {
       "path": "docs/BOOK-DESCRIPTION.md",
-      "bytes": 2586,
-      "sha256": "85681de9af77ba2aacc77a1755b115819c7b1f72e1749ad7fa2fbf72f8fc79c6"
+      "bytes": 3190,
+      "sha256": "67ab43fc0625b732b03bddc5c0290a03bbcccf2641f7dba1f699060766802c54"
     },
     {
       "path": "docs/BUILD-4.1.md",
@@ -1524,8 +1524,8 @@
     },
     {
       "path": "docs/HANDOFF.md",
-      "bytes": 82026,
-      "sha256": "3e036661cad1ed5f62930acaff749a820f431e03321132ebdb1b20f2fe1e6b04"
+      "bytes": 82703,
+      "sha256": "3ba9e80c3bc34f391f71328f83d2e064893fcaef4201491f2c86011e6f4e5879"
     },
     {
       "path": "docs/INSTALL.md",
@@ -1916,6 +1916,11 @@
       "path": "docs/book-description/mutator.log",
       "bytes": 3599,
       "sha256": "99ac58510ae5993c07d462d66cd9984debc6e9171457ccacbb44fbfc36dff5d6"
+    },
+    {
+      "path": "docs/book-description/native-verification.json",
+      "bytes": 1040,
+      "sha256": "3800bae77aeadc249a9d59b2e6afaa992dfc7384f6a52aa4f24f6809e3d046fd"
     },
     {
       "path": "docs/book-description/quality.json",

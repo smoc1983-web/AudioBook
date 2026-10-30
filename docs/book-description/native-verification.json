@@ -1,0 +1,41 @@
+{
+  "schema": 1,
+  "run": 41014370607,
+  "source": "e1cf58ec672b65601a2c98f222528d8a2068136d",
+  "tree": "92f991aaa9549c17966436b9f0f4f9a7008f467a",
+  "conclusion": "success",
+  "apis": [
+    {
+      "api": 23,
+      "job": 123927241089,
+      "nativeTestsStarted": 15,
+      "nativeTestsFinished": 15,
+      "jobConclusion": "success",
+      "jvmPassed": 142,
+      "jvmSkipped": 1
+    },
+    {
+      "api": 36,
+      "job": 123927242058,
+      "nativeTestsStarted": 15,
+      "nativeTestsFinished": 15,
+      "jobConclusion": "success",
+      "jvmPassed": 142,
+      "jvmSkipped": 1
+    }
+  ],
+  "artifacts": [
+    {
+      "id": 12959181462,
+      "name": "book-description-api23"
+    },
+    {
+      "id": 12959580815,
+      "name": "book-description-api36"
+    }
+  ],
+  "verificationMethod": "Completed Actions jobs and decoded log counters. XML artifacts retained on GitHub; local extraction pending while execution environment is unavailable.",
+  "qualityRun": 41014583440,
+  "qualityConclusion": "success",
+  "physicalPhone": false
+}
