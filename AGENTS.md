@@ -8,12 +8,12 @@ The user also approved ub-mode for reliable book deletion and collection downloa
 on2026-10-30; do not ask again within that combined task. Ask for the next task.
 This supersedes the earlier unconditional ub-mode instruction below.
 
-Current released version is4.2.71 /100071 (2026-10-29), including verified context-menu
-downloads and edition details. PR3 merged; normal CI40926084946 and public Site14
-completed. See docs/RELEASE-4.2.71.md. Do not repeat completed publication for a
+Current released version is4.2.72 /100072 (2026-10-30), including collection downloads
+and reliable file deletion. PR4 merged; normal CI40992606141 and public Site15
+completed. See docs/RELEASE-4.2.72.md. Do not repeat completed publication for a
 memory-only request. Preserve package/signature/library/settings and original
-stable installation. Next normal workflow run71 uses the permanent offset+1
-wrapper to produce72 /100072. Never replace a published version with another APK.
+stable installation. Next normal workflow run72 uses the permanent offset+1
+wrapper to produce73 /100073. Never replace a published version with another APK.
 Never publish signing keys or silently rotate the installed signing identity.
 
 The user explicitly requested ub-mode on 2026-10-27. For future code changes,

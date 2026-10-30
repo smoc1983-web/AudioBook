@@ -1,3 +1,22 @@
+## Audiobook4.2.72 опубликована (2026-10-30)
+
+Текущая задача завершена. Скачивание коллекций и надёжное удаление аудиофайлов,
+включая race фоновых cover writes, реализованы. [Выпуск](RELEASE-4.2.72.md),
+[машинные результаты](release-4.2.72/verification.json). PR4 merged289d6c2cc69b9acadf52049c6799cec807a96c73,
+treeff9f09aae0afcd986f6291cacfdf06adeadba2d5. Scoped40991356902 и normal40992606141
+успешны. Signed72/100072,32970042 bytes,SHA31e65328fe69d3375f771e7d46ea25a37c74d40ce7aa3513110f2cbe41aee5b4;
+package/cert прежние, upgrade71→72 в эмуляторе сохранил контрольные данные.
+Site15 deploymentappgdep_6ae4075d038081919f4633de657e577f succeeded,
+source4ab34e721a614569cdc460027abc0a24a8da59e4; HTTP metadata/parts/full SHA для
+клиентов71/70 проверены. Физический Samsung и Android network download не проверялись.
+Далее ждать новой задачи/phone feedback; перед новой разработкой спросить ub-mode.
+Не повторять завершённую публикацию. Следующий normal run72 через offset1 даёт73.
+Site raw archive266813440 bytes: следующий новый APK потребует безопасного
+удаления unreferenced old chunks после проверки всех refs и backup; текущие72,
+manual69/при возможности71 сохранить. Ключи не публиковать, stable не удалять.
+
+Ниже исторические checkpoints, включая стадии до завершения72.
+
 ## В работе: готовится выпуск удаления/скачивания коллекций (2026-10-30)
 
 Профильный CI40991356902 прошёл final source4806b2b2362ef625002f10cc1fa0452accf226e6:

@@ -1,0 +1,10 @@
+{
+  "packageName": "com.audiobookdownloader.preview",
+  "versionCode": 100072,
+  "versionName": "4.2.72",
+  "size": 32970042,
+  "sha256": "31e65328fe69d3375f771e7d46ea25a37c74d40ce7aa3513110f2cbe41aee5b4",
+  "certificateSha256": "3a4cecd14bb3e983843871766909c3f07b3dc64379800f3e270e4a27d39affb7",
+  "apk": "Audiobook-Preview.apk",
+  "commit": "289d6c2cc69b9acadf52049c6799cec807a96c73"
+}

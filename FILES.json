@@ -1,5 +1,5 @@
 {
-  "revision": "library-file-actions-verified-source-pre-release",
+  "revision": "audiobook-4.2.72-collection-downloads-file-cleanup-published",
   "storage": "GitHub export; see releases/ARCHIVE-PARTS.json for three multipart historical ZIPs",
   "files": [
     {
@@ -49,13 +49,13 @@
     },
     {
       "path": "AGENTS.md",
-      "bytes": 2714,
-      "sha256": "8687fdbcd05600f9eb2f77425b8fb98e95141bfdb9ea54e8442adc90b866fe5f"
+      "bytes": 2710,
+      "sha256": "c7d62b4aa39ee5751b8afaca306eebe8b17d22669031ecaab6c4711b2e11555c"
     },
     {
       "path": "README.md",
-      "bytes": 20018,
-      "sha256": "f2e0239080ea78a423df4f2927c692b1fbeef1d75e307ea534a2a3f12541e4fc"
+      "bytes": 20023,
+      "sha256": "a0fb0ab19278899445e016c9fd8bdf024be4539421ea7953c958761e5478d260"
     },
     {
       "path": "app/build.gradle.kts",
@@ -1479,8 +1479,8 @@
     },
     {
       "path": "docs/HANDOFF.md",
-      "bytes": 77567,
-      "sha256": "deed5b7ae744619c576b8a0d917d8a36db94c6910f520b6f4aa5829ffad5c865"
+      "bytes": 79332,
+      "sha256": "91792fefce097a29dd65c409fe5f33a5a77fb74d24fffbab9010ee5e814ddec0"
     },
     {
       "path": "docs/INSTALL.md",
@@ -1494,8 +1494,8 @@
     },
     {
       "path": "docs/LIBRARY-FILE-ACTIONS.md",
-      "bytes": 11674,
-      "sha256": "bee590a0b35ad091029f617b8f1da6ef33300fd6fbfad85045f04698bc913032"
+      "bytes": 12306,
+      "sha256": "bac567b2bed9373c914bd65b20b7540b4dfd5440acc0f11fee014beef35f886d"
     },
     {
       "path": "docs/MEDIA-WIDGETS-STABLE.md",
@@ -1561,6 +1561,11 @@
       "path": "docs/RELEASE-4.2.71.md",
       "bytes": 3671,
       "sha256": "adb0a973500dd9d449ad4744838d589317f7717b547018b8690bcd062452e973"
+    },
+    {
+      "path": "docs/RELEASE-4.2.72.md",
+      "bytes": 4120,
+      "sha256": "602a907d8d441d4c6fa8240de58f112b49f5ad4257a330a1a57e7f302cd20c1e"
     },
     {
       "path": "docs/SCREENSHOT-SOURCES.md",
@@ -2126,6 +2131,51 @@
       "path": "docs/release-4.2.71/verification.json",
       "bytes": 3892,
       "sha256": "867c1384b1bf70d4001dc2bdbe2b3137d1a280e3aa3cbfe0d1c4cae53fce2d1a"
+    },
+    {
+      "path": "docs/release-4.2.72/ci-manifest.json",
+      "bytes": 388,
+      "sha256": "0a0b531a947120fb31a0c32dafba9938f581935308b6623f647d1077dd3857ec"
+    },
+    {
+      "path": "docs/release-4.2.72/dependency-advisories.json",
+      "bytes": 6401,
+      "sha256": "ebe414e4bfc4e3fb44b8e0b3553236358e0e8515bd7476bdcfd019314e84c4fe"
+    },
+    {
+      "path": "docs/release-4.2.72/installed-upgrade.json",
+      "bytes": 844,
+      "sha256": "f98b59b3b5f1e7a762dca547dc27e37d8108213360d7e5b2e4966d1178e55bcc"
+    },
+    {
+      "path": "docs/release-4.2.72/native.xml",
+      "bytes": 7756,
+      "sha256": "801c76c6b45f3258dce2b4b33190b9d1eec79c7868fead909d78f80403dead67"
+    },
+    {
+      "path": "docs/release-4.2.72/permission-audit.json",
+      "bytes": 1141,
+      "sha256": "f8d926e7d090ab854125306e26c9108aaa1ea4bb6992bb016682b43404c4f9dd"
+    },
+    {
+      "path": "docs/release-4.2.72/public-download-check.json",
+      "bytes": 2341,
+      "sha256": "b992eab6e8c1d473d72ae480878c59eaabf7ab4ce8db84054ddaffd432081c2f"
+    },
+    {
+      "path": "docs/release-4.2.72/public-manifest.json",
+      "bytes": 935,
+      "sha256": "2a5daf560e9f36b9729a3cae5af8418b243beeb5cd092211694885b78f57ff5a"
+    },
+    {
+      "path": "docs/release-4.2.72/test-summary.json",
+      "bytes": 7461,
+      "sha256": "c3c6a8436a0349c7c41c97ac317e63d44a77c7364ee71cfc1ea896689f87e8b1"
+    },
+    {
+      "path": "docs/release-4.2.72/verification.json",
+      "bytes": 7736,
+      "sha256": "5f91610d7ce051ae8de1636634bde12a22b38d27218f1c48dd111fc6535d1048"
     },
     {
       "path": "docs/screenshot-source-registry.json",

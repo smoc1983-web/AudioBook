@@ -112,3 +112,12 @@ SAF использует debug controlled provider; physical Samsung и его �
 
 Далее normal pipeline должен проверить signed release/upgrade71→72, разрешения,
 зависимости и regression suite; до этих результатов новый APK не опубликован.
+
+## Выпуск завершён
+
+Normal40992606141 success; PR4 merge289d6c2cc69b9acadf52049c6799cec807a96c73.
+Подписанная4.2.72/100072 проверена и опубликована в Site15, feed обновлён.
+[Итог](RELEASE-4.2.72.md), [receipt](release-4.2.72/verification.json).
+API23/36 профильные проверки, полная регрессия, реальный emulator release-upgrade,
+package/cert/debug-fixture audit и public metadata/parts/full-SHA checks успешны.
+Код и доказательства сохранены; physical phone feedback пока ожидается.

@@ -1,0 +1,216 @@
+{
+  "schema": 1,
+  "publishedUtc": "2026-10-30",
+  "status": "Published; signed72 and public transport verified",
+  "source": {
+    "repository": "smoc1983-web/AudioBook",
+    "pr": 4,
+    "compiledCommit": "289d6c2cc69b9acadf52049c6799cec807a96c73",
+    "tree": "ff9f09aae0afcd986f6291cacfdf06adeadba2d5",
+    "scopedTestedCommit": "4806b2b2362ef625002f10cc1fa0452accf226e6"
+  },
+  "apk": {
+    "packageName": "com.audiobookdownloader.preview",
+    "versionCode": 100072,
+    "versionName": "4.2.72",
+    "size": 32970042,
+    "sha256": "31e65328fe69d3375f771e7d46ea25a37c74d40ce7aa3513110f2cbe41aee5b4",
+    "certificateSha256": "3a4cecd14bb3e983843871766909c3f07b3dc64379800f3e270e4a27d39affb7",
+    "apk": "Audiobook-Preview.apk",
+    "commit": "289d6c2cc69b9acadf52049c6799cec807a96c73"
+  },
+  "ci": {
+    "normal": 40992606141,
+    "job": 123858311282,
+    "conclusion": "success",
+    "runNumber": 71,
+    "effectiveBuildNumber": 72,
+    "scoped": 40991356902,
+    "scopedConclusion": "success"
+  },
+  "tests": {
+    "jvmDebug": {
+      "tests": 132,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    },
+    "jvmRelease": {
+      "tests": 132,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    },
+    "lint": {
+      "Warning": 74,
+      "Information": 63
+    },
+    "android36": {
+      "name": "com.audiobookdownloader.BookDeletionTest",
+      "tests": "50",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "3",
+      "time": "56.173",
+      "timestamp": "2026-10-30T02:47:04",
+      "hostname": "localhost"
+    },
+    "osv": {
+      "complete": true,
+      "resolvedModules": 68,
+      "findings": [],
+      "errors": []
+    }
+  },
+  "upgrade": {
+    "baselineCode": 100071,
+    "newCode": 100072,
+    "oldUpdaterAcceptedNewApk": true,
+    "oldUpdaterOpenedSystemConfirmation": true,
+    "systemConfirmationCancelledForHostReplacement": true,
+    "releaseBaselineSeededBySameSignedInstrumentation": true,
+    "standalonePlatformProbe": true,
+    "probeHasNoAppImplementationCopies": true,
+    "probeNeedsNoNewRuntimeBridge": true,
+    "androidPackageReplacementSucceeded": true,
+    "label": "Audiobook",
+    "settingsCollectionFolderAndPrivateFilePreserved": true,
+    "certificateUnchanged": true,
+    "installationMethod": "adb install -r in disposable emulator; user will confirm installer on phone",
+    "actualInAppNetworkDownloadTested": false,
+    "physicalPhone": false,
+    "newBuildType": "release",
+    "debuggable": false,
+    "privateAudioFileChecksumPreserved": true,
+    "googlePlayProtectVerdictTested": false
+  },
+  "permissionAudit": {
+    "packageName": "com.audiobookdownloader.preview",
+    "debuggable": false,
+    "requestedPermissions": [
+      "android.permission.ACCESS_NETWORK_STATE",
+      "android.permission.FOREGROUND_SERVICE",
+      "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
+      "android.permission.INTERNET",
+      "android.permission.MODIFY_AUDIO_SETTINGS",
+      "android.permission.POST_NOTIFICATIONS",
+      "android.permission.READ_EXTERNAL_STORAGE",
+      "android.permission.READ_MEDIA_AUDIO",
+      "android.permission.RECEIVE_BOOT_COMPLETED",
+      "android.permission.REQUEST_INSTALL_PACKAGES",
+      "android.permission.WAKE_LOCK",
+      "android.permission.WRITE_EXTERNAL_STORAGE",
+      "com.audiobookdownloader.preview.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+    ],
+    "noAccessibilityService": true,
+    "noNotificationListener": true,
+    "noShizuku": true,
+    "retiredClassesAbsent": true,
+    "definedClassCount": 15693,
+    "googlePlayProtectVerdictTested": false,
+    "guidance": "https://developers.google.com/android/play-protect/warning-dev-guidance",
+    "debugFixtureAbsent": true,
+    "releaseNotesUpdated": true,
+    "collectionDownloadImplementationPresent": true
+  },
+  "quality": {
+    "workflow": "ub-mode explicitly approved for this combined task",
+    "supportedTools": "Crapper/Dryer/Mutator invoked; changed Kotlin unsupported, N/A; no invented CRAP or mutation score"
+  },
+  "publicDelivery": {
+    "projectId": "appgprj_6add1a69b6f481918b5e390c8f413992",
+    "version": 15,
+    "sourceCommit": "4ab34e721a614569cdc460027abc0a24a8da59e4",
+    "savedVersion": "appgprj_6add1a69b6f481918b5e390c8f413992~appgver_e7b415a8a67081919be2b93710249235",
+    "deployment": "appgdep_6ae4075d038081919f4633de657e577f",
+    "status": "succeeded",
+    "url": "https://audiobook-smoc1983-updates.amplecoot2048.chatgpt.site",
+    "compressedArchiveBytes": 262492609,
+    "uncompressedArchiveBytes": 266813440,
+    "fileCount": 41,
+    "httpChecks": {
+      "publishedVersionCode": 100072,
+      "siteVersion": 15,
+      "origin": "https://audiobook-smoc1983-updates.amplecoot2048.chatgpt.site/",
+      "clients": [
+        {
+          "userAgent": "Audiobook-Updater/4.2.71",
+          "metadataHttp": 200,
+          "versionCode": 100072,
+          "parts": [
+            {
+              "url": "parts/preview-100072-31e65328fe69d337-00.bin",
+              "http": 200,
+              "bytes": 8388608,
+              "sha256Matches": true
+            },
+            {
+              "url": "parts/preview-100072-31e65328fe69d337-01.bin",
+              "http": 200,
+              "bytes": 8388608,
+              "sha256Matches": true
+            },
+            {
+              "url": "parts/preview-100072-31e65328fe69d337-02.bin",
+              "http": 200,
+              "bytes": 8388608,
+              "sha256Matches": true
+            },
+            {
+              "url": "parts/preview-100072-31e65328fe69d337-03.bin",
+              "http": 200,
+              "bytes": 7804218,
+              "sha256Matches": true
+            }
+          ],
+          "bytes": 32970042,
+          "wholeSha256": "31e65328fe69d3375f771e7d46ea25a37c74d40ce7aa3513110f2cbe41aee5b4",
+          "wholeSha256MatchesVerifiedSignedApk": true
+        },
+        {
+          "userAgent": "Audiobook-Updater/4.2.70",
+          "metadataHttp": 200,
+          "versionCode": 100072,
+          "parts": [
+            {
+              "url": "parts/preview-100072-31e65328fe69d337-00.bin",
+              "http": 200,
+              "bytes": 8388608,
+              "sha256Matches": true
+            },
+            {
+              "url": "parts/preview-100072-31e65328fe69d337-01.bin",
+              "http": 200,
+              "bytes": 8388608,
+              "sha256Matches": true
+            },
+            {
+              "url": "parts/preview-100072-31e65328fe69d337-02.bin",
+              "http": 200,
+              "bytes": 8388608,
+              "sha256Matches": true
+            },
+            {
+              "url": "parts/preview-100072-31e65328fe69d337-03.bin",
+              "http": 200,
+              "bytes": 7804218,
+              "sha256Matches": true
+            }
+          ],
+          "bytes": 32970042,
+          "wholeSha256": "31e65328fe69d3375f771e7d46ea25a37c74d40ce7aa3513110f2cbe41aee5b4",
+          "wholeSha256MatchesVerifiedSignedApk": true
+        }
+      ],
+      "physicalPhone": false,
+      "actualAndroidInAppNetworkDownload": false,
+      "note": "HTTP transport verified from executor with native updater request headers; physical-phone DNS and installer confirmation remain user-side."
+    }
+  },
+  "limits": [
+    "Physical Samsung S24 was not tested.",
+    "Actual Android in-app network APK download and Google Play Protect verdict were not tested; release package replacement and system confirmation were verified in a disposable emulator.",
+    "Unknown user documents, collections, bookmarks, private collection thumbnails and settings are retained. Deletion is user initiated.",
+    "Explicit preview detection and displayed chapter counts/size cannot prove completeness of unmarked editions."
+  ]
+}
