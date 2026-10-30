@@ -69,7 +69,7 @@ jobs:
                   assert 'Lcom/audiobookdownloader/'+name+';' not in classes
               notes=json.loads(z.read('assets/release-notes.json'))
               assert any('обложк' in text.lower() and 'описани' in text.lower() for text in notes['changes'])
-          audit=json.loads(subprocess.check_output(['python3','scripts/audit-installable-apk.py','--apk',str(apk),'--build-tools',str(tools)],text=True))
+          audit=json.loads(subprocess.check_output(['python3','scripts/audit-installable-apk.py','--apk',str(apk),'--build-tools',str(tools),'--output','description-permission-audit.json'],text=True))
           baseline=json.loads(Path('docs/release-4.2.73/permission-audit.json').read_text())
           assert set(audit['requestedPermissions'])==set(baseline['requestedPermissions'])
           result={'versionCode':100074,'packageName':meta['packageName'],'bytes':meta['size'],'sha256':meta['sha256'],'certificateSha256':certificate,'signaturesV1V2':True,'label':'Audiobook','debuggable':False,'definedClassCount':len(classes),'descriptionClassesPresent':True,'descriptionDialogPresent':True,'debugFixturesAbsent':True,'releaseNotesUpdated':True,'permissionsUnchanged':True,'actualReleaseAssetVerified':True,'physicalPhone':False}
