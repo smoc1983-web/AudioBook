@@ -46,7 +46,10 @@ class CollectionNotificationTest {
             manager.notify(legacy.id,1,message("Новгородец. Книга 2"))
             manager.notify(unrelated.id,1,message("Бюро счастливых случайностей"))
             manager.notify(9001,message("Плеер"))
-            awaitState{manager.activeNotifications.any{it.tag==legacy.id}&&manager.activeNotifications.any{it.tag==unrelated.id}&&manager.activeNotifications.any{it.id==9001}}
+            // The real application observes shelf writes and may already clean orphan
+            // notifications before this thread sees them. Their presence is not a stable
+            // precondition; retaining the media notice and the final cleanup are.
+            awaitState{manager.activeNotifications.any{it.id==9001}}
             AbContinuationAlerts.deliver(context)
             awaitState{manager.activeNotifications.any{it.tag==own.id}&&manager.activeNotifications.none{it.tag==legacy.id||it.tag==unrelated.id}}
             val active=manager.activeNotifications

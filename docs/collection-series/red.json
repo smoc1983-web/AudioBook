@@ -1,0 +1,8 @@
+{
+  "run": 41003278510,
+  "source": "37431ab7564ce4360f563261de0b25da4bdb04db",
+  "api": 36,
+  "tests": 1,
+  "failures": 1,
+  "reason": "Original card has no node with text Продолжения; native test compiled and failed at requested control"
+}

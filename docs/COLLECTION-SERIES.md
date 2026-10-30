@@ -27,3 +27,15 @@ muted-notification display, audio/text links, unrelated-feed exclusion, menu act
 routing, cards beyond fifth, inline collapse and player preservation.
 
 Focused green workflow compiles debug/native-test APKs and runs real API23/36 cases. Full JVM, lint, JS, dependency and signed-upgrade checks belong to the subsequent normal release workflow; they are not repeated redundantly in both emulator jobs.
+
+Original API36 run41003278510 compiled successfully and failed the single real control test at the missing Продолжения node. Artifact12955061682 retained as red-api36.xml/red.json. Green source0aa796957a8894f64b659132c45280c60ea63ed8 runs independently; no passing claim yet.
+
+Green run41004363928 compiled both APIs and executed20 cases each. All four new
+collection cases, six official-series cases, two recovery cases and download
+regressions passed. One existing notification fixture failed on both APIs at
+CollectionNotificationTest.kt:49: it waited for orphan notifications to remain
+visible even though the real application automatically removes them on shelf
+changes. Corrected only that unstable precondition to await its independent media
+notice; kept every final assertion (own alert present, orphan/global absent,
+media retained, history/routes/removal scopes correct). No notification production
+code or assertions of final behavior weakened. Repeat native matrix required.

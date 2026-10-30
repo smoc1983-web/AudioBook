@@ -79,8 +79,8 @@
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/CollectionNotificationTest.kt",
-      "bytes": 5612,
-      "sha256": "4f330f4cd1b3dddc4b88768f50b2e850369f897948b0859907a579e25e481f24"
+      "bytes": 5765,
+      "sha256": "51ba3f5daf91edec887e2fa2a274b4fd2123186a9f3314e12579f8a314ca6e6a"
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/CollectionSeriesTest.kt",
@@ -1474,8 +1474,8 @@
     },
     {
       "path": "docs/COLLECTION-SERIES.md",
-      "bytes": 2125,
-      "sha256": "b29c07f0e278298899c9155b5948634eee1af7f3d4b9aeed2f0bc3bf4a0e3b66"
+      "bytes": 3124,
+      "sha256": "417af5a8dc6390104092f9ce0cc314366a1c641d150e733ac9cfc94aa291bb5f"
     },
     {
       "path": "docs/COLLECTION-TRANSFER.md",
@@ -1901,6 +1901,16 @@
       "path": "docs/collection-series/mutator.log",
       "bytes": 27,
       "sha256": "23b1a985013505bb2c040aabb9af6fbd28fa9b38a32470a2a96e5ef0bcbd4020"
+    },
+    {
+      "path": "docs/collection-series/red-api36.xml",
+      "bytes": 1499,
+      "sha256": "4b5167fd0c0b195993c139354c9e1709462508643509b80fc87093115f3e9ed4"
+    },
+    {
+      "path": "docs/collection-series/red.json",
+      "bytes": 253,
+      "sha256": "25d2b8357f4d5535af007336069637155acc817b116541c47c83585e4eb5182a"
     },
     {
       "path": "docs/library-file-actions/crapper-kotlin.log",
