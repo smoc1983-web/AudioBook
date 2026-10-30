@@ -1,5 +1,5 @@
 {
-  "revision": "audiobook-library-experience-work-in-progress",
+  "revision": "audiobook-library-experience-verification",
   "storage": "GitHub export; see releases/ARCHIVE-PARTS.json for three multipart historical ZIPs",
   "files": [
     {
@@ -184,8 +184,8 @@
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/TestBitmapExports.java",
-      "bytes": 1311,
-      "sha256": "131f80a450f1b780088794dcfbe378de9e2bdbbe3f1ace7b9d49e50ab8a91b10"
+      "bytes": 2026,
+      "sha256": "5b4bfe58062b5d6ec6d6856d1db6b82733a742582d157e8d94387d153817cc75"
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/UpdateScreenTest.java",
@@ -314,8 +314,8 @@
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/BookDescriptionRepository.kt",
-      "bytes": 3876,
-      "sha256": "063170d7dd8e9bafbec0ccae045d47f2bb69daf4b08bc7f663c99acbf11e596c"
+      "bytes": 3966,
+      "sha256": "8ea44d86184488294110ccf4d75aa61fb71d1fb9bfa716de24be34a71059516f"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/CollectionNoticePolicy.java",
@@ -384,8 +384,8 @@
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/ExperiencePanels.kt",
-      "bytes": 17133,
-      "sha256": "4752063a6a63afa997e4d7effcd0fea874fdc95fd7a70d426dfe2b62fabbc011"
+      "bytes": 17203,
+      "sha256": "1bc5fae488f897fbe3086b1b01c8b5748e3a6b0f4f92c6c649b58a7553de8199"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/KnigobludSeriesParser.java",
@@ -434,8 +434,8 @@
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/PersistentDownloads.kt",
-      "bytes": 11880,
-      "sha256": "33671da38c0e38e549578609056b03624efbe1f5702c0804c2adf77f10dacf97"
+      "bytes": 12835,
+      "sha256": "6026d50d5fa71aaeb97e79e234460a8aecd6cdd4f45faf3db2c7ff6c576e2b66"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/PreviewUpdateRules.java",
@@ -724,8 +724,8 @@
     },
     {
       "path": "current/MainActivity.kt",
-      "bytes": 782318,
-      "sha256": "3f9fecadf332569524afee42cc9a76722e510e77d8388a96bce621b5b4e2ca33"
+      "bytes": 783079,
+      "sha256": "49ac6a0ad7ba0b78febccb756848a8aa5eaf7c9279cc5e5db653ebe04aaf2444"
     },
     {
       "path": "current/PlaybackService.kt",
@@ -1579,8 +1579,8 @@
     },
     {
       "path": "docs/LIBRARY-EXPERIENCE.md",
-      "bytes": 5673,
-      "sha256": "920234a2eaf67a8ea5e45ea893cd7fb4d735b6bd63d27efa9f3ce7fbb68a0643"
+      "bytes": 6710,
+      "sha256": "5902f3e36a79a8e4e0f1d619ead0de3f490eb6f970eec7366032756a8c525f1c"
     },
     {
       "path": "docs/LIBRARY-FILE-ACTIONS.md",

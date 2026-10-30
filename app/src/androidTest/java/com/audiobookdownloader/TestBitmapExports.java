@@ -11,6 +11,16 @@ import java.io.OutputStream;
 /** Instrumentation-only export through Android scoped storage; no production file commands. */
 final class TestBitmapExports {
     static void write(Context context,Bitmap bitmap,String name) throws IOException {
+        if(android.os.Build.VERSION.SDK_INT<29) {
+            java.io.File parent=context.getExternalFilesDir("test-evidence");
+            if(parent==null)throw new IOException("Test evidence storage unavailable");
+            if(!parent.isDirectory()&&!parent.mkdirs())throw new IOException("Cannot create test evidence folder");
+            if(!new java.io.File(name).getName().equals(name))throw new IOException("Invalid test evidence name");
+            try(java.io.FileOutputStream out=new java.io.FileOutputStream(new java.io.File(parent,name))){
+                if(!bitmap.compress(Bitmap.CompressFormat.PNG,100,out))throw new IOException("Cannot export "+name);
+            }
+            return;
+        }
         ContentValues values=new ContentValues();
         values.put(MediaStore.MediaColumns.DISPLAY_NAME,name);
         values.put(MediaStore.MediaColumns.MIME_TYPE,"image/png");

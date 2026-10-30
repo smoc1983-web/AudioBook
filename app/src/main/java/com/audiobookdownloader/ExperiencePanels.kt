@@ -50,13 +50,13 @@ internal val LocalAbBookCardContext=staticCompositionLocalOf<BookCardContext?>{n
     if(shelf&&card!=null)AbShelfPicker(ref,prefs,theme,card.version){shelf=false}
 }
 
-@Composable internal fun AbPersistentQueueDialog(theme:AbTheme,dismiss:()->Unit) {
+@Composable internal fun AbPersistentQueueDialog(theme:AbTheme,foreground:Boolean=true,dismiss:()->Unit) {
     val context=androidx.compose.ui.platform.LocalContext.current.applicationContext
     val prefs=remember{context.getSharedPreferences("audiobook_downloader",0)}
     val scope=rememberCoroutineScope()
     var revision by remember{mutableStateOf(0)}
     var notice by remember{mutableStateOf("")}
-    val rows by produceState<List<QueuedChapter>>(emptyList(),revision){while(true){value=withContext(Dispatchers.IO){AbPersistentDownloads.entries(context)};delay(1200)}}
+    val rows by produceState<List<QueuedChapter>>(emptyList(),revision,foreground){if(!foreground)return@produceState;while(true){value=withContext(Dispatchers.IO){AbPersistentDownloads.entries(context)};delay(1200)}}
     fun work(block:()->Unit){scope.launch{try{withContext(Dispatchers.IO){block()};revision++}catch(e:Exception){notice=e.message?:"Не удалось изменить очередь"}}}
     var shown by remember{mutableStateOf(10)}
     AbDialog("Загрузки",theme,dismiss) {

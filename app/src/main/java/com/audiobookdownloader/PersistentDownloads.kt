@@ -18,19 +18,30 @@ internal data class QueuedChapter(val key:String,val book:String,val title:Strin
 }
 internal object AbPersistentDownloads {
     private val lock=Any()
+    private var cachedRaw:String?=null
+    private var cachedRows:List<QueuedChapter> = emptyList()
     private fun prefs(c:Context)=c.getSharedPreferences("audiobook_download_queue_v1",0)
     private fun main(c:Context)=c.getSharedPreferences("audiobook_downloader",0)
     fun key(book:String,title:String)=AbLibraryHousekeeping.bookKey(book)+"\u0000"+safeFileName(title).lowercase(java.util.Locale.ROOT)
     fun entries(c:Context):List<QueuedChapter> = synchronized(lock) {
-        val a=try{JSONArray(prefs(c).getString("entries","[]"))}catch(_:Exception){JSONArray()}
-        (0 until minOf(a.length(),6000)).mapNotNull {i->try{a.optJSONObject(i)?.let {o->
+        val raw=prefs(c).getString("entries","[]").orEmpty()
+        if(raw==cachedRaw)return@synchronized cachedRows
+        val a=try{JSONArray(raw)}catch(_:Exception){JSONArray()}
+        val rows=(0 until minOf(a.length(),6000)).mapNotNull {i->try{a.optJSONObject(i)?.let {o->
             val row=QueuedChapter(o.getString("key"),o.getString("book"),o.getString("title"),o.getString("src"),o.optInt("duration"),o.optLong("job"),o.optString("state","queued"),o.optLong("bytes"),o.optLong("total",-1),o.optString("error"))
             row.takeIf{it.key==key(it.book,it.title)&&isNetworkAudio(it.src)&&it.state in listOf("queued","active","complete","error","cancelled")}
         }}catch(_:Exception){null}}
-
+        cachedRaw=raw;cachedRows=rows;rows
     }
-    private fun write(c:Context,rows:List<QueuedChapter>) {
-        check(prefs(c).edit().putString("entries",JSONArray().apply{rows.forEach{put(it.json())}}.toString()).commit()) {"Не удалось сохранить очередь"}
+    private fun write(c:Context,rows:List<QueuedChapter>,maxBytes:Int=8*1024*1024) {
+        require(rows.sumOf{it.key.length.toLong()+it.book.length+it.title.length+it.src.length+it.error.length}<4L*1024*1024){"Очередь заполнена. Уберите завершённые загрузки из списка."}
+        val encoded=JSONArray().apply{rows.forEach{put(it.json())}}.toString()
+        require(encoded.toByteArray(Charsets.UTF_8).size<=maxBytes){"Очередь заполнена. Уберите завершённые загрузки из списка."}
+        val p=prefs(c);val previous=p.getString("entries","[]")
+        if(!p.edit().putString("entries",encoded).commit()) {
+            p.edit().putString("entries",previous).commit();error("Не удалось сохранить очередь. Проверьте свободное место.")
+        }
+        cachedRaw=encoded;cachedRows=rows.toList()
     }
     fun enqueue(c:Context,book:String,tracks:List<AudioTrack>)=enqueueBatch(c,listOf(AbDownloadEdition(BookRef(book,"",""),tracks,false)))
     fun enqueueBatch(c:Context,editions:List<AbDownloadEdition>)=synchronized(lock) {
@@ -46,7 +57,7 @@ internal object AbPersistentDownloads {
             }
         }
         require(rows.size<=6000){"Очередь заполнена. Очистите завершённые загрузки."}
-        write(c,rows);schedule(c)
+        write(c,rows,7*1024*1024);schedule(c)
     }
     fun update(c:Context,id:String,transform:(QueuedChapter)->QueuedChapter)=synchronized(lock) {
         val before=entries(c);val after=before.map{if(it.key==id)transform(it) else it};if(after!=before)write(c,after)

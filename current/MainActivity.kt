@@ -2283,7 +2283,8 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
         librarySync.requestSync()
     }
 
-    LaunchedEffect(downloadIds.size) {
+    LaunchedEffect(downloadIds.size,foreground) {
+        if(!foreground)return@LaunchedEffect
         while(downloadIds.isNotEmpty()) {
             val snapshot=downloadIds.toMap()
             val statuses=abReadDownloadStatuses(context.applicationContext,snapshot.keys)
@@ -3090,7 +3091,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
         download = { track, book -> submitEditions(listOf(AbDownloadEdition(bookRefFor(prefs,book),listOf(track),false)),recordTotal=false) },
         downloadEdition = { ref, tracks ->submitEditions(listOf(AbDownloadEdition(ref,tracks,false))) },
         downloadBatch = {editions->enqueueEditions(editions)},
-        cancelDownload = {title->modernWork.launch(Dispatchers.IO){AbPersistentDownloads.cancelChapter(context.applicationContext,cleanBookTitle(pageTitle),title)}},
+        cancelDownload = {title->val book=cleanBookTitle(pageTitle);modernWork.launch(Dispatchers.IO){AbPersistentDownloads.cancelChapter(context.applicationContext,book,title)}},
         deleteBook = deleteModernBook,
         skin = { setAppSkin(it) },
         chooseBackground = { customBackgroundLauncher.launch(arrayOf("image/*")) },
@@ -3099,9 +3100,12 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
             prefs.edit().remove("custom_background_uri").apply()
         }
     )
-    val durableQueue by androidx.compose.runtime.produceState<List<QueuedChapter>>(emptyList()) {
-        withContext(Dispatchers.IO){AbPersistentDownloads.restore(context.applicationContext)}
-        while(true){value=withContext(Dispatchers.IO){AbPersistentDownloads.entries(context.applicationContext)};delay(1500)}
+    val durableQueue by androidx.compose.runtime.produceState<List<QueuedChapter>>(emptyList(),foreground) {
+        if(!foreground)return@produceState
+        try{withContext(Dispatchers.IO){AbPersistentDownloads.restore(context.applicationContext)}}
+        catch(cancel:kotlinx.coroutines.CancellationException){throw cancel}
+        catch(_:Exception){status="Не удалось восстановить очередь загрузок. Остальные функции доступны."}
+        while(true){value=withContext(Dispatchers.IO){AbPersistentDownloads.entries(context.applicationContext)};delay(if(value.any{it.state=="active"||it.state=="queued"})1500 else 5000)}
     }
     val modernTrackStates = remember(player,pageTitle,downloadedIndex,durableQueue) {
         val book=cleanBookTitle(pageTitle)
@@ -9937,12 +9941,16 @@ internal fun AbBookDescriptionDialog(ref:BookRef,local:LibraryBook?,theme:AbThem
     extra:@Composable ColumnScope.()->Unit={}) {
     val context=androidx.compose.ui.platform.LocalContext.current.applicationContext
     val repository=remember(context){BookDescriptionRepository(context)}
+    val prefs=remember(context){context.getSharedPreferences("audiobook_downloader",0)}
     var description by remember(ref.title,ref.url){mutableStateOf<BookDescription?>(null)}
     var running by remember(ref.title,ref.url){mutableStateOf(false)}
     var error by remember(ref.title,ref.url){mutableStateOf("")}
     var retry by remember(ref.title,ref.url){mutableStateOf(0)}
     LaunchedEffect(ref.title,ref.url,retry) {
         running=true;error=""
+        if(loader==null&&ref.url.isBlank()&&local==null&&prefs.getString(bookUrlKey(ref.title),"").orEmpty().isBlank()) {
+            error=BookDescriptionUnavailable.MISSING_LINK;running=false;return@LaunchedEffect
+        }
         try{description=if(loader!=null)loader(ref,local,retry>0) else repository.load(ref,local,retry>0)}
         catch(_:kotlinx.coroutines.TimeoutCancellationException){error="Источник отвечает слишком долго. Повторите позже."}
         catch(cancel:kotlinx.coroutines.CancellationException){throw cancel}
@@ -10113,7 +10121,7 @@ private fun AbModernApp(data: AbScreenData, actions: AbActions, sync: LibrarySyn
         crashReportRequest++
     }) { settings=null } }
     AbCrashReports(theme,crashReportRequest)
-    if(downloads) AbPersistentQueueDialog(theme) { downloads=false }
+    if(downloads) AbPersistentQueueDialog(theme,foreground) { downloads=false }
     if(libraryAccess) AbDialog("Библиотека на устройстве",theme,{libraryAccess=false}) {
         Text("Найдём сохранившиеся главы и подключим папку после переустановки.",color=theme.muted,fontSize=14.sp)
         LibrarySyncControls(sync.isSyncing,sync.message,{sync.requestSync()},theme.muted,theme.accent)

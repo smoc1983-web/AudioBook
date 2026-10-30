@@ -9,7 +9,9 @@ import org.json.JSONObject
 import java.io.File
 
 internal data class BookDescription(val title:String,val author:String,val text:String,val source:String,val checked:Long,val cached:Boolean=false)
-internal class BookDescriptionUnavailable(message:String):Exception(message)
+internal class BookDescriptionUnavailable(message:String):Exception(message) {
+    companion object {const val MISSING_LINK="Для этой книги не сохранена ссылка на страницу источника. Откройте её страницу в приложении, чтобы получить описание."}
+}
 private val descriptionLocks=Array(16){Mutex()}
 
 /** Private disposable annotation cache; never writes in the audio library or changes player state. */
@@ -25,7 +27,7 @@ internal class BookDescriptionRepository(
         val candidate=ref.url.ifBlank{prefs.getString(bookUrlKey(ref.title),"").orEmpty()}
             .ifBlank{local?.let{recoverLibraryBookRef(context,it).url}.orEmpty()}
         val address=policy.canonical(candidate.replace(" ","%20"))
-        if(!policy.book(address))throw BookDescriptionUnavailable("Для этой книги не сохранена ссылка на страницу источника. Откройте её страницу в приложении, чтобы получить описание.")
+        if(!policy.book(address))throw BookDescriptionUnavailable(BookDescriptionUnavailable.MISSING_LINK)
         val author=abStoredCatalog(prefs,ref.title).author
         val key=ContinuationStore.hash(address+"|"+SeriesAuthorityRules.title(ref.title)+"|"+SeriesAuthorityRules.author(author))
         descriptionLocks[(key.hashCode() and Int.MAX_VALUE)%descriptionLocks.size].withLock {

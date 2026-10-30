@@ -79,3 +79,17 @@ before preference commit. Existing fully copied files remain; existing user
 chapters never overwritten. UI discloses actual bounds50GiB/2GiB-per-chapter.
 Metadata-only restore needs no URI grants; gallery wallpaper/folder access may
 need reselection. No signing/credentials/Android-job grants included.
+
+Scoped41087406048 on0a3b9bd: API36 passed33/33 including actual Android
+DownloadManager HTTP bytes, queue reload and preserving the finished file on cancel.
+API23 ran32 tests (the API29+ network probe is excluded): two failures, one old
+test image exporter wrongly referenced MediaStore.Downloads (29+), and the absent
+source description missed its5s deadline. Widget setImageAlpha rendering itself
+no longer threw. Exporter now uses private external evidence files onpre29;
+missing source is reported immediately without dispatching an unnecessary IO task,
+and the5s assertion is retained. No test was skipped to hide these failures.
+Queue JSON snapshots are cached/bounded, UI polling stops while backgrounded,
+startup recovery errors cannot break the main screen, and chapter cancellation
+captures the selected book before dispatch. Disk-write failure restores the prior
+queue value. Local execution transport disconnected again; GitHub remains usable.
+After recovery preserve the local worktree before syncing these remote changes.
