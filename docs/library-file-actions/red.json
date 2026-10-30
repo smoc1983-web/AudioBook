@@ -1,0 +1,72 @@
+{
+  "run": 40986745521,
+  "testedSource": "0dad9d475f5a22b7ca65b87a1acdcf6c5a619abf",
+  "results": [
+    {
+      "api": 23,
+      "suite": {
+        "name": "com.audiobookdownloader.BookDeletionTest",
+        "tests": "7",
+        "failures": "3",
+        "errors": "0",
+        "skipped": "0",
+        "time": "7.209",
+        "timestamp": "2026-10-30T01:47:56",
+        "hostname": "localhost"
+      },
+      "failures": [
+        {
+          "class": "com.audiobookdownloader.BookDeletionTest",
+          "test": "removesUnindexedAudioAndZeroByteChaptersButPreservesOtherBooksAndUnknownFiles",
+          "message": null,
+          "text": "java.lang.AssertionError: Android не разрешил удалить 1 глав. Выберите папку этой книги.\nat org.junit.Assert.fail(Assert.java:89)\nat org.junit.Assert.assertTrue(Assert.java:42)\nat com.audiobookdownloader.BookDeletionTest.removesUnindexedAudioAndZeroByteChaptersButPreservesOtherBooksAndUnknownFiles$lambda$7(BookDeletionTest.kt:30)\nat com.audiobookdownloader.BookDeletionTest.$r8$lambda$S7GQvFVaeZSBpIrmxqHR58Jl3vo(BookDeletionTest.kt)\nat com.audiobookdownloader.BookDeletionTest$$ExternalSyntheticLambda0.invoke(D8$$SyntheticClass:0)\nat com.audiobookdownloader.BookDeletionTest.fixture(BookDeletionTest.kt:17)\nat com.audiobookdownloader.BookDeletionTest.removesUnindexedAudioAndZeroByteChaptersButPreservesOtherBooksAndUnknownFiles(BookDeletionTest.kt:19)\n"
+        },
+        {
+          "class": "com.audiobookdownloader.BookDeletionTest",
+          "test": "rejectsChapterOutsideSelectedFolder",
+          "message": null,
+          "text": "java.io.FileNotFoundException: /data/user/0/com.audiobookdownloader.preview/cache/delete-fixture-74244282430/foreign.mp3: open failed: ENOENT (No such file or directory)\nat libcore.io.IoBridge.open(IoBridge.java:452)\nat java.io.FileInputStream.<init>(FileInputStream.java:76)\nat kotlin.io.FilesKt__FileReadWriteKt.readText(FileReadWrite.kt:131)\nat kotlin.io.FilesKt__FileReadWriteKt.readText$default(FileReadWrite.kt:131)\nat com.audiobookdownloader.BookDeletionTest.rejectsChapterOutsideSelectedFolder$lambda$12(BookDeletionTest.kt:49)\nat com.audiobookdownloader.BookDeletionTest.$r8$lambda$4fbwLm57vPvHK0KWjMzCXFtRY9M(BookDeletionTest.kt)\nat com.audiobookdownloader.BookDeletionTest$$ExternalSyntheticLambda1.invoke(D8$$SyntheticClass:0)\nat com.audiobookdownloader.BookDeletionTest.fixture(BookDeletionTest.kt:17)\nat com.audiobookdownloader.BookDeletionTest.rejectsChapterOutsideSelectedFolder(BookDeletionTest.kt:44)\n... 32 trimmed\nCaused by: android.system.ErrnoException: open failed: ENOENT (No such file or directory)\nat libcore.io.Posix.open(Native Method)\nat libcore.io.BlockGuardOs.open(BlockGuardOs.java:186)\nat libcore.io.IoBridge.open(IoBridge.java:438)\n... 41 more\n"
+        },
+        {
+          "class": "com.audiobookdownloader.BookDeletionTest",
+          "test": "retryAfterPartialDeletionFinishesEvenWhenSnapshotChaptersAreAlreadyGone",
+          "message": null,
+          "text": "java.lang.AssertionError: Android не разрешил удалить 1 глав. Выберите папку этой книги.\nat org.junit.Assert.fail(Assert.java:89)\nat org.junit.Assert.assertTrue(Assert.java:42)\nat com.audiobookdownloader.BookDeletionTest.retryAfterPartialDeletionFinishesEvenWhenSnapshotChaptersAreAlreadyGone$lambda$9(BookDeletionTest.kt:39)\nat com.audiobookdownloader.BookDeletionTest.$r8$lambda$1XCKz8ls-s3mQSdHAsMwMRHDI9I(BookDeletionTest.kt)\nat com.audiobookdownloader.BookDeletionTest$$ExternalSyntheticLambda2.invoke(D8$$SyntheticClass:0)\nat com.audiobookdownloader.BookDeletionTest.fixture(BookDeletionTest.kt:17)\nat com.audiobookdownloader.BookDeletionTest.retryAfterPartialDeletionFinishesEvenWhenSnapshotChaptersAreAlreadyGone(BookDeletionTest.kt:34)\n"
+        }
+      ]
+    },
+    {
+      "api": 36,
+      "suite": {
+        "name": "com.audiobookdownloader.BookDeletionTest",
+        "tests": "7",
+        "failures": "3",
+        "errors": "0",
+        "skipped": "0",
+        "time": "3.665",
+        "timestamp": "2026-10-30T01:47:33",
+        "hostname": "localhost"
+      },
+      "failures": [
+        {
+          "class": "com.audiobookdownloader.BookDeletionTest",
+          "test": "removesUnindexedAudioAndZeroByteChaptersButPreservesOtherBooksAndUnknownFiles",
+          "message": null,
+          "text": "java.lang.AssertionError: Android не разрешил удалить 1 глав. Выберите папку этой книги.\nat org.junit.Assert.fail(Assert.java:89)\nat org.junit.Assert.assertTrue(Assert.java:42)\nat com.audiobookdownloader.BookDeletionTest.removesUnindexedAudioAndZeroByteChaptersButPreservesOtherBooksAndUnknownFiles$lambda$7(BookDeletionTest.kt:30)\nat com.audiobookdownloader.BookDeletionTest.$r8$lambda$S7GQvFVaeZSBpIrmxqHR58Jl3vo(Unknown Source:0)\nat com.audiobookdownloader.BookDeletionTest$$ExternalSyntheticLambda0.invoke(D8$$SyntheticClass:0)\nat com.audiobookdownloader.BookDeletionTest.fixture(BookDeletionTest.kt:17)\nat com.audiobookdownloader.BookDeletionTest.removesUnindexedAudioAndZeroByteChaptersButPreservesOtherBooksAndUnknownFiles(BookDeletionTest.kt:19)\n"
+        },
+        {
+          "class": "com.audiobookdownloader.BookDeletionTest",
+          "test": "rejectsChapterOutsideSelectedFolder",
+          "message": null,
+          "text": "java.io.FileNotFoundException: /data/user/0/com.audiobookdownloader.preview/cache/delete-fixture-105525067228/foreign.mp3: open failed: ENOENT (No such file or directory)\nat libcore.io.IoBridge.open(IoBridge.java:574)\nat java.io.FileInputStream.<init>(FileInputStream.java:179)\nat kotlin.io.FilesKt__FileReadWriteKt.readText(FileReadWrite.kt:131)\nat kotlin.io.FilesKt__FileReadWriteKt.readText$default(FileReadWrite.kt:131)\nat com.audiobookdownloader.BookDeletionTest.rejectsChapterOutsideSelectedFolder$lambda$12(BookDeletionTest.kt:49)\nat com.audiobookdownloader.BookDeletionTest.$r8$lambda$4fbwLm57vPvHK0KWjMzCXFtRY9M(Unknown Source:0)\nat com.audiobookdownloader.BookDeletionTest$$ExternalSyntheticLambda1.invoke(D8$$SyntheticClass:0)\nat com.audiobookdownloader.BookDeletionTest.fixture(BookDeletionTest.kt:17)\nat com.audiobookdownloader.BookDeletionTest.rejectsChapterOutsideSelectedFolder(BookDeletionTest.kt:44)\n... 32 trimmed\nCaused by: android.system.ErrnoException: open failed: ENOENT (No such file or directory)\nat libcore.io.Linux.open(Native Method)\nat libcore.io.ForwardingOs.open(ForwardingOs.java:568)\nat libcore.io.BlockGuardOs.open(BlockGuardOs.java:274)\nat libcore.io.ForwardingOs.open(ForwardingOs.java:568)\nat android.app.ActivityThread$AndroidOs.open(ActivityThread.java:8953)\nat libcore.io.IoBridge.open(IoBridge.java:560)\n... 41 more\n"
+        },
+        {
+          "class": "com.audiobookdownloader.BookDeletionTest",
+          "test": "retryAfterPartialDeletionFinishesEvenWhenSnapshotChaptersAreAlreadyGone",
+          "message": null,
+          "text": "java.lang.AssertionError: Android не разрешил удалить 1 глав. Выберите папку этой книги.\nat org.junit.Assert.fail(Assert.java:89)\nat org.junit.Assert.assertTrue(Assert.java:42)\nat com.audiobookdownloader.BookDeletionTest.retryAfterPartialDeletionFinishesEvenWhenSnapshotChaptersAreAlreadyGone$lambda$9(BookDeletionTest.kt:39)\nat com.audiobookdownloader.BookDeletionTest.$r8$lambda$1XCKz8ls-s3mQSdHAsMwMRHDI9I(Unknown Source:0)\nat com.audiobookdownloader.BookDeletionTest$$ExternalSyntheticLambda2.invoke(D8$$SyntheticClass:0)\nat com.audiobookdownloader.BookDeletionTest.fixture(BookDeletionTest.kt:17)\nat com.audiobookdownloader.BookDeletionTest.retryAfterPartialDeletionFinishesEvenWhenSnapshotChaptersAreAlreadyGone(BookDeletionTest.kt:34)\n"
+        }
+      ]
+    }
+  ]
+}

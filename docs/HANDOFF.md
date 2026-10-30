@@ -1,3 +1,13 @@
+## В работе: готовится выпуск удаления/скачивания коллекций (2026-10-30)
+
+Профильный CI40991356902 прошёл final source4806b2b2362ef625002f10cc1fa0452accf226e6:
+API23 18 total/1skip, API36 18/18; JVM132/1skip, Lint0Error/74Warning/63Info.
+Журнал docs/LIBRARY-FILE-ACTIONS.md и machine receipts library-file-actions/.
+PR4 готов к merge; после него normal run71 через offset1 должен произвести72.
+До успешных release/upgrade/identity проверок feed остаётся100071.
+Разрешение на ub-mode получено для обеих текущих доработок, повторно не спрашивать.
+Физический телефон не проверялся. Ниже предыдущий завершённый выпуск71.
+
 ## Audiobook4.2.71 опубликована (2026-10-29)
 
 [Выпуск и ограничения](RELEASE-4.2.71.md), [проверки](release-4.2.71/verification.json).

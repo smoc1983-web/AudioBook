@@ -115,7 +115,7 @@ jobs:
         run: |
           tag="$(cat dist/tag.txt)"
           if ! gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release create "$tag" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --draft --prerelease --title "Audiobook $tag" --notes "Audiobook: скачивание из меню книги без открытия плеера, число доступных глав и размер аудиофайлов, блокировка явно распознанных ознакомительных фрагментов в меню. Прежние пакет и подпись; библиотека, коллекции и настройки сохраняются."
+            gh release create "$tag" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --draft --prerelease --title "Audiobook $tag" --notes "Audiobook: последовательное скачивание книг из коллекций без переключения плеера, пропуск сохранённых глав, исправленное удаление с повторной проверкой папки и защитой других книг. Прежние пакет и подпись; библиотека, коллекции и настройки сохраняются."
           fi
           gh release upload "$tag" dist/Audiobook-Preview.apk dist/preview-update.json --repo "$GITHUB_REPOSITORY" --clobber
           gh release edit "$tag" --repo "$GITHUB_REPOSITORY" --draft=false --prerelease --latest=false

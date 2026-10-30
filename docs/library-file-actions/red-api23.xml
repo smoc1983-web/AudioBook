@@ -1,0 +1,53 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuite name="com.audiobookdownloader.BookDeletionTest" tests="7" failures="3" errors="0" skipped="0" time="7.209" timestamp="2026-10-30T01:47:56" hostname="localhost">
+  <properties>
+    <property name="device" value="emulator-5554 - 6.0" />
+    <property name="flavor" value="" />
+    <property name="project" value=":app" />
+  </properties>
+  <testcase name="removesUnindexedAudioAndZeroByteChaptersButPreservesOtherBooksAndUnknownFiles" classname="com.audiobookdownloader.BookDeletionTest" time="0.048">
+    <failure>java.lang.AssertionError: Android не разрешил удалить 1 глав. Выберите папку этой книги.
+at org.junit.Assert.fail(Assert.java:89)
+at org.junit.Assert.assertTrue(Assert.java:42)
+at com.audiobookdownloader.BookDeletionTest.removesUnindexedAudioAndZeroByteChaptersButPreservesOtherBooksAndUnknownFiles$lambda$7(BookDeletionTest.kt:30)
+at com.audiobookdownloader.BookDeletionTest.$r8$lambda$S7GQvFVaeZSBpIrmxqHR58Jl3vo(BookDeletionTest.kt)
+at com.audiobookdownloader.BookDeletionTest$$ExternalSyntheticLambda0.invoke(D8$$SyntheticClass:0)
+at com.audiobookdownloader.BookDeletionTest.fixture(BookDeletionTest.kt:17)
+at com.audiobookdownloader.BookDeletionTest.removesUnindexedAudioAndZeroByteChaptersButPreservesOtherBooksAndUnknownFiles(BookDeletionTest.kt:19)
+</failure>
+  </testcase>
+  <testcase name="rejectsChapterOutsideSelectedFolder" classname="com.audiobookdownloader.BookDeletionTest" time="0.006">
+    <failure>java.io.FileNotFoundException: /data/user/0/com.audiobookdownloader.preview/cache/delete-fixture-74244282430/foreign.mp3: open failed: ENOENT (No such file or directory)
+at libcore.io.IoBridge.open(IoBridge.java:452)
+at java.io.FileInputStream.&lt;init&gt;(FileInputStream.java:76)
+at kotlin.io.FilesKt__FileReadWriteKt.readText(FileReadWrite.kt:131)
+at kotlin.io.FilesKt__FileReadWriteKt.readText$default(FileReadWrite.kt:131)
+at com.audiobookdownloader.BookDeletionTest.rejectsChapterOutsideSelectedFolder$lambda$12(BookDeletionTest.kt:49)
+at com.audiobookdownloader.BookDeletionTest.$r8$lambda$4fbwLm57vPvHK0KWjMzCXFtRY9M(BookDeletionTest.kt)
+at com.audiobookdownloader.BookDeletionTest$$ExternalSyntheticLambda1.invoke(D8$$SyntheticClass:0)
+at com.audiobookdownloader.BookDeletionTest.fixture(BookDeletionTest.kt:17)
+at com.audiobookdownloader.BookDeletionTest.rejectsChapterOutsideSelectedFolder(BookDeletionTest.kt:44)
+... 32 trimmed
+Caused by: android.system.ErrnoException: open failed: ENOENT (No such file or directory)
+at libcore.io.Posix.open(Native Method)
+at libcore.io.BlockGuardOs.open(BlockGuardOs.java:186)
+at libcore.io.IoBridge.open(IoBridge.java:438)
+... 41 more
+</failure>
+  </testcase>
+  <testcase name="retryAfterPartialDeletionFinishesEvenWhenSnapshotChaptersAreAlreadyGone" classname="com.audiobookdownloader.BookDeletionTest" time="0.001">
+    <failure>java.lang.AssertionError: Android не разрешил удалить 1 глав. Выберите папку этой книги.
+at org.junit.Assert.fail(Assert.java:89)
+at org.junit.Assert.assertTrue(Assert.java:42)
+at com.audiobookdownloader.BookDeletionTest.retryAfterPartialDeletionFinishesEvenWhenSnapshotChaptersAreAlreadyGone$lambda$9(BookDeletionTest.kt:39)
+at com.audiobookdownloader.BookDeletionTest.$r8$lambda$1XCKz8ls-s3mQSdHAsMwMRHDI9I(BookDeletionTest.kt)
+at com.audiobookdownloader.BookDeletionTest$$ExternalSyntheticLambda2.invoke(D8$$SyntheticClass:0)
+at com.audiobookdownloader.BookDeletionTest.fixture(BookDeletionTest.kt:17)
+at com.audiobookdownloader.BookDeletionTest.retryAfterPartialDeletionFinishesEvenWhenSnapshotChaptersAreAlreadyGone(BookDeletionTest.kt:34)
+</failure>
+  </testcase>
+  <testcase name="downloadHasDetailsAndDoesNotChangeTheCurrentPlayer" classname="com.audiobookdownloader.EditionDownloadTest" time="2.391" />
+  <testcase name="parserUsesTheSelectedEditionAndRejectsMissingAudio" classname="com.audiobookdownloader.EditionDownloadTest" time="0.969" />
+  <testcase name="alreadyDownloadedChaptersAreRecognizedAndPartialSizeIsNotATotal" classname="com.audiobookdownloader.EditionDownloadTest" time="0.868" />
+  <testcase name="explicitExcerptCannotBeDownloadedEvenWithKnownSize" classname="com.audiobookdownloader.EditionDownloadTest" time="0.892" />
+</testsuite>
