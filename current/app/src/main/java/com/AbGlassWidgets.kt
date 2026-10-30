@@ -286,7 +286,7 @@ internal object AbGlassWidgets {
                 WidgetControl(R.id.ab_widget_next,PlaybackService.ACTION_NEXT,"next",state.selected && state.index+1<state.count))) {
                 views.setImageViewBitmap(view,AbWidgetArt.icon(icon,palette,48,false))
                 views.setBoolean(view,"setEnabled",enabled)
-                views.setFloat(view,"setAlpha",if(enabled)1f else .35f)
+                views.setInt(view,"setImageAlpha",if(enabled)255 else 89)
                 views.setOnClickPendingIntent(view,if(enabled)servicePending(context,id,action) else null)
             }
         }

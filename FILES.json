@@ -134,8 +134,8 @@
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/LibraryExperienceTest.kt",
-      "bytes": 8690,
-      "sha256": "60e586fa790898d4427b2e044ff500c129ae7454e2063c17a0594204015912f5"
+      "bytes": 15136,
+      "sha256": "578ee2e6c448a408cdd7b7df143aa258c03b1c1ee24179307cfc10d6b66ff9db"
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/MinimumSdkTest.kt",
@@ -209,13 +209,18 @@
     },
     {
       "path": "app/src/debug/AndroidManifest.xml",
-      "bytes": 493,
-      "sha256": "10fb1fa5603e411ad8212f592e0996730c3282264788e86006298863198f2074"
+      "bytes": 552,
+      "sha256": "0459e384f2bccc9e75a1ddd5542edae124ee8d4f291de929ad5080527c75ca24"
     },
     {
       "path": "app/src/debug/java/com/audiobookdownloader/DeletionFixtureProvider.kt",
       "bytes": 3893,
       "sha256": "bef4e4564c44a6ea0c206e78d64e89bad10f677d1bd8e749e76eb23f7f60547a"
+    },
+    {
+      "path": "app/src/debug/res/xml/test_network_security.xml",
+      "bytes": 281,
+      "sha256": "355040bde7e74f93c4ab0adbf8208ac331ae84f6448beb494a977217672f8a13"
     },
     {
       "path": "app/src/main/AndroidManifest.xml",
@@ -254,8 +259,8 @@
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/AbContinuationAlerts.kt",
-      "bytes": 8508,
-      "sha256": "6d0cbf4c3da919758f0347f73c148052ca3c4abf992ce1121d85d71f83ffcd6b"
+      "bytes": 8716,
+      "sha256": "c1c68742f555ba1089378157b33646d1c678a70fac2c4dc5d76f97ce658dc6e5"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/AbDurationRanges.java",
@@ -379,8 +384,8 @@
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/ExperiencePanels.kt",
-      "bytes": 14220,
-      "sha256": "af1dacd9267812db52b5b9ed351a33178931098aaf1e1ee9e40ae45bf7e11e62"
+      "bytes": 17133,
+      "sha256": "4752063a6a63afa997e4d7effcd0fea874fdc95fd7a70d426dfe2b62fabbc011"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/KnigobludSeriesParser.java",
@@ -389,8 +394,8 @@
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/LibraryBackup.kt",
-      "bytes": 10159,
-      "sha256": "df16217b3f38476c4a4ae9e0322e389536f840ca5c30488eda6eb0f677d8c65e"
+      "bytes": 14853,
+      "sha256": "5077ff33a622964a3ff5b38198cd077cb309d8d5c93255b68f5f2cc6a645c698"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/LitresReleaseParser.java",
@@ -429,8 +434,8 @@
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/PersistentDownloads.kt",
-      "bytes": 10777,
-      "sha256": "b162b017a7b5470855fadbedf526678832407b481c89f0c7495cb932766a19d1"
+      "bytes": 11880,
+      "sha256": "33671da38c0e38e549578609056b03624efbe1f5702c0804c2adf77f10dacf97"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/PreviewUpdateRules.java",
@@ -444,8 +449,8 @@
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/PreviewUpdatesActivity.java",
-      "bytes": 12238,
-      "sha256": "d123c611f02766c46a9b4b5c647ac8f40fd734314c38e10d3dc1ad7e287854b0"
+      "bytes": 12639,
+      "sha256": "62670c3861ef87df0ca2b3eed0cf32a98df5a99b5cf4e8ce1ea3c4691ad51e60"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/ReleaseNotesActivity.java",
@@ -719,8 +724,8 @@
     },
     {
       "path": "current/MainActivity.kt",
-      "bytes": 783783,
-      "sha256": "8a6cdc2288d523dc3de9e0e06e6ec21136f7933bdd1f46da8043afdc8e6a4f90"
+      "bytes": 782318,
+      "sha256": "3f9fecadf332569524afee42cc9a76722e510e77d8388a96bce621b5b4e2ca33"
     },
     {
       "path": "current/PlaybackService.kt",
@@ -744,8 +749,8 @@
     },
     {
       "path": "current/app/src/main/java/com/AbGlassWidgets.kt",
-      "bytes": 32670,
-      "sha256": "8cfdf868c3245ae11cb35ee42e08dac82731eb8d53212707aec6abd0f386c3ec"
+      "bytes": 32672,
+      "sha256": "fa96032f413e59e7ceb80b7650a1adab25ec1eb91f916c4291132a5368987b1b"
     },
     {
       "path": "current/app/src/main/java/com/LibraryRecoveryRules.java",
@@ -1574,8 +1579,8 @@
     },
     {
       "path": "docs/LIBRARY-EXPERIENCE.md",
-      "bytes": 3928,
-      "sha256": "9162503b22536e77c30d0373141d2f694285f6634735a9c1288dec25c1d7538b"
+      "bytes": 5673,
+      "sha256": "920234a2eaf67a8ea5e45ea893cd7fb4d735b6bd63d27efa9f3ce7fbb68a0643"
     },
     {
       "path": "docs/LIBRARY-FILE-ACTIONS.md",

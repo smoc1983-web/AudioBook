@@ -59,21 +59,28 @@ internal object AbPersistentDownloads {
     fun retry(c:Context,book:String)=synchronized(lock) {
         write(c,entries(c).map{if(AbLibraryHousekeeping.bookKey(it.book)==AbLibraryHousekeeping.bookKey(book)&&it.state=="error")it.copy(job=0,state="queued",error="") else it});schedule(c)
     }
-    fun cancelBook(c:Context,book:String)=synchronized(lock) {
+    fun cancelBook(c:Context,book:String)=cancel(c,book,null)
+    fun cancelChapter(c:Context,book:String,title:String)=cancel(c,book,key(book,title))
+    private fun cancel(c:Context,book:String,chapter:String?)=synchronized(lock) {
         val rows=entries(c);val dm=c.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
         val completed=mutableSetOf<String>()
-        for(row in rows.filter{AbLibraryHousekeeping.bookKey(it.book)==AbLibraryHousekeeping.bookKey(book)&&it.state !in listOf("complete","cancelled")}) {
+        for(row in rows.filter{AbLibraryHousekeeping.bookKey(it.book)==AbLibraryHousekeeping.bookKey(book)&&(chapter==null||it.key==chapter)&&it.state !in listOf("complete","cancelled")}) {
             if(row.job>0) {
                 val done=dm.query(DownloadManager.Query().setFilterById(row.job))?.use{it.moveToFirst()&&it.getInt(it.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS))==DownloadManager.STATUS_SUCCESSFUL}==true
                 if(done)completed.add(row.key) else dm.remove(row.job)
                 main(c).edit().remove("download_job_"+row.job).commit()
             }
         }
-        write(c,rows.map{if(it.key in completed)it.copy(state="complete") else if(AbLibraryHousekeeping.bookKey(it.book)==AbLibraryHousekeeping.bookKey(book)&&it.state!="complete")it.copy(state="cancelled",job=0) else it})
+        write(c,rows.map{if(it.key in completed)it.copy(state="complete") else if(AbLibraryHousekeeping.bookKey(it.book)==AbLibraryHousekeeping.bookKey(book)&&(chapter==null||it.key==chapter)&&it.state!="complete")it.copy(state="cancelled",job=0) else it})
 
     }
-    fun schedule(c:Context) {
-        WorkManager.getInstance(c).enqueueUniqueWork("audiobook-durable-downloads",ExistingWorkPolicy.APPEND_OR_REPLACE,
+    fun install(c:Context) {
+        WorkManager.getInstance(c).enqueueUniquePeriodicWork("audiobook-queue-recovery",ExistingPeriodicWorkPolicy.KEEP,
+            PeriodicWorkRequestBuilder<AbQueueRecoveryWorker>(15,TimeUnit.MINUTES)
+                .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()).build())
+    }
+    fun schedule(c:Context,recovery:Boolean=false) {
+        WorkManager.getInstance(c).enqueueUniqueWork("audiobook-durable-downloads",if(recovery)ExistingWorkPolicy.KEEP else ExistingWorkPolicy.APPEND_OR_REPLACE,
             OneTimeWorkRequestBuilder<AbDownloadsWorker>().setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()).setBackoffCriteria(BackoffPolicy.LINEAR,10,TimeUnit.SECONDS).build())
     }
     fun restore(c:Context) {
@@ -152,4 +159,12 @@ class AbDownloadsWorker(context:Context,params:WorkerParameters):CoroutineWorker
         } catch(cancel:CancellationException){throw cancel}
         catch(_:Exception){Result.retry()}
     }
+}
+
+class AbQueueRecoveryWorker(context:Context,params:WorkerParameters):Worker(context,params) {
+    override fun doWork():Result=try {
+        if(AbPersistentDownloads.entries(applicationContext).any{it.state=="active"||it.state=="queued"&&!AbPersistentDownloads.paused(applicationContext,it.book)})
+            AbPersistentDownloads.schedule(applicationContext,recovery=true)
+        Result.success()
+    }catch(_:Exception){Result.retry()}
 }

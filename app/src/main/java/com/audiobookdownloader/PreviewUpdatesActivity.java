@@ -24,23 +24,25 @@ public final class PreviewUpdatesActivity extends Activity {
     private TextView changes;
     private boolean waitingForPermission;
     private static final int INSTALL_REQUEST=72;
+    private boolean flat(){return getSharedPreferences("audiobook_downloader",0).getInt("glass_theme",2)==10;}
+    private float textScale(){return Math.max(.85f,Math.min(1.5f,getSharedPreferences("audiobook_downloader",0).getFloat("appearance_text_scale",1f)));}
     private int dp(int value){return (int)(getResources().getDisplayMetrics().density*value+.5f);}
     private TextView text(LinearLayout root,String value,int size){
-        TextView view=new TextView(this);view.setText(value);view.setTextSize(size);view.setTextColor(Color.WHITE);
+        TextView view=new TextView(this);view.setText(value);view.setTextSize(size*textScale());view.setTextColor(Color.WHITE);
         view.setPadding(0,dp(8),0,dp(8));root.addView(view);return view;
     }
     private Button button(LinearLayout root,String label,Runnable action){
-        Button button=new Button(this);button.setText(label);button.setAllCaps(false);button.setTextColor(Color.WHITE);
-        GradientDrawable bg=new GradientDrawable(GradientDrawable.Orientation.TL_BR,new int[]{0xff45325f,0xff221a35});
-        bg.setCornerRadius(dp(20));bg.setStroke(dp(1),0xffa58acc);button.setBackground(bg);
+        Button button=new Button(this);button.setText(label);button.setAllCaps(false);button.setTextColor(Color.WHITE);button.setTextSize(14*textScale());
+        GradientDrawable bg=new GradientDrawable(GradientDrawable.Orientation.TL_BR,flat()?new int[]{0xff215947,0xff215947}:new int[]{0xff45325f,0xff221a35});
+        bg.setCornerRadius(dp(20));bg.setStroke(dp(1),flat()?0xff56646c:0xffa58acc);button.setBackground(bg);
         button.setMinHeight(dp(56));LinearLayout.LayoutParams params=new LinearLayout.LayoutParams(-1,-2);params.topMargin=dp(12);root.addView(button,params);
         button.setOnClickListener(v->action.run());return button;
     }
     @Override public void onCreate(Bundle state){
         super.onCreate(state);updater=new PreviewUpdater(this);
         waitingForPermission=state!=null&&state.getBoolean("waitingForInstallPermission",false);
-        getWindow().setStatusBarColor(0xff171228);getWindow().setNavigationBarColor(0xff171228);
-        ScrollView scroll=new ScrollView(this);scroll.setBackgroundColor(0xff171228);
+        int surface=flat()?0xff101214:0xff171228;getWindow().setStatusBarColor(surface);getWindow().setNavigationBarColor(surface);
+        ScrollView scroll=new ScrollView(this);scroll.setBackgroundColor(surface);
         LinearLayout root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setPadding(dp(22),dp(18),dp(22),dp(30));
         root.setOnApplyWindowInsetsListener((view,insets)->{
             view.setPadding(dp(22),dp(18)+insets.getSystemWindowInsetTop(),dp(22),dp(30)+insets.getSystemWindowInsetBottom());return insets;

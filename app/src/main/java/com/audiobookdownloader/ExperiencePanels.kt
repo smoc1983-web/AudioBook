@@ -60,7 +60,7 @@ internal val LocalAbBookCardContext=staticCompositionLocalOf<BookCardContext?>{n
     fun work(block:()->Unit){scope.launch{try{withContext(Dispatchers.IO){block()};revision++}catch(e:Exception){notice=e.message?:"Не удалось изменить очередь"}}}
     var shown by remember{mutableStateOf(10)}
     AbDialog("Загрузки",theme,dismiss) {
-        Text("Очередь сохраняется после закрытия приложения. Android продолжает принятые загрузки в фоне.",color=theme.muted,fontSize=13.sp)
+        Text("Очередь сохраняется после закрытия приложения. Android продолжает принятые загрузки в фоне; система может отложить запуск следующих глав.",color=theme.muted,fontSize=13.sp)
         AbOptions(listOf("Любая сеть","Только Wi-Fi"),if(prefs.getBoolean("experience_wifi_only",false))1 else 0,theme){prefs.edit().putBoolean("experience_wifi_only",it==1).apply();revision++}
         Text("Настройка сети применяется к новым главам. Пауза очереди не прерывает уже начатые главы.",color=theme.muted,fontSize=12.sp)
         if(notice.isNotBlank())Text(notice,color=theme.error,fontSize=13.sp)
@@ -98,21 +98,30 @@ internal val LocalAbBookCardContext=staticCompositionLocalOf<BookCardContext?>{n
     var status by remember{mutableStateOf("")}
     var source by remember{mutableStateOf<Uri?>(null)}
     var preview by remember{mutableStateOf<BackupPreview?>(null)}
-    fun run(block: suspend()->String){busy=true;scope.launch{try{status=block()}catch(cancel:CancellationException){throw cancel}catch(e:Exception){status="Операция не завершена: "+(e.message?:e.javaClass.simpleName)}finally{busy=false}}}
+    fun run(block: suspend()->String){busy=true;scope.launch{try{status=block()}catch(cancel:CancellationException){throw cancel}catch(e:Exception){status=when(e){
+        is org.json.JSONException,is java.util.zip.ZipException->"Файл резервной копии повреждён или имеет другой формат. Настройки не восстановлены; ранее скопированные главы сохранятся."
+        is SecurityException->"Нет доступа к файлам или выбранной папке. Выберите их заново."
+        is java.io.IOException->"Не удалось прочитать или записать файлы. Проверьте свободное место и доступ к папке."
+        else->e.message?:"Не удалось завершить операцию. Проверьте файл резервной копии."
+    }}finally{busy=false}}}
     fun restore(tree:Uri?) {
         val uri=source?:return;val checked=preview?:return
-        run{withContext(Dispatchers.IO){LibraryBackup.restore(context,uri,tree,checked){message->scope.launch{status=message}}}.also{preview=null;onRestored()}}
+        run{val job=currentCoroutineContext()[Job]
+            try{withContext(Dispatchers.IO){LibraryBackup.restore(context,uri,tree,checked,check={job?.ensureActive()}){message->scope.launch{status=message}}}.also{preview=null}}
+            finally{onRestored()}
+        }
     }
     val folder=rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()){uri->if(uri!=null)restore(uri)}
     val create=rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/zip")){uri->if(uri!=null)run{
-        withContext(Dispatchers.IO){val books=if(audio)scanLibrary(context) else emptyList();LibraryBackup.export(context,uri,books,audio){message->scope.launch{status=message}}};"Резервная копия сохранена. Храните её отдельно от телефона."
+        val job=currentCoroutineContext()[Job]
+        withContext(Dispatchers.IO){val books=if(audio)scanLibrary(context) else emptyList();LibraryBackup.export(context,uri,books,audio,check={job?.ensureActive()}){message->scope.launch{status=message}}};"Резервная копия сохранена. Храните её отдельно от телефона."
     }}
     val choose=rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()){uri->if(uri!=null)run{
         val checked=withContext(Dispatchers.IO){LibraryBackup.inspect(context,uri)};source=uri;preview=checked;"Копия проверена. Выберите способ восстановления ниже."
     }}
     Text("Сохраните коллекции, избранное, закладки, позиции прослушивания и настройки в ZIP. Ключи, пароли и разрешения Android в копию не включаются.",color=theme.muted,fontSize=13.sp)
     AbOptions(listOf("Без аудиофайлов","Включить аудио"),if(audio)1 else 0,theme,enabled=!busy){audio=it==1}
-    Text("Копия с аудио может быть большой. Выберите папку с достаточным свободным местом.",color=theme.muted,fontSize=12.sp)
+    Text("Копия с аудио может быть большой: до 50 ГБ, до 2 ГБ на главу. Выберите папку с достаточным свободным местом.",color=theme.muted,fontSize=12.sp)
     AbButton("Создать резервную копию",theme,enabled=!busy){create.launch("Audiobook-backup-"+java.text.SimpleDateFormat("yyyyMMdd-HHmm",java.util.Locale.ROOT).format(java.util.Date())+".zip")}
     AbButton("Выбрать резервную копию",theme,enabled=!busy){choose.launch(arrayOf("application/zip","application/octet-stream"))}
     if(status.isNotBlank())Text(status,color=theme.muted,fontSize=13.sp)
@@ -159,4 +168,23 @@ internal val LocalAbBookCardContext=staticCompositionLocalOf<BookCardContext?>{n
         AbButton("Отмена",theme,enabled=!running){selected=emptyList()}
     }
     if(status.isNotBlank())Text(status,color=theme.muted,fontSize=13.sp)
+}
+
+@Composable internal fun AbReadabilityPanel(prefs:android.content.SharedPreferences,theme:AbTheme) {
+    var revision by remember{mutableStateOf(0)}
+    DisposableEffect(prefs){val listener=android.content.SharedPreferences.OnSharedPreferenceChangeListener{_,key->if(key?.startsWith("appearance_")==true)revision++}
+        prefs.registerOnSharedPreferenceChangeListener(listener);onDispose{prefs.unregisterOnSharedPreferenceChangeListener(listener)}}
+    key(revision){
+            AbHeading("Читаемость и доступность",theme)
+            Text("Размер текста дополняет системный масштаб Android.",color=theme.muted,fontSize=12.sp)
+            AbOptions(listOf("85%","100%","115%","130%","150%"),listOf(.85f,1f,1.15f,1.3f,1.5f).indexOf(prefs.getFloat("appearance_text_scale",1f)),theme){
+                prefs.edit().putFloat("appearance_text_scale",listOf(.85f,1f,1.15f,1.3f,1.5f)[it]).apply()}
+            Text("Затемнение фоновой картинки",color=theme.text,fontSize=14.sp)
+            AbOptions(listOf("0%","20%","40%","60%","80%"),listOf(0f,.2f,.4f,.6f,.8f).indexOf(prefs.getFloat("appearance_dim",0f)),theme){
+                prefs.edit().putFloat("appearance_dim",listOf(0f,.2f,.4f,.6f,.8f)[it]).apply()}
+            Text("Прозрачность карточек · плотность заливки",color=theme.text,fontSize=14.sp)
+            AbOptions(listOf("Как в теме","65%","80%","100%"),listOf(-1f,.65f,.8f,1f).indexOf(prefs.getFloat("appearance_card_opacity",-1f)),theme){
+                prefs.edit().putFloat("appearance_card_opacity",listOf(-1f,.65f,.8f,1f)[it]).apply()}
+            AbButton("Сбросить настройки читаемости",theme){prefs.edit().remove("appearance_dim").remove("appearance_text_scale").remove("appearance_card_opacity").apply()}
+    }
 }

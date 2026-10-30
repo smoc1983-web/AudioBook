@@ -3090,7 +3090,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
         download = { track, book -> submitEditions(listOf(AbDownloadEdition(bookRefFor(prefs,book),listOf(track),false)),recordTotal=false) },
         downloadEdition = { ref, tracks ->submitEditions(listOf(AbDownloadEdition(ref,tracks,false))) },
         downloadBatch = {editions->enqueueEditions(editions)},
-        cancelDownload = { cancelModernDownload(it) },
+        cancelDownload = {title->modernWork.launch(Dispatchers.IO){AbPersistentDownloads.cancelChapter(context.applicationContext,cleanBookTitle(pageTitle),title)}},
         deleteBook = deleteModernBook,
         skin = { setAppSkin(it) },
         chooseBackground = { customBackgroundLauncher.launch(arrayOf("image/*")) },
@@ -3099,28 +3099,30 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
             prefs.edit().remove("custom_background_uri").apply()
         }
     )
-    val modernTrackStates = remember(player, pageTitle, downloadedIndex, downloadIds.toMap(),
-        downloadRetryBooks.toMap(), downloadErrors.toMap(), downloadStarts.toMap(),downloadMeasures.toMap(),librarySync.isSyncing) {
-        player?.tracks.orEmpty().associate { track ->
-            val bookTitle = cleanBookTitle(pageTitle)
-            track.title to when {
-                (downloadStarts[track.title]?.book == bookTitle || (downloadRetryBooks[track.title] == bookTitle && downloadIds.values.contains(track.title))) -> TrackState.DOWNLOADING
-                abHasDownloadedChapter(downloadedIndex, bookTitle, track) -> TrackState.DOWNLOADED
-                librarySync.isSyncing && downloadRetryBooks[track.title]==bookTitle &&
-                    downloadMeasures[track.title]?.status==DownloadManager.STATUS_SUCCESSFUL -> TrackState.DOWNLOADED
-                downloadRetryBooks[track.title] == bookTitle && downloadErrors.containsKey(track.title) -> TrackState.ERROR
-                else -> TrackState.READY
-            }
-        }
-    }
-    val modernDurations by remember { androidx.compose.runtime.derivedStateOf { chapterDurations.toMap() } }
     val durableQueue by androidx.compose.runtime.produceState<List<QueuedChapter>>(emptyList()) {
         withContext(Dispatchers.IO){AbPersistentDownloads.restore(context.applicationContext)}
         while(true){value=withContext(Dispatchers.IO){AbPersistentDownloads.entries(context.applicationContext)};delay(1500)}
     }
+    val modernTrackStates = remember(player,pageTitle,downloadedIndex,durableQueue) {
+        val book=cleanBookTitle(pageTitle)
+        val queued=durableQueue.filter{AbLibraryHousekeeping.bookKey(it.book)==AbLibraryHousekeeping.bookKey(book)}.associateBy{it.key}
+        player?.tracks.orEmpty().associate{track->
+            val row=queued[AbPersistentDownloads.key(book,track.title)]
+            track.title to when {
+                row?.state in listOf("queued","active")->TrackState.DOWNLOADING
+                row?.state=="complete"||abHasDownloadedChapter(downloadedIndex,book,track)->TrackState.DOWNLOADED
+                row?.state=="error"->TrackState.ERROR
+                else->TrackState.READY
+            }
+        }
+    }
+    val modernDurations by remember { androidx.compose.runtime.derivedStateOf { chapterDurations.toMap() } }
     LaunchedEffect(durableQueue.count{it.state=="complete"}) {
         if(durableQueue.any{it.state=="complete"})librarySync.requestSync()
     }
+    val durableDownloadItems=remember(durableQueue){durableQueue.map {q ->AbDownloadItem(AudioTrack(q.title,q.duration,q.src),q.book,
+            when(q.state){"complete"->TrackState.DOWNLOADED;"error"->TrackState.ERROR;"cancelled"->TrackState.READY;else->TrackState.DOWNLOADING},
+            q.error,if(q.state=="queued")"В очереди на скачивание" else if(q.error.isNotBlank())q.error else "Скачивается",q.bytes,q.total)}}
     val modernData = AbScreenData(
         page = appPage, query = searchText, searchSource=selectedSearchSource,results = bookLinks, onlineBook = player,
         pageTitle = pageTitle, pageUrl = currentUrl, pageCover = currentCoverUrl,
@@ -3137,9 +3139,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
         version = userDataVersion + bookmarksVersion + coverRefresh,
         playback = playbackState, durations = modernDurations,
         downloadedIndex = downloadedIndex, trackStates = modernTrackStates,
-        downloads = durableQueue.map {q ->AbDownloadItem(AudioTrack(q.title,q.duration,q.src),q.book,
-            when(q.state){"complete"->TrackState.DOWNLOADED;"error"->TrackState.ERROR;"cancelled"->TrackState.READY;else->TrackState.DOWNLOADING},
-            q.error,if(q.state=="queued")"В очереди на скачивание" else if(q.error.isNotBlank())q.error else "Скачивается",q.bytes,q.total)},
+        downloads = durableDownloadItems,
         downloadPercent = downloadPercent, downloadedBytes = downloadBytesCurrent, totalBytes = downloadBytesTotal
     )
 
@@ -9553,7 +9553,7 @@ private fun Modifier.abGlass(theme: AbTheme, radius: Int = 18, field: Boolean = 
         val base=if(primary)theme.primary else if(field)theme.field else theme.panel
         val fill=if(opaque)base.copy(alpha=1f) else if(theme.cardOpacity>=0)base.copy(alpha=theme.cardOpacity) else base
         val surface=Brush.verticalGradient(listOf(fill,
-            fill.copy(alpha=if(opaque)1f else (fill.alpha-.025f).coerceAtLeast(.60f)),fill))
+            fill.copy(alpha=if(opaque)1f else (fill.alpha-.025f).coerceAtLeast(if(theme.cardOpacity<0).86f else .60f)),fill))
         val sheen=Brush.verticalGradient(
             0f to Color.White.copy(alpha=if(black).12f else if(primary).30f else if(theme.light).60f else .25f),
             .30f to Color.Transparent,.70f to Color.Transparent,
@@ -11424,17 +11424,7 @@ private fun AbSettingsDialog(data: AbScreenData,prefs: android.content.SharedPre
         if(section==AbSettingsSection.APPEARANCE) {
             AbHeading("Оформление",theme)
             Text("Выберите тему. «Графит» — без свечения и световых бликов.",color=theme.muted,fontSize=12.sp)
-            AbHeading("Читаемость и доступность",theme)
-            Text("Размер текста дополняет системный масштаб Android.",color=theme.muted,fontSize=12.sp)
-            AbOptions(listOf("85%","100%","115%","130%","150%"),listOf(.85f,1f,1.15f,1.3f,1.5f).indexOf(prefs.getFloat("appearance_text_scale",1f)),theme){
-                prefs.edit().putFloat("appearance_text_scale",listOf(.85f,1f,1.15f,1.3f,1.5f)[it]).apply()}
-            Text("Затемнение фоновой картинки",color=theme.text,fontSize=14.sp)
-            AbOptions(listOf("0%","20%","40%","60%","80%"),listOf(0f,.2f,.4f,.6f,.8f).indexOf(prefs.getFloat("appearance_dim",0f)),theme){
-                prefs.edit().putFloat("appearance_dim",listOf(0f,.2f,.4f,.6f,.8f)[it]).apply()}
-            Text("Прозрачность карточек · плотность заливки",color=theme.text,fontSize=14.sp)
-            AbOptions(listOf("Как в теме","65%","80%","100%"),listOf(-1f,.65f,.8f,1f).indexOf(prefs.getFloat("appearance_card_opacity",-1f)),theme){
-                prefs.edit().putFloat("appearance_card_opacity",listOf(-1f,.65f,.8f,1f)[it]).apply()}
-            AbButton("Сбросить настройки читаемости",theme){prefs.edit().remove("appearance_dim").remove("appearance_text_scale").remove("appearance_card_opacity").apply()}
+            AbReadabilityPanel(prefs,theme)
             AbThemePicker(data.skin,actions.skin)
             AbHeading("Фон",theme)
             Text(if(data.backgroundUri==null) "Стандартный фон · ${theme.name}" else "Выбран фон из галереи",

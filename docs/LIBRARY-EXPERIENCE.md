@@ -54,3 +54,28 @@ Bulk collection requests now use an atomic batch persistence path; closing the
 metadata dialog does not cancel accepted books. Corresponding UI regression is
 updated to assert both accepted book requests survive closure. APK publication
 still forbidden until normal correctness/upgrade gates finish.
+
+Further safety pass found cover revision values are Long, not generic book-cover
+strings. Codec now preserves their type; roundtrip seeds/asserts that exact value.
+Malformed collection structures and missing declared audio cannot replace prefs.
+Preference disk-write failure restores previous in-memory selected values.
+Readability controls extracted with their own preference listener and a large-font
+UI check. Debug-only loopback network policy/test exercises real DownloadManager
+on API29+ (focused36); production cleartext policy remains unchanged.
+
+Scoped41083667680 on7efd723:API36 passed29/29;API23 passed28/29, widget RemoteViews
+setAlpha(float) is not remotely callable on23. Fixed renderer to setImageAlpha(int),
+keeping API23 in the suite. This was an actual compatibility defect, not a skipped
+assertion. Recovery periodic work is registered on application creation so an
+interruption between saved intents and immediate work scheduling is eventually
+recovered, including after reboot (subject to Android scheduling/force-stop rules).
+
+Audio ZIP manifest now records each expected entry name and byte length before
+writing. Both export and restore verify lengths, preventing a cancelled partial
+ZIP entry with a valid CRC from looking like a full chapter. Duplicate/unlisted
+entries, truncated chapters and missing audio fail before preference commit;
+partial SAF documents are removed. Copy loops honor cancellation, including
+before preference commit. Existing fully copied files remain; existing user
+chapters never overwritten. UI discloses actual bounds50GiB/2GiB-per-chapter.
+Metadata-only restore needs no URI grants; gallery wallpaper/folder access may
+need reselection. No signing/credentials/Android-job grants included.

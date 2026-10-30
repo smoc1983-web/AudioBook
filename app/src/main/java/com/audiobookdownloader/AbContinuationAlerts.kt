@@ -124,5 +124,7 @@ class AudiobookApplication:Application() {
     override fun onCreate() {
         super.onCreate()
         AbContinuationAlerts.initialize(this)
+        try{AbPersistentDownloads.install(this)}catch(_:Exception){AbPlaybackTrace.append(this,"Не удалось запланировать восстановление очереди загрузок")}
+
     }
 }
