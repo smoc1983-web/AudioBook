@@ -106,3 +106,9 @@ exact build branch only; original-stable auxiliary publication remains main-only
 Source and private candidate are not the public HTTPS feed; publish only after
 the complete gate and signed artifact inspection. Main's final docs/merge must
 use [skip ci] to avoid an unnecessary second build/version; record compiled SHA.
+
+## Release gate follow-up
+
+The first complete release gate (41091566152, candidate 100075) stopped on the offline description refresh UI test. It did not publish an APK. Debug and release JVM XML reports each contain 147 tests, no failures/errors, and one optional skip. The Android XML contains 74 tests, one failure, no errors, and three skips; the failure was a five-second wait for refresh feedback after a physical tap. The prior scoped API 23 and 36 jobs both passed. This is not a completed release.
+
+Description refresh and close actions now stay in a fixed dialog footer, outside the scrolling description and edition details. Loading/error feedback stays beside the actions and cached text remains readable after a failed refresh. The regression test retains the physical tap and five-second error assertion, adds a loader invocation assertion, and checks visible controls with a long description at 150% text size. A new complete gate must pass before publication.

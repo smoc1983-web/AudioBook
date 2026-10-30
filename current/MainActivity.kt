@@ -9918,6 +9918,7 @@ private fun AbPoster(ref: BookRef, local: LibraryBook?, theme: AbTheme, progress
 @OptIn(androidx.compose.ui.ExperimentalComposeUiApi::class)
 @Composable
 internal fun AbDialog(title: String, theme: AbTheme, dismiss: ()->Unit,
+    footer: @Composable ColumnScope.()->Unit = {},
     content: @Composable ColumnScope.()->Unit) {
     androidx.compose.ui.window.Dialog(onDismissRequest=dismiss,
         properties=androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth=false)) {
@@ -9931,6 +9932,7 @@ internal fun AbDialog(title: String, theme: AbTheme, dismiss: ()->Unit,
             }
             Column(Modifier.weight(1f,fill=false).verticalScroll(rememberScrollState()),
                 verticalArrangement=Arrangement.spacedBy(12.dp),content=content)
+            footer()
         }
     }
 }
@@ -9958,7 +9960,14 @@ internal fun AbBookDescriptionDialog(ref:BookRef,local:LibraryBook?,theme:AbThem
         catch(_:Exception){error="Не удалось загрузить описание. Проверьте подключение и повторите попытку."}
         finally{running=false}
     }
-    AbDialog("Описание книги",theme,dismiss) {
+    AbDialog("Описание книги",theme,dismiss,footer={
+        Column(Modifier.fillMaxWidth().padding(top=12.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
+            if(running)Text("Загружаем описание…",color=theme.muted,fontSize=13.sp)
+            if(error.isNotBlank())Text(error,color=theme.muted,fontSize=13.sp)
+            AbButton(if(description==null)"Повторить" else "Обновить описание",theme,enabled=!running){retry++}
+            AbButton("Закрыть описание",theme,onClick=dismiss)
+        }
+    }) {
         Text(ref.title,color=theme.text,fontSize=18.sp,fontWeight=FontWeight.SemiBold)
         description?.let {book ->
             if(book.author.isNotBlank())Text(book.author,color=theme.muted,fontSize=13.sp)
@@ -9967,11 +9976,7 @@ internal fun AbBookDescriptionDialog(ref:BookRef,local:LibraryBook?,theme:AbThem
             }
             Text("Описание сохранено и доступно без интернета",color=theme.muted,fontSize=11.sp)
         }
-        if(running)Text("Загружаем описание…",color=theme.muted,fontSize=13.sp)
-        if(error.isNotBlank())Text(error,color=theme.muted,fontSize=13.sp)
-        AbButton(if(description==null)"Повторить" else "Обновить описание",theme,enabled=!running){retry++}
         extra()
-        AbButton("Закрыть описание",theme,onClick=dismiss)
     }
 }
 
