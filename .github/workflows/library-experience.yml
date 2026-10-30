@@ -1,0 +1,57 @@
+name: Library experience — no publication
+on:
+  push:
+    branches: ['feature/library-experience']
+    paths-ignore: ['docs/**', 'FILES.json', 'README.md']
+permissions:
+  contents: read
+jobs:
+  library-experience:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        api: [23, 36]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Android SDK
+        run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;35.0.0"'
+      - name: Compile disposable debug APKs
+        run: |
+          GITHUB_RUN_NUMBER=71 gradle :app:testDebugUnitTest :app:assembleDebug :app:assembleDebugAndroidTest --stacktrace
+      - name: Emulator resources
+        run: |
+          gradle --stop
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android/sdk/ndk
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Backup, durable queue, readable collections and book cards
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ matrix.api }}
+          target: ${{ matrix.api == 23 && 'default' || 'aosp_atd' }}
+          arch: ${{ matrix.api == 23 && 'x86' || 'x86_64' }}
+          profile: ${{ matrix.api == 23 && 'Nexus 5' || 'pixel_6' }}
+          emulator-boot-timeout: 300
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -memory 2048 -cores 2
+          script: GITHUB_RUN_NUMBER=71 gradle :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.audiobookdownloader.LibraryExperienceTest,com.audiobookdownloader.BookDescriptionTest,com.audiobookdownloader.CollectionSeriesTest,com.audiobookdownloader.EditionDownloadTest,com.audiobookdownloader.UpdateScreenTest --stacktrace
+      - name: Save reports only
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: library-experience-api${{ matrix.api }}
+          path: |
+            app/build/test-results/testDebugUnitTest/
+            app/build/outputs/androidTest-results/
+            app/build/reports/androidTests/

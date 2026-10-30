@@ -368,6 +368,7 @@ class PlaybackService : Service() {
             val now = SystemClock.elapsedRealtime()
             if (sleepEndAt > 0L && now >= sleepEndAt) {
                 trace("Сработал минутный таймер сна")
+                saveSleepBookmark()
                 setTimer(0, false)
                 resumeAfterFocus = false
                 pausePlayback(reason = "Воспроизведение остановлено таймером сна.")
@@ -766,9 +767,11 @@ class PlaybackService : Service() {
         trace("MediaPlayer сообщил об окончании главы")
         isPlaying = false
         positionMs = durationMs
+        if(trackIndex==playlist.lastIndex)playbackPrefs.edit().putBoolean("book_completed_"+safeFileName(bookTitle),true).apply()
         persistState()
         if (sleepChapterTarget == chapterKey()) {
             trace("Сработал таймер до конца главы")
+            saveSleepBookmark()
             setTimer(0, false)
             // Сохраняем следующую главу, но не запускаем её до нажатия Play.
             if (trackIndex < playlist.lastIndex) startTrack(trackIndex + 1, 0, autoPlay = false)
@@ -835,6 +838,7 @@ class PlaybackService : Service() {
             .putInt(lastPrefix + "position", positionMs)
             .putInt(bookProgressTrackKey(bookTitle), trackIndex)
             .putInt(bookProgressPositionKey(bookTitle), positionMs)
+            .putInt("book_duration_"+safeFileName(bookTitle),durationMs)
             .putBoolean("service_should_resume",playWhenReady).apply()
         lastPersistAt = SystemClock.elapsedRealtime()
     }
@@ -904,10 +908,15 @@ class PlaybackService : Service() {
         }
     }
 
+    private fun saveSleepBookmark() {
+        if(playbackPrefs.getBoolean("sleep_auto_bookmark",true)&&trackIndex in playlist.indices)
+            addBookmark(playbackPrefs,bookTitle,trackIndex,trackTitle,positionMs)
+    }
+
     private fun updateVolume() {
         val remaining = remainingSleepSeconds()
-        val fade = if (sleepChapterTarget.isEmpty() && sleepEndAt > 0L && remaining <= 10)
-            remaining / 10f else 1f
+        val window=playbackPrefs.getInt("sleep_fade_seconds",10).coerceIn(0,60)
+        val fade=if(timerActive()&&window>0&&remaining<=window)remaining.toFloat()/window else 1f
         try { mediaPlayer?.setVolume(fade * duckVolume, fade * duckVolume) } catch (_: Exception) {}
     }
 

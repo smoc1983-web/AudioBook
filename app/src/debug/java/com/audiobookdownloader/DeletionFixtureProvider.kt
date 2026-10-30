@@ -30,7 +30,7 @@ class DeletionFixtureProvider:DocumentsProvider() {
             Document.COLUMN_DISPLAY_NAME->f.name
             Document.COLUMN_MIME_TYPE->if(f.isDirectory)Document.MIME_TYPE_DIR else "application/octet-stream"
             Document.COLUMN_SIZE->f.length()
-            Document.COLUMN_FLAGS->Document.FLAG_SUPPORTS_DELETE
+            Document.COLUMN_FLAGS->Document.FLAG_SUPPORTS_DELETE or Document.FLAG_SUPPORTS_RENAME or (if(f.isDirectory)Document.FLAG_DIR_SUPPORTS_CREATE else Document.FLAG_SUPPORTS_WRITE)
             else->null
         }})
     }
@@ -44,7 +44,17 @@ class DeletionFixtureProvider:DocumentsProvider() {
         return cursor(projection).also{c->f.listFiles()!!.forEach{add(c,it)}}
     }
     override fun openDocument(documentId:String,mode:String,signal:CancellationSignal?)=
-        ParcelFileDescriptor.open(file(documentId),ParcelFileDescriptor.MODE_READ_ONLY)
+        ParcelFileDescriptor.open(file(documentId),ParcelFileDescriptor.parseMode(mode))
+    override fun createDocument(parentDocumentId:String,mimeType:String,displayName:String):String {
+        require(displayName==File(displayName).name&&displayName!=".."&&displayName!=".")
+        val f=File(file(parentDocumentId),displayName);require(!f.exists())
+        check(if(mimeType==Document.MIME_TYPE_DIR)f.mkdir() else f.createNewFile())
+        return "root/"+f.relativeTo(root).path
+    }
+    override fun renameDocument(documentId:String,displayName:String):String {
+        require(displayName==File(displayName).name&&displayName!=".."&&displayName!=".")
+        val old=file(documentId);val next=File(old.parentFile,displayName);check(!next.exists()&&old.renameTo(next));return "root/"+next.relativeTo(root).path
+    }
     override fun deleteDocument(documentId:String) {
         val f=file(documentId)
         if(f.name==deniedName)throw SecurityException("Fixture denied")

@@ -4,11 +4,11 @@ import androidx.test.core.app.ActivityScenario;import androidx.test.core.app.App
 import org.junit.Test;import org.junit.runner.RunWith;import static org.junit.Assert.*;
 @RunWith(AndroidJUnit4.class)
 public class UpdateScreenTest {
- @Test(timeout=30000)public void threeUpdateActionsAndNoAccountFields(){
+ @Test(timeout=30000)public void oneContextualUpdateActionAndNoAccountFields(){
   try(ActivityScenario<PreviewUpdatesActivity> scenario=ActivityScenario.launch(PreviewUpdatesActivity.class)){
    scenario.onActivity(a->{var queue=new ArrayDeque<View>();queue.add(a.getWindow().getDecorView());var labels=new ArrayList<String>();int fields=0;
     while(!queue.isEmpty()){View v=queue.remove();if(v instanceof Button)labels.add(((Button)v).getText().toString());if(v instanceof EditText)fields++;if(v instanceof ViewGroup){ViewGroup g=(ViewGroup)v;for(int i=0;i<g.getChildCount();i++)queue.add(g.getChildAt(i));}}
-    assertEquals(Arrays.asList("Проверить обновления","Загрузить обновление","Установить загруженное обновление"),labels);assertEquals(0,fields);
+    assertEquals(1,labels.size());assertTrue(Arrays.asList("Проверить обновления","Загрузить обновление","Установить загруженное обновление").contains(labels.get(0)));assertEquals(0,fields);
    });
   }
  }

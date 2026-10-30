@@ -10,6 +10,15 @@ User approved ub-mode for inline collection continuations and simpler menus on20
 User approved ub-mode for book description on cover tap on2026-10-30; do not ask again within this task.
 This supersedes the earlier unconditional ub-mode instruction below.
 
+Active task2026-10-30: owner approved all nine library/player improvements,
+restricting item9 to readability/accessibility, wallpaper dimming, text scale,
+card opacity and one extra no-glow theme. Owner explicitly declined ub-mode for
+this task. Do not run that skill/tools for it; use ordinary unit/native/security
+and upgrade checks. Preserve package/signature/data. Work onfeature/library-experience;
+public74 remains unchanged until a new verified release is published. See
+docs/LIBRARY-EXPERIENCE.md. Do not claim untested work is complete.
+
+
 Current released version is4.2.74 /100074 (2026-10-30): descriptions on cover tap,
 offline annotation cache and independent title listen action. PR6, scoped41014370607
 (API23/36:15/15 each), normal41015767058, signed inspection41018067403,

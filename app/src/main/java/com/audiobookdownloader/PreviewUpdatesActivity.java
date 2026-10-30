@@ -14,13 +14,14 @@ import androidx.core.content.FileProvider;
 import java.io.File;
 import java.util.concurrent.*;
 
-/** Native three-action updater; the package and original signer are verified before installation. */
+/** Native single-action updater; the package and original signer are verified before installation. */
 public final class PreviewUpdatesActivity extends Activity {
     private final ExecutorService worker=Executors.newSingleThreadExecutor();
     private PreviewUpdater updater;
     private PreviewUpdater.Release release;
     private TextView status;
-    private Button check,download,install;
+    private Button primary;
+    private TextView changes;
     private boolean waitingForPermission;
     private static final int INSTALL_REQUEST=72;
     private int dp(int value){return (int)(getResources().getDisplayMetrics().density*value+.5f);}
@@ -32,7 +33,7 @@ public final class PreviewUpdatesActivity extends Activity {
         Button button=new Button(this);button.setText(label);button.setAllCaps(false);button.setTextColor(Color.WHITE);
         GradientDrawable bg=new GradientDrawable(GradientDrawable.Orientation.TL_BR,new int[]{0xff45325f,0xff221a35});
         bg.setCornerRadius(dp(20));bg.setStroke(dp(1),0xffa58acc);button.setBackground(bg);
-        LinearLayout.LayoutParams params=new LinearLayout.LayoutParams(-1,dp(56));params.topMargin=dp(12);root.addView(button,params);
+        button.setMinHeight(dp(56));LinearLayout.LayoutParams params=new LinearLayout.LayoutParams(-1,-2);params.topMargin=dp(12);root.addView(button,params);
         button.setOnClickListener(v->action.run());return button;
     }
     @Override public void onCreate(Bundle state){
@@ -51,27 +52,34 @@ public final class PreviewUpdatesActivity extends Activity {
             "Это отдельное приложение. Стабильная Audiobook и её книги не изменяются.":
             "Обновления сохраняют библиотеку и настройки. Не удаляйте приложение перед установкой.")+" Новая версия загрузится здесь; установку подтвердит Android.",15);
         status=text(root,"После обновления новый номер версии появится вверху этого экрана. Проверка и загрузка выполняются здесь, без браузера.",15);status.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);
-        check=button(root,"Проверить обновления",this::check);
-        download=button(root,"Загрузить обновление",this::download);download.setEnabled(false);
-        install=button(root,"Установить загруженное обновление",this::install);install.setEnabled(updater.target().isFile());
+        changes=text(root,"Список изменений появится после проверки нового выпуска.",14);
+        primary=button(root,"Проверить обновления",this::primaryAction);
+        busy(false);
         text(root,"При первом обновлении Android попросит разрешить установку из приложения. Разрешение можно отозвать после установки. Во время загрузки оставьте это окно открытым.",13);
     }
     private interface Work {String perform() throws Exception;}
     private void run(Work work){
-        busy(true);status.setText("Подождите…");
+        busy(true);status.setText("Выполняется проверка…");
         worker.submit(()->{
             String message;
             try{message=work.perform();}catch(Exception e){
-                message=e instanceof java.io.IOException?e.getMessage():"Не удалось выполнить операцию. Проверьте интернет и повторите попытку.";
+                message=e instanceof java.net.UnknownHostException?"Не удалось найти сервер обновлений. Проверьте интернет и повторите попытку.":e instanceof java.io.IOException?e.getMessage():"Не удалось выполнить операцию. Проверьте интернет и повторите попытку.";
             }
             String result=message;
-            runOnUiThread(()->{if(isDestroyed()||isFinishing())return;busy(false);status.setText(result);});
+            final String notes=release==null?"":release.notes;
+            runOnUiThread(()->{if(isDestroyed()||isFinishing())return;busy(false);status.setText(result);if(!notes.isEmpty())changes.setText("Что нового\n"+notes);});
         });
     }
+    private void primaryAction(){
+        if(updater.target().isFile())install();
+        else if(release!=null&&release.info.isNewer(BuildConfig.VERSION_CODE))download();
+        else check();
+    }
     private void busy(boolean value){
-        if(check!=null)check.setEnabled(!value);
-        if(download!=null)download.setEnabled(!value&&release!=null&&release.info.isNewer(BuildConfig.VERSION_CODE));
-        if(install!=null)install.setEnabled(!value&&updater.target().isFile());
+        if(primary==null)return;
+        primary.setEnabled(!value);
+        primary.setText(updater.target().isFile()?"Установить загруженное обновление":
+            release!=null&&release.info.isNewer(BuildConfig.VERSION_CODE)?"Загрузить обновление":"Проверить обновления");
     }
     private void check(){
         release=null;
@@ -93,7 +101,7 @@ public final class PreviewUpdatesActivity extends Activity {
             try{updater.verifyApk(updater.target(),null);}catch(Exception e){error=e instanceof java.io.IOException?e.getMessage():"Не удалось проверить APK. Загрузите обновление заново.";}
             final String failure=error;
             runOnUiThread(()->{if(isDestroyed()||isFinishing())return;busy(false);
-                if(failure!=null)status.setText(failure);else launchInstaller();
+                if(failure!=null){status.setText(failure);if(updater.target().delete())busy(false);}else launchInstaller();
             });
         });
     }

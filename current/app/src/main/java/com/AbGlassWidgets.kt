@@ -102,7 +102,8 @@ private val abWidgetPalettes = listOf(
     AbWidgetPalette(6,"Чёрный обсидиан",0xF00C1014.toInt(),0xFF353F49.toInt(),0xFFD4E2ED.toInt(),0xFF9CADBC.toInt(),0xFFF7F9FC.toInt(),0xFFBCC4CD.toInt()),
     AbWidgetPalette(7,"Чёрный оникс",0xF012100D.toInt(),0xFF624017.toInt(),0xFFFFD49B.toInt(),0xFFD5AA70.toInt(),0xFFFFFAF2.toInt(),0xFFD0C3B1.toInt()),
     AbWidgetPalette(8,"Чёрный лёд",0xF0091016.toInt(),0xFF17435A.toInt(),0xFF92E4FF.toInt(),0xFF77BCD7.toInt(),0xFFF3FAFF.toInt(),0xFFB8CBD8.toInt()),
-    AbWidgetPalette(9,"Чёрный аметист",0xF0100C17.toInt(),0xFF472460.toInt(),0xFFD9B5FF.toInt(),0xFFB591D9.toInt(),0xFFFDF7FF.toInt(),0xFFCABBD9.toInt())
+    AbWidgetPalette(9,"Чёрный аметист",0xF0100C17.toInt(),0xFF472460.toInt(),0xFFD9B5FF.toInt(),0xFFB591D9.toInt(),0xFFFDF7FF.toInt(),0xFFCABBD9.toInt()),
+    AbWidgetPalette(10,"Графит · без свечения",0xFF1D2226.toInt(),0xFF215947.toInt(),0xFF81E0C0.toInt(),0xFF81E0C0.toInt(),0xFFF4F7F9.toInt(),0xFFCED6DC.toInt())
 )
 
 private data class AbWidgetSnapshot(val title: String = "", val chapter: String = "", val index: Int = -1,
@@ -342,6 +343,11 @@ private object AbWidgetArt {
         val bitmap=Bitmap.createBitmap(w,h,Bitmap.Config.ARGB_8888)
         val canvas=Canvas(bitmap);val paint=Paint(Paint.ANTI_ALIAS_FLAG)
         val gap=5f*scale;val rect=RectF(gap,gap,w-gap,h-gap);val radius=min(23f*scale,h*.35f)
+        if(p.id==10) {
+            paint.color=p.panel;canvas.drawRoundRect(rect,radius,radius,paint)
+            paint.style=Paint.Style.STROKE;paint.strokeWidth=scale;paint.color=alpha(p.accent,.35f)
+            canvas.drawRoundRect(rect,radius,radius,paint);backgrounds.put(key,bitmap);return bitmap
+        }
         paint.style=Paint.Style.STROKE;paint.strokeWidth=8f*scale;paint.color=alpha(p.accent,.18f)
         canvas.drawRoundRect(rect,radius,radius,paint)
         paint.strokeWidth=4f*scale;paint.color=alpha(p.accent,.28f);canvas.drawRoundRect(rect,radius,radius,paint)
@@ -438,7 +444,7 @@ class AbWidgetConfigureActivity : Activity() {
         widgetId=intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID,AppWidgetManager.INVALID_APPWIDGET_ID)
         setResult(RESULT_CANCELED,Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID,widgetId))
         if(!AbGlassWidgets.owns(this,widgetId)){finish();return}
-        chosen=(savedInstanceState?.getInt("theme") ?: AbGlassWidgets.preferences(this).getInt("theme_$widgetId",0)).coerceIn(0,9)
+        chosen=(savedInstanceState?.getInt("theme") ?: AbGlassWidgets.preferences(this).getInt("theme_$widgetId",0)).coerceIn(0,10)
         val body=LinearLayout(this).apply {orientation=LinearLayout.VERTICAL;setPadding(dp(18),dp(16),dp(18),dp(16));setBackgroundColor(0xFF081522.toInt())}
         body.setOnApplyWindowInsetsListener {view,insets ->
             view.setPadding(dp(18),dp(16)+insets.systemWindowInsetTop,dp(18),dp(16)+insets.systemWindowInsetBottom);insets
