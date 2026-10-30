@@ -2897,6 +2897,9 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
             trackStates[track.title]=TrackState.DOWNLOADED
             return
         }
+        if(AbBookDeletion.busy(book)) {
+            Toast.makeText(context,"Дождитесь завершения удаления этой книги",Toast.LENGTH_SHORT).show();return
+        }
         val waiting=downloadStarts[track.title]
         if(waiting!=null || downloadIds.values.contains(track.title)) {
             val otherBook=waiting?.book ?: downloadRetryBooks[track.title]
@@ -7806,6 +7809,17 @@ private data class AbDeleteTarget(val file:File,val uri:Uri?=null)
 
 /** All calls to this backend run on IO; a result never equates an inaccessible path with deletion. */
 internal object AbBookDeletion {
+    private val deleting=java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
+    fun busy(title:String)=AbLibraryHousekeeping.bookKey(title) in deleting
+    fun begin(title:String)=deleting.add(AbLibraryHousekeeping.bookKey(title))
+    fun end(title:String) {deleting.remove(AbLibraryHousekeeping.bookKey(title))}
+    private fun privatePath(context:Context,file:File):Boolean = listOf(context.filesDir,context.cacheDir).any {
+        file.absolutePath.startsWith(it.absolutePath+File.separator)
+    }
+    private fun directAudio(book:LibraryBook,file:File):Boolean =
+        LibraryRecoveryRules.isAudio(file.name) && file.parentFile?.canonicalFile==book.folder.canonicalFile &&
+            file.canonicalFile==File(book.folder.canonicalFile,file.name)
+
     private fun mediaUri(context:Context,file:File):Uri? = try {
         val collection=android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
         @Suppress("DEPRECATION")
@@ -7826,6 +7840,7 @@ internal object AbBookDeletion {
                 listOf("permission","denied","eacces","eperm","доступ").any{error.message.orEmpty().contains(it,true)}
             if(denied)null else false
         }catch(_:Exception){null}
+        if(privatePath(context,target.file))return false
         return try {
             val siblings=target.file.parentFile?.listFiles() ?: return null
             if(!hasLibraryAudioPermission(context))null else siblings.any{it.name==target.file.name}
@@ -7864,28 +7879,36 @@ internal object AbBookDeletion {
         }
     }
 
+    private fun missingDocument(context:Context,uri:Uri):Boolean = try {
+        context.contentResolver.query(uri,arrayOf(android.provider.DocumentsContract.Document.COLUMN_DOCUMENT_ID),null,null,null)
+            ?.use{!it.moveToFirst()} ?: false
+    }catch(_:SecurityException){false}catch(_:java.io.FileNotFoundException){true}catch(_:Exception){false}
+
     private fun targets(context:Context,book:LibraryBook):List<AbDeleteTarget> {
         val result=linkedMapOf<String,AbDeleteTarget>()
         book.files.forEach {file ->
             val savedUri=(file as? LibraryAudioFile)?.audioUri?.let{Uri.parse(it)}
+            require(directAudio(book,file)) { "Глава находится вне выбранной папки" }
             // MediaStore IDs may be stale: bind them again by the exact current file path below.
             val uri=savedUri?.takeIf{it.authority!="media"}
             result[file.absolutePath]=AbDeleteTarget(file,uri)
         }
-        // Include partial/unindexed MP3s, but never recurse into other books or unknown documents.
-        try {book.folder.listFiles()?.filter{it.isFile && it.extension.equals("mp3",true)}?.forEach {file ->
-            if(file.canonicalFile==File(book.folder.canonicalFile,file.name))
-                if(file.absolutePath !in result)result[file.absolutePath]=AbDeleteTarget(file)
-        }}catch(_:Exception){}
-        try {
-            val collection=android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
+        // Use exactly the formats accepted by the library, including zero-byte/partial audio.
+        // Never recurse into subfolders or follow a chapter symlink into another book.
+        book.folder.listFiles()?.filter{it.isFile && LibraryRecoveryRules.isAudio(it.name)}?.forEach {file ->
+            require(directAudio(book,file)) { "Ссылка на файл вне выбранной папки" }
+            if(file.absolutePath !in result)result[file.absolutePath]=AbDeleteTarget(file)
+        }
+        val collections=mutableListOf(android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI)
+        if(Build.VERSION.SDK_INT>=29)collections.add(android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI)
+        for(collection in collections)try {
             @Suppress("DEPRECATION") val pathColumn=android.provider.MediaStore.Audio.Media.DATA
             context.contentResolver.query(collection,arrayOf(android.provider.MediaStore.Audio.Media._ID,pathColumn),
                 "$pathColumn LIKE ?",arrayOf(book.folder.absolutePath+"/%"),null)?.use {cursor ->
                 while(cursor.moveToNext()) {
                     val file=File(cursor.getString(1) ?: continue)
                     // LIKE wildcards in a title cannot widen the actual deletion scope.
-                    if(file.parentFile?.absolutePath==book.folder.absolutePath && file.extension.equals("mp3",true) &&
+                    if(file.parentFile?.absolutePath==book.folder.absolutePath && LibraryRecoveryRules.isAudio(file.name) &&
                         file.canonicalFile==File(book.folder.canonicalFile,file.name)) {
                         val uri=android.content.ContentUris.withAppendedId(collection,cursor.getLong(0))
                         val old=result[file.absolutePath]
@@ -7894,38 +7917,51 @@ internal object AbBookDeletion {
                 }
             }
         }catch(_:Exception){}
-        if(book.folderUri.isNotBlank()) try {
+        if(book.folderUri.isNotBlank()) {
             val uri=Uri.parse(book.folderUri)
-            libraryDocuments(context,uri,uri).filter{!it.isDirectory && it.name.endsWith(".mp3",true)}.forEach {item ->
+            (if(missingDocument(context,uri))emptyList() else libraryDocuments(context,uri,uri))
+                .filter{!it.isDirectory && LibraryRecoveryRules.isAudio(it.name)}.forEach {item ->
                 val file=File(book.folder,item.name)
                 result[file.absolutePath]=AbDeleteTarget(file,item.uri)
             }
-        }catch(_:Exception){}
+        }
         return result.values.map {target ->
             if(target.uri==null && target.file.canonicalFile==File(book.folder.canonicalFile,target.file.name))
                 target.copy(uri=mediaUri(context,target.file)) else target
         }
     }
 
-    private fun tidy(context:Context,book:LibraryBook) {
-        // Chapters are already gone; only known sidecars and an actually empty folder are removed.
-        if(book.folderUri.isNotBlank()) try {
+    private fun tidy(context:Context,book:LibraryBook):Boolean {return try {
+        val sidecars=setOf("cover.jpg","book_metadata.json")
+        // Unknown documents are retained. Failure to remove a known sidecar is not success.
+        if(book.folderUri.isNotBlank()) {
             val uri=Uri.parse(book.folderUri)
-            libraryDocuments(context,uri,uri).filter{!it.isDirectory && it.name in setOf("cover.jpg","book_metadata.json")}
-                .forEach {try {android.provider.DocumentsContract.deleteDocument(context.contentResolver,it.uri)}catch(_:Exception){}}
-            val publicRoot=documentPath(uri)?.canonicalFile==libraryRoot().canonicalFile
-            if(!publicRoot && libraryDocuments(context,uri,uri).isEmpty())
-                android.provider.DocumentsContract.deleteDocument(context.contentResolver,uri)
-        }catch(_:Exception){}
-        else try {
-            for(name in listOf("cover.jpg","book_metadata.json")) {
-                val file=File(book.folder,name)
-                if(file.canonicalFile==File(book.folder.canonicalFile,name) && file.isFile)file.delete()
+            if(missingDocument(context,uri))return true
+            libraryDocuments(context,uri,uri).filter{!it.isDirectory && it.name in sidecars}.forEach {
+                android.provider.DocumentsContract.deleteDocument(context.contentResolver,it.uri)
             }
-            if(book.folder.canonicalFile!=libraryRoot().canonicalFile && book.folder.listFiles()?.isEmpty()==true)
-                book.folder.delete()
-        }catch(_:Exception){}
-    }
+            val remaining=libraryDocuments(context,uri,uri)
+            if(remaining.any{!it.isDirectory && (it.name in sidecars || LibraryRecoveryRules.isAudio(it.name))})false
+            else {
+                val rootName=book.folder.name in setOf("AudioBooks",BuildConfig.LIBRARY_DIRECTORY)
+                if(!rootName && remaining.isEmpty())android.provider.DocumentsContract.deleteDocument(context.contentResolver,uri)
+                true
+            }
+        } else {
+            for(name in sidecars) {
+                val file=File(book.folder,name)
+                if(file.isFile) {
+                    if(file.canonicalFile!=File(book.folder.canonicalFile,name) || !file.delete())return false
+                }
+            }
+            val remaining=book.folder.listFiles()
+            if(remaining==null)privatePath(context,book.folder) && !book.folder.exists()
+            else if(remaining.any{it.isFile && (it.name in sidecars || LibraryRecoveryRules.isAudio(it.name))})false
+            else if(remaining.isEmpty() && book.folder.name !in setOf("AudioBooks",BuildConfig.LIBRARY_DIRECTORY))
+                book.folder.delete() || !book.folder.exists()
+            else true
+        }
+    }catch(_:Exception){false}}
 
     fun remove(context:Context,book:LibraryBook):AbDeleteAttempt {
         val release=AbLibraryHousekeeping.hold(book.title)
@@ -7937,8 +7973,11 @@ internal object AbBookDeletion {
             AbPlaybackTrace.append(context,"Удаление: не удалось отменить загрузки книги ${book.title}: ${error.javaClass.simpleName}")
             return AbDeleteAttempt(message="Не удалось отменить активную загрузку этой книги. Повторите удаление после её остановки.")
         }
-        val items=targets(context,book)
-        if(items.isEmpty())return AbDeleteAttempt(message="Не удалось получить список глав. Выберите папку книги.",needsFolder=true)
+        val items=try {targets(context,book)}catch(_:Exception) {
+            return AbDeleteAttempt(message="Не удалось безопасно прочитать папку книги. Выберите её снова.",needsFolder=true)
+        }
+        if(items.isEmpty() && !privatePath(context,book.folder) && book.folderUri.isBlank() && book.folder.listFiles()==null)
+            return AbDeleteAttempt(message="Нет доступа к папке книги. Выберите её для проверки и удаления.",needsFolder=true)
         val approval=linkedSetOf<Uri>()
         var sender:android.content.IntentSender?=null
         var senderUri:Uri?=null
@@ -7947,14 +7986,13 @@ internal object AbBookDeletion {
         items.forEach {target ->
             if(present(context,target)==false)return@forEach
             try {
-                var direct=false
                 // Document URIs may carry access which the raw path does not have.
                 val uri=target.uri
                 if(uri!=null && android.provider.DocumentsContract.isDocumentUri(context,uri))
                     android.provider.DocumentsContract.deleteDocument(context.contentResolver,uri)
                 else {
-                    try {direct=target.file.isFile && target.file.delete()}catch(_:Exception){}
-                    if(uri!=null && (!direct || present(context,target)!=false))context.contentResolver.delete(uri,null,null)
+                    try {if(target.file.isFile)target.file.delete()}catch(_:Exception){}
+                    if(uri!=null)context.contentResolver.delete(uri,null,null)
                 }
             }catch(error:SecurityException) {
                 val uri=target.uri
@@ -7974,7 +8012,9 @@ internal object AbBookDeletion {
             }
         }
         if(failed.isEmpty()) {
-            tidy(context,book)
+            val remains=try {targets(context,book).any{present(context,it)!=false}}catch(_:Exception){true}
+            if(remains || !tidy(context,book))return AbDeleteAttempt(
+                message="Часть файлов книги осталась либо недоступна. Выберите папку для завершения удаления.",needsFolder=true,removed=removed)
             AbPlaybackTrace.append(context,"Главы книги удалены: ${book.title}; проверено ${items.size}")
             return AbDeleteAttempt(success=true,message="Скачанные главы удалены",removed=removed)
         }
@@ -8062,7 +8102,7 @@ private fun rememberBookDeletion(prefs:android.content.SharedPreferences,sync:Li
     fun finish(request:AbDeleteOperation,success:Boolean,message:String) {
         if(pending!==request)return
         pending=null;folderMessage=""
-        request.release()
+        request.release();AbBookDeletion.end(request.book.title)
         if(success)removed(request.book)
         sync.requestSync()
         AbLibraryHousekeeping.request(app)
@@ -8102,6 +8142,10 @@ private fun rememberBookDeletion(prefs:android.content.SharedPreferences,sync:Li
     runner.run={request -> scope.launch {
         try {
             request.waiting.forEach{it.join()}
+            if(request.resolvedBook.files.isEmpty() && !request.usingFolder) {
+                val found=withContext(Dispatchers.IO){findDownloadedBook(scanLibrary(app),request.book.title)}
+                if(found!=null)request.resolvedBook=found
+            }
             if(AbLibraryHousekeeping.bookKey(PlaybackService.state.value.bookTitle)==AbLibraryHousekeeping.bookKey(request.book.title))
                 kotlinx.coroutines.withTimeoutOrNull(3000L) {
                     PlaybackService.state.first{!it.hasPlayer || AbLibraryHousekeeping.bookKey(it.bookTitle)!=AbLibraryHousekeeping.bookKey(request.book.title)}
@@ -8136,7 +8180,7 @@ private fun rememberBookDeletion(prefs:android.content.SharedPreferences,sync:Li
             finish(request,false,"Не удалось завершить удаление. Проверьте доступ к папке и повторите.")
         }
     }}
-    DisposableEffect(Unit) {onDispose{pending?.release()}}
+    DisposableEffect(Unit) {onDispose{pending?.let{it.release();AbBookDeletion.end(it.book.title)}}}
     val current=pending
     if(current!=null && folderMessage.isNotBlank())AbDialog("Доступ к книге",theme,
         {finish(current,false,"Удаление отменено. Библиотека обновляется.")}) {
@@ -8148,13 +8192,13 @@ private fun rememberBookDeletion(prefs:android.content.SharedPreferences,sync:Li
         AbButton("Отмена",theme){finish(current,false,"Удаление отменено. Библиотека обновляется.")}
     }
     return {book,complete ->
-        if(pending!=null)complete(false,"Дождитесь завершения удаления предыдущей книги.")
+        if(pending!=null || !AbBookDeletion.begin(book.title))complete(false,"Дождитесь завершения удаления предыдущей книги.")
         else {
             val release=AbLibraryHousekeeping.hold(book.title)
             try {
                 val request=AbDeleteOperation(book,complete,release,prepare(book))
                 pending=request;folderMessage="";runner.run?.invoke(request)
-            }catch(error:Exception){release();complete(false,"Не удалось начать удаление: ${error.javaClass.simpleName}")}
+            }catch(error:Exception){release();AbBookDeletion.end(book.title);complete(false,"Не удалось начать удаление: ${error.javaClass.simpleName}")}
         }
     }
 }
@@ -9508,7 +9552,7 @@ private fun abFindLocal(books: List<LibraryBook>, title: String): LibraryBook? =
 private fun abHasDownloadedChapter(index: DownloadedChapterIndex, title: String, track: AudioTrack): Boolean =
     isTrackDownloaded(track,title,index)
 
-private data class AbDownloadItem(val track: AudioTrack,val book:String,val state:TrackState,val error:String,
+internal data class AbDownloadItem(val track: AudioTrack,val book:String,val state:TrackState,val error:String,
     val phase:String="",val downloadedBytes:Long=0L,val totalBytes:Long=-1L)
 private data class AbScreenData(
     val page: AppPage, val query: String, val searchSource:String,val results: List<BookLink>,
@@ -10584,6 +10628,9 @@ private fun AbCollectionsScreen(data: AbScreenData,actions: AbActions,books: Lis
     if(continuationSettings) AbDialog("Продолжения",theme,{continuationSettings=false}) {
         AbContinuationSettings(theme){ref -> continuationSettings=false;actions.openRef(ref)}
     }
+    var downloadBooks by remember {mutableStateOf<List<BookRef>?>(null)}
+    downloadBooks?.let {refs -> AbCollectionDownloads(refs,data.downloadedIndex,data.downloads,theme,
+        actions.downloadEdition,{downloadBooks=null})}
     var selectedShelf by androidx.compose.runtime.saveable.rememberSaveable {mutableStateOf<String?>(null)}
     var editing by remember {mutableStateOf(false)}
     var name by remember {mutableStateOf("")}
@@ -10602,6 +10649,10 @@ private fun AbCollectionsScreen(data: AbScreenData,actions: AbActions,books: Lis
             Text("Собирайте книги на своих полках",color=theme.muted,fontSize=13.sp,modifier=Modifier.padding(top=8.dp))
             AbButton("Перенести коллекции",theme){context.startActivity(Intent(context,CollectionTransferActivity::class.java))}
             AbButton("Продолжения книг в коллекциях",theme){continuationSettings=true}
+            val downloadable=selected?.books ?: shelves.flatMap{it.books}
+            if(downloadable.isNotEmpty())AbButton(if(selected==null) "Скачать книги из всех коллекций" else "Скачать книги",theme) {
+                downloadBooks=downloadable.toList()
+            }
         }
         if(selected==null) {
             if(shelves.isEmpty()) item {
@@ -10617,6 +10668,7 @@ private fun AbCollectionsScreen(data: AbScreenData,actions: AbActions,books: Lis
                         AbIconButton(AbIcon.SETTINGS,"Переименовать коллекцию",theme) {oldName=shelf.name;name=shelf.name;editing=true}
                         AbIconButton(AbIcon.CLOSE,"Удалить коллекцию",theme) {deleting=shelf.name}
                     }
+                    if(shelf.books.isNotEmpty())AbButton("Скачать книги",theme){downloadBooks=shelf.books.toList()}
                     if(shelf.books.isNotEmpty()) Row(Modifier.padding(top=10.dp).horizontalScroll(rememberScrollState()),
                         horizontalArrangement=Arrangement.spacedBy(9.dp)) {
                         shelf.books.take(5).forEach {ref -> AbPoster(ref,abFindLocal(books,ref.title),theme,null,
@@ -11339,6 +11391,102 @@ internal fun AbEditionDownloadControls(edition:AbDownloadEdition,index:Downloade
     }
 }
 
+private data class AbCollectionEdition(val ref:BookRef,val edition:AbDownloadEdition?=null,val error:String="")
+
+/** One metadata reader and one book at a time; closing stops future submissions, not accepted downloads. */
+@Composable
+internal fun AbCollectionDownloads(refs:List<BookRef>,index:DownloadedChapterIndex,downloads:List<AbDownloadItem>,
+    theme:AbTheme,onDownload:(BookRef,List<AudioTrack>)->Unit,dismiss:()->Unit,
+    reader:@Composable (BookRef,(AbDownloadEdition?,String)->Unit)->Unit={ref,done->AbReadDownloadEdition(ref,done)}) {
+    val books=remember(refs){refs.distinctBy{AbLibraryHousekeeping.bookKey(it.title)}}
+    var entries by remember(books){mutableStateOf(books.map{AbCollectionEdition(it)})}
+    var readIndex by remember(books){mutableStateOf(0)}
+    var started by remember(books){mutableStateOf(false)}
+    var finished by remember(books){mutableStateOf(false)}
+    var messages by remember(books){mutableStateOf(emptyMap<Int,String>())}
+    var activeIndex by remember(books){mutableStateOf(-1)}
+    var detailsPage by remember(books){mutableStateOf(0)}
+    val currentDownloads by androidx.compose.runtime.rememberUpdatedState(downloads)
+    val currentIndex by androidx.compose.runtime.rememberUpdatedState(index)
+    val submit by androidx.compose.runtime.rememberUpdatedState(onDownload)
+    val current=entries.getOrNull(readIndex)
+    if(current!=null) {
+        if(supportedBookUrl(current.ref.url)==null && OpenAudioCatalog.fromPage(current.ref.url)==null) {
+            LaunchedEffect(readIndex) {
+                entries=entries.toMutableList().also{it[readIndex]=current.copy(error="Нет ссылки на издание")};readIndex++
+            }
+        } else key(readIndex,current.ref.url) {
+            reader(current.ref) {edition,error ->
+                if(entries.getOrNull(readIndex)?.ref==current.ref) {
+                    entries=entries.toMutableList().also{it[readIndex]=current.copy(edition=edition,
+                        error=error.ifBlank{if(edition==null) "Источник не передал главы" else ""})}
+                    readIndex++
+                }
+            }
+        }
+    }
+    LaunchedEffect(started) {
+        if(!started)return@LaunchedEffect
+        for((i,entry) in entries.withIndex()) {
+            val edition=entry.edition ?: continue
+            if(edition.preview)continue
+            activeIndex=i
+            messages=messages+(i to "Ожидает очереди")
+            // The existing queue keys active chapters by title. Serialize books to avoid collisions.
+            androidx.compose.runtime.snapshotFlow{currentDownloads.any{it.state==TrackState.DOWNLOADING}}
+                .first{!it}
+            val remaining=edition.tracks.filter{!isTrackDownloaded(it,entry.ref.title,currentIndex)}
+            if(remaining.isEmpty()) {messages=messages+(i to "Уже скачана");continue}
+            if(AbBookDeletion.busy(entry.ref.title)) {messages=messages+(i to "Книга удаляется — загрузка пропущена");continue}
+            messages=messages+(i to "Скачивается")
+            submit(edition.ref,edition.tracks)
+            // Enqueue state is set synchronously by the application; let its state reach this dialog.
+            delay(100L)
+            androidx.compose.runtime.snapshotFlow{currentDownloads.any{it.state==TrackState.DOWNLOADING}}
+                .first{!it}
+            val items=currentDownloads.filter{it.book==entry.ref.title}
+            val complete=remaining.all {track -> isTrackDownloaded(track,entry.ref.title,currentIndex) ||
+                items.any{it.track.src==track.src && it.state==TrackState.DOWNLOADED}}
+            messages=messages+(i to if(complete) "Скачана" else "Не все главы скачаны. Проверьте раздел «Загрузки» и повторите.")
+        }
+        activeIndex=-1;finished=true
+    }
+    AbDialog("Скачать книги из коллекции",theme,dismiss) {
+        Text("Уже скачанные главы пропускаются. Книги загружаются по очереди без переключения плеера.",
+            color=theme.muted,fontSize=13.sp)
+        Text("Полнота изданий источниками не подтверждена. Перед загрузкой проверьте число глав и известный размер.",
+            color=theme.muted,fontSize=12.sp)
+        if(readIndex<entries.size)Text("Проверяем издания: ${readIndex+1} из ${entries.size}",color=theme.accent,fontSize=13.sp)
+        Text("Книг: ${entries.size}. Проверено изданий: $readIndex",color=theme.muted,fontSize=12.sp)
+        if(entries.size>5)Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+            Box(Modifier.weight(1f)){AbButton("Назад",theme,enabled=detailsPage>0){detailsPage--}}
+            Box(Modifier.weight(1f)){AbButton("Далее",theme,enabled=(detailsPage+1)*5<entries.size){detailsPage++}}
+        }
+        entries.drop(detailsPage*5).take(5).forEachIndexed {offset,entry ->
+            val i=detailsPage*5+offset
+            Column(Modifier.fillMaxWidth().abGlass(theme,14).padding(12.dp),verticalArrangement=Arrangement.spacedBy(6.dp)) {
+                Text(entry.ref.title,color=theme.text,fontSize=15.sp,fontWeight=FontWeight.SemiBold)
+                val edition=entry.edition
+                if(edition!=null) {
+                    Text("Доступно глав: ${edition.tracks.size}",color=theme.muted,fontSize=12.sp)
+                    // Metadata is sequential. Size probes retain the existing bounded three-request limit.
+                    AbBookSize(entry.ref.title,edition.tracks,null,edition.ref.url,theme,"Размер доступного аудио")
+                    Text(if(edition.preview) "Ознакомительный фрагмент — пропущен" else messages[i] ?:
+                        if(edition.tracks.all{isTrackDownloaded(it,entry.ref.title,index)}) "Уже скачана" else "Готова к скачиванию",
+                        color=if(edition.preview)theme.error else if(i==activeIndex)theme.accent else theme.muted,fontSize=12.sp)
+                } else Text(entry.error.ifBlank{"Ожидает проверки"},color=theme.muted,fontSize=12.sp)
+            }
+        }
+        val available=entries.any{entry->entry.edition?.let{edition ->!edition.preview &&
+            edition.tracks.any{!isTrackDownloaded(it,entry.ref.title,index)}}==true}
+        AbButton(if(finished) "Очередь обработана" else if(started) "Загрузка по очереди…" else "Скачать доступные книги",theme,
+            primary=true,enabled=readIndex==entries.size && available && !started) {started=true}
+        AbButton(if(started&&!finished) "Закрыть и остановить очередь" else "Закрыть",theme,onClick=dismiss)
+        if(started&&!finished)Text("После закрытия уже начатая книга продолжит скачиваться. Остальные книги не будут запущены.",
+            color=theme.muted,fontSize=11.sp)
+    }
+}
+
 /** A separate browser session reads metadata only: no player state or navigation writes. */
 @Composable
 private fun AbReadDownloadEdition(ref:BookRef,done:(AbDownloadEdition?,String)->Unit) {
@@ -11396,11 +11544,12 @@ private fun AbBookMenu(ref: BookRef,local: LibraryBook?,prefs: android.content.S
     val favorite=remember(version,ref.title) {loadBookRefs(prefs,FAVORITES_KEY).any{it.title==ref.title}}
     val queue=remember(version) {loadQueue(prefs)}
     val queueTitle=local?.title ?: ref.title
+    val deleteTarget=local ?: LibraryBook(ref.title,File(libraryRoot(),safeFileName(ref.title)),emptyList())
     AbDialog(if(confirmDelete) "Удалить книгу?" else "Действия с книгой",theme,{if(!deleting)dismiss()}) {
         Text(ref.title,color=theme.text,fontSize=17.sp,fontWeight=FontWeight.SemiBold)
         if(local!=null)Text("На устройстве: ${local.files.size} глав · "+abLocalSize(local),color=theme.muted,fontSize=12.sp)
-        if(confirmDelete && local!=null) {
-            Text("Будут удалены все скачанные главы этой книги. Отменить удаление нельзя.",color=theme.muted,fontSize=14.sp)
+        if(confirmDelete) {
+            Text("Будут удалены скачанные главы и служебные файлы этой книги. Коллекции, закладки и другие документы сохранятся. Отменить удаление нельзя.",color=theme.muted,fontSize=14.sp)
             if(deleteMessage.isNotBlank())Text(deleteMessage,color=theme.muted,fontSize=13.sp,lineHeight=20.sp)
             if(deleting)Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(10.dp)) {
                 androidx.compose.material3.CircularProgressIndicator(Modifier.size(20.dp),color=theme.accent,strokeWidth=2.dp)
@@ -11409,13 +11558,14 @@ private fun AbBookMenu(ref: BookRef,local: LibraryBook?,prefs: android.content.S
             }
             AbButton(if(deleting) "Удаляем…" else "Удалить скачанные файлы",theme,enabled=!deleting) {
                 deleting=true;deleteMessage=""
-                actions.deleteBook(local) {success,message ->
+                actions.deleteBook(deleteTarget) {success,message ->
                     deleting=false;deleteMessage=message
                     if(success)dismiss()
                 }
             }
             AbButton("Отмена",theme,enabled=!deleting) {confirmDelete=false;deleteMessage=""}
         } else {
+            AbButton("Удалить скачанные файлы",theme){confirmDelete=true}
             AbMenuEditionDownload(ref,local,index,downloads,theme,actions.downloadEdition)
             AbButton("Открыть книгу",theme,primary=true){dismiss();actions.openRef(ref)}
             AbButton(if(favorite) "Убрать из избранного" else "В избранное",theme){toggleFavorite(prefs,ref)}
@@ -11442,7 +11592,6 @@ private fun AbBookMenu(ref: BookRef,local: LibraryBook?,prefs: android.content.S
             if(ref.url.isNotBlank()) AbButton("Открыть источник",theme) {
                 dismiss();actions.openSite(BookLink(ref.title,ref.url,ref.cover),ref.url)
             }
-            if(local!=null) AbButton("Удалить скачанную книгу",theme){confirmDelete=true}
         }
     }
 }
