@@ -2884,8 +2884,9 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
         val local=abFindLocal(libraryBooks,book)
         val request=book+"\u0000"+page+"\u0000"+cover
         if(!coverRequests.add(request)) return
+        val generation=AbBookDeletion.generation(book)
         modernWork.launch(Dispatchers.IO) {
-            val saved=AbCoverStore.saveForDownload(context.applicationContext,book,local,cover,page)
+            val saved=AbCoverStore.saveForDownload(context.applicationContext,book,local,cover,page,expectedGeneration=generation)
             withContext(Dispatchers.Main) {
                 if(saved) librarySync.requestSync() else coverRequests.remove(request)
             }
@@ -3003,6 +3004,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
     val deleteModernBook=rememberBookDeletion(prefs,librarySync,
         onPrepare={book ->
             val name=AbLibraryHousekeeping.bookKey(book.title)
+            coverRequests.removeAll{AbLibraryHousekeeping.bookKey(it.substringBefore('\u0000'))==name}
             val waiting=downloadStarts.filterValues {AbLibraryHousekeeping.bookKey(it.book)==name}
             val jobs=waiting.values.mapNotNull{it.job}
             waiting.keys.forEach {title -> downloadStarts.remove(title);trackStates[title]=TrackState.READY}
@@ -7809,6 +7811,10 @@ private data class AbDeleteTarget(val file:File,val uri:Uri?=null)
 
 /** All calls to this backend run on IO; a result never equates an inaccessible path with deletion. */
 internal object AbBookDeletion {
+    private val storageLocks=Array(32){kotlinx.coroutines.sync.Mutex()}
+    private val generations=java.util.concurrent.ConcurrentHashMap<String,Long>()
+    fun generation(title:String)=generations[AbLibraryHousekeeping.bookKey(title)] ?: 0L
+    fun storageLock(title:String)=storageLocks[(AbLibraryHousekeeping.bookKey(title).hashCode() and Int.MAX_VALUE)%storageLocks.size]
     private val deleting=java.util.Collections.newSetFromMap(java.util.concurrent.ConcurrentHashMap<String,Boolean>())
     private val running=java.util.Collections.newSetFromMap(java.util.concurrent.ConcurrentHashMap<String,Boolean>())
     fun busy(title:String)=AbLibraryHousekeeping.bookKey(title).let{it in deleting || it in running}
@@ -7975,8 +7981,12 @@ internal object AbBookDeletion {
     fun remove(context:Context,book:LibraryBook):AbDeleteAttempt {
         val name=AbLibraryHousekeeping.bookKey(book.title)
         if(!running.add(name))return AbDeleteAttempt(message="Эта книга уже удаляется")
+        synchronized(generations){generations[name]=(generations[name] ?: 0L)+1L}
         val release=AbLibraryHousekeeping.hold(book.title)
-        return try {perform(context,book)}finally{release();running.remove(name)}
+        return try {kotlinx.coroutines.runBlocking {
+            val lock=storageLock(book.title);lock.lock()
+            try {perform(context,book)}finally{lock.unlock()}
+        }}finally{release();running.remove(name)}
     }
 
     private fun perform(context:Context,book:LibraryBook):AbDeleteAttempt {
@@ -11720,7 +11730,7 @@ private fun AbDownloadsDialog(data: AbScreenData,actions: AbActions,theme: AbThe
 }
 
 // Shared thumbnails survive lazy-list recycling and tab changes. All disk/network work runs on IO.
-private object AbCoverStore {
+internal object AbCoverStore {
     private const val MAX_DOWNLOAD = 10L * 1024L * 1024L
     private const val MAX_DISK = 48L * 1024L * 1024L
     private val memory = object : android.util.LruCache<String, android.graphics.Bitmap>(16 * 1024 * 1024) {
@@ -11803,9 +11813,20 @@ private object AbCoverStore {
     }
 
     suspend fun saveForDownload(context: Context,title: String,local: LibraryBook?,direct: String,page: String,
-        exportToLibrary:Boolean=true): Boolean {
+        exportToLibrary:Boolean=true,expectedGeneration:Long=AbBookDeletion.generation(title)): Boolean {
+        if(AbBookDeletion.busy(title) || expectedGeneration!=AbBookDeletion.generation(title))return false
+        val storage=AbBookDeletion.storageLock(title)
+        storage.lock()
         val releaseFolder=AbLibraryHousekeeping.hold(title)
         try {
+            if(AbBookDeletion.busy(title) || expectedGeneration!=AbBookDeletion.generation(title))return false
+            // An old scan/cover-repair snapshot cannot recreate a deleted local edition.
+            if(exportToLibrary && local!=null && local.files.none {file ->
+                if(file.isFile)true else (file as? LibraryAudioFile)?.let {linked ->
+                    try {context.contentResolver.openFileDescriptor(Uri.parse(linked.audioUri),"r")?.use{true} ?: false}
+                    catch(_:Exception){false}
+                } ?: false
+            })return false
             val ref=abRecoverCoverRef(context,title,direct,page,local?.folder?.path.orEmpty())
             val folder=local?.folder ?: File(libraryRoot(),safeFileName(title))
             val publicFolder=exportToLibrary && (local==null || local.folderUri.isBlank())
@@ -11841,7 +11862,7 @@ private object AbCoverStore {
                 .putLong("book_cover_revision_"+safeFileName(title),System.currentTimeMillis()).apply()
             return kept
         } finally {
-            releaseFolder()
+            releaseFolder();storage.unlock()
             AbLibraryHousekeeping.request(context.applicationContext)
         }
     }

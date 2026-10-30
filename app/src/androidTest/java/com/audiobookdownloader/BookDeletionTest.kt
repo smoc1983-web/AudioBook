@@ -156,4 +156,27 @@ class BookDeletionTest {
         }
     }
 
+    @Test fun lateCoverSaveAndStaleRepairCannotRecreateADeletedBook()=fixture {root ->
+        val folder=File(root,"Cover race ${System.nanoTime()}").apply{mkdirs()}
+        val chapter=File(folder,"01.mp3").apply{writeText("audio")}
+        val outsideCover=File(root,"outside.jpg")
+        val bitmap=android.graphics.Bitmap.createBitmap(8,8,android.graphics.Bitmap.Config.ARGB_8888)
+        outsideCover.outputStream().use{bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG,90,it)};bitmap.recycle()
+        val book=LibraryBook(folder.name,folder,listOf(chapter),coverFilePath=outsideCover.path)
+        val privateCovers=File(context.filesDir,"book-covers")
+        val before=privateCovers.listFiles().orEmpty().map{it.name}.toSet()
+        val oldGeneration=AbBookDeletion.generation(book.title)
+        try {
+            assertTrue("Initial save must really write the fixture",kotlinx.coroutines.runBlocking {
+                AbCoverStore.saveForDownload(context,book.title,book,"","")})
+            assertTrue(File(folder,"cover.jpg").exists());assertTrue(File(folder,"book_metadata.json").exists())
+            assertTrue(AbBookDeletion.remove(context,book).success);assertFalse(folder.exists())
+            assertFalse("Delayed download callback cannot recreate the folder",kotlinx.coroutines.runBlocking {
+                AbCoverStore.saveForDownload(context,book.title,null,"","",expectedGeneration=oldGeneration)})
+            assertFalse("Repair with a stale local snapshot cannot recreate the folder",kotlinx.coroutines.runBlocking {
+                AbCoverStore.saveForDownload(context,book.title,book,"","")})
+            assertFalse(folder.exists());assertTrue(outsideCover.exists())
+        }finally {privateCovers.listFiles().orEmpty().filter{it.name !in before}.forEach{it.delete()};AbCoverStore.clearMemory()}
+    }
+
 }
