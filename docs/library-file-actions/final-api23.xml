@@ -1,0 +1,28 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuite name="com.audiobookdownloader.BookDeletionTest" tests="18" failures="0" errors="0" skipped="1" time="15.861" timestamp="2026-10-30T02:33:24" hostname="localhost">
+  <properties>
+    <property name="device" value="emulator-5554 - 6.0" />
+    <property name="flavor" value="" />
+    <property name="project" value=":app" />
+  </properties>
+  <testcase name="documentDeletionChecksSidecarsAndRetriesWithoutTouchingUnknownFiles" classname="com.audiobookdownloader.BookDeletionTest" time="0.046" />
+  <testcase name="lateCoverSaveAndStaleRepairCannotRecreateADeletedBook" classname="com.audiobookdownloader.BookDeletionTest" time="0.029" />
+  <testcase name="discoversAndRemovesMediaStoreDownloadsOutsideTheSnapshot" classname="com.audiobookdownloader.BookDeletionTest" time="0.008">
+    <skipped />
+  </testcase>
+  <testcase name="removesUnindexedAudioAndZeroByteChaptersButPreservesOtherBooksAndUnknownFiles" classname="com.audiobookdownloader.BookDeletionTest" time="0.005" />
+  <testcase name="cancelsOnlyTheDownloadWhoseSavedIdentityMatches" classname="com.audiobookdownloader.BookDeletionTest" time="0.154" />
+  <testcase name="rejectsChapterOutsideSelectedFolder" classname="com.audiobookdownloader.BookDeletionTest" time="0.008" />
+  <testcase name="reenumeratesDocumentsBeforeClaimingSuccess" classname="com.audiobookdownloader.BookDeletionTest" time="0.03" />
+  <testcase name="retryAfterPartialDeletionFinishesEvenWhenSnapshotChaptersAreAlreadyGone" classname="com.audiobookdownloader.BookDeletionTest" time="0.036" />
+  <testcase name="staleDocumentUriCannotDeleteAFileInAnotherBook" classname="com.audiobookdownloader.BookDeletionTest" time="0.009" />
+  <testcase name="chapterSymlinkNeverDeletesTheTargetInAnotherBook" classname="com.audiobookdownloader.BookDeletionTest" time="0.003" />
+  <testcase name="serializesBooksSkipsOwnedAndPreviewAndKeepsPlayerSelection" classname="com.audiobookdownloader.CollectionDownloadTest" time="3.712" />
+  <testcase name="closingStopsFutureBooksButDoesNotCancelAnAcceptedDownload" classname="com.audiobookdownloader.CollectionDownloadTest" time="3.923" />
+  <testcase name="downloadHasDetailsAndDoesNotChangeTheCurrentPlayer" classname="com.audiobookdownloader.EditionDownloadTest" time="1.112" />
+  <testcase name="parserUsesTheSelectedEditionAndRejectsMissingAudio" classname="com.audiobookdownloader.EditionDownloadTest" time="0.627" />
+  <testcase name="alreadyDownloadedChaptersAreRecognizedAndPartialSizeIsNotATotal" classname="com.audiobookdownloader.EditionDownloadTest" time="1.016" />
+  <testcase name="explicitExcerptCannotBeDownloadedEvenWithKnownSize" classname="com.audiobookdownloader.EditionDownloadTest" time="0.827" />
+  <testcase name="noCollectionsNeverFetchesGeneralFeedEvenWithOldOptIn" classname="com.audiobookdownloader.CollectionNotificationTest" time="0.025" />
+  <testcase name="legacyGlobalAndUnrelatedAlertsAreCancelledWhileCollectionAlertAndPlayerRemain" classname="com.audiobookdownloader.CollectionNotificationTest" time="2.339" />
+</testsuite>

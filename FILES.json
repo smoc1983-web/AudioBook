@@ -1,5 +1,5 @@
 {
-  "revision": "library-file-actions-final-candidate",
+  "revision": "library-file-actions-verified-source-pre-release",
   "storage": "GitHub export; see releases/ARCHIVE-PARTS.json for three multipart historical ZIPs",
   "files": [
     {
@@ -49,8 +49,8 @@
     },
     {
       "path": "AGENTS.md",
-      "bytes": 2550,
-      "sha256": "43ac94aebcab5d92093dc4fc82aa3980ec817828fd86c66b0a1a62cee1e62d5c"
+      "bytes": 2714,
+      "sha256": "8687fdbcd05600f9eb2f77425b8fb98e95141bfdb9ea54e8442adc90b866fe5f"
     },
     {
       "path": "README.md",
@@ -1479,8 +1479,8 @@
     },
     {
       "path": "docs/HANDOFF.md",
-      "bytes": 76691,
-      "sha256": "1098fae47cad837a645877e1afd7f093798e813d77a7f083c7e9871be86fef17"
+      "bytes": 77567,
+      "sha256": "deed5b7ae744619c576b8a0d917d8a36db94c6910f520b6f4aa5829ffad5c865"
     },
     {
       "path": "docs/INSTALL.md",
@@ -1494,8 +1494,8 @@
     },
     {
       "path": "docs/LIBRARY-FILE-ACTIONS.md",
-      "bytes": 10349,
-      "sha256": "1782a94f2f243359778c67cd53fbc622f6b6bc02b59fb71253748bb9586e976a"
+      "bytes": 11674,
+      "sha256": "bee590a0b35ad091029f617b8f1da6ef33300fd6fbfad85045f04698bc913032"
     },
     {
       "path": "docs/MEDIA-WIDGETS-STABLE.md",
@@ -1878,6 +1878,26 @@
       "sha256": "fb706a8b0d0b4fecf6aaa7af6cfa54e95d2315a20a00f6f808bae3829fd213e7"
     },
     {
+      "path": "docs/library-file-actions/final-api23.json",
+      "bytes": 4219,
+      "sha256": "e088952c1499645600300b2ada836a9efca7e87e0bc16f041d95f30b4f446dc0"
+    },
+    {
+      "path": "docs/library-file-actions/final-api23.xml",
+      "bytes": 3073,
+      "sha256": "46ab2f99bfe8e7d18ffc70e5feae45e5a210cff47cabf20de58a144ddd4af7c9"
+    },
+    {
+      "path": "docs/library-file-actions/final-api36.json",
+      "bytes": 4219,
+      "sha256": "c379bfeda3e14c10cc499dbd1c47923e11aa764230a8e3bcf745b383d35573a1"
+    },
+    {
+      "path": "docs/library-file-actions/final-api36.xml",
+      "bytes": 3038,
+      "sha256": "d335fb8d806184607f92caff1817980751b377dcbc0d170da75976d3d82dfbc4"
+    },
+    {
       "path": "docs/library-file-actions/mutator-kotlin.log",
       "bytes": 27,
       "sha256": "23b1a985013505bb2c040aabb9af6fbd28fa9b38a32470a2a96e5ef0bcbd4020"
@@ -1901,6 +1921,11 @@
       "path": "docs/library-file-actions/red.json",
       "bytes": 7845,
       "sha256": "da2a0a96651bc804b27e2a892cf570068928b00db167fe20f4c9b3a10805c105"
+    },
+    {
+      "path": "docs/library-file-actions/verification.json",
+      "bytes": 10749,
+      "sha256": "e998501894191d49b15f2f7676bd3e654fc073a1bef97a2128da3f5a87cc8579"
     },
     {
       "path": "docs/menu-download/android23.xml",

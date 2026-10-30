@@ -95,3 +95,20 @@ coverRequests выбранной книги очищается, чтобы но�
 В существующем native sidecar-тесте retry проходит через настоящий selectedFolder,
 а не напрямую по прежнему объекту. Сообщение пустого раздела загрузок теперь
 относится ко всем книгам, включая загрузку из коллекций без открытия плеера.
+
+## Окончательные профильные результаты
+
+Source4806b2b2362ef625002f10cc1fa0452accf226e6,
+treef98bd7acec6f439ff0ba4e4e82bc47749cb1c1f5; CI40991356902 success.
+API23:18 cases,0 failures/errors,1 skip (Downloads MediaStore существует с29).
+API36:18/18,0 failures/errors/skips. По10 сценариев удаления,2 коллекционной
+очереди,4 edition controls/parser,2 notification regressions. JVM132 cases,
+0 failures/errors,1 optional live/archive skip. Lint0 Error/Fatal,74 Warning,
+63 Information. Источники/ошибки не подменялись ослабленными проверками.
+[Машинные результаты](library-file-actions/verification.json), native XML рядом.
+Проверены реальные File/ContentResolver/MediaStore/DownloadManager и Compose.
+SAF использует debug controlled provider; physical Samsung и его системный picker
+не испытывались. Дополнительный cover-race CI40990682385 также successful.
+
+Далее normal pipeline должен проверить signed release/upgrade71→72, разрешения,
+зависимости и regression suite; до этих результатов новый APK не опубликован.

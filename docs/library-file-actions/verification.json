@@ -1,0 +1,328 @@
+{
+  "task": "Reliable book deletion and collection downloads",
+  "ubModeApproved": true,
+  "testedSource": "4806b2b2362ef625002f10cc1fa0452accf226e6",
+  "testedTree": "f98bd7acec6f439ff0ba4e4e82bc47749cb1c1f5",
+  "run": 40991356902,
+  "conclusion": "success",
+  "redRun": 40986745521,
+  "redFailureCountPerApi": 3,
+  "results": [
+    {
+      "api": 23,
+      "jvm": {
+        "tests": 132,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 1
+      },
+      "android": {
+        "name": "com.audiobookdownloader.BookDeletionTest",
+        "tests": "18",
+        "failures": "0",
+        "errors": "0",
+        "skipped": "1",
+        "time": "15.861",
+        "timestamp": "2026-10-30T02:33:24",
+        "hostname": "localhost"
+      },
+      "cases": [
+        {
+          "class": "com.audiobookdownloader.BookDeletionTest",
+          "name": "documentDeletionChecksSidecarsAndRetriesWithoutTouchingUnknownFiles",
+          "skipped": false,
+          "failures": 0,
+          "errors": 0
+        },
+        {
+          "class": "com.audiobookdownloader.BookDeletionTest",
+          "name": "lateCoverSaveAndStaleRepairCannotRecreateADeletedBook",
+          "skipped": false,
+          "failures": 0,
+          "errors": 0
+        },
+        {
+          "class": "com.audiobookdownloader.BookDeletionTest",
+          "name": "discoversAndRemovesMediaStoreDownloadsOutsideTheSnapshot",
+          "skipped": true,
+          "failures": 0,
+          "errors": 0
+        },
+        {
+          "class": "com.audiobookdownloader.BookDeletionTest",
+          "name": "removesUnindexedAudioAndZeroByteChaptersButPreservesOtherBooksAndUnknownFiles",
+          "skipped": false,
+          "failures": 0,
+          "errors": 0
+        },
+        {
+          "class": "com.audiobookdownloader.BookDeletionTest",
+          "name": "cancelsOnlyTheDownloadWhoseSavedIdentityMatches",
+          "skipped": false,
+          "failures": 0,
+          "errors": 0
+        },
+        {
+          "class": "com.audiobookdownloader.BookDeletionTest",
+          "name": "rejectsChapterOutsideSelectedFolder",
+          "skipped": false,
+          "failures": 0,
+          "errors": 0
+        },
+        {
+          "class": "com.audiobookdownloader.BookDeletionTest",
+          "name": "reenumeratesDocumentsBeforeClaimingSuccess",
+          "skipped": false,
+          "failures": 0,
+          "errors": 0
+        },
+        {
+          "class": "com.audiobookdownloader.BookDeletionTest",
+          "name": "retryAfterPartialDeletionFinishesEvenWhenSnapshotChaptersAreAlreadyGone",
+          "skipped": false,
+          "failures": 0,
+          "errors": 0
+        },
+        {
+          "class": "com.audiobookdownloader.BookDeletionTest",
+          "name": "staleDocumentUriCannotDeleteAFileInAnotherBook",
+          "skipped": false,
+          "failures": 0,
+          "errors": 0
+        },
+        {
+          "class": "com.audiobookdownloader.BookDeletionTest",
+          "name": "chapterSymlinkNeverDeletesTheTargetInAnotherBook",
+          "skipped": false,
+          "failures": 0,
+          "errors": 0
+        },
+        {
+          "class": "com.audiobookdownloader.CollectionDownloadTest",
+          "name": "serializesBooksSkipsOwnedAndPreviewAndKeepsPlayerSelection",
+          "skipped": false,
+          "failures": 0,
+          "errors": 0
+        },
+        {
+          "class": "com.audiobookdownloader.CollectionDownloadTest",
+          "name": "closingStopsFutureBooksButDoesNotCancelAnAcceptedDownload",
+          "skipped": false,
+          "failures": 0,
+          "errors": 0
+        },
+        {
+          "class": "com.audiobookdownloader.EditionDownloadTest",
+          "name": "downloadHasDetailsAndDoesNotChangeTheCurrentPlayer",
+          "skipped": false,
+          "failures": 0,
+          "errors": 0
+        },
+        {
+          "class": "com.audiobookdownloader.EditionDownloadTest",
+          "name": "parserUsesTheSelectedEditionAndRejectsMissingAudio",
+          "skipped": false,
+          "failures": 0,
+          "errors": 0
+        },
+        {
+          "class": "com.audiobookdownloader.EditionDownloadTest",
+          "name": "alreadyDownloadedChaptersAreRecognizedAndPartialSizeIsNotATotal",
+          "skipped": false,
+          "failures": 0,
+          "errors": 0
+        },
+        {
+          "class": "com.audiobookdownloader.EditionDownloadTest",
+          "name": "explicitExcerptCannotBeDownloadedEvenWithKnownSize",
+          "skipped": false,
+          "failures": 0,
+          "errors": 0
+        },
+        {
+          "class": "com.audiobookdownloader.CollectionNotificationTest",
+          "name": "noCollectionsNeverFetchesGeneralFeedEvenWithOldOptIn",
+          "skipped": false,
+          "failures": 0,
+          "errors": 0
+        },
+        {
+          "class": "com.audiobookdownloader.CollectionNotificationTest",
+          "name": "legacyGlobalAndUnrelatedAlertsAreCancelledWhileCollectionAlertAndPlayerRemain",
+          "skipped": false,
+          "failures": 0,
+          "errors": 0
+        }
+      ],
+      "lint": {
+        "Warning": 74,
+        "Information": 63
+      }
+    },
+    {
+      "api": 36,
+      "jvm": {
+        "tests": 132,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 1
+      },
+      "android": {
+        "name": "com.audiobookdownloader.BookDeletionTest",
+        "tests": "18",
+        "failures": "0",
+        "errors": "0",
+        "skipped": "0",
+        "time": "4.992",
+        "timestamp": "2026-10-30T02:31:21",
+        "hostname": "localhost"
+      },
+      "cases": [
+        {
+          "class": "com.audiobookdownloader.BookDeletionTest",
+          "name": "documentDeletionChecksSidecarsAndRetriesWithoutTouchingUnknownFiles",
+          "skipped": false,
+          "failures": 0,
+          "errors": 0
+        },
+        {
+          "class": "com.audiobookdownloader.BookDeletionTest",
+          "name": "lateCoverSaveAndStaleRepairCannotRecreateADeletedBook",
+          "skipped": false,
+          "failures": 0,
+          "errors": 0
+        },
+        {
+          "class": "com.audiobookdownloader.BookDeletionTest",
+          "name": "discoversAndRemovesMediaStoreDownloadsOutsideTheSnapshot",
+          "skipped": false,
+          "failures": 0,
+          "errors": 0
+        },
+        {
+          "class": "com.audiobookdownloader.BookDeletionTest",
+          "name": "removesUnindexedAudioAndZeroByteChaptersButPreservesOtherBooksAndUnknownFiles",
+          "skipped": false,
+          "failures": 0,
+          "errors": 0
+        },
+        {
+          "class": "com.audiobookdownloader.BookDeletionTest",
+          "name": "cancelsOnlyTheDownloadWhoseSavedIdentityMatches",
+          "skipped": false,
+          "failures": 0,
+          "errors": 0
+        },
+        {
+          "class": "com.audiobookdownloader.BookDeletionTest",
+          "name": "rejectsChapterOutsideSelectedFolder",
+          "skipped": false,
+          "failures": 0,
+          "errors": 0
+        },
+        {
+          "class": "com.audiobookdownloader.BookDeletionTest",
+          "name": "reenumeratesDocumentsBeforeClaimingSuccess",
+          "skipped": false,
+          "failures": 0,
+          "errors": 0
+        },
+        {
+          "class": "com.audiobookdownloader.BookDeletionTest",
+          "name": "retryAfterPartialDeletionFinishesEvenWhenSnapshotChaptersAreAlreadyGone",
+          "skipped": false,
+          "failures": 0,
+          "errors": 0
+        },
+        {
+          "class": "com.audiobookdownloader.BookDeletionTest",
+          "name": "staleDocumentUriCannotDeleteAFileInAnotherBook",
+          "skipped": false,
+          "failures": 0,
+          "errors": 0
+        },
+        {
+          "class": "com.audiobookdownloader.BookDeletionTest",
+          "name": "chapterSymlinkNeverDeletesTheTargetInAnotherBook",
+          "skipped": false,
+          "failures": 0,
+          "errors": 0
+        },
+        {
+          "class": "com.audiobookdownloader.CollectionDownloadTest",
+          "name": "serializesBooksSkipsOwnedAndPreviewAndKeepsPlayerSelection",
+          "skipped": false,
+          "failures": 0,
+          "errors": 0
+        },
+        {
+          "class": "com.audiobookdownloader.CollectionDownloadTest",
+          "name": "closingStopsFutureBooksButDoesNotCancelAnAcceptedDownload",
+          "skipped": false,
+          "failures": 0,
+          "errors": 0
+        },
+        {
+          "class": "com.audiobookdownloader.EditionDownloadTest",
+          "name": "downloadHasDetailsAndDoesNotChangeTheCurrentPlayer",
+          "skipped": false,
+          "failures": 0,
+          "errors": 0
+        },
+        {
+          "class": "com.audiobookdownloader.EditionDownloadTest",
+          "name": "parserUsesTheSelectedEditionAndRejectsMissingAudio",
+          "skipped": false,
+          "failures": 0,
+          "errors": 0
+        },
+        {
+          "class": "com.audiobookdownloader.EditionDownloadTest",
+          "name": "alreadyDownloadedChaptersAreRecognizedAndPartialSizeIsNotATotal",
+          "skipped": false,
+          "failures": 0,
+          "errors": 0
+        },
+        {
+          "class": "com.audiobookdownloader.EditionDownloadTest",
+          "name": "explicitExcerptCannotBeDownloadedEvenWithKnownSize",
+          "skipped": false,
+          "failures": 0,
+          "errors": 0
+        },
+        {
+          "class": "com.audiobookdownloader.CollectionNotificationTest",
+          "name": "noCollectionsNeverFetchesGeneralFeedEvenWithOldOptIn",
+          "skipped": false,
+          "failures": 0,
+          "errors": 0
+        },
+        {
+          "class": "com.audiobookdownloader.CollectionNotificationTest",
+          "name": "legacyGlobalAndUnrelatedAlertsAreCancelledWhileCollectionAlertAndPlayerRemain",
+          "skipped": false,
+          "failures": 0,
+          "errors": 0
+        }
+      ],
+      "lint": {
+        "Warning": 74,
+        "Information": 63
+      }
+    }
+  ],
+  "qualityTools": {
+    "crapper": "Kotlin unsupported; N/A",
+    "dryer": "Kotlin unsupported; N/A",
+    "mutator": "Kotlin unsupported; N/A"
+  },
+  "physicalSamsungTested": false,
+  "actualExternalStoragePickerOnPhoneTested": false,
+  "releasePublished": false,
+  "limits": [
+    "SAF scenarios use a real ContentResolver with a debug-only controlled DocumentsProvider, not a physical Samsung provider.",
+    "Scoped tests use disposable debug APKs. Release identity and real installed-upgrade verification are required in normal CI.",
+    "Unknown user documents and private collection thumbnails are retained; no automatic deletion after listening.",
+    "Edition counts/size and explicit-preview checks cannot establish completeness of unmarked editions."
+  ]
+}
