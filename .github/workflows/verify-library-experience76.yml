@@ -1,0 +1,52 @@
+name: Inspect signed library experience76 and recover actual receipts
+on:
+  push:
+    branches: ['audit/library-experience76']
+    paths: ['.github/workflows/verify-library-experience76.yml']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Wait for existing full and scoped gates without rerunning tests
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import json,os,subprocess,time
+          for run in [41095515200,41095511814]:
+              deadline=time.monotonic()+1200
+              while True:
+                  data=json.loads(subprocess.check_output(["gh","api","repos/"+os.environ["GITHUB_REPOSITORY"]+"/actions/runs/"+str(run)],text=True))
+                  if data["status"]=="completed":
+                      assert data["conclusion"]=="success",(run,data["conclusion"])
+                      break
+                  assert time.monotonic()<deadline,("Gate still running",run)
+                  time.sleep(15)
+          PY
+      - name: Android verification tools
+        run: |
+          if [ ! -x "$ANDROID_HOME/build-tools/35.0.0/apksigner" ]; then
+            "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "build-tools;35.0.0"
+          fi
+      - name: Verify actual APK, DEX methods, XML, upgrade, lint and advisory receipts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/verify-library-experience76.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: library-experience76-verification
+          path: |
+            receipts/library-experience76-verification.json
+            receipts/*-permissions.json
