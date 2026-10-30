@@ -7798,14 +7798,14 @@ fun trackSortNumber(
  * =============================================================
  */
 
-private data class AbDeleteAttempt(
+internal data class AbDeleteAttempt(
     val success:Boolean=false,val message:String="",val approvalUris:List<Uri> = emptyList(),
     val sender:android.content.IntentSender?=null,val needsFolder:Boolean=false,val removed:Int=0)
 
 private data class AbDeleteTarget(val file:File,val uri:Uri?=null)
 
 /** All calls to this backend run on IO; a result never equates an inaccessible path with deletion. */
-private object AbBookDeletion {
+internal object AbBookDeletion {
     private fun mediaUri(context:Context,file:File):Uri? = try {
         val collection=android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
         @Suppress("DEPRECATION")
