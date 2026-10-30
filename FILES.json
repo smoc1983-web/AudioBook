@@ -64,8 +64,8 @@
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/BookDeletionTest.kt",
-      "bytes": 11970,
-      "sha256": "7e82472d4a21b5b76469b574801735c10c118c52cc4206194a35ae1618b888d3"
+      "bytes": 12100,
+      "sha256": "cfac852158c93790ff4d25052a7f7f79739bdc30ea23f86742d3bb0de3db95ae"
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/CollectionDownloadTest.kt",
@@ -649,8 +649,8 @@
     },
     {
       "path": "current/MainActivity.kt",
-      "bytes": 763816,
-      "sha256": "bbf49c73720ca125f8fa507a1bc177e53a2b3f781576af4215195d69c57d9be7"
+      "bytes": 763818,
+      "sha256": "d7ed8ea92b1e26d2c92afef3034f82ed1ae804f9f3baaef1214e1919f1426530"
     },
     {
       "path": "current/PlaybackService.kt",
@@ -1494,8 +1494,8 @@
     },
     {
       "path": "docs/LIBRARY-FILE-ACTIONS.md",
-      "bytes": 9522,
-      "sha256": "f994c54a1f0a26d7414105b92caf255748410cbfa54a2a425c0df1ac60bbeb15"
+      "bytes": 10349,
+      "sha256": "1782a94f2f243359778c67cd53fbc622f6b6bc02b59fb71253748bb9586e976a"
     },
     {
       "path": "docs/MEDIA-WIDGETS-STABLE.md",
@@ -1881,6 +1881,11 @@
       "path": "docs/library-file-actions/mutator-kotlin.log",
       "bytes": 27,
       "sha256": "23b1a985013505bb2c040aabb9af6fbd28fa9b38a32470a2a96e5ef0bcbd4020"
+    },
+    {
+      "path": "docs/library-file-actions/pre-cover-verification.json",
+      "bytes": 7728,
+      "sha256": "8d2a750e16867758901fbdcb0e335e957385230033aa33a2425efe91beeec0d3"
     },
     {
       "path": "docs/library-file-actions/red-api23.xml",

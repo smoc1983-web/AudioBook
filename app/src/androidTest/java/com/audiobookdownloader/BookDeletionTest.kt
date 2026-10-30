@@ -67,7 +67,8 @@ class BookDeletionTest {
             assertTrue(partial.needsFolder)
             assertFalse("The granted document chapter must be gone: ${partial.message}",File(folder,"02.M4B").exists());assertTrue(File(folder,"book_metadata.json").exists())
             DeletionFixtureProvider.deniedName=""
-            assertTrue(AbBookDeletion.remove(context,book).success)
+            val granted=AbBookDeletion.selectedFolder(context,book,tree)!!
+            assertTrue("The granted folder must finish a partial deletion",AbBookDeletion.remove(context,granted).success)
             assertEquals(listOf("notes.txt"),folder.listFiles()!!.map{it.name})
             assertTrue("An already removed chapter must not block retry",AbBookDeletion.remove(context,book).success)
         }finally {DeletionFixtureProvider.deniedName="";root.deleteRecursively()}

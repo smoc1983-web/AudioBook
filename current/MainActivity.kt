@@ -8094,7 +8094,7 @@ internal object AbBookDeletion {
             val resolvedFolder=physical ?: libraryDocumentFolder(context,tree,uri)
             return book.copy(folder=resolvedFolder,folderUri=uri.toString(),files=book.files.map {file ->
                 val item=items.firstOrNull{!it.isDirectory && it.name==file.name}
-                if(item==null)file else LibraryAudioFile(File(resolvedFolder,file.name).path,item.uri.toString())
+                if(item==null)File(resolvedFolder,file.name) else LibraryAudioFile(File(resolvedFolder,file.name).path,item.uri.toString())
             })
         }
         return null
@@ -11709,7 +11709,7 @@ private fun AbDownloadsDialog(data: AbScreenData,actions: AbActions,theme: AbThe
         if(active>0) {
             Text("Подготовка, ожидание сети и прогресс показаны у каждой главы.",color=theme.muted,fontSize=12.sp)
         }
-        if(data.downloads.isEmpty()) Text("Здесь появятся загрузки из открытой книги.",color=theme.muted,fontSize=14.sp)
+        if(data.downloads.isEmpty()) Text("Здесь появятся загрузки книг.",color=theme.muted,fontSize=14.sp)
         data.downloads.forEach {item ->
             Row(Modifier.fillMaxWidth().abGlass(theme,14).padding(start=12.dp),
                 verticalAlignment=Alignment.CenterVertically) {
