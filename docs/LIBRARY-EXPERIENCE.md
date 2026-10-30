@@ -41,3 +41,16 @@ source/manifest/proofs and ai-project-memory checkpoint. Public Site17 already
 near256MiB raw limit: next APK requires measured old-hosting-asset retention,
 keep current74/previous73/72/manual69 and back up any unreferenced removed assets.
 No fresh Site or secrets in source; ordinary Git CAS/no force push.
+
+Initial scoped41080992681 failed compilation because exposing the full AbActions
+for a shared panel also exposed a private genre type. Replaced that dependency
+with narrow book callbacks and kept screen/actions models private. Run41082049765
+compiled and API36 executed24 tests:22 pass,2 failures were old cover-layout
+assertions running against the new default compact list. Cover-mode regressions
+now explicitly select cover mode; new compact-mode test covers collapse. New
+backup (including real SAF write/rename/no overwrite), queue and flat theme cases
+passed on36;23 outcome/final newer source remain to be verified.
+Bulk collection requests now use an atomic batch persistence path; closing the
+metadata dialog does not cancel accepted books. Corresponding UI regression is
+updated to assert both accepted book requests survive closure. APK publication
+still forbidden until normal correctness/upgrade gates finish.

@@ -32,14 +32,18 @@ internal object AbPersistentDownloads {
     private fun write(c:Context,rows:List<QueuedChapter>) {
         check(prefs(c).edit().putString("entries",JSONArray().apply{rows.forEach{put(it.json())}}.toString()).commit()) {"Не удалось сохранить очередь"}
     }
-    fun enqueue(c:Context,book:String,tracks:List<AudioTrack>)=synchronized(lock) {
-        require(book.isNotBlank() && tracks.size<=3000)
+    fun enqueue(c:Context,book:String,tracks:List<AudioTrack>)=enqueueBatch(c,listOf(AbDownloadEdition(BookRef(book,"",""),tracks,false)))
+    fun enqueueBatch(c:Context,editions:List<AbDownloadEdition>)=synchronized(lock) {
         val rows=entries(c).toMutableList()
-        for(t in tracks) {
-            require(isNetworkAudio(t.src)&&t.src.length<=8192&&t.title.isNotBlank()&&t.title.length<=512&&book.length<=512)
-            val id=key(book,t.title);val at=rows.indexOfFirst{it.key==id}
-            val row=QueuedChapter(id,book,t.title,t.src,t.duration)
-            if(at<0)rows.add(row) else if(rows[at].state in listOf("error","cancelled","complete"))rows[at]=row
+        for(edition in editions) {
+            val book=edition.ref.title;val tracks=edition.tracks
+            require(!edition.preview&&!EditionDownloadRules.isPreview(book,tracks.map{it.src})){"Источник передал ознакомительный фрагмент"}
+            require(book.isNotBlank()&&book.length<=512&&tracks.size<=3000)
+            for(t in tracks) {
+                require(isNetworkAudio(t.src)&&t.src.length<=8192&&t.title.isNotBlank()&&t.title.length<=512)
+                val id=key(book,t.title);val at=rows.indexOfFirst{it.key==id};val row=QueuedChapter(id,book,t.title,t.src,t.duration)
+                if(at<0)rows.add(row) else if(rows[at].state in listOf("error","cancelled","complete"))rows[at]=row
+            }
         }
         require(rows.size<=6000){"Очередь заполнена. Очистите завершённые загрузки."}
         write(c,rows);schedule(c)
@@ -111,7 +115,7 @@ internal object AbPersistentDownloads {
             }}
         }
         for(row in entries(c).filter{it.job>0&&it.state in listOf("complete","error")})main(c).edit().remove("download_job_"+row.job).apply()
-        if(finished)AbLibraryHousekeeping.request(c)
+        if(finished){main(c).edit().putLong("experience_library_revision",System.currentTimeMillis()).apply();AbLibraryHousekeeping.request(c)}
         val available=(3-entries(c).count{it.state=="active"}).coerceAtLeast(0)
         val pending=entries(c).filter{it.state=="queued"&&!paused(c,it.book)}.take(available)
         if(pending.isNotEmpty()) {

@@ -3040,6 +3040,24 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
             openGenre(selectedGenre,text,selectedNativeGenre) else startCommonBookSearch()
     }
 
+    suspend fun enqueueEditions(editions:List<AbDownloadEdition>,recordTotal:Boolean=true) {
+        for(edition in editions) {
+            require(!edition.preview&&!EditionDownloadRules.isPreview(edition.ref.title,edition.tracks.map{it.src})){"Источник передал ознакомительный фрагмент"}
+            val ref=edition.ref
+            abRememberCatalog(prefs,BookLink(ref.title,ref.url,ref.cover))
+            val edit=prefs.edit().putString(bookUrlKey(ref.title),ref.url).putString(bookCoverKey(ref.title),ref.cover)
+            if(recordTotal)edit.putInt(bookTotalKey(ref.title),maxOf(prefs.getInt(bookTotalKey(ref.title),0),edition.tracks.size))
+            edit.apply()
+        }
+        withContext(Dispatchers.IO){AbPersistentDownloads.enqueueBatch(context.applicationContext,editions)}
+        editions.forEach{keepDownloadedCover(it.ref.title)}
+    }
+    fun submitEditions(editions:List<AbDownloadEdition>,recordTotal:Boolean=true) {
+        modernWork.launch {
+            try{enqueueEditions(editions,recordTotal)}catch(cancel:kotlinx.coroutines.CancellationException){throw cancel}
+            catch(error:Exception){status=error.message ?: "Не удалось сохранить очередь";Toast.makeText(context,status,Toast.LENGTH_LONG).show()}
+        }
+    }
     val modernActions = AbActions(
         navigate = { if(it==AppPage.SEARCH && appPage==AppPage.SEARCH && searchSessionActive) backToSearchResults() else appPage=it },
         home = {showSearchHome()},
@@ -3069,20 +3087,9 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                 appPage = AppPage.PLAYER
             }
         },
-        download = { track, book ->
-            modernWork.launch(Dispatchers.IO){AbPersistentDownloads.enqueue(context.applicationContext,book,listOf(track))}
-            keepDownloadedCover(book)
-        },
-        downloadEdition = { ref, tracks ->
-            // Downloading an edition must not select it in PlaybackService or navigate.
-            abRememberCatalog(prefs,BookLink(ref.title,ref.url,ref.cover))
-            prefs.edit().putString(bookUrlKey(ref.title),ref.url)
-                .putString(bookCoverKey(ref.title),ref.cover).putInt(bookTotalKey(ref.title),tracks.size).apply()
-            if(!EditionDownloadRules.isPreview(ref.title,tracks.map{it.src}))
-                modernWork.launch(Dispatchers.IO){AbPersistentDownloads.enqueue(context.applicationContext,ref.title,tracks)}
-            else Toast.makeText(context,"Источник передал ознакомительный фрагмент. Скачивание отменено.",Toast.LENGTH_LONG).show()
-            keepDownloadedCover(ref.title)
-        },
+        download = { track, book -> submitEditions(listOf(AbDownloadEdition(bookRefFor(prefs,book),listOf(track),false)),recordTotal=false) },
+        downloadEdition = { ref, tracks ->submitEditions(listOf(AbDownloadEdition(ref,tracks,false))) },
+        downloadBatch = {editions->enqueueEditions(editions)},
         cancelDownload = { cancelModernDownload(it) },
         deleteBook = deleteModernBook,
         skin = { setAppSkin(it) },
@@ -9629,6 +9636,7 @@ private data class AbActions(
     val playOnline: (Int) -> Unit,
     val download: (AudioTrack, String) -> Unit,
     val downloadEdition: (BookRef, List<AudioTrack>) -> Unit,
+    val downloadBatch:suspend (List<AbDownloadEdition>)->Unit,
     val cancelDownload: (String) -> Unit,
     val deleteBook: (LibraryBook, (Boolean,String)->Unit) -> Unit,
     val skin: (Int) -> Unit,
@@ -10834,7 +10842,7 @@ private fun AbCollectionsScreen(data: AbScreenData,actions: AbActions,books: Lis
     }
     var downloadBooks by remember {mutableStateOf<List<BookRef>?>(null)}
     downloadBooks?.let {refs -> AbCollectionDownloads(refs,data.downloadedIndex,data.downloads,theme,
-        actions.downloadEdition,{downloadBooks=null})}
+        actions.downloadEdition,{downloadBooks=null},onBatch=actions.downloadBatch)}
     var selectedShelf by androidx.compose.runtime.saveable.rememberSaveable {mutableStateOf<String?>(null)}
     var editing by remember {mutableStateOf(false)}
     var name by remember {mutableStateOf("")}
@@ -11005,6 +11013,7 @@ private fun AbPlayerScreen(data: AbScreenData,actions: AbActions,books: List<Lib
                 }
                 AbBookDownloadFeedback(data,state.bookTitle,theme)
                 androidx.compose.material3.Slider(
+                    modifier=Modifier.semantics{contentDescription="Позиция воспроизведения в главе"},
                     value=dragging ?: state.positionMs.toFloat().coerceIn(0f,state.durationMs.coerceAtLeast(1).toFloat()),
                     onValueChange={dragging=it},
                     onValueChangeFinished={dragging?.let{PlaybackService.seek(context,it.toLong())};dragging=null},
@@ -11619,7 +11628,8 @@ private data class AbCollectionEdition(val ref:BookRef,val edition:AbDownloadEdi
 @Composable
 internal fun AbCollectionDownloads(refs:List<BookRef>,index:DownloadedChapterIndex,downloads:List<AbDownloadItem>,
     theme:AbTheme,onDownload:(BookRef,List<AudioTrack>)->Unit,dismiss:()->Unit,
-    reader:@Composable (BookRef,(AbDownloadEdition?,String)->Unit)->Unit={ref,done->AbReadDownloadEdition(ref,done)}) {
+    reader:@Composable (BookRef,(AbDownloadEdition?,String)->Unit)->Unit={ref,done->AbReadDownloadEdition(ref,done)},
+    onBatch:(suspend (List<AbDownloadEdition>)->Unit)?=null) {
     val books=remember(refs){refs.distinctBy{AbLibraryHousekeeping.bookKey(it.title)}}
     var entries by remember(books){mutableStateOf(books.map{AbCollectionEdition(it)})}
     var readIndex by remember(books){mutableStateOf(0)}
@@ -11649,29 +11659,19 @@ internal fun AbCollectionDownloads(refs:List<BookRef>,index:DownloadedChapterInd
     }
     LaunchedEffect(started) {
         if(!started)return@LaunchedEffect
-        for((i,entry) in entries.withIndex()) {
-            val edition=entry.edition ?: continue
-            if(edition.preview)continue
-            activeIndex=i
-            messages=messages+(i to "Ожидает очереди")
-            // The existing queue keys active chapters by title. Serialize books to avoid collisions.
-            androidx.compose.runtime.snapshotFlow{currentDownloads.any{it.state==TrackState.DOWNLOADING}}
-                .first{!it}
-            val remaining=edition.tracks.filter{!isTrackDownloaded(it,entry.ref.title,currentIndex)}
-            if(remaining.isEmpty()) {messages=messages+(i to "Уже скачана");continue}
-            if(AbBookDeletion.busy(entry.ref.title)) {messages=messages+(i to "Книга удаляется — загрузка пропущена");continue}
-            messages=messages+(i to "Скачивается")
-            submit(edition.ref,edition.tracks)
-            // Enqueue state is set synchronously by the application; let its state reach this dialog.
-            delay(100L)
-            androidx.compose.runtime.snapshotFlow{currentDownloads.any{it.state==TrackState.DOWNLOADING}}
-                .first{!it}
-            val items=currentDownloads.filter{it.book==entry.ref.title}
-            val complete=remaining.all {track -> isTrackDownloaded(track,entry.ref.title,currentIndex) ||
-                items.any{it.track.src==track.src && it.state==TrackState.DOWNLOADED}}
-            messages=messages+(i to if(complete) "Скачана" else "Не все главы скачаны. Проверьте раздел «Загрузки» и повторите.")
-        }
-        activeIndex=-1;finished=true
+        val pending=entries.mapNotNull{it.edition}.filter{edition->!edition.preview&&
+            !AbBookDeletion.busy(edition.ref.title)&&edition.tracks.any{!isTrackDownloaded(it,edition.ref.title,currentIndex)}}
+        try {
+            if(onBatch!=null)onBatch(pending) else pending.forEach{submit(it.ref,it.tracks)}
+            messages=entries.mapIndexed{i,entry->i to when {
+                entry.edition?.preview==true->"Фрагмент пропущен"
+                pending.any{it.ref.title==entry.ref.title}->"Добавлена в постоянную очередь"
+                entry.edition!=null->"Уже на устройстве или недоступна для загрузки"
+                else->entry.error
+            }}.toMap()
+            finished=true
+        }catch(cancel:kotlinx.coroutines.CancellationException){throw cancel}
+        catch(error:Exception){messages=mapOf(0 to (error.message ?: "Не удалось сохранить очередь"));started=false}
     }
     AbDialog("Скачать книги из коллекции",theme,dismiss) {
         Text("Уже скачанные главы пропускаются. Книги загружаются по очереди без переключения плеера.",
@@ -11701,10 +11701,10 @@ internal fun AbCollectionDownloads(refs:List<BookRef>,index:DownloadedChapterInd
         }
         val available=entries.any{entry->entry.edition?.let{edition ->!edition.preview &&
             edition.tracks.any{!isTrackDownloaded(it,entry.ref.title,index)}}==true}
-        AbButton(if(finished) "Очередь обработана" else if(started) "Загрузка по очереди…" else "Скачать доступные книги",theme,
+        AbButton(if(finished) "Книги добавлены в очередь" else if(started) "Загрузка по очереди…" else "Скачать доступные книги",theme,
             primary=true,enabled=readIndex==entries.size && available && !started) {started=true}
-        AbButton(if(started&&!finished) "Закрыть и остановить очередь" else "Закрыть",theme,onClick=dismiss)
-        if(started&&!finished)Text("После закрытия уже начатая книга продолжит скачиваться. Остальные книги не будут запущены.",
+        AbButton("Закрыть",theme,onClick=dismiss)
+        if(started)Text("Принятые задания сохраняются после закрытия. Пауза, отмена и повтор доступны в разделе загрузок.",
             color=theme.muted,fontSize=11.sp)
     }
 }
@@ -12992,9 +12992,10 @@ internal fun AbOfficialSeriesPanel(title:String,author:String,prefs:android.cont
     var filter by androidx.compose.runtime.saveable.rememberSaveable(title,author){mutableStateOf(0)}
     var scope by androidx.compose.runtime.saveable.rememberSaveable(title,author){mutableStateOf(0)}
     var details by remember(title,author){mutableStateOf(false)}
-    DisposableEffect(store){val listener=android.content.SharedPreferences.OnSharedPreferenceChangeListener{_,_->revision++}
-        store.preferences.registerOnSharedPreferenceChangeListener(listener)
-        onDispose{store.preferences.unregisterOnSharedPreferenceChangeListener(listener)}}
+    DisposableEffect(store,prefs){val listener=android.content.SharedPreferences.OnSharedPreferenceChangeListener{changed,key->
+        if(changed===store.preferences||key?.startsWith("book_completed_")==true||key=="experience_library_revision")revision++}
+        store.preferences.registerOnSharedPreferenceChangeListener(listener);prefs.registerOnSharedPreferenceChangeListener(listener)
+        onDispose{store.preferences.unregisterOnSharedPreferenceChangeListener(listener);prefs.unregisterOnSharedPreferenceChangeListener(listener)}}
     var snapshot by remember(title,author){mutableStateOf<OfficialSnapshot?>(null)}
     val library by androidx.compose.runtime.produceState<List<LibraryBook>>(emptyList(),title,revision) {
         value=withContext(Dispatchers.IO){scanLibrary(context)}

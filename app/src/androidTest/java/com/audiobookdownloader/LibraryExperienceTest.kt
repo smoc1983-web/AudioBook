@@ -82,6 +82,22 @@ class LibraryExperienceTest {
             AbPersistentDownloads.cancelBook(context,a);assertEquals("cancelled",AbPersistentDownloads.entries(context).first{it.book==a}.state);assertEquals("queued",AbPersistentDownloads.entries(context).first{it.book==b}.state)
         } finally {AbPersistentDownloads.cancelBook(context,a);AbPersistentDownloads.cancelBook(context,b);AbPersistentDownloads.clearCompleted(context)}
     }
+    @Test fun invalidBatchCannotLeaveAHalfAcceptedCollection() {
+        val book="Atomic queue "+UUID.randomUUID();val before=AbPersistentDownloads.entries(context)
+        val valid=AbDownloadEdition(BookRef(book,"",""),listOf(AudioTrack("1",60,"https://example.invalid/one.mp3")),false)
+        val invalid=AbDownloadEdition(BookRef("Fragment "+UUID.randomUUID(),"",""),listOf(AudioTrack("2",60,"https://example.invalid/two.mp3")),true)
+        try{AbPersistentDownloads.enqueueBatch(context,listOf(valid,invalid));fail("Partial batch accepted")}catch(_:IllegalArgumentException){}
+        assertEquals(before,AbPersistentDownloads.entries(context))
+    }
+    @Test fun missingAudioDoesNotReplaceSettings() {
+        val before=prefs.all;val doc=LibraryBackup.manifest(context,emptyList(),false).put("chapters",1)
+        val archive=zip(doc);val tree=DocumentsContract.buildTreeDocumentUri(context.packageName+".deletion-fixture","root")
+        try {
+            val preview=LibraryBackup.inspect(context,Uri.fromFile(archive))
+            try{LibraryBackup.restore(context,Uri.fromFile(archive),tree,preview){};fail("Incomplete backup accepted")}catch(_:IllegalArgumentException){}
+            assertEquals(before,prefs.all)
+        }finally{archive.delete()}
+    }
     @Test fun flatThemeHasStableIdAndNoWallpaper() {val t=abTheme(10);assertTrue(t.flat);assertEquals(0,t.image);assertEquals(10,t.id);assertTrue(t.text!=t.background)}
     @Test(timeout=30000) fun compactShelfCanCollapseAndKeepsNamedActions() {
         val prefs=context.getSharedPreferences("compact-shelf-test",0);prefs.edit().clear().putBoolean("experience_collection_list",true).commit()

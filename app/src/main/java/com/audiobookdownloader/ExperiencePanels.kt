@@ -82,7 +82,7 @@ internal val LocalAbBookCardContext=staticCompositionLocalOf<BookCardContext?>{n
                 AbButton("Отменить оставшиеся главы",theme){work{AbPersistentDownloads.cancelBook(context,book)}}
             }
             if(failed>0)AbButton("Повторить ошибки · $failed",theme){work{AbPersistentDownloads.retry(context,book)}}
-            if(chapters.all{it.state=="complete"})Text("Книга скачана",color=theme.accent,fontSize=13.sp)
+            if(chapters.all{it.state=="complete"})Text("Все главы из очереди скачаны",color=theme.accent,fontSize=13.sp)
         }
         if(groups.size>shown)AbButton("Ещё загрузки",theme){shown+=10}
         AbButton("Убрать завершённые из списка",theme){work{AbPersistentDownloads.clearCompleted(context)}}
@@ -118,7 +118,7 @@ internal val LocalAbBookCardContext=staticCompositionLocalOf<BookCardContext?>{n
     if(status.isNotBlank())Text(status,color=theme.muted,fontSize=13.sp)
     preview?.let{p->
         Text("Готово к восстановлению: ${p.values.size} настроек · ${p.chapters} глав. Выбранные настройки заменят текущие; остальные сохранятся.",color=theme.text,fontSize=14.sp)
-        Text("Сначала поставьте плеер на паузу. Аудиофайлы с совпадающими именами не перезаписываются. Доступ к папке библиотеки при необходимости выдайте заново.",color=theme.muted,fontSize=12.sp)
+        Text("Сначала поставьте плеер на паузу. Аудиофайлы с совпадающими именами не перезаписываются. Доступ к папке библиотеки и фон из галереи при необходимости выберите заново.",color=theme.muted,fontSize=12.sp)
         AbButton("Восстановить настройки и коллекции",theme,enabled=!busy){restore(null)}
         if(p.chapters>0)AbButton("Выбрать папку и восстановить с аудио",theme,enabled=!busy){folder.launch(null)}
         AbButton("Отменить восстановление",theme,enabled=!busy){preview=null;source=null}

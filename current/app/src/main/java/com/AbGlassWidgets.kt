@@ -405,7 +405,7 @@ private object AbWidgetArt {
         val bitmap=Bitmap.createBitmap(edge,edge,Bitmap.Config.ARGB_8888);val canvas=Canvas(bitmap)
         canvas.scale(edge/48f,edge/48f);val paint=Paint(Paint.ANTI_ALIAS_FLAG)
         if(circle) {
-            paint.shader=RadialGradient(34f,12f,42f,intArrayOf(p.accent,p.primary),floatArrayOf(0f,1f),Shader.TileMode.CLAMP)
+            paint.color=p.primary;paint.shader=if(p.id==10)null else RadialGradient(34f,12f,42f,intArrayOf(p.accent,p.primary),floatArrayOf(0f,1f),Shader.TileMode.CLAMP)
             canvas.drawCircle(24f,24f,22f,paint);paint.shader=null
             paint.style=Paint.Style.STROKE;paint.strokeWidth=1.2f;paint.color=p.reflection;canvas.drawCircle(24f,24f,22f,paint)
         }

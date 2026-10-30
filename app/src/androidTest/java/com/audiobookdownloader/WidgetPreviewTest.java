@@ -16,11 +16,11 @@ import static org.junit.Assert.*;
 
 @RunWith(AndroidJUnit4.class)
 public class WidgetPreviewTest {
-    @Test(timeout=60000) public void previewsHaveIntrinsicHeightAndRenderAllNineThemes() throws Exception {
+    @Test(timeout=60000) public void previewsHaveIntrinsicHeightAndRenderAllTenThemes() throws Exception {
         Context context=InstrumentationRegistry.getInstrumentation().getTargetContext();
         int original=context.getSharedPreferences("audiobook_downloader",0).getInt("glass_theme",2);
         try {
-            for(int theme=1;theme<=9;theme++) {
+            for(int theme=1;theme<=10;theme++) {
                 context.getSharedPreferences("audiobook_downloader",0).edit().putInt("glass_theme",theme).commit();
                 for(int kind=0;kind<3;kind++) {
                     final int selected=kind, selectedTheme=theme;
