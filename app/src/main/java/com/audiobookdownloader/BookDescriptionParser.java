@@ -13,9 +13,10 @@ public final class BookDescriptionParser {
     public static String parse(String html,String url,String title,String author) {
         if(!validInput(html,url,title))return "";
         Document doc=Jsoup.parse(html,url);
+        doc.select("nav,aside,footer,.related,.recommendations,.BookSeries").remove();
         if(!canonicalMatches(doc,url)||!identityMatches(doc,title,author))return "";
         String json=jsonDescription(doc,title,author,url);
-        doc.select("script,style,nav,aside,footer,.related,.recommendations,.BookSeries").remove();
+        doc.select("script,style").remove();
         String body=bodyDescription(doc,url);
         if(!body.isEmpty())return body;
         if(!json.isEmpty())return json;

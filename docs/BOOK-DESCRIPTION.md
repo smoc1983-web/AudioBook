@@ -21,3 +21,18 @@ Initial native41012648062 stopped at Kotlin compile (text.length() used instead 
 text.length),before tests. Fixed the property access; repeat native matrix needed.
 No released APK/feed changed. Parser,cache,dialog tests and player isolation remain
 required before signed74/publication. Annotation cache is private; no audio writes.
+
+Native41013491276 compiled. Cache/offline/refresh/cancellation/URL tests passed,
+but two real cover/title regressions failed: merged poster hit target centered on
+the newly interactive cover instead of the title. Removed the poster-wide click;
+title is now its own accessible44dp listen action, cover independently opens
+annotation. Existing title-open assertions retained unchanged.
+
+Added an inspected source-recovery regression: remember the dialog by book title,
+not page URL, so resolving a previously missing source cannot close it mid-load.
+Added a genuine failing JVM fixture where a recommendation's h1 falsely identified
+another page; moved recommendation pruning before identity checks. JVM11/11 now
+pass; fresh JaCoCo/Crapper<10/Dryer and3 guard mutants regenerated. Both source and
+URL must identify this work. Live Bookinfo HTTP200/120091bytes: Сыны грома returned
+1252chars of annotation; frozen Новый каменный век6 returned522chars. Raw HTML
+retained only in scratch, not published as app/user content. Native rerun required.

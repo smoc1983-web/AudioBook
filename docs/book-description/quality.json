@@ -1,8 +1,8 @@
 {
-  "javaParserTests": 10,
+  "javaParserTests": 11,
   "jacoco": {
     "INSTRUCTION": {
-      "covered": 743,
+      "covered": 748,
       "missed": 19
     },
     "BRANCH": {
@@ -10,7 +10,7 @@
       "missed": 24
     },
     "LINE": {
-      "covered": 86,
+      "covered": 87,
       "missed": 3
     },
     "COMPLEXITY": {
@@ -30,7 +30,7 @@
   "dryerCandidatesAtLeast08": 0,
   "mutation": {
     "selectedFile": "BookDescriptionParser.java",
-    "selectedLine": 16,
+    "selectedLine": 17,
     "purpose": "work identity and canonical guard",
     "executed": 3,
     "killed": 3,

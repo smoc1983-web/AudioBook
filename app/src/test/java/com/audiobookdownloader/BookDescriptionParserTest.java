@@ -67,4 +67,9 @@ public class BookDescriptionParserTest {
         String deep="[".repeat(100)+"0"+"]".repeat(100);
         assertEquals("",parse(page("<script type='application/ld+json'>"+deep+"</script>")));
     }
+
+    @Test public void recommendationHeadingCannotIdentifyAnUnrelatedPage(){
+        String html="<h1>Другая книга</h1><aside><h1>"+TITLE+"</h1></aside><div itemprop='description'>"+TEXT+"</div>";
+        assertEquals("",parse(html));
+    }
 }

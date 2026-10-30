@@ -9789,7 +9789,7 @@ private fun AbCover(title: String, local: LibraryBook?, remote: BookRef?, theme:
         remote?.url?.ifBlank {prefs.getString(bookUrlKey(title),"").orEmpty()}
             ?: prefs.getString(bookUrlKey(title),"").orEmpty()
     }
-    var descriptionOpen by androidx.compose.runtime.saveable.rememberSaveable(title,page){mutableStateOf(false)}
+    var descriptionOpen by androidx.compose.runtime.saveable.rememberSaveable(title){mutableStateOf(false)}
     if(descriptionOpen)AbBookDescriptionDialog(BookRef(title,page,cover),local,theme,{descriptionOpen=false})
     val edge=if(widgetBook) 960 else 320
     val audio=local?.files?.firstOrNull()?.let{libraryTrackSource(it)}.orEmpty()
@@ -9873,11 +9873,13 @@ private fun AbBookRow(ref: BookRef, local: LibraryBook?, subtitle: String, theme
 @Composable
 private fun AbPoster(ref: BookRef, local: LibraryBook?, theme: AbTheme, progress: Float?,
     modifier: Modifier=Modifier, onClick: ()->Unit) {
-    Column(modifier.abGlass(theme,15).clickable(onClick=onClick)
+    Column(modifier.abGlass(theme,15)
         .padding(7.dp),verticalArrangement=Arrangement.spacedBy(7.dp)) {
         AbCover(ref.title,local,ref,theme,Modifier.fillMaxWidth().aspectRatio(.70f))
         Text(ref.title,color=theme.text,fontSize=12.sp,fontWeight=FontWeight.Medium,
-            maxLines=2,modifier=Modifier.heightIn(min=34.dp),overflow=TextOverflow.Ellipsis)
+            maxLines=2,modifier=Modifier.fillMaxWidth().heightIn(min=44.dp)
+                .semantics{contentDescription="Слушать: ${ref.title}";role=androidx.compose.ui.semantics.Role.Button}
+                .clickable(onClick=onClick).padding(vertical=4.dp),overflow=TextOverflow.Ellipsis)
         if(local!=null)Text(abLocalSize(local),color=theme.muted,fontSize=10.sp,maxLines=2)
         if(progress!=null) AbProgress(progress,theme,Modifier.fillMaxWidth())
     }

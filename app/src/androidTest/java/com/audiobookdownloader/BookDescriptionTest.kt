@@ -37,6 +37,20 @@ class BookDescriptionTest {
         compose.onNodeWithText("Книга без источника").performClick()
         assertEquals(1,opens)
     }
+    @Test(timeout=30000) fun resolvingSourceWhileDescriptionIsOpenDoesNotDismissTheDialog() {
+        var chosen by mutableStateOf(BookRef("Описание при восстановлении ссылки","",""))
+        val before=PlaybackService.state.value
+        compose.setContent {AbCollectionBookCard(chosen,null,abTheme(2),false,{},{},{})}
+        compose.onNodeWithContentDescription("Описание: Описание при восстановлении ссылки").performClick()
+        compose.onNodeWithText("Описание книги").assertIsDisplayed()
+        // Source recovery can update the parent ref after the dialog has opened.
+        // Both fixture URLs are deliberately unsupported, so this never contacts a site.
+        compose.runOnIdle{chosen=chosen.copy(url="not-a-page")}
+        compose.onNodeWithText("Описание книги").assertIsDisplayed()
+        compose.onNodeWithText("Закрыть описание").performScrollTo().performClick()
+        compose.onNodeWithText("Описание книги").assertDoesNotExist()
+        assertEquals(before,PlaybackService.state.value)
+    }
     @Test(timeout=30000) fun privateCacheWorksOfflineAndFailedRefreshDoesNotEraseIt()=runBlocking {
         val cache=folder();var calls=0
         try {

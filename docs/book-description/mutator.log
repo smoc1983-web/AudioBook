@@ -6,9 +6,9 @@ Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.Edi
 Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.LocalSeriesRules.edn
 Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.OfficialSeriesParser.edn
 Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.OfficialTextNoticePolicy.edn
-KILLED    app/src/main/java/com/audiobookdownloader/BookDescriptionParser.java:16 delete !
-KILLED    app/src/main/java/com/audiobookdownloader/BookDescriptionParser.java:16 || -> &&
-KILLED    app/src/main/java/com/audiobookdownloader/BookDescriptionParser.java:16 delete !
+KILLED    app/src/main/java/com/audiobookdownloader/BookDescriptionParser.java:17 delete !
+KILLED    app/src/main/java/com/audiobookdownloader/BookDescriptionParser.java:17 || -> &&
+KILLED    app/src/main/java/com/audiobookdownloader/BookDescriptionParser.java:17 delete !
 Function            Namespace                                      Killed  Survived  Uncovered  Sites   Score
 -------------------------------------------------------------------------------------------------------------
 authorMatches       com.audiobookdownloader.BookDescriptionParser       0         0          0      7    n/a
