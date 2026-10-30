@@ -10644,6 +10644,13 @@ private fun AbLibraryScreen(data: AbScreenData,actions: AbActions,sync: LibraryS
     }
 }
 
+/** Collection card; opening a book is separate from its auxiliary actions. */
+@Composable
+internal fun AbCollectionBookCard(ref:BookRef,local:LibraryBook?,theme:AbTheme,expanded:Boolean,
+    onOpen:()->Unit,onMenu:()->Unit,onContinuations:()->Unit) {
+    AbPoster(ref,local,theme,null,Modifier.width(144.dp),onOpen)
+}
+
 @Composable
 private fun AbCollectionsScreen(data: AbScreenData,actions: AbActions,books: List<LibraryBook>,
     prefs: android.content.SharedPreferences,theme: AbTheme,onMenu:(BookRef)->Unit) {
@@ -10695,8 +10702,8 @@ private fun AbCollectionsScreen(data: AbScreenData,actions: AbActions,books: Lis
                     if(shelf.books.isNotEmpty())AbButton("Скачать книги",theme){downloadBooks=shelf.books.toList()}
                     if(shelf.books.isNotEmpty()) Row(Modifier.padding(top=10.dp).horizontalScroll(rememberScrollState()),
                         horizontalArrangement=Arrangement.spacedBy(9.dp)) {
-                        shelf.books.take(5).forEach {ref -> AbPoster(ref,abFindLocal(books,ref.title),theme,null,
-                            Modifier.width(104.dp)){actions.openRef(ref)} }
+                        shelf.books.take(5).forEach {ref -> AbCollectionBookCard(ref,abFindLocal(books,ref.title),theme,false,
+                            {actions.openRef(ref)},{onMenu(ref)},{}) }
                     }
                 }
             }
