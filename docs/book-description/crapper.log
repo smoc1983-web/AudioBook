@@ -1,0 +1,26 @@
+CRAP Report
+===========
+Languages: java
+
+Function                       Namespace                                       CC    Cov%     CRAP
+--------------------------------------------------------------------------------------------------
+bodyDescription                com.audiobookdownloader.BookDescriptionParser    9  96.8%      9.0
+authorMatches                  com.audiobookdownloader.BookDescriptionParser    7  92.0%      7.0
+jsonDescription                com.audiobookdownloader.BookDescriptionParser    7  98.0%      7.0
+validPage                      com.audiobookdownloader.BookDescriptionParser    7 100.0%      7.0
+jsonBook                       com.audiobookdownloader.BookDescriptionParser    6  97.7%      6.0
+parse                          com.audiobookdownloader.BookDescriptionParser    6 100.0%      6.0
+labelledDescription            com.audiobookdownloader.BookDescriptionParser    5  95.5%      5.0
+jsonNode                       com.audiobookdownloader.BookDescriptionParser    5  95.7%      5.0
+boundedJson                    com.audiobookdownloader.BookDescriptionParser    5 100.0%      5.0
+validInput                     com.audiobookdownloader.BookDescriptionParser    5 100.0%      5.0
+sameTitle                      com.audiobookdownloader.BookDescriptionParser    4  95.1%      4.0
+canonicalMatches               com.audiobookdownloader.BookDescriptionParser    4 100.0%      4.0
+metaDescription                com.audiobookdownloader.BookDescriptionParser    4 100.0%      4.0
+pageKey                        com.audiobookdownloader.BookDescriptionParser    4 100.0%      4.0
+identityMatches                com.audiobookdownloader.BookDescriptionParser    3 100.0%      3.0
+jsonArray                      com.audiobookdownloader.BookDescriptionParser    3 100.0%      3.0
+plain                          com.audiobookdownloader.BookDescriptionParser    3 100.0%      3.0
+samePage                       com.audiobookdownloader.BookDescriptionParser    2  76.9%      2.0
+usable                         com.audiobookdownloader.BookDescriptionParser    1 100.0%      1.0
+Wrote /workspace/Audiobook-Workspace/.metrics/crap.edn

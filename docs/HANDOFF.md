@@ -1,3 +1,21 @@
+## Active: book descriptions — native passed, signed release pending (2026-10-30)
+
+User approved ub-mode; do not ask again within this task. PR6, branchfeature/book-description.
+Final native41014370607 on sourcee1cf58ec672b65601a2c98f222528d8a2068136d,
+tree92f991aaa9549c17966436b9f0f4f9a7008f467a:15/15 native onAPI23/36,
+JVM142passed+1optional skip each. PR quality41014583440 success; local parser11/11,
+fresh coverage/Crapper<10/Dryer no>=0.8,3 targeted guard mutations killed.
+Cover and title have separate actions; private cached annotation survives offline
+refresh failure; source recovery cannot close its dialog. See BOOK-DESCRIPTION.md.
+
+Execution environment became unavailable (exec tool: No usable execution environment).
+Provider status still said connected; do not treat that as usable filesystem access.
+All code and proof are on GitHub. Next: merge PR6 after current gates, normal signed74
+(run73+offset1), verify actual upgrade/cert/hash, then same public Site17 publication.
+XML artifacts retained; local extraction deferred. Keep feed73 until exact APK and
+deployment verified. Do not expose credentials in Actions/commits to bypass outage.
+Original stable, downloaded audio and ForTanya stay intact.
+
 ## Audiobook4.2.73 опубликована (2026-10-30)
 
 Задача inline-продолжений и понятных меню завершена. PR5 merged,

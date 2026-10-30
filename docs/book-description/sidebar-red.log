@@ -1,0 +1,12 @@
+JUnit version 4.13.2
+....E.......
+Time: 0.182
+There was 1 failure:
+1) recommendationHeadingCannotIdentifyAnUnrelatedPage(com.audiobookdownloader.BookDescriptionParserTest)
+org.junit.ComparisonFailure: expected:<[]> but was:<[Герой попадает в таинственный отель на перекрёстке миров. Его ждут новые знакомства и непростые решения.]>
+	at org.junit.Assert.assertEquals(Assert.java:117)
+	at org.junit.Assert.assertEquals(Assert.java:146)
+	at com.audiobookdownloader.BookDescriptionParserTest.recommendationHeadingCannotIdentifyAnUnrelatedPage(BookDescriptionParserTest.java:73)
+
+FAILURES!!!
+Tests run: 11,  Failures: 1

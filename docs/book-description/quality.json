@@ -1,0 +1,41 @@
+{
+  "javaParserTests": 11,
+  "jacoco": {
+    "INSTRUCTION": {
+      "covered": 748,
+      "missed": 19
+    },
+    "BRANCH": {
+      "covered": 124,
+      "missed": 24
+    },
+    "LINE": {
+      "covered": 87,
+      "missed": 3
+    },
+    "COMPLEXITY": {
+      "covered": 70,
+      "missed": 24
+    },
+    "METHOD": {
+      "covered": 20,
+      "missed": 0
+    },
+    "CLASS": {
+      "covered": 1,
+      "missed": 0
+    }
+  },
+  "maxCrapBelow": 9.99,
+  "dryerCandidatesAtLeast08": 0,
+  "mutation": {
+    "selectedFile": "BookDescriptionParser.java",
+    "selectedLine": 17,
+    "purpose": "work identity and canonical guard",
+    "executed": 3,
+    "killed": 3,
+    "survived": 0,
+    "fullFileMutationRun": false
+  },
+  "kotlin": "Unsupported by pinned tools; N/A, actual Android tests required"
+}

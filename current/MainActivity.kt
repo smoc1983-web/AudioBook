@@ -9789,6 +9789,8 @@ private fun AbCover(title: String, local: LibraryBook?, remote: BookRef?, theme:
         remote?.url?.ifBlank {prefs.getString(bookUrlKey(title),"").orEmpty()}
             ?: prefs.getString(bookUrlKey(title),"").orEmpty()
     }
+    var descriptionOpen by androidx.compose.runtime.saveable.rememberSaveable(title){mutableStateOf(false)}
+    if(descriptionOpen)AbBookDescriptionDialog(BookRef(title,page,cover),local,theme,{descriptionOpen=false})
     val edge=if(widgetBook) 960 else 320
     val audio=local?.files?.firstOrNull()?.let{libraryTrackSource(it)}.orEmpty()
     val savedRevision=remember(prefs,title,dataRevision) {prefs.getLong("book_cover_revision_"+safeFileName(title),0L)}
@@ -9815,7 +9817,9 @@ private fun AbCover(title: String, local: LibraryBook?, remote: BookRef?, theme:
             } catch(_:Exception) { }
         }
     }
-    Box(modifier.clip(RoundedCornerShape(13.dp)).background(Brush.verticalGradient(
+    Box(modifier.clip(RoundedCornerShape(13.dp))
+        .semantics{contentDescription="Описание: $title";role=androidx.compose.ui.semantics.Role.Button}
+        .clickable(enabled=title.isNotBlank()){descriptionOpen=true}.background(Brush.verticalGradient(
         listOf(theme.field,theme.accent.copy(alpha=.14f)))),contentAlignment=Alignment.Center) {
         val image=bitmap
         if(image!=null) Image(image.asImageBitmap(),contentDescription="Обложка: $title",
@@ -9869,11 +9873,13 @@ private fun AbBookRow(ref: BookRef, local: LibraryBook?, subtitle: String, theme
 @Composable
 private fun AbPoster(ref: BookRef, local: LibraryBook?, theme: AbTheme, progress: Float?,
     modifier: Modifier=Modifier, onClick: ()->Unit) {
-    Column(modifier.abGlass(theme,15).clickable(onClick=onClick)
+    Column(modifier.abGlass(theme,15)
         .padding(7.dp),verticalArrangement=Arrangement.spacedBy(7.dp)) {
         AbCover(ref.title,local,ref,theme,Modifier.fillMaxWidth().aspectRatio(.70f))
         Text(ref.title,color=theme.text,fontSize=12.sp,fontWeight=FontWeight.Medium,
-            maxLines=2,modifier=Modifier.heightIn(min=34.dp),overflow=TextOverflow.Ellipsis)
+            maxLines=2,modifier=Modifier.fillMaxWidth().heightIn(min=44.dp)
+                .semantics{contentDescription="Слушать: ${ref.title}";role=androidx.compose.ui.semantics.Role.Button}
+                .clickable(onClick=onClick).padding(vertical=4.dp),overflow=TextOverflow.Ellipsis)
         if(local!=null)Text(abLocalSize(local),color=theme.muted,fontSize=10.sp,maxLines=2)
         if(progress!=null) AbProgress(progress,theme,Modifier.fillMaxWidth())
     }
@@ -9896,6 +9902,40 @@ private fun AbDialog(title: String, theme: AbTheme, dismiss: ()->Unit,
             Column(Modifier.weight(1f,fill=false).verticalScroll(rememberScrollState()),
                 verticalArrangement=Arrangement.spacedBy(12.dp),content=content)
         }
+    }
+}
+
+@Composable
+internal fun AbBookDescriptionDialog(ref:BookRef,local:LibraryBook?,theme:AbTheme,dismiss:()->Unit,
+    loader:(suspend (BookRef,LibraryBook?,Boolean)->BookDescription)?=null) {
+    val context=androidx.compose.ui.platform.LocalContext.current.applicationContext
+    val repository=remember(context){BookDescriptionRepository(context)}
+    var description by remember(ref.title,ref.url){mutableStateOf<BookDescription?>(null)}
+    var running by remember(ref.title,ref.url){mutableStateOf(false)}
+    var error by remember(ref.title,ref.url){mutableStateOf("")}
+    var retry by remember(ref.title,ref.url){mutableStateOf(0)}
+    LaunchedEffect(ref.title,ref.url,retry) {
+        running=true;error=""
+        try{description=if(loader!=null)loader(ref,local,retry>0) else repository.load(ref,local,retry>0)}
+        catch(_:kotlinx.coroutines.TimeoutCancellationException){error="Источник отвечает слишком долго. Повторите позже."}
+        catch(cancel:kotlinx.coroutines.CancellationException){throw cancel}
+        catch(unavailable:BookDescriptionUnavailable){error=unavailable.message.orEmpty()}
+        catch(_:Exception){error="Не удалось загрузить описание. Проверьте подключение и повторите попытку."}
+        finally{running=false}
+    }
+    AbDialog("Описание книги",theme,dismiss) {
+        Text(ref.title,color=theme.text,fontSize=18.sp,fontWeight=FontWeight.SemiBold)
+        description?.let {book ->
+            if(book.author.isNotBlank())Text(book.author,color=theme.muted,fontSize=13.sp)
+            androidx.compose.foundation.text.selection.SelectionContainer {
+                Text(book.text,color=theme.text,fontSize=15.sp,lineHeight=23.sp)
+            }
+            Text("Описание сохранено и доступно без интернета",color=theme.muted,fontSize=11.sp)
+        }
+        if(running)Text("Загружаем описание…",color=theme.muted,fontSize=13.sp)
+        if(error.isNotBlank())Text(error,color=theme.muted,fontSize=13.sp)
+        AbButton(if(description==null)"Повторить" else "Обновить описание",theme,enabled=!running){retry++}
+        AbButton("Закрыть описание",theme,onClick=dismiss)
     }
 }
 
