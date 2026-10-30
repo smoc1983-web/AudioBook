@@ -1,0 +1,15 @@
+{
+  "packageName": "com.audiobookdownloader.preview",
+  "versionCode": 100073,
+  "versionName": "4.2.73",
+  "size": 32986461,
+  "sha256": "edf5d075bf2326d1c0b7050ba1b3465ee6991c85e651e7ea5c0ec9d061177ad6",
+  "certificateSha256": "3a4cecd14bb3e983843871766909c3f07b3dc64379800f3e270e4a27d39affb7",
+  "label": "Audiobook",
+  "debuggable": false,
+  "signatureV1": true,
+  "signatureV2": true,
+  "collectionImplementationPresent": true,
+  "debugTestFixturesAbsent": true,
+  "releaseNotesUpdated": true
+}

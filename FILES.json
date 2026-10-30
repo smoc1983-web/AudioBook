@@ -1,5 +1,5 @@
 {
-  "revision": "collection-inline-continuations-native-verification",
+  "revision": "audiobook-4.2.73-inline-collection-continuations-published",
   "storage": "GitHub export; see releases/ARCHIVE-PARTS.json for three multipart historical ZIPs",
   "files": [
     {
@@ -54,13 +54,13 @@
     },
     {
       "path": "AGENTS.md",
-      "bytes": 2835,
-      "sha256": "8185db1d1114445999306f192edc4c2ece27f59f8a70fae168370f44c2d647c4"
+      "bytes": 2907,
+      "sha256": "d0201876f5ddc86d270eb6850cef78b0cc7652187510157a0deda33645e92b08"
     },
     {
       "path": "README.md",
-      "bytes": 20023,
-      "sha256": "a0fb0ab19278899445e016c9fd8bdf024be4539421ea7953c958761e5478d260"
+      "bytes": 20637,
+      "sha256": "b5e2221775ab181adb3c055d68dfa45f22318088cef4b8c1f023e82269b7fb50"
     },
     {
       "path": "app/build.gradle.kts",
@@ -1474,8 +1474,8 @@
     },
     {
       "path": "docs/COLLECTION-SERIES.md",
-      "bytes": 3418,
-      "sha256": "9cc5cb4ffc2751993aa8493e132621f52a4a6f5f42220096221b3effc61ea665"
+      "bytes": 3626,
+      "sha256": "2f3cf1f55d13d8652be89ba6fa80c2d23ce966e1e94af043b441ce5158d6a8ed"
     },
     {
       "path": "docs/COLLECTION-TRANSFER.md",
@@ -1494,8 +1494,8 @@
     },
     {
       "path": "docs/HANDOFF.md",
-      "bytes": 80366,
-      "sha256": "090c38548c95e2a7b02de12f4dc2a50f166d3818aee2f7f10cc789952b7f5c1c"
+      "bytes": 81479,
+      "sha256": "1e2e1964b4b9f2cda858d6c44848f0bb283793d765df5f54041dd43ae4e49f32"
     },
     {
       "path": "docs/INSTALL.md",
@@ -1581,6 +1581,11 @@
       "path": "docs/RELEASE-4.2.72.md",
       "bytes": 4120,
       "sha256": "602a907d8d441d4c6fa8240de58f112b49f5ad4257a330a1a57e7f302cd20c1e"
+    },
+    {
+      "path": "docs/RELEASE-4.2.73.md",
+      "bytes": 3287,
+      "sha256": "a51429040c4252d772abe10888f4fe6b6a7c419b0b7b754224809111addbedce"
     },
     {
       "path": "docs/SCREENSHOT-SOURCES.md",
@@ -2261,6 +2266,46 @@
       "path": "docs/release-4.2.72/verification.json",
       "bytes": 7736,
       "sha256": "5f91610d7ce051ae8de1636634bde12a22b38d27218f1c48dd111fc6535d1048"
+    },
+    {
+      "path": "docs/release-4.2.73/apk-audit.json",
+      "bytes": 500,
+      "sha256": "3ed6bc7a48902b934777fc8fa8e94e18b79cd9a3972833006514666311176068"
+    },
+    {
+      "path": "docs/release-4.2.73/installed-upgrade.json",
+      "bytes": 844,
+      "sha256": "b582104f329bcde33d5c5e4db9963d620cafc912bbe9adb46a8f9ad877e052dd"
+    },
+    {
+      "path": "docs/release-4.2.73/permission-audit.json",
+      "bytes": 1029,
+      "sha256": "4ef516c77631cefe8a02559f215a839e229cc4445a81443d478db30a8803d81a"
+    },
+    {
+      "path": "docs/release-4.2.73/public-download-check.json",
+      "bytes": 2341,
+      "sha256": "49481f25b3523488bc91d88f6faa87ec15b4bca36b42ddb92ebf29ee745424ab"
+    },
+    {
+      "path": "docs/release-4.2.73/public-manifest.json",
+      "bytes": 935,
+      "sha256": "4b65d1e9fdce6b8ff007e24c622c7470695537765749d91e54be8abc9fcdde15"
+    },
+    {
+      "path": "docs/release-4.2.73/site-retention.json",
+      "bytes": 2153,
+      "sha256": "5542934e1d0114825304f2ee487ad6a7f2e9fdd0ab4de3f881c7987497fbd3c6"
+    },
+    {
+      "path": "docs/release-4.2.73/test-summary.json",
+      "bytes": 1113,
+      "sha256": "163a6a786840986bf78fd5239b69a51d5683f7cc042e72f4d6645e07cd740777"
+    },
+    {
+      "path": "docs/release-4.2.73/verification.json",
+      "bytes": 8717,
+      "sha256": "7c660e5b9fd97cf5ea573f9cfa3cc94fec093627bac3496a8197645a4830532a"
     },
     {
       "path": "docs/screenshot-source-registry.json",
@@ -11499,8 +11544,8 @@
     },
     {
       "path": "hosting/updates/index.html",
-      "bytes": 8089,
-      "sha256": "484bd3266509733eb876998055fe849a97570301e9a6640fa86f5192cb32d751"
+      "bytes": 12653,
+      "sha256": "9e5fa739232cf4fccd41e82bd76a3e74627ebea2534535c2663a4912cc2e7555"
     },
     {
       "path": "legacyFixture/build.gradle.kts",

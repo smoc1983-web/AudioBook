@@ -1,0 +1,66 @@
+{
+  "reason": "Make room below 256MiB hosting archive limit for next signed APK",
+  "retained": [
+    "current72",
+    "manual69",
+    "previous71",
+    "66",
+    "68",
+    "70"
+  ],
+  "onlyUnreferencedVersions": [
+    100062,
+    100063
+  ],
+  "backup": "/workspace/source-audit/collection-continuations/unreferenced-site-parts62-63.tar.gz",
+  "backupVerified": true,
+  "files": [
+    {
+      "path": "updates/parts/preview-100062-744135becfa5b1cb-00.bin",
+      "bytes": 8388608,
+      "sha256": "05adb5d0486a80ceb197021c80bb4f0743bfdaa9a392f27df09ffaafd043e133"
+    },
+    {
+      "path": "updates/parts/preview-100062-744135becfa5b1cb-01.bin",
+      "bytes": 8388608,
+      "sha256": "c944877d4f0876b27ecc40b567a42032026223d6333a314262fc06b5713f4a1c"
+    },
+    {
+      "path": "updates/parts/preview-100062-744135becfa5b1cb-02.bin",
+      "bytes": 8388608,
+      "sha256": "d39ce44e26e5a9239977ba4a3d85b9031acca3504a96c18be390ade7dcb8ec81"
+    },
+    {
+      "path": "updates/parts/preview-100062-744135becfa5b1cb-03.bin",
+      "bytes": 8388608,
+      "sha256": "d472090dd0dfe94f995797f1fe006b1f3fe8337c98cd92fd72dee897b9dcdb97"
+    },
+    {
+      "path": "updates/parts/preview-100062-744135becfa5b1cb-04.bin",
+      "bytes": 3587633,
+      "sha256": "ca036a93c5db03f80bb963ed82ca8ca607d736078f8b78afb5cbec9157f2905d"
+    },
+    {
+      "path": "updates/parts/preview-100063-0660727958123eca-00.bin",
+      "bytes": 8388608,
+      "sha256": "c24ac797a976d8b5f71d0f60fb72f05c0c502a0044837b86b9c1e18d131ec9d5"
+    },
+    {
+      "path": "updates/parts/preview-100063-0660727958123eca-01.bin",
+      "bytes": 8388608,
+      "sha256": "cf64f2a358a0dac066f4629c8141ccc75de66a3870e827caec602a091f971b30"
+    },
+    {
+      "path": "updates/parts/preview-100063-0660727958123eca-02.bin",
+      "bytes": 8388608,
+      "sha256": "5750d9c9afcb74b411f7c3b2fbb98d253db524f5758c8d72b8153edbcfad2f89"
+    },
+    {
+      "path": "updates/parts/preview-100063-0660727958123eca-03.bin",
+      "bytes": 7411543,
+      "sha256": "cdc9a8fb3ef1261d9e4d1353b0b18f455bfa8c4381342300240237a67ad726f6"
+    }
+  ],
+  "bytesRemoved": 69719432,
+  "liveSiteChanged": false
+}

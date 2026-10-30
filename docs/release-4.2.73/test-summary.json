@@ -1,0 +1,58 @@
+{
+  "jvmDebug": {
+    "tests": 132,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1
+  },
+  "jvmRelease": {
+    "tests": 132,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1
+  },
+  "lint": {
+    "Warning": 74,
+    "Information": 66
+  },
+  "android36": {
+    "name": "com.audiobookdownloader.BookDeletionTest",
+    "tests": "54",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "3",
+    "time": "65.814",
+    "timestamp": "2026-10-30T05:11:32",
+    "hostname": "localhost"
+  },
+  "scoped": {
+    "run": 41005118622,
+    "source": "5a5d17acb690941ab2fba6c3acd881b63d47e2ae",
+    "tree": "365195c99e20681378a655c892c2e2b2bf8b9f17",
+    "conclusion": "success",
+    "apis": [
+      {
+        "api": 23,
+        "tests": 20,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "api": 36,
+        "tests": 20,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      }
+    ],
+    "physicalPhone": false,
+    "kotlinMetrics": "unsupported/N/A"
+  },
+  "osv": {
+    "complete": true,
+    "resolvedModules": 68,
+    "findings": [],
+    "errors": []
+  }
+}

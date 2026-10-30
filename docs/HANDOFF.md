@@ -1,17 +1,26 @@
-## Active: inline collection continuations and clearer menus (2026-10-30)
+## Audiobook4.2.73 опубликована (2026-10-30)
 
-User approved ub-mode for this new task. Branch feature/collection-continuations.
-Published feed remains72 until new checks, signed APK and actual publication pass.
-Baseline remote main0c03c5a81498bc99386d75b57e8ae5e704f41b94, local24d327e;
-trees equal. Red source37431ab7564ce4360f563261de0b25da4bdb04db,
-scoped run41003278510 tests old card missing requested control. See
-COLLECTION-SERIES.md. Local implementation uses existing official-series cache,
-strict source seeds, bounded inline panels and LazyRow all shelf books. Await
-red evidence then push/check new implementation on API23/36, then normal build73.
-Final scoped41005118622 succeeded20/20 on each API23/36, source5a5d17acb690941ab2fba6c3acd881b63d47e2ae.
-PR5 ready for normal73; no public73 claim until release/upgrade/site receipts.
-Preserve download/delete safety and original stable. Site16 needs safe unused-old
-APK chunk cleanup (refs+backup); do not remove current72/manual69/previous71.
+Задача inline-продолжений и понятных меню завершена. PR5 merged,
+compiled sourcee403c9e9100d62ed6f7b3481f01fe89c124a04e4,
+treecfd0c4958dedf9cbc8a33da5da5ef2680b2dfba0. Final scoped41005118622:
+20/20 наAPI23 и36; normal41005934995 success. [Выпуск](RELEASE-4.2.73.md)
+и [доказательства](release-4.2.73/verification.json).
+
+AbCollectionBookCard/AbCollectionShelf раскрывают AbCollectionContinuations
+внутри полки; выбранная полка имеет такую же кнопку. AbOfficialSeriesPanel(compact)
+переиспользует существующий каталог, авторов, цикл/порядок, cache и конфликтные
+предупреждения. Source entries привязаны к этой книге даже при mute уведомлений;
+filename siblings не объявляются подтверждённым циклом. LazyRow показывает все
+книги, длинные панели по5. Серии не запрашиваются при обычной прокрутке закрытых
+карточек. Меню полок подписано, дополнительные действия книги свёрнуты.
+Delete/download guards предыдущего72 сохранены, файлы/настройки не мигрируются.
+
+Не повторять завершённую публикацию. Следующий normal run73+offset1→74.
+Перед следующей новой разработкой спросить ub-mode. Не ротировать package/cert,
+не удалять stable. Site прежний, source/audience сохранены; без нового проекта.
+Backup+проверка unused62/63 позволили убрать9старых chunks;72/manual69/71 оставлены.
+Physical Samsung и реальная Android network загрузка не проверялись.
+Ниже исторические checkpoints72 и более ранних выпусков.
 
 ## Audiobook4.2.72 опубликована (2026-10-30)
 

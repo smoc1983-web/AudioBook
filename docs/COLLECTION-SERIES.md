@@ -41,3 +41,5 @@ media retained, history/routes/removal scopes correct). No notification producti
 code or assertions of final behavior weakened. Repeat native matrix required.
 
 Final focused run41005118622 on source5a5d17acb690941ab2fba6c3acd881b63d47e2ae passed20/20 cases on each API23 and36, no failures/errors/skips. Actual XML and JSON saved. Next: normal signed build73 and upgrade/data/identity validation before public feed changes. Physical Samsung not tested.
+
+Completed: normal41005934995 signed73 passed; actual release72→73 and public same-Site publication/whole-APK HTTPS hashes verified. Full receipts in release-4.2.73. No physical-phone verification claimed.

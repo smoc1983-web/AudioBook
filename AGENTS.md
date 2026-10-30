@@ -9,13 +9,14 @@ on2026-10-30; do not ask again within that combined task. Ask for the next task.
 User approved ub-mode for inline collection continuations and simpler menus on2026-10-30; do not ask again within this task.
 This supersedes the earlier unconditional ub-mode instruction below.
 
-Current released version is4.2.72 /100072 (2026-10-30), including collection downloads
-and reliable file deletion. PR4 merged; normal CI40992606141 and public Site15
-completed. See docs/RELEASE-4.2.72.md. Do not repeat completed publication for a
-memory-only request. Preserve package/signature/library/settings and original
-stable installation. Next normal workflow run72 uses the permanent offset+1
-wrapper to produce73 /100073. Never replace a published version with another APK.
-Never publish signing keys or silently rotate the installed signing identity.
+Current released version is4.2.73 /100073 (2026-10-30): inline continuation cards,
+all shelf books through LazyRow and clear named menus. PR5, scoped41005118622
+(API23/36:20/20 each), normal41005934995 and public Site16 completed.
+See docs/RELEASE-4.2.73.md and docs/HANDOFF.md. This task is complete; ask whether
+to use ub-mode before the next new development task. Next normal run73 uses the
+permanent offset+1 wrapper to produce74 /100074. Do not repeat publication for
+memory-only work, change a published APK under the same code, rotate the signing
+identity, or affect original stable/files/settings. Keep signing keys private.
 
 The user explicitly requested ub-mode on 2026-10-27. For future code changes,
 read and apply [.agents/skills/ub-mode/SKILL.md](.agents/skills/ub-mode/SKILL.md)
