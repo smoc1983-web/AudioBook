@@ -1,0 +1,42 @@
+name: Read release76 lint and actual Android receipts
+on:
+  push:
+    branches: ['audit/library-experience-lint76']
+    paths: ['.github/workflows/read-lint76.yml']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  read:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Download existing XML without rerunning tests
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh run download 41095515200 --repo "$GITHUB_REPOSITORY" --name source-test-reports --dir reports/source
+          gh run download 41095515200 --repo "$GITHUB_REPOSITORY" --name android-startup-test-reports --dir reports/native
+      - name: Print precise lint errors and test receipts
+        run: |
+          python3 - <<'PY'
+          import json,xml.etree.ElementTree as E
+          from pathlib import Path
+          root=Path("reports")
+          lint=E.parse(next(root.rglob("lint-results-release.xml"))).getroot()
+          print("LINT_ERRORS",json.dumps([{"id":r.get("id"),"severity":r.get("severity"),"message":r.get("message"),"locations":[l.attrib for l in r.findall("location")]} for r in lint.findall("issue") if r.get("severity") in ["Error","Fatal"]]))
+          for variant in ["Debug","Release"]:
+              counts=dict(tests=0,failures=0,errors=0,skipped=0)
+              for p in (root/"source").rglob("*.xml"):
+                  if "test-results/test"+variant+"UnitTest/" in p.as_posix():
+                      r=E.parse(p).getroot()
+                      for k in counts:counts[k]+=int(r.get(k,0))
+              print("JVM_"+variant,json.dumps(counts))
+          for p in (root/"native").rglob("*.xml"):
+              if "androidTest-results" in p.as_posix():
+                  r=E.parse(p).getroot()
+                  print("ANDROID_XML",json.dumps(r.attrib))
+                  for t in r.findall("testcase"):
+                      if t.find("failure") is not None:print("FAILURE",t.get("name"),t.find("failure").text)
+          for p in (root/"native").rglob("installed-upgrade.json"):print("UPGRADE_JSON",p.read_text())
+          PY
