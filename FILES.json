@@ -1,5 +1,5 @@
 {
-  "revision": "audiobook-library-experience-description-footer",
+  "revision": "audiobook-library-experience-explicit-async-ui-state",
   "storage": "GitHub export; see releases/ARCHIVE-PARTS.json for three multipart historical ZIPs",
   "files": [
     {
@@ -384,8 +384,8 @@
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/ExperiencePanels.kt",
-      "bytes": 17203,
-      "sha256": "1bc5fae488f897fbe3086b1b01c8b5748e3a6b0f4f92c6c649b58a7553de8199"
+      "bytes": 17258,
+      "sha256": "b996448f7a93206153215b3f0180a3cc2b6b24d079820b3eaa26f88be219436f"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/KnigobludSeriesParser.java",
@@ -734,8 +734,8 @@
     },
     {
       "path": "current/MainActivity.kt",
-      "bytes": 783300,
-      "sha256": "d53c920e1c38b1be63c303d3a522c7cbbb5b964300521f6a4bcb7c73f50a7b14"
+      "bytes": 783339,
+      "sha256": "15b840c81f1887d0c69b23d618119b9f51bd260ec8cedb58c4abf6d40b4b6885"
     },
     {
       "path": "current/PlaybackService.kt",
@@ -1589,8 +1589,8 @@
     },
     {
       "path": "docs/LIBRARY-EXPERIENCE.md",
-      "bytes": 8654,
-      "sha256": "56fa46b606343832b5844828a11e24291c62307e5f181f9a35d738c58f8dedf9"
+      "bytes": 9531,
+      "sha256": "322cb24c4f746be12587efe2481d5dad31da1d4a24398cd704b12938d79fb536"
     },
     {
       "path": "docs/LIBRARY-FILE-ACTIONS.md",

@@ -56,7 +56,11 @@ internal val LocalAbBookCardContext=staticCompositionLocalOf<BookCardContext?>{n
     val scope=rememberCoroutineScope()
     var revision by remember{mutableStateOf(0)}
     var notice by remember{mutableStateOf("")}
-    val rows by produceState<List<QueuedChapter>>(emptyList(),revision,foreground){if(!foreground)return@produceState;while(true){value=withContext(Dispatchers.IO){AbPersistentDownloads.entries(context)};delay(1200)}}
+    var rows by remember{mutableStateOf<List<QueuedChapter>>(emptyList())}
+    LaunchedEffect(revision,foreground){
+        if(!foreground)return@LaunchedEffect
+        while(true){rows=withContext(Dispatchers.IO){AbPersistentDownloads.entries(context)};delay(1200)}
+    }
     fun work(block:()->Unit){scope.launch{try{withContext(Dispatchers.IO){block()};revision++}catch(e:Exception){notice=e.message?:"Не удалось изменить очередь"}}}
     var shown by remember{mutableStateOf(10)}
     AbDialog("Загрузки",theme,dismiss) {

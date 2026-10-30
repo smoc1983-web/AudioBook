@@ -3100,12 +3100,13 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
             prefs.edit().remove("custom_background_uri").apply()
         }
     )
-    val durableQueue by androidx.compose.runtime.produceState<List<QueuedChapter>>(emptyList(),foreground) {
-        if(!foreground)return@produceState
+    var durableQueue by remember{mutableStateOf<List<QueuedChapter>>(emptyList())}
+    LaunchedEffect(foreground) {
+        if(!foreground)return@LaunchedEffect
         try{withContext(Dispatchers.IO){AbPersistentDownloads.restore(context.applicationContext)}}
         catch(cancel:kotlinx.coroutines.CancellationException){throw cancel}
         catch(_:Exception){status="Не удалось восстановить очередь загрузок. Остальные функции доступны."}
-        while(true){value=withContext(Dispatchers.IO){AbPersistentDownloads.entries(context.applicationContext)};delay(if(value.any{it.state=="active"||it.state=="queued"})1500 else 5000)}
+        while(true){durableQueue=withContext(Dispatchers.IO){AbPersistentDownloads.entries(context.applicationContext)};delay(if(durableQueue.any{it.state=="active"||it.state=="queued"})1500 else 5000)}
     }
     val modernTrackStates = remember(player,pageTitle,downloadedIndex,durableQueue) {
         val book=cleanBookTitle(pageTitle)
@@ -13000,8 +13001,9 @@ internal fun AbOfficialSeriesPanel(title:String,author:String,prefs:android.cont
         store.preferences.registerOnSharedPreferenceChangeListener(listener);prefs.registerOnSharedPreferenceChangeListener(listener)
         onDispose{store.preferences.unregisterOnSharedPreferenceChangeListener(listener);prefs.unregisterOnSharedPreferenceChangeListener(listener)}}
     var snapshot by remember(title,author){mutableStateOf<OfficialSnapshot?>(null)}
-    val library by androidx.compose.runtime.produceState<List<LibraryBook>>(emptyList(),title,revision) {
-        value=withContext(Dispatchers.IO){scanLibrary(context)}
+    var library by remember(title){mutableStateOf<List<LibraryBook>>(emptyList())}
+    LaunchedEffect(title,revision) {
+        library=withContext(Dispatchers.IO){scanLibrary(context)}
     }
     LaunchedEffect(title,author,revision) {
         snapshot=withContext(Dispatchers.IO){store.read(title,author)}
