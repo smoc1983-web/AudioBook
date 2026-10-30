@@ -6,6 +6,7 @@ before applying or bypassing that workflow. The user approved ub-mode for the
 context-menu downloads / edition details task (2026-10-29).
 The user also approved ub-mode for reliable book deletion and collection downloads
 on2026-10-30; do not ask again within that combined task. Ask for the next task.
+User approved ub-mode for inline collection continuations and simpler menus on2026-10-30; do not ask again within this task.
 This supersedes the earlier unconditional ub-mode instruction below.
 
 Current released version is4.2.72 /100072 (2026-10-30), including collection downloads

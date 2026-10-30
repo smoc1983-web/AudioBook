@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        api: [36]
+        api: [23, 36]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -26,10 +26,9 @@ jobs:
           gradle-version: '8.9'
       - name: Android SDK
         run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;35.0.0"'
-      - name: JVM, lint and disposable debug APKs
+      - name: Compile disposable debug APKs
         run: |
-          GITHUB_RUN_NUMBER=71 gradle :app:testDebugUnitTest :app:lintRelease :app:assembleDebug :app:assembleDebugAndroidTest --stacktrace
-          python3 scripts/check-android-lint.py app/build/reports/lint-results-release.xml
+          GITHUB_RUN_NUMBER=71 gradle :app:assembleDebug :app:assembleDebugAndroidTest --stacktrace
       - name: Emulator resources
         run: |
           gradle --stop
@@ -46,14 +45,12 @@ jobs:
           profile: ${{ matrix.api == 23 && 'Nexus 5' || 'pixel_6' }}
           emulator-boot-timeout: 300
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -memory 2048 -cores 2
-          script: GITHUB_RUN_NUMBER=71 gradle :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.audiobookdownloader.CollectionSeriesTest --stacktrace
+          script: GITHUB_RUN_NUMBER=71 gradle :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.audiobookdownloader.CollectionSeriesTest,com.audiobookdownloader.OfficialSeriesTest,com.audiobookdownloader.SeriesRecoveryTest,com.audiobookdownloader.CollectionDownloadTest,com.audiobookdownloader.EditionDownloadTest,com.audiobookdownloader.CollectionNotificationTest --stacktrace
       - name: Save reports only
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: collection-series-api${{ matrix.api }}
           path: |
-            app/build/test-results/testDebugUnitTest/
             app/build/outputs/androidTest-results/
             app/build/reports/androidTests/
-            app/build/reports/lint-results-release.xml

@@ -1,5 +1,5 @@
 {
-  "revision": "audiobook-4.2.72-collection-downloads-file-cleanup-published",
+  "revision": "collection-inline-continuations-native-verification",
   "storage": "GitHub export; see releases/ARCHIVE-PARTS.json for three multipart historical ZIPs",
   "files": [
     {
@@ -14,13 +14,18 @@
     },
     {
       "path": ".github/workflows/build-apk.yml",
-      "bytes": 8538,
-      "sha256": "1aafa39150124b5cdd698609e56a50cf73beaac2a9699e656fc2df1495f2ce94"
+      "bytes": 8518,
+      "sha256": "07f95ce50cb2f7112c6773c80a87c66ad2ff4d41d1d4bd8bd0b9f4b2c8b0fb10"
     },
     {
       "path": ".github/workflows/collection-notices.yml",
       "bytes": 2656,
       "sha256": "0010adaf1a3e2582c9cc6a050d66685b1efe1b445e2bdfd2d338bfaf849a9822"
+    },
+    {
+      "path": ".github/workflows/collection-series.yml",
+      "bytes": 2554,
+      "sha256": "a7b03e03c0ffa74b621461b55b1814510cf36fcebc224c953ed03805dbfb1d07"
     },
     {
       "path": ".github/workflows/edition-download.yml",
@@ -49,8 +54,8 @@
     },
     {
       "path": "AGENTS.md",
-      "bytes": 2710,
-      "sha256": "c7d62b4aa39ee5751b8afaca306eebe8b17d22669031ecaab6c4711b2e11555c"
+      "bytes": 2835,
+      "sha256": "8185db1d1114445999306f192edc4c2ece27f59f8a70fae168370f44c2d647c4"
     },
     {
       "path": "README.md",
@@ -76,6 +81,11 @@
       "path": "app/src/androidTest/java/com/audiobookdownloader/CollectionNotificationTest.kt",
       "bytes": 5612,
       "sha256": "4f330f4cd1b3dddc4b88768f50b2e850369f897948b0859907a579e25e481f24"
+    },
+    {
+      "path": "app/src/androidTest/java/com/audiobookdownloader/CollectionSeriesTest.kt",
+      "bytes": 9734,
+      "sha256": "406b9ac0425c64da6f3c877122e28fee46a675a1fbae6c7d58256799f89a6cd3"
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/CollectionTransferTest.java",
@@ -194,8 +204,8 @@
     },
     {
       "path": "app/src/main/assets/release-notes.json",
-      "bytes": 1504,
-      "sha256": "c96615a7a3cf3d87228c0d70f5ff18eb33d54aa88e4796ca23f774fa8b29b7ba"
+      "bytes": 1558,
+      "sha256": "2a1496a830b390f9c5f6ddacfa46df09299cbb5c27eafd4e6a02f99ceec73ecc"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/AbAudioDurations.kt",
@@ -649,8 +659,8 @@
     },
     {
       "path": "current/MainActivity.kt",
-      "bytes": 763818,
-      "sha256": "d7ed8ea92b1e26d2c92afef3034f82ed1ae804f9f3baaef1214e1919f1426530"
+      "bytes": 771556,
+      "sha256": "ce2fab96596f8fe6a52534a9537b8f8364defb5a37e0d176d7570dd0ba36514e"
     },
     {
       "path": "current/PlaybackService.kt",
@@ -1463,6 +1473,11 @@
       "sha256": "df97ab6849f9eb7867ea948cd3ff4d76bcf899aa62af1db7325b76b95871eb6b"
     },
     {
+      "path": "docs/COLLECTION-SERIES.md",
+      "bytes": 2125,
+      "sha256": "b29c07f0e278298899c9155b5948634eee1af7f3d4b9aeed2f0bc3bf4a0e3b66"
+    },
+    {
       "path": "docs/COLLECTION-TRANSFER.md",
       "bytes": 2480,
       "sha256": "deb00477775494c3b3c59a0d75a9bca6c03aed380b937755584ec7b8c109392e"
@@ -1479,8 +1494,8 @@
     },
     {
       "path": "docs/HANDOFF.md",
-      "bytes": 79332,
-      "sha256": "91792fefce097a29dd65c409fe5f33a5a77fb74d24fffbab9010ee5e814ddec0"
+      "bytes": 80182,
+      "sha256": "39ffd53ecd3d4ddf1524e20b351d89d2d70161114c37cd7d0523ea32761b0f93"
     },
     {
       "path": "docs/INSTALL.md",
@@ -1871,6 +1886,21 @@
       "path": "docs/collection-notifications/verification.json",
       "bytes": 3331,
       "sha256": "a1dd9fc595232e88be00ecd16a0c7158b51463abe0dfb4ae9f416a50e67f4079"
+    },
+    {
+      "path": "docs/collection-series/crapper.log",
+      "bytes": 28,
+      "sha256": "fb706a8b0d0b4fecf6aaa7af6cfa54e95d2315a20a00f6f808bae3829fd213e7"
+    },
+    {
+      "path": "docs/collection-series/dryer.log",
+      "bytes": 28,
+      "sha256": "fb706a8b0d0b4fecf6aaa7af6cfa54e95d2315a20a00f6f808bae3829fd213e7"
+    },
+    {
+      "path": "docs/collection-series/mutator.log",
+      "bytes": 27,
+      "sha256": "23b1a985013505bb2c040aabb9af6fbd28fa9b38a32470a2a96e5ef0bcbd4020"
     },
     {
       "path": "docs/library-file-actions/crapper-kotlin.log",
