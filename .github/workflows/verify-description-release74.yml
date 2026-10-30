@@ -1,0 +1,83 @@
+name: Verify actual signed book-description APK74
+on:
+  push:
+    branches: ['audit/book-description-release74']
+    paths: ['.github/workflows/verify-description-release74.yml']
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Android verification tools
+        run: |
+          if [ ! -x "$ANDROID_HOME/build-tools/35.0.0/apksigner" ]; then
+            "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "build-tools;35.0.0"
+          fi
+      - name: Download the already-published private release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download preview-v100074 --repo "$GITHUB_REPOSITORY" --pattern Audiobook-Preview.apk --pattern preview-update.json --dir candidate
+      - name: Verify signature, identity, actual DEX definitions and description notes
+        run: |
+          python3 - <<'PY'
+          import os,json,hashlib,subprocess,struct,zipfile
+          from pathlib import Path
+          root=Path('candidate');apk=root/'Audiobook-Preview.apk';meta=json.loads((root/'preview-update.json').read_text())
+          assert meta['packageName']=='com.audiobookdownloader.preview' and meta['versionCode']==100074 and meta['versionName']=='4.2.74'
+          assert meta['commit']=='8528d13e51db5b8565163ff80921cf21021fa3d6'
+          assert apk.stat().st_size==meta['size']==32986390
+          assert hashlib.sha256(apk.read_bytes()).hexdigest()==meta['sha256']=='876b5739e36c41340177534d2766be812cf597959dfa12b24b822ffc0ac01d5d'
+          tools=Path(os.environ['ANDROID_HOME'])/'build-tools/35.0.0'
+          verified=subprocess.check_output([str(tools/'apksigner'),'verify','--verbose','--print-certs',str(apk)],text=True)
+          certificate='3a4cecd14bb3e983843871766909c3f07b3dc64379800f3e270e4a27d39affb7'
+          assert 'Signer #1 certificate SHA-256 digest: '+certificate in verified and meta['certificateSha256']==certificate
+          assert 'Verified using v1 scheme (JAR signing): true' in verified
+          assert 'Verified using v2 scheme (APK Signature Scheme v2): true' in verified
+          badging=subprocess.check_output([str(tools/'aapt'),'dump','badging',str(apk)],text=True)
+          assert "package: name='com.audiobookdownloader.preview' versionCode='100074' versionName='4.2.74'" in badging
+          assert "application-label:'Audiobook'" in badging and 'application-debuggable' not in badging
+          def definitions(data):
+              def u(offset):
+                  assert 0<=offset<=len(data)-4
+                  return struct.unpack_from('<I',data,offset)[0]
+              strings,types,classes=u(60),u(68),u(100);count=u(96)
+              assert data.startswith(b'dex') and count<200000 and classes+count*32<=len(data)
+              out=set()
+              for i in range(count):
+                  classidx=u(classes+i*32);nameidx=u(types+classidx*4);p=u(strings+nameidx*4)
+                  while data[p]&128:p+=1
+                  p+=1
+                  out.add(data[p:data.index(0,p)].decode('utf-8'))
+              return out
+          with zipfile.ZipFile(apk) as z:
+              dex=[z.read(n) for n in z.namelist() if n.startswith('classes') and n.endswith('.dex')]
+              classes=set().union(*(definitions(d) for d in dex))
+              required={'Lcom/audiobookdownloader/BookDescriptionParser;','Lcom/audiobookdownloader/BookDescriptionRepository;','Lcom/audiobookdownloader/BookDescription;'}
+              assert required<=classes,required-classes
+              assert b'AbBookDescriptionDialog' in b''.join(dex)
+              for name in ['BookDescriptionTest','DeletionFixtureProvider','BookDeletionTest']:
+                  assert 'Lcom/audiobookdownloader/'+name+';' not in classes
+              notes=json.loads(z.read('assets/release-notes.json'))
+              assert any('обложк' in text.lower() and 'описани' in text.lower() for text in notes['changes'])
+          audit=json.loads(subprocess.check_output(['python3','scripts/audit-installable-apk.py','--apk',str(apk),'--build-tools',str(tools)],text=True))
+          baseline=json.loads(Path('docs/release-4.2.73/permission-audit.json').read_text())
+          assert set(audit['requestedPermissions'])==set(baseline['requestedPermissions'])
+          result={'versionCode':100074,'packageName':meta['packageName'],'bytes':meta['size'],'sha256':meta['sha256'],'certificateSha256':certificate,'signaturesV1V2':True,'label':'Audiobook','debuggable':False,'definedClassCount':len(classes),'descriptionClassesPresent':True,'descriptionDialogPresent':True,'debugFixturesAbsent':True,'releaseNotesUpdated':True,'permissionsUnchanged':True,'actualReleaseAssetVerified':True,'physicalPhone':False}
+          Path('description-release-verification.json').write_text(json.dumps(result,indent=2)+'\n')
+          print(json.dumps(result))
+          PY
+      - name: Keep inspection proof only
+        uses: actions/upload-artifact@v4
+        with:
+          name: description-release74-inspection
+          path: description-release-verification.json
