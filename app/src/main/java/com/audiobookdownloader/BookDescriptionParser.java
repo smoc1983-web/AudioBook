@@ -11,7 +11,7 @@ public final class BookDescriptionParser {
     private static final int LIMIT=20000;
     private BookDescriptionParser() {}
     public static String parse(String html,String url,String title,String author) {
-        if(html==null||html.length()>1048576||title==null||title.trim().isEmpty()||pageKey(url).isEmpty())return "";
+        if(!validInput(html,url,title))return "";
         Document doc=Jsoup.parse(html,url);
         if(!canonicalMatches(doc,url)||!identityMatches(doc,title,author))return "";
         String json=jsonDescription(doc,title,author,url);
@@ -20,6 +20,9 @@ public final class BookDescriptionParser {
         if(!body.isEmpty())return body;
         if(!json.isEmpty())return json;
         return metaDescription(doc);
+    }
+    private static boolean validInput(String html,String url,String title) {
+        return html!=null&&html.length()<=1048576&&title!=null&&!title.trim().isEmpty()&&!pageKey(url).isEmpty();
     }
     private static boolean canonicalMatches(Document doc,String url) {
         Element canonical=doc.selectFirst("link[rel=canonical][href]");

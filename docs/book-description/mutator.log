@@ -1,0 +1,34 @@
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.BookDescriptionParser.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.CollectionNoticePolicy.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.CollectionXmlReader.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.ContinuationRules.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.EditionDownloadRules.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.LocalSeriesRules.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.OfficialSeriesParser.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.OfficialTextNoticePolicy.edn
+KILLED    app/src/main/java/com/audiobookdownloader/BookDescriptionParser.java:16 delete !
+KILLED    app/src/main/java/com/audiobookdownloader/BookDescriptionParser.java:16 || -> &&
+KILLED    app/src/main/java/com/audiobookdownloader/BookDescriptionParser.java:16 delete !
+Function            Namespace                                      Killed  Survived  Uncovered  Sites   Score
+-------------------------------------------------------------------------------------------------------------
+authorMatches       com.audiobookdownloader.BookDescriptionParser       0         0          0      7    n/a
+bodyDescription     com.audiobookdownloader.BookDescriptionParser       0         0          0      2    n/a
+boundedJson         com.audiobookdownloader.BookDescriptionParser       0         0          0     10    n/a
+canonicalMatches    com.audiobookdownloader.BookDescriptionParser       0         0          0      3    n/a
+identityMatches     com.audiobookdownloader.BookDescriptionParser       0         0          0      3    n/a
+jsonArray           com.audiobookdownloader.BookDescriptionParser       0         0          0      5    n/a
+jsonBook            com.audiobookdownloader.BookDescriptionParser       0         0          0      5    n/a
+jsonDescription     com.audiobookdownloader.BookDescriptionParser       0         0          0      7    n/a
+jsonNode            com.audiobookdownloader.BookDescriptionParser       0         0          0      4    n/a
+labelledDescription com.audiobookdownloader.BookDescriptionParser       0         0          0      3    n/a
+metaDescription     com.audiobookdownloader.BookDescriptionParser       0         0          0      2    n/a
+pageKey             com.audiobookdownloader.BookDescriptionParser       0         0          0      4    n/a
+plain               com.audiobookdownloader.BookDescriptionParser       0         0          0      3    n/a
+samePage            com.audiobookdownloader.BookDescriptionParser       0         0          0      1    n/a
+sameTitle           com.audiobookdownloader.BookDescriptionParser       0         0          0      8    n/a
+usable              com.audiobookdownloader.BookDescriptionParser       0         0          0      1    n/a
+validInput          com.audiobookdownloader.BookDescriptionParser       0         0          0      9    n/a
+validPage           com.audiobookdownloader.BookDescriptionParser       0         0          0     13    n/a
+parse               com.audiobookdownloader.BookDescriptionParser       3         0          0      6 100.0%
+-------------------------------------------------------------------------------------------------------------
+Total                                                                   3         0          0     96  100.0%

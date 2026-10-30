@@ -40,7 +40,7 @@ internal class BookDescriptionRepository(
         if(!file.isFile||file.length()>128*1024)null else {
             val j=JSONObject(file.readText());val text=j.getString("text")
             require(j.getInt("schema")==1&&j.getString("source")==address&&j.getString("title")==title&&j.getString("author")==author)
-            require(text.length() in 32..20001)
+            require(text.length in 32..20001)
             BookDescription(title,author,text,address,j.getLong("checked"))
         }
     }catch(_:Exception){null}
