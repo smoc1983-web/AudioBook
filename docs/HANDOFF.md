@@ -1,3 +1,12 @@
+## Active: book description on cover tap (2026-10-30)
+
+User approved ub-mode. Branch feature/book-description; baseline73. Common AbCover
+opens a separate annotation dialog; parent title/play controls keep old actions.
+Source-only bounded parser, private cache, stale-text preservation and cancellable
+IO. See BOOK-DESCRIPTION.md. Parser red6/5fail, then10/10 green locally; native
+API23/36 and full signed build74/publication still pending. Do not claim74 live.
+Public feed remains73 until all checks, same signing identity and deployment pass.
+
 ## Audiobook4.2.73 опубликована (2026-10-30)
 
 Задача inline-продолжений и понятных меню завершена. PR5 merged,

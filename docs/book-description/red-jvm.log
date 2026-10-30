@@ -1,0 +1,36 @@
+JUnit version 4.13.2
+..E.E.E.E.E
+Time: 0.024
+There were 5 failures:
+1) hostileOrOversizedInputsAreBounded(com.audiobookdownloader.BookDescriptionParserTest)
+java.lang.AssertionError
+	at org.junit.Assert.fail(Assert.java:87)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at org.junit.Assert.assertTrue(Assert.java:53)
+	at com.audiobookdownloader.BookDescriptionParserTest.hostileOrOversizedInputsAreBounded(BookDescriptionParserTest.java:41)
+2) bookinfoOwnSummaryAndKnigobludDescriptionUseExplicitContainers(com.audiobookdownloader.BookDescriptionParserTest)
+org.junit.ComparisonFailure: expected:<[Герой попадает в таинственный отель на перекрёстке миров. Его ждут новые знакомства и непростые решения.]> but was:<[]>
+	at org.junit.Assert.assertEquals(Assert.java:117)
+	at org.junit.Assert.assertEquals(Assert.java:146)
+	at com.audiobookdownloader.BookDescriptionParserTest.bookinfoOwnSummaryAndKnigobludDescriptionUseExplicitContainers(BookDescriptionParserTest.java:18)
+3) metaFallbackRequiresMatchingWorkAndCannotUseWrongCanonical(com.audiobookdownloader.BookDescriptionParserTest)
+org.junit.ComparisonFailure: expected:<[Герой попадает в таинственный отель на перекрёстке миров. Его ждут новые знакомства и непростые решения.]> but was:<[]>
+	at org.junit.Assert.assertEquals(Assert.java:117)
+	at org.junit.Assert.assertEquals(Assert.java:146)
+	at com.audiobookdownloader.BookDescriptionParserTest.metaFallbackRequiresMatchingWorkAndCannotUseWrongCanonical(BookDescriptionParserTest.java:27)
+4) jsonLdBookMustMatchWorkAndAuthor(com.audiobookdownloader.BookDescriptionParserTest)
+org.junit.ComparisonFailure: expected:<[Герой попадает в таинственный отель на перекрёстке миров. Его ждут новые знакомства и непростые решения.]> but was:<[]>
+	at org.junit.Assert.assertEquals(Assert.java:117)
+	at org.junit.Assert.assertEquals(Assert.java:146)
+	at com.audiobookdownloader.BookDescriptionParserTest.jsonLdBookMustMatchWorkAndAuthor(BookDescriptionParserTest.java:23)
+5) selectedWorkAnnotationKeepsParagraphsAndDropsMarkupAndRecommendations(com.audiobookdownloader.BookDescriptionParserTest)
+org.junit.ComparisonFailure: expected:<[Герой попадает в таинственный отель на перекрёстке миров. Его ждут новые знакомства и непростые решения.
+
+Вторая часть описания.]> but was:<[]>
+	at org.junit.Assert.assertEquals(Assert.java:117)
+	at org.junit.Assert.assertEquals(Assert.java:146)
+	at com.audiobookdownloader.BookDescriptionParserTest.selectedWorkAnnotationKeepsParagraphsAndDropsMarkupAndRecommendations(BookDescriptionParserTest.java:15)
+
+FAILURES!!!
+Tests run: 6,  Failures: 5
+

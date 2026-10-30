@@ -7,6 +7,7 @@ context-menu downloads / edition details task (2026-10-29).
 The user also approved ub-mode for reliable book deletion and collection downloads
 on2026-10-30; do not ask again within that combined task. Ask for the next task.
 User approved ub-mode for inline collection continuations and simpler menus on2026-10-30; do not ask again within this task.
+User approved ub-mode for book description on cover tap on2026-10-30; do not ask again within this task.
 This supersedes the earlier unconditional ub-mode instruction below.
 
 Current released version is4.2.73 /100073 (2026-10-30): inline continuation cards,
