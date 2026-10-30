@@ -124,6 +124,8 @@ class LibraryExperienceTest {
     @androidx.test.filters.SdkSuppress(minSdkVersion=29)
     @Test(timeout=90000) fun realAndroidDownloadSurvivesQueueReloadAndCancelPreservesFinishedFile() {
         val title="Network queue "+UUID.randomUUID();val audio=ByteArray(44+44100)
+        val previousWifi=prefs.getBoolean("experience_wifi_only",false)
+        prefs.edit().putBoolean("experience_wifi_only",true).commit()
         java.nio.ByteBuffer.wrap(audio).order(java.nio.ByteOrder.LITTLE_ENDIAN).apply {
             put("RIFF".toByteArray()).putInt(audio.size-8).put("WAVEfmt ".toByteArray()).putInt(16)
             putShort(1).putShort(1).putInt(22050).putInt(44100).putShort(2).putShort(16)
@@ -158,6 +160,7 @@ class LibraryExperienceTest {
             AbPersistentDownloads.restore(context);AbPersistentDownloads.cancelBook(context,title);AbPersistentDownloads.clearCompleted(context)
             assertArrayEquals(audio,context.contentResolver.openInputStream(uri)!!.use{it.readBytes()})
         }finally {
+            prefs.edit().putBoolean("experience_wifi_only",previousWifi).commit()
             serving.set(false);server.close();thread.join(1000)
             AbPersistentDownloads.cancelBook(context,title)
             if(job>0)dm.remove(job)

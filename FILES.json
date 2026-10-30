@@ -1,5 +1,5 @@
 {
-  "revision": "audiobook-library-experience-explicit-async-ui-state",
+  "revision": "audiobook-library-experience-explicit-wifi-network",
   "storage": "GitHub export; see releases/ARCHIVE-PARTS.json for three multipart historical ZIPs",
   "files": [
     {
@@ -134,8 +134,8 @@
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/LibraryExperienceTest.kt",
-      "bytes": 15136,
-      "sha256": "578ee2e6c448a408cdd7b7df143aa258c03b1c1ee24179307cfc10d6b66ff9db"
+      "bytes": 15360,
+      "sha256": "de511e8e395eacaa0dccb63e3260f5dc88f04db565bb3289137111fdda79727a"
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/MinimumSdkTest.kt",
@@ -734,8 +734,8 @@
     },
     {
       "path": "current/MainActivity.kt",
-      "bytes": 783339,
-      "sha256": "15b840c81f1887d0c69b23d618119b9f51bd260ec8cedb58c4abf6d40b4b6885"
+      "bytes": 783532,
+      "sha256": "bcc800cb353be91eecaf5127601bd2a954fc390f895b5736998cb589d588bfe4"
     },
     {
       "path": "current/PlaybackService.kt",
@@ -1589,8 +1589,8 @@
     },
     {
       "path": "docs/LIBRARY-EXPERIENCE.md",
-      "bytes": 9531,
-      "sha256": "322cb24c4f746be12587efe2481d5dad31da1d4a24398cd704b12938d79fb536"
+      "bytes": 10025,
+      "sha256": "486b38a24fa50b8c56ea010aa698946398aa98980125cad10606d67da5833e39"
     },
     {
       "path": "docs/LIBRARY-FILE-ACTIONS.md",

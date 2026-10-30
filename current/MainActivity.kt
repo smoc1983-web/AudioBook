@@ -7192,9 +7192,10 @@ fun downloadTrack(
                 .VISIBILITY_VISIBLE_NOTIFY_COMPLETED
         )
 
-        request.setAllowedOverMetered(
-            !context.getSharedPreferences("audiobook_downloader",0).getBoolean("experience_wifi_only",false)
-        )
+        val wifiOnly=context.getSharedPreferences("audiobook_downloader",0).getBoolean("experience_wifi_only",false)
+        request.setAllowedNetworkTypes(if(wifiOnly)DownloadManager.Request.NETWORK_WIFI else
+            DownloadManager.Request.NETWORK_WIFI or DownloadManager.Request.NETWORK_MOBILE)
+        request.setAllowedOverMetered(!wifiOnly)
 
         request.setAllowedOverRoaming(
             false
