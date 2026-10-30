@@ -1,0 +1,78 @@
+{
+  "publishedVersionCode": 100074,
+  "siteVersion": 17,
+  "origin": "https://audiobook-smoc1983-updates.amplecoot2048.chatgpt.site/",
+  "clients": [
+    {
+      "userAgent": "Audiobook-Updater/4.2.73",
+      "metadataHttp": 200,
+      "versionCode": 100074,
+      "parts": [
+        {
+          "url": "parts/preview-100074-876b5739e36c4134-00.bin",
+          "http": 200,
+          "bytes": 8388608,
+          "sha256Matches": true
+        },
+        {
+          "url": "parts/preview-100074-876b5739e36c4134-01.bin",
+          "http": 200,
+          "bytes": 8388608,
+          "sha256Matches": true
+        },
+        {
+          "url": "parts/preview-100074-876b5739e36c4134-02.bin",
+          "http": 200,
+          "bytes": 8388608,
+          "sha256Matches": true
+        },
+        {
+          "url": "parts/preview-100074-876b5739e36c4134-03.bin",
+          "http": 200,
+          "bytes": 7820566,
+          "sha256Matches": true
+        }
+      ],
+      "bytes": 32986390,
+      "wholeSha256": "876b5739e36c41340177534d2766be812cf597959dfa12b24b822ffc0ac01d5d",
+      "wholeSha256MatchesVerifiedSignedApk": true
+    },
+    {
+      "userAgent": "Audiobook-Updater/4.2.72",
+      "metadataHttp": 200,
+      "versionCode": 100074,
+      "parts": [
+        {
+          "url": "parts/preview-100074-876b5739e36c4134-00.bin",
+          "http": 200,
+          "bytes": 8388608,
+          "sha256Matches": true
+        },
+        {
+          "url": "parts/preview-100074-876b5739e36c4134-01.bin",
+          "http": 200,
+          "bytes": 8388608,
+          "sha256Matches": true
+        },
+        {
+          "url": "parts/preview-100074-876b5739e36c4134-02.bin",
+          "http": 200,
+          "bytes": 8388608,
+          "sha256Matches": true
+        },
+        {
+          "url": "parts/preview-100074-876b5739e36c4134-03.bin",
+          "http": 200,
+          "bytes": 7820566,
+          "sha256Matches": true
+        }
+      ],
+      "bytes": 32986390,
+      "wholeSha256": "876b5739e36c41340177534d2766be812cf597959dfa12b24b822ffc0ac01d5d",
+      "wholeSha256MatchesVerifiedSignedApk": true
+    }
+  ],
+  "physicalPhone": false,
+  "actualAndroidInAppNetworkDownload": false,
+  "note": "HTTP transport verified from executor with native updater request headers; physical-phone DNS and installer confirmation remain user-side."
+}

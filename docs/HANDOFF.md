@@ -1,71 +1,67 @@
-## Book descriptions: signed74 verified; public delivery pending (2026-10-30)
+## Audiobook4.2.74 опубликована (2026-10-30)
 
-The user approved ub-mode and authorized development/publication. Implementation
-and checks are complete. PR6 merged, compiled8528d13e51db5b8565163ff80921cf21021fa3d6,
-tree96472954858a70fcd38daa4ba0afe8332b3d6f27. Do not rebuild ready74 or ask ub-mode
-again within this continuation. Next normal run74+offset1 would produce75.
-[Release proof](release-4.2.74/verification.json), [work log](BOOK-DESCRIPTION.md).
+Описание книги по нажатию на обложку готово и доступно через существующее меню
+обновлений. Пользователь разрешил ub-mode для этой завершённой задачи; перед
+следующей новой разработкой спросить снова. Не пересобирать74 и не повторять
+публикацию ради изменений памяти. Следующий normal run74+offset1 создаст75/100075.
 
-Common AbCover opens a cancellable description dialog; poster title has its own
-44dp listen action. Private80-entry/128KiB-per-file cache, source URL/title/author
-identity, atomic writes/striped locks,20s source deadline,20k-character text.
-Offline use and failed refresh preserve text; source recovery doesn't dismiss
-the dialog. Parser prunes recommendations before identity checks, bounds JSON,
-removes scripts/HTML. Unsupported/absent source returns a friendly message.
-Live Bookinfo returned the expected annotation. Audio/public book folders aren't
-written. Existing downloads/deletion/collection-only notices remain unchanged.
+Код: PR6, compiled8528d13e51db5b8565163ff80921cf21021fa3d6,
+tree96472954858a70fcd38daa4ba0afe8332b3d6f27. После него менялись только документы,
+публикационные материалы и отдельные audit workflows. Проверять remote HEAD перед
+любым push: местные и remote IDs исторически различаются при одинаковых trees.
 
-Native41014370607:15/15 on API23 and36. Java parser11/11; fresh JaCoCo, all changed
-Java methods CRAP<10, Dryer no>=0.8,3 targeted identity-guard mutants killed.
-Kotlin tools unsupported/N/A. Normal41015767058 success,JVM143/1optional skip per
-variant,Android61/3opt-in skips plus3 separate upgrade phases,Lint0Error/Fatal,
-74Warning/67Info,OSV68modules/complete/0known findings. Exact XML/JSON recovered
-on GitHub in41018566005; not inferred solely from job status.
-Signed release inspection41018067403 verifies actual class definitions/methods,
-notes/no debug fixtures/unchanged permissions,v1+v2 and certificate.
-Actual release73→74 accepted by old updater/opened Android confirmation; adb -r
-preserved control settings,collection,private file/audio SHA. Phone and actual
-Android network APK download/PlayProtect verdict weren't tested.
+Common AbCover открывает cancellable dialog, AbPoster title — отдельное44dp
+прослушивание. Source URL/title/author identity, очистка рекомендаций до сверки,
+ограниченный JSON/HTML parser;80files/128KiB private cache,20k text,striped locks,
+atomic writes,20s deadline. Offline и failed refresh сохраняют текст; смена URL
+не закрывает окно. Audio/public book folders не записываются. Если источник
+не дал описание, показано понятное сообщение. Не менять deletion/generation locks
+и collection-only notifications; original stable и ForTanya не затронуты.
 
-## Only pending: publish the existing APK via the existing Site
+Scoped41014370607:15/15 API23 и36. Normal41015767058: JVM143/skip1 pervariant,
+Android main61/skip3opt-in плюс3upgrade phases; Lint0Error/Fatal,74Warning/67Info;
+OSV68modules complete,0known findings. Java parser11/11, freshJaCoCo,CRAP<10,
+Dryer no>=0.8,3 targeted guard mutants killed (не whole-file score); Kotlin N/A.
+Actual signed APK41018067403: parser/repository/model DEX classes,dialog,notes,
+нет debug fixtures,permissions прежние. XML recovery41018566005 не rerun app tests.
+Upgrade73→74: старый updater принял APK и открыл system confirmation; adb-r
+сохранил контрольные settings/collection/private audioSHA. Physical Samsung,
+actual Android network download и PlayProtect verdict не проверялись.
 
-Execution is unavailable: exec returnedNo usable execution environment, despite
-provider statusconnected. The owner asked how to restart; clarified this is this
-chat's infrastructure, no phone changes required. Do not pass Site tokens through
-Actions/commits to work around the outage. All source/proofs remain on GitHub.
+APK32986390bytes,SHA256876b5739e36c41340177534d2766be812cf597959dfa12b24b822ffc0ac01d5d,
+packagecom.audiobookdownloader.preview,labelAudiobook,version100074/name4.2.74,
+cert3a4cecd14bb3e983843871766909c3f07b3dc64379800f3e270e4a27d39affb7,v1+v2,nondebuggable.
+Private releasepreview-v100074,APK artifact12959607904. Подпись не менять,
+пользователю не предлагать удаление приложения или очистку данных.
 
-1. Obtain usable execution; inspect runtime/network policy. Local checkout before
-   outage wasfeature/book-description/aa7f069,tree92f991aaa9549c17966436b9f0f4f9a7008f467a,
-   while remote main includes later proof commits. Inspect remote; no blind/force push.
-2. Download existing private releasepreview-v100074 or artifact12959607904 (ZIP,
-   32591516bytes, below32MiB tool limit). Extract Audiobook-Preview.apk safely.
-   APK32986390bytes,SHA876b5739e36c41340177534d2766be812cf597959dfa12b24b822ffc0ac01d5d;
-   cert3a4cecd14bb3e983843871766909c3f07b3dc64379800f3e270e4a27d39affb7,
-   packagecom.audiobookdownloader.preview,version100074/name4.2.74,labelAudiobook.
-   A transport hash check is needed; full app tests need not be rerun.
-3. Read Sites skill,get existing projectappgprj_6add1a69b6f481918b5e390c8f413992
-   (owner/public,Site16),mint short-lived credential and open source before edits.
-   Source69c4e28fc4b18d7ee8b8cae98c4a3ff68ec0054a; providercloudflare_artifact,
-   git.chatgpt-team.site. Tokens only hidden stdin/env,never GitHub/logs/files.
-4. tools/package-public-update.py --channel preview with exact74. Add static74
-   notes/update blueprint; keep download.js unless an observed issue requires it.
-   Current raw Site archive230113280bytes. New74 should fit under268435456bytes
-   without deleting older parts; check actual archive. Keep73/72/manual69/71.
-5. Push exact Site source,package matching .openai/hosting.json+dist,save version
-   and deploy returned saved id (expected Site17,do not invent id). Stop terminal
-   deployment polling. Verify metadata and every part/whole SHA with updater73/72
-   headers against exact signed APK. Origin stays unchanged:
-   https://audiobook-smoc1983-updates.amplecoot2048.chatgpt.site
-6. Only after actual success mark public74 in README/AGENTS/HANDOFF and shared memory,
-   clear active task/update release. Proof/hosting-only app commits use[skip ci].
-   Current public feed is still100073; no74parts/metadata deployed yet.
+Siteappgprj_6add1a69b6f481918b5e390c8f413992,public,version17;
+source7fb585db3dca693f081cf33e2b9ce1895be08a2a;
+savedappgprj_6add1a69b6f481918b5e390c8f413992~appgver_b48fcc0d3d248191b0f406bacb3f13f8;
+deploymentappgdep_6ae4495612bc81919ea8f02c188aa3ed succeeded.
+https://audiobook-smoc1983-updates.amplecoot2048.chatgpt.site
+Feed/updates/preview-update.json=100074. Native-header73/72 HTTP200 metadata/allparts,
+fullSHA matches APK. No browser QA for static notes; download.js unchanged.
+Archive compressed259692395/raw normalized263065600/40files,limit268435456.
+Only about5MiB spare: next APK needs measured packaging/old-hosting-asset planning;
+user book files are unrelated and must not be deleted. Existing73/72/manual assets retained.
 
-Raw normal artifacts: native12959811878,source12959353887,permission12959433396;
-signed inspection12960596542,combined recovered reports12960153762.
-Audit workflows in audit/book-description-release74 branch and canonical copies
-here are verification only,no app publication/signing key writes.
-Original stablecom.audiobookdownloader and ForTanya untouched. Keep all book files,
-settings,collections; no signing identity change. Before next NEW task ask ub-mode.
+Источники и доказательства: [release](RELEASE-4.2.74.md),
+[verification](release-4.2.74/verification.json),
+[publication](release-4.2.74/publication.json),[HTTP](release-4.2.74/public-check.json).
+Память: smoc1983-web/ai-project-memory,projects/audiobook/HANDOFF.md,state.json.
+Права на разработку/публикацию прежние; не отправлять ключи/credentials в GitHub.
+
+## Owner-requested Actions archive cleanup (2026-10-30)
+
+The owner explicitly selected old GitHub Actions archives only. Inventory41034007926
+found348 archives/2566235131bytes. Cleanup41034327218 deleted exact215 old IDs,
+2162324626bytes;133 retained archives/403910505bytes all remain. Kept latest3 per
+exact name, all today and signing-recovery. Releases, source/history, caches and
+signing materials untouched; no scheduled automatic deletion. Historical artifact
+IDs in older docs may now be absent; saved proof snapshots/releases/history remain.
+Receipt: actions-archive-cleanup-2026-10-30.json. Maintenance branch
+maintenance/actions-storage-20261030,commitfb1227bdc3160ec014d8d04744b2169c35f016a5
+contains the bounded one-time workflow; no app build was started by cleanup.
 
 ## Historical released73 context
 

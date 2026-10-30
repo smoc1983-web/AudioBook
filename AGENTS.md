@@ -10,17 +10,15 @@ User approved ub-mode for inline collection continuations and simpler menus on20
 User approved ub-mode for book description on cover tap on2026-10-30; do not ask again within this task.
 This supersedes the earlier unconditional ub-mode instruction below.
 
-Current public in-app channel is4.2.73 /100073 (Site16). Signed4.2.74 /100074
-is implemented, merged and fully verified on GitHub (PR6, normal41015767058,
-native41014370607, signed inspection41018067403, exact XML recovery41018566005).
-It is available as private releasepreview-v100074; public Site publication is
-pending solely because exec has No usable execution environment. Do not claim74
-is in the public feed. See docs/RELEASE-4.2.74.md and docs/HANDOFF.md.
-Do NOT rebuild to publish: use existing APK74, SHA876b5739e36c41340177534d2766be812cf597959dfa12b24b822ffc0ac01d5d.
-Next normal run74+offset1 would make75; use [skip ci] for proof/hosting-only commits.
-This book-description task's ub-mode and development/publication authorization
-already exist; do not ask again within its continuation. Ask before a new task.
-Preserve package/signature/library/settings and original stable. Keep keys private.
+Current released version is4.2.74 /100074 (2026-10-30): descriptions on cover tap,
+offline annotation cache and independent title listen action. PR6, scoped41014370607
+(API23/36:15/15 each), normal41015767058, signed inspection41018067403,
+exact-report recovery41018566005 and public Site17 completed. Native-header clients
+73/72 fetched every part and verified the full APK SHA. See docs/RELEASE-4.2.74.md
+and docs/HANDOFF.md. This task is complete; ask whether to use ub-mode before
+the next new development task. Next normal run74 plus permanent offset1 produces
+75 /100075. Do not rebuild or replace published74 under the same code, rotate
+the signing identity, or affect original stable/files/settings. Keep keys private.
 
 The user explicitly requested ub-mode on 2026-10-27. For future code changes,
 read and apply [.agents/skills/ub-mode/SKILL.md](.agents/skills/ub-mode/SKILL.md)

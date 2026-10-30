@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "verifiedUtc": "2026-10-30",
-  "status": "Signed release4.2.74 fully verified and available privately; public in-app channel still4.2.73 because execution environment is unavailable",
+  "status": "Signed release4.2.74 fully verified and publicly available through the existing in-app channel",
   "source": {
     "repository": "smoc1983-web/AudioBook",
     "pr": 6,
@@ -151,16 +151,22 @@
   "kotlinQuality": "Unsupported by pinned tools; N/A. Native Android tests passed.",
   "publicDelivery": {
     "projectId": "appgprj_6add1a69b6f481918b5e390c8f413992",
-    "currentSiteVersion": 16,
-    "currentSourceCommit": "69c4e28fc4b18d7ee8b8cae98c4a3ff68ec0054a",
-    "currentFeedVersionCode": 100073,
+    "currentSiteVersion": 17,
+    "currentSourceCommit": "7fb585db3dca693f081cf33e2b9ce1895be08a2a",
+    "currentFeedVersionCode": 100074,
     "origin": "https://audiobook-smoc1983-updates.amplecoot2048.chatgpt.site",
-    "version74Published": false,
-    "blocker": "No usable execution environment; source push/package for existing Site unavailable. No credentials sent to GitHub to bypass outage.",
-    "pending": [
-      "Publish this exact signed74 through same Site, expected next Site version17",
-      "Verify public metadata/parts/whole APK SHA with updater73/72 headers"
-    ]
+    "version74Published": true,
+    "savedVersionId": "appgprj_6add1a69b6f481918b5e390c8f413992~appgver_b48fcc0d3d248191b0f406bacb3f13f8",
+    "deploymentId": "appgdep_6ae4495612bc81919ea8f02c188aa3ed",
+    "deploymentStatus": "succeeded",
+    "metadataAndAllPartsHttp200": true,
+    "nativeHeaderClients": [
+      "4.2.73",
+      "4.2.72"
+    ],
+    "wholeApkSha256Matches": true,
+    "rebuiltForPublication": false,
+    "pending": []
   },
   "artifacts": {
     "apkZip": 12959607904,

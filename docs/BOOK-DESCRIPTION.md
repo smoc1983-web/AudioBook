@@ -48,7 +48,10 @@ in41018566005 without rerunning application tests. JVM143/skip1 each; Android61
 main methods/3opt-in skips and separate upgrade phases; errors0. Release73→74
 preserved settings, collection and audioSHA. No physical-phone claim.
 
-Public delivery remains blocked by unavailable execution. Site16/feed73 unchanged.
-The verified APK74 is available as private release/artifact; do not rebuild or
-rotate keys. Continue only same-Site17 source packaging/deployment and public
-transport checks when execution is usable. See release-4.2.74/verification.json.
+Execution recovered2026-10-30. The exact verified74 APK was downloaded and hash
+checked, packaged without rebuilding, pushed as Site source7fb585db3dca693f081cf33e2b9ce1895be08a2a
+and published as Site17/deploymentappgdep_6ae4495612bc81919ea8f02c188aa3ed.
+Clients73/72 fetched public metadata and all4parts byHTTP200; full SHA and32986390bytes
+match signed74. Prior assets retained; raw normalized archive263065600 below268435456.
+The cover-description task is complete. Source/proofs and project memory retained.
+See release-4.2.74/verification.json,publication.json and public-check.json.

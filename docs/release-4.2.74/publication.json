@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "publishedUtc": "2026-10-30T07:38:28.619575+00:00",
+  "versionCode": 100074,
+  "versionName": "4.2.74",
+  "projectId": "appgprj_6add1a69b6f481918b5e390c8f413992",
+  "siteVersion": 17,
+  "savedVersionId": "appgprj_6add1a69b6f481918b5e390c8f413992~appgver_b48fcc0d3d248191b0f406bacb3f13f8",
+  "deploymentId": "appgdep_6ae4495612bc81919ea8f02c188aa3ed",
+  "deploymentStatus": "succeeded",
+  "origin": "https://audiobook-smoc1983-updates.amplecoot2048.chatgpt.site",
+  "sourceCommit": "7fb585db3dca693f081cf33e2b9ce1895be08a2a",
+  "archive": {
+    "compressedBytes": 259692395,
+    "normalizedRawBytes": 263065600,
+    "maxBytes": 268435456,
+    "fileCount": 40,
+    "contentHash": "sha256:40e9e5718c28b9ea481612d8cb1da564ca71f304d2488a8ad4fe5ab2b7f81f05"
+  },
+  "oldAssetsRetained": true,
+  "rebuilt": false,
+  "physicalPhone": false
+}
