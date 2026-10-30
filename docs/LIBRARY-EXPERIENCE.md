@@ -93,3 +93,16 @@ startup recovery errors cannot break the main screen, and chapter cancellation
 captures the selected book before dispatch. Disk-write failure restores the prior
 queue value. Local execution transport disconnected again; GitHub remains usable.
 After recovery preserve the local worktree before syncing these remote changes.
+
+Final scoped41090081599 on a598e4f succeeded on both API23 and36. The last-chapter
+completion event was then guarded against known partial local playlists and
+known previews; four ordinary JVM regression tests cover that cleanup policy.
+No UI/platform API changed in that small guard. The complete original build-apk
+gate will run from build/library-experience, preserving its existing run counter
+(next run74+offset1=75), signer, baseline74 and all regular checks. This isolates
+the candidate from main and avoids invoking the optional ub-mode analysis declined
+by the owner. No gate was removed. Signed private publication is allowed for that
+exact build branch only; original-stable auxiliary publication remains main-only.
+Source and private candidate are not the public HTTPS feed; publish only after
+the complete gate and signed artifact inspection. Main's final docs/merge must
+use [skip ci] to avoid an unnecessary second build/version; record compiled SHA.

@@ -767,7 +767,9 @@ class PlaybackService : Service() {
         trace("MediaPlayer сообщил об окончании главы")
         isPlaying = false
         positionMs = durationMs
-        if(trackIndex==playlist.lastIndex)playbackPrefs.edit().putBoolean("book_completed_"+safeFileName(bookTitle),true).apply()
+        if(LibraryExperienceRules.completedEdition(trackIndex,playlist.size,
+            playbackPrefs.getInt(bookTotalKey(bookTitle),0),EditionDownloadRules.isPreview(bookTitle,playlist.map{it.src})))
+            playbackPrefs.edit().putBoolean("book_completed_"+safeFileName(bookTitle),true).apply()
         persistState()
         if (sleepChapterTarget == chapterKey()) {
             trace("Сработал таймер до конца главы")

@@ -1,5 +1,5 @@
 {
-  "revision": "audiobook-library-experience-verification",
+  "revision": "audiobook-library-experience-complete-release-gate",
   "storage": "GitHub export; see releases/ARCHIVE-PARTS.json for three multipart historical ZIPs",
   "files": [
     {
@@ -19,8 +19,8 @@
     },
     {
       "path": ".github/workflows/build-apk.yml",
-      "bytes": 8443,
-      "sha256": "128dce64f291302288734f15c9c27cac898e6f4bf0d1c5cea7e364de3a2f430c"
+      "bytes": 8673,
+      "sha256": "32490e95f04668e7d2a1686cf4faf010157a6dfd8915181cedbe014a486356dc"
     },
     {
       "path": ".github/workflows/collect-description-reports74.yml",
@@ -398,6 +398,11 @@
       "sha256": "5077ff33a622964a3ff5b38198cd077cb309d8d5c93255b68f5f2cc6a645c698"
     },
     {
+      "path": "app/src/main/java/com/audiobookdownloader/LibraryExperienceRules.java",
+      "bytes": 416,
+      "sha256": "2b6196d6334ffc78add92db937f2f982014041320435cb0d4c2d8c273ba332c3"
+    },
+    {
       "path": "app/src/main/java/com/audiobookdownloader/LitresReleaseParser.java",
       "bytes": 2352,
       "sha256": "965c7e269cb5029ce03c56a668b696759ad5d5f7f93ba31560dc794bbae2bf55"
@@ -603,6 +608,11 @@
       "sha256": "3a568582cd4415503e607e0174ca5af78cb77ef21b473019b6da0080f06d536e"
     },
     {
+      "path": "app/src/test/java/com/audiobookdownloader/LibraryExperienceRulesTest.java",
+      "bytes": 1025,
+      "sha256": "b711e79afb35c82444d73f015edaf8a3d25909b7a32dd406dab9674bb85c7421"
+    },
+    {
       "path": "app/src/test/java/com/audiobookdownloader/LiveCatalogTest.java",
       "bytes": 2965,
       "sha256": "7b20f179133450e64ed456577efa23b3eb2c0b9f6e863750a00981111b0441fb"
@@ -729,8 +739,8 @@
     },
     {
       "path": "current/PlaybackService.kt",
-      "bytes": 59061,
-      "sha256": "b44c308fe3845b017eb40c32e3f93f014c88601e1f0d201b6f290c2311e035e2"
+      "bytes": 59233,
+      "sha256": "1edeeb047f0da1b03b4f4c541da84d95c950c254220b7c81049234acc1fb8951"
     },
     {
       "path": "current/README.txt",
@@ -1579,8 +1589,8 @@
     },
     {
       "path": "docs/LIBRARY-EXPERIENCE.md",
-      "bytes": 6710,
-      "sha256": "5902f3e36a79a8e4e0f1d619ead0de3f490eb6f970eec7366032756a8c525f1c"
+      "bytes": 7677,
+      "sha256": "f6e175cd8c00be119f9fd4cdf2ee01e609b6478793d9891c1ad02fa3b75978e9"
     },
     {
       "path": "docs/LIBRARY-FILE-ACTIONS.md",
