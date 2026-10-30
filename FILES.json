@@ -1,5 +1,5 @@
 {
-  "revision": "audiobook-4.2.71-context-downloads-published",
+  "revision": "library-file-actions-final-candidate",
   "storage": "GitHub export; see releases/ARCHIVE-PARTS.json for three multipart historical ZIPs",
   "files": [
     {
@@ -14,8 +14,8 @@
     },
     {
       "path": ".github/workflows/build-apk.yml",
-      "bytes": 8505,
-      "sha256": "74023a7b16f91c6040c98c7a11fe9b6ce62056d17a753b821646f6abfaae864c"
+      "bytes": 8538,
+      "sha256": "1aafa39150124b5cdd698609e56a50cf73beaac2a9699e656fc2df1495f2ce94"
     },
     {
       "path": ".github/workflows/collection-notices.yml",
@@ -26,6 +26,11 @@
       "path": ".github/workflows/edition-download.yml",
       "bytes": 2649,
       "sha256": "90cfa8521c5695b16f50b523734429aacbc0a0d1bfcc505a5137493027c34a39"
+    },
+    {
+      "path": ".github/workflows/library-file-actions.yml",
+      "bytes": 2740,
+      "sha256": "ff0f646710afcfd15b62ffa8325a1a19c2854bd3b645b20954c21a1c7ddca473"
     },
     {
       "path": ".github/workflows/phone-candidate.yml",
@@ -49,13 +54,23 @@
     },
     {
       "path": "README.md",
-      "bytes": 19628,
-      "sha256": "f95ea698066353b0404a9a08f7f0e3d1ca324228ddd70b612188b05b7c13374e"
+      "bytes": 20018,
+      "sha256": "f2e0239080ea78a423df4f2927c692b1fbeef1d75e307ea534a2a3f12541e4fc"
     },
     {
       "path": "app/build.gradle.kts",
       "bytes": 4950,
       "sha256": "5b112cf5516ffe97d4ee189559e2a7e10e9047fb9e374667520b9ddf908bd4cc"
+    },
+    {
+      "path": "app/src/androidTest/java/com/audiobookdownloader/BookDeletionTest.kt",
+      "bytes": 9924,
+      "sha256": "8098101262ef1658dd9020d6effce9f700c0167c5afa14a83a448270c8a032c5"
+    },
+    {
+      "path": "app/src/androidTest/java/com/audiobookdownloader/CollectionDownloadTest.kt",
+      "bytes": 4009,
+      "sha256": "219c97b9c701a960ad3f86b3e8dab8e3d9c2a4a9901d6ef0b4e38d1da4519968"
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/CollectionNotificationTest.kt",
@@ -153,6 +168,16 @@
       "sha256": "3a80bb24deaf460673a985429696efe68182616bf9a0eb4e87ccb6c22398eac3"
     },
     {
+      "path": "app/src/debug/AndroidManifest.xml",
+      "bytes": 493,
+      "sha256": "10fb1fa5603e411ad8212f592e0996730c3282264788e86006298863198f2074"
+    },
+    {
+      "path": "app/src/debug/java/com/audiobookdownloader/DeletionFixtureProvider.kt",
+      "bytes": 2851,
+      "sha256": "4ed6da550106783e72329a7f9d1a55e09b6a6d331470ef59f847e509b11ab639"
+    },
+    {
       "path": "app/src/main/AndroidManifest.xml",
       "bytes": 4754,
       "sha256": "425961ef04d842eb5733dfa5b4186e06dc76b659694ec39fd402a63f4070ba76"
@@ -169,8 +194,8 @@
     },
     {
       "path": "app/src/main/assets/release-notes.json",
-      "bytes": 1164,
-      "sha256": "d3acc33b3a9d317e777c6bd19b6ee8c7516328e0857f869fe32972dbb98794a8"
+      "bytes": 1504,
+      "sha256": "c96615a7a3cf3d87228c0d70f5ff18eb33d54aa88e4796ca23f774fa8b29b7ba"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/AbAudioDurations.kt",
@@ -624,8 +649,8 @@
     },
     {
       "path": "current/MainActivity.kt",
-      "bytes": 749310,
-      "sha256": "74d7decc898bc15dfc650c3f1c702b0993ff9dfdd13e98b146537f6eb354f86e"
+      "bytes": 762188,
+      "sha256": "6fe258550afe4ec01d4c66c5297b7e018ed8f149f89807028208d6e182e29af5"
     },
     {
       "path": "current/PlaybackService.kt",
@@ -1468,6 +1493,11 @@
       "sha256": "97163c9ef476c02a27d5490d4cb2696537f2b2e7c79e582d56e4fe95e4a2b466"
     },
     {
+      "path": "docs/LIBRARY-FILE-ACTIONS.md",
+      "bytes": 8107,
+      "sha256": "67b13c0f0ccec10cf242f3b208448c9f937d8ab536c46185c656e2df850ccb72"
+    },
+    {
       "path": "docs/MEDIA-WIDGETS-STABLE.md",
       "bytes": 7300,
       "sha256": "b57b996aa1eb0062ffb56bd133ddc31eb5428838edcb9d126a92d49ebbe677c0"
@@ -1836,6 +1866,36 @@
       "path": "docs/collection-notifications/verification.json",
       "bytes": 3331,
       "sha256": "a1dd9fc595232e88be00ecd16a0c7158b51463abe0dfb4ae9f416a50e67f4079"
+    },
+    {
+      "path": "docs/library-file-actions/crapper-kotlin.log",
+      "bytes": 28,
+      "sha256": "fb706a8b0d0b4fecf6aaa7af6cfa54e95d2315a20a00f6f808bae3829fd213e7"
+    },
+    {
+      "path": "docs/library-file-actions/dryer-kotlin.log",
+      "bytes": 28,
+      "sha256": "fb706a8b0d0b4fecf6aaa7af6cfa54e95d2315a20a00f6f808bae3829fd213e7"
+    },
+    {
+      "path": "docs/library-file-actions/mutator-kotlin.log",
+      "bytes": 27,
+      "sha256": "23b1a985013505bb2c040aabb9af6fbd28fa9b38a32470a2a96e5ef0bcbd4020"
+    },
+    {
+      "path": "docs/library-file-actions/red-api23.xml",
+      "bytes": 4310,
+      "sha256": "2cf095bb72b26a37a447116886e79a81f752ce0407dcb3c53a0733774f776fe9"
+    },
+    {
+      "path": "docs/library-file-actions/red-api36.xml",
+      "bytes": 4483,
+      "sha256": "5aa5cbe1828dc651eb353bc9a686585c613142493d29ee0d25514c8dce9ff9d0"
+    },
+    {
+      "path": "docs/library-file-actions/red.json",
+      "bytes": 7845,
+      "sha256": "da2a0a96651bc804b27e2a892cf570068928b00db167fe20f4c9b3a10805c105"
     },
     {
       "path": "docs/menu-download/android23.xml",

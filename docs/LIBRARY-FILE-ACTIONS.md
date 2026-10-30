@@ -46,13 +46,33 @@ Android может запросить подтверждение либо выб
 1. Прочитаны AGENTS.md, skill и QUALITY.md; согласие получено отдельно для задачи.
 2. Три Android regression-теста сохранены до исправления, ветка
    fix/library-file-actions; run40986745521 проверяет старое поведение.
-3. Исправление и дополнительные реальные File/ContentResolver/DocumentsContract/
-   MediaStore и Compose-сценарии готовятся в отдельном коммите.
-4. DeletionFixtureProvider существует только в src/debug; release не должен
+3. Run40986745521: на API23 и36 три новых теста упали на старом коде.
+   Точный XML и причины — library-file-actions/red.json. В том числе тест
+   другой папки обнаружил реальное удаление чужого fixture-файла. Первые два
+   теста останавливались уже на ложном «осталась глава» для private cache без
+   общего аудио-разрешения; это отдельная ошибка проверки отсутствия файла.
+4. Исправление — remote1dd3992f7588ee52cdc9c2f99c8957ee3491bc77;
+   дополнительные URI/symlink проверки и IO-lock — af5e0808384b1c273e82542d1cccdae04cf550c1.
+   Последний scoped run40988044512 ещё выполняется.
+5. DeletionFixtureProvider существует только в src/debug; release не должен
    содержать этот provider или его класс. Все его файлы — одноразовые cache fixtures.
-5. Изменённая логика Kotlin не поддерживается закреплёнными Crapper/Dryer/Mutator.
+6. Изменённая логика Kotlin не поддерживается закреплёнными Crapper/Dryer/Mutator.
    Метрики Java и пустой scan не выдаются за проверку Kotlin. Требуются настоящие
    Android-тесты, Lint и общая JVM/JS/upgrade регрессия перед выпуском.
 
 CI и фактические результаты дополняются после завершения, до этого новый APK
 не считается проверенным или опубликованным. Samsung физически не проверялся.
+
+Запуск всех трёх pinned инструментов на изменённом current/MainActivity.kt дал
+«No source files to analyze/mutate» (логи сохранены): Kotlin не поддерживается.
+Это N/A, а не пройденный CRAP/дубликаты/mutation gate. Локально прошли структурная
+проверка Kotlin (не компиляция),43 дополнительных source fixtures,7 Predanie
+сценариев и6 тестов permission-audit. Компиляция/Android/Lint выполняются в CI.
+
+Промежуточные runs40987584203/40988044512 не прошли startup debug fixture:
+DocumentsProvider требует exported=true и системное MANAGE_DOCUMENTS permission.
+Исправлено только в src/debug/AndroidManifest.xml (remote be2d78b64a969f6ffae9d9a33bef84ac4b2720ea).
+Это не новый компонент/разрешение release. Повторный scoped run40988509314
+выполняется; production-код не ослаблялся. Добавлен реальный DownloadManager
+fixture на localhost: подтверждённая own-job должна быть отменена, другая job
+с восстановленным, но не совпадающим ID — сохранена. Он проверяется перед выпуском.

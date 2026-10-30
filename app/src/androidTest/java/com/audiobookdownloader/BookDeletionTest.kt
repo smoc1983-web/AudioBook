@@ -130,4 +130,29 @@ class BookDeletionTest {
         link.delete()
     }
 
+    @Test fun cancelsOnlyTheDownloadWhoseSavedIdentityMatches()=fixture {root ->
+        val folder=File(root,"DM selected").apply{mkdirs()}
+        val manager=context.getSystemService(Context.DOWNLOAD_SERVICE) as android.app.DownloadManager
+        val prefs=context.getSharedPreferences("audiobook_downloader",0)
+        val source="http://127.0.0.1:1/deletion-fixture-${System.nanoTime()}.mp3"
+        fun enqueue(title:String)=manager.enqueue(android.app.DownloadManager.Request(android.net.Uri.parse(source))
+            .setTitle(title).setNotificationVisibility(android.app.DownloadManager.Request.VISIBILITY_VISIBLE))
+        val own=enqueue("${folder.name} - 01")
+        val other=enqueue("Other book - 02")
+        fun exists(id:Long)=manager.query(android.app.DownloadManager.Query().setFilterById(id))!!.use{it.moveToFirst()}
+        try {
+            // A restored numeric ID alone does not authorize cancellation of a different download.
+            prefs.edit().putString("download_job_$own","01|||${folder.name}|||$source")
+                .putString("download_job_$other","02|||${folder.name}|||$source").commit()
+            assertTrue(exists(own));assertTrue(exists(other))
+            val result=AbBookDeletion.remove(context,LibraryBook(folder.name,folder,emptyList()))
+            assertTrue(result.message,result.success)
+            assertFalse(exists(own));assertTrue("Unrelated job must survive",exists(other))
+            assertFalse(prefs.contains("download_job_$own"));assertFalse(prefs.contains("download_job_$other"))
+        }finally {
+            manager.remove(own,other)
+            prefs.edit().remove("download_job_$own").remove("download_job_$other").commit()
+        }
+    }
+
 }
