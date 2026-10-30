@@ -104,7 +104,11 @@ internal object LibraryBackup {
                     val entry=zip.nextEntry?:break;require(!entry.isDirectory&&safeEntry(entry.name)){"Небезопасный путь в архиве"};require(++count<=30000)
                     val p=entry.name.split('/');val folder=folders.getOrPut(p[1]){roots[p[1]]?:requireNotNull(Documents.createDocument(c.contentResolver,root,Documents.Document.MIME_TYPE_DIR,p[1]))}
                     val existing=names.getOrPut(p[1]){children(c,folder).keys.toMutableSet()}
-                    if(p[2] in existing){skipped++;continue}
+                    if(p[2] in existing){
+                        val discard=ByteArray(65536);var fileBytes=0L
+                        while(true){val n=zip.read(discard);if(n<0)break;fileBytes+=n;total+=n;require(fileBytes<=2L*1024*1024*1024&&total<=50L*1024*1024*1024){"Архив превышает допустимый объём"}}
+                        skipped++;continue
+                    }
                     progress("Восстанавливаем: ${p[1]} · ${p[2]}")
                     val temp=requireNotNull(Documents.createDocument(c.contentResolver,folder,"application/octet-stream",".audiobook-"+java.util.UUID.randomUUID()+".part"))
                     try {

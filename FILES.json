@@ -234,8 +234,8 @@
     },
     {
       "path": "app/src/main/assets/release-notes.json",
-      "bytes": 1433,
-      "sha256": "682849dcbd54238a70e0ef4b89abc1c510b91645d38243b41ade5bedfd7eda3a"
+      "bytes": 2368,
+      "sha256": "e15676ca1595ee39a897176ba254608558ffb133cec632b5786c34ad7920a917"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/AbAudioDurations.kt",
@@ -379,8 +379,8 @@
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/ExperiencePanels.kt",
-      "bytes": 14149,
-      "sha256": "953b3e0f99b25a2918086788e51e518fd0dd2b6609ae959c45f9fa6def2caac5"
+      "bytes": 14161,
+      "sha256": "b43ad383ed3e448f24ce74663390e0f7b6c81e86df05e56c1b01fb1aebb97be5"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/KnigobludSeriesParser.java",
@@ -389,8 +389,8 @@
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/LibraryBackup.kt",
-      "bytes": 9817,
-      "sha256": "7316c2cc51e30a13e45f593ccb5a18c84ce9a3bc1432ee1ac40bcb79105ca0fd"
+      "bytes": 10159,
+      "sha256": "df16217b3f38476c4a4ae9e0322e389536f840ca5c30488eda6eb0f677d8c65e"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/LitresReleaseParser.java",
@@ -429,8 +429,8 @@
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/PersistentDownloads.kt",
-      "bytes": 9447,
-      "sha256": "bcd50c6c89721e922840bacff3e804eec8162384b450461ae722ba5b2c343da4"
+      "bytes": 10246,
+      "sha256": "91f6c7d0d17e1bd236d0629309ef5665e35ae030fe2d80a9719b9822ce103127"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/PreviewUpdateRules.java",
@@ -719,8 +719,8 @@
     },
     {
       "path": "current/MainActivity.kt",
-      "bytes": 782928,
-      "sha256": "250a24ca304535057876c1ccfe57874f9136f144e40f2150f6561e1954e9ac36"
+      "bytes": 783422,
+      "sha256": "abc75bdf2493b181a221bf7f76445492dd2874e38d8c7faa5135545a73ef9653"
     },
     {
       "path": "current/PlaybackService.kt",
@@ -934,8 +934,8 @@
     },
     {
       "path": "current/check.py",
-      "bytes": 6581,
-      "sha256": "13334c8adea18f465da4265169081a4c819ad48b7bbb370e9a9aa824f942bf3e"
+      "bytes": 6582,
+      "sha256": "00707c95f2fab044d83811c51ac86b299470de5f8851aaa1728a01cfbdca7e93"
     },
     {
       "path": "current/check_black_update.py",
@@ -12139,8 +12139,8 @@
     },
     {
       "path": "tools/package-public-update.py",
-      "bytes": 3026,
-      "sha256": "8af35252101656698e38cd300dfa4d38f17a6ba5e5b2693e88596ba040de3d04"
+      "bytes": 3443,
+      "sha256": "b67669cb16d435e4d0dcd974f1ad490d5927ffc979405bc1f81befc709106863"
     },
     {
       "path": "tools/restore_archives.py",

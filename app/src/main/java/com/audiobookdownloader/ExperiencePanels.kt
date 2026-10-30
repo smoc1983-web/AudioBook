@@ -12,7 +12,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.*
 
-internal data class BookCardContext(val actions:AbActions,val books:List<LibraryBook>,val index:DownloadedChapterIndex,
+internal data class BookCardContext(val open:(BookRef)->Unit,val download:(BookRef,List<AudioTrack>)->Unit,val books:List<LibraryBook>,val index:DownloadedChapterIndex,
     val downloads:List<AbDownloadItem>,val version:Int)
 internal val LocalAbBookCardContext=staticCompositionLocalOf<BookCardContext?>{null}
 
@@ -30,21 +30,21 @@ internal val LocalAbBookCardContext=staticCompositionLocalOf<BookCardContext?>{n
             local?.let {
                 Text("На устройстве: ${it.files.size} глав · "+if(it.sizeKnown)formatFileSize(it.audioBytes) else "размер уточняется",color=theme.muted,fontSize=13.sp)
             }
-            AbButton("Слушать книгу",theme,primary=true){dismiss();card.actions.openRef(ref)}
+            AbButton("Слушать книгу",theme,primary=true){dismiss();card.open(ref)}
             AbButton("Добавить в коллекцию",theme){shelf=true}
             val current=edition
             if(current!=null) {
                 val known=current.tracks.filter{it.duration>0}
                 Text(if(known.isEmpty())"Длительность не указана источником" else
                     (if(known.size==current.tracks.size)"Длительность: " else "Известная длительность: ")+formatMillis((known.sumOf{it.duration.toLong()}*1000L).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()),color=theme.muted,fontSize=13.sp)
-                AbEditionDownloadControls(current,card.index,card.downloads.filter{it.state==TrackState.DOWNLOADING&&it.book==ref.title}.map{it.track.title}.toSet(),theme,card.actions.downloadEdition)
+                AbEditionDownloadControls(current,card.index,card.downloads.filter{it.state==TrackState.DOWNLOADING&&it.book==ref.title}.map{it.track.title}.toSet(),theme,card.download)
             } else if(inspect) {
                 Text(if(editionError.isBlank())"Проверяем издание…" else editionError,color=theme.muted,fontSize=13.sp)
                 if(editionError.isBlank())AbReadDownloadEdition(ref){value,error->edition=value;editionError=error}
                 else AbButton("Повторить проверку издания",theme){editionError=""}
             } else AbButton("Главы, размер и скачивание",theme){inspect=true}
             AbButton(if(series)"Скрыть серию" else "Серия и продолжения",theme){series=!series}
-            if(series)AbCollectionContinuations(ref,card.books,prefs,card.version,theme){dismiss();card.actions.openRef(it)}
+            if(series)AbCollectionContinuations(ref,card.books,prefs,card.version,theme){dismiss();card.open(it)}
         }
     })
     if(shelf&&card!=null)AbShelfPicker(ref,prefs,theme,card.version){shelf=false}

@@ -84,6 +84,17 @@ internal object AbPersistentDownloads {
         }
         if(entries(c).any{it.state in listOf("active","queued")})schedule(c)
     }
+    private fun pendingAndroidJob(dm:DownloadManager,row:QueuedChapter):Long? {
+        // Recover the crash window after system enqueue and before persisting its returned ID.
+        return dm.query(DownloadManager.Query().setFilterByStatus(DownloadManager.STATUS_PENDING or DownloadManager.STATUS_RUNNING or DownloadManager.STATUS_PAUSED))?.use{q->
+            val title=q.getColumnIndexOrThrow(DownloadManager.COLUMN_TITLE)
+            val uri=q.getColumnIndexOrThrow(DownloadManager.COLUMN_URI)
+            val id=q.getColumnIndexOrThrow(DownloadManager.COLUMN_ID)
+            var found:Long?=null
+            while(q.moveToNext())if(q.getString(title)==row.book+" - "+row.title&&q.getString(uri)==row.src){found=q.getLong(id);break}
+            found
+        }
+    }
     suspend fun pump(c:Context):Boolean {
         val dm=c.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
         val active=entries(c).filter{it.state=="active"&&it.job>0}
@@ -112,7 +123,7 @@ internal object AbPersistentDownloads {
                     val track=AudioTrack(row.title,row.duration,row.src)
                     if(isTrackDownloaded(track,row.book,index))update(c,row.key){it.copy(state="complete")}
                     else {
-                        val id=downloadTrack(c,track,row.book,index)
+                        val id=pendingAndroidJob(dm,row)?:downloadTrack(c,track,row.book,index)
                         if(id!=null) {
                             main(c).edit().putString("download_job_"+id,row.title+"|||"+row.book+"|||"+row.src).commit()
                             update(c,row.key){it.copy(job=id,state="active",error="")}

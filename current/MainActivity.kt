@@ -167,7 +167,7 @@ enum class AppPage {
 }
 
 // The selected source belongs to this request; failures never replace it with another site.
-internal data class AbBookOpen(val book:BookLink,val sourceUrl:String)
+private data class AbBookOpen(val book:BookLink,val sourceUrl:String)
 
 private data class AbGenreReturn(
     val name:String,val query:String,val pages:Map<String,AbGenrePage>,val next:Map<String,AbGenrePage>,
@@ -2202,6 +2202,8 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
 
     DisposableEffect(prefs) {
         val listener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if(key=="glass_theme")appSkin=abReadGlassSkin(prefs)
+            if(key=="custom_background_uri")customBackgroundUri=prefs.getString("custom_background_uri",null)
             if(key==FAVORITES_KEY || key==SHELVES_KEY || key==QUEUE_KEY)coverRetentionVersion++
             if(key==FAVORITES_KEY || key==SHELVES_KEY || key==QUEUE_KEY || key?.startsWith("download_job_")==true)
                 AbLibraryHousekeeping.request(context.applicationContext)
@@ -2210,7 +2212,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
             if (key == null || key == FAVORITES_KEY || key == SHELVES_KEY || key == QUEUE_KEY ||
                 key == "listening_history" || key.startsWith("book_") || key.startsWith("bookmarks_") ||
                 key == "playback_speed" || key == EQ_GLOBAL_KEY || key.startsWith("eq_") ||
-                key.startsWith("sleep_") || key.startsWith("appearance_") || key.startsWith("experience_") || key == "rewind_after_pause_sec") {
+                key.startsWith("sleep_") || key=="glass_theme" || key.startsWith("appearance_") || key.startsWith("experience_") || key == "rewind_after_pause_sec") {
                 userDataVersion++
             }
         }
@@ -3076,7 +3078,9 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
             abRememberCatalog(prefs,BookLink(ref.title,ref.url,ref.cover))
             prefs.edit().putString(bookUrlKey(ref.title),ref.url)
                 .putString(bookCoverKey(ref.title),ref.cover).putInt(bookTotalKey(ref.title),tracks.size).apply()
-            modernWork.launch(Dispatchers.IO){AbPersistentDownloads.enqueue(context.applicationContext,ref.title,tracks)}
+            if(!EditionDownloadRules.isPreview(ref.title,tracks.map{it.src}))
+                modernWork.launch(Dispatchers.IO){AbPersistentDownloads.enqueue(context.applicationContext,ref.title,tracks)}
+            else Toast.makeText(context,"Источник передал ознакомительный фрагмент. Скачивание отменено.",Toast.LENGTH_LONG).show()
             keepDownloadedCover(ref.title)
         },
         cancelDownload = { cancelModernDownload(it) },
@@ -9591,7 +9595,7 @@ private fun abHasDownloadedChapter(index: DownloadedChapterIndex, title: String,
 
 internal data class AbDownloadItem(val track: AudioTrack,val book:String,val state:TrackState,val error:String,
     val phase:String="",val downloadedBytes:Long=0L,val totalBytes:Long=-1L)
-internal data class AbScreenData(
+private data class AbScreenData(
     val page: AppPage, val query: String, val searchSource:String,val results: List<BookLink>,
     val onlineBook: PlayerData?, val pageTitle: String, val pageUrl: String, val pageCover: String,
     val bookOpening:AbBookOpen?,val bookPageLoading:Boolean,val bookPageError:String,
@@ -9607,7 +9611,7 @@ internal data class AbScreenData(
     val downloadPercent: Int, val downloadedBytes: Long, val totalBytes: Long
 )
 
-internal data class AbActions(
+private data class AbActions(
     val navigate: (AppPage) -> Unit,
     val home: () -> Unit,
     val backSearch: () -> Unit,
@@ -9632,7 +9636,7 @@ internal data class AbActions(
     val clearBackground: () -> Unit
 )
 
-internal enum class AbIcon { SEARCH, BOOKS, PLAY, PAUSE, COLLECTIONS, SETTINGS, MORE, BACK,
+private enum class AbIcon { SEARCH, BOOKS, PLAY, PAUSE, COLLECTIONS, SETTINGS, MORE, BACK,
     NEXT, PREVIOUS, DOWNLOAD, TIMER, BOOKMARK, HEART, PLUS, CLOSE, QUEUE, SYNC, CHECK, UP, DOWN, EQUALIZER }
 
 /** Vector strokes avoid a dependency on material-icons-extended and keep every icon consistent. */
@@ -10049,7 +10053,7 @@ private fun AbModernApp(data: AbScreenData, actions: AbActions, sync: LibrarySyn
         color=if(theme.light) Color.White.copy(alpha=.60f) else Color.Black.copy(alpha=.78f),
         offset=Offset(0f,1f),blurRadius=3f))}
     androidx.compose.runtime.CompositionLocalProvider(androidx.compose.ui.platform.LocalDensity provides readableDensity,
-        LocalAbBookCardContext provides BookCardContext(actions,sync.books.value,data.downloadedIndex,data.downloads,data.version),
+        LocalAbBookCardContext provides BookCardContext(actions.openRef,actions.downloadEdition,sync.books.value,data.downloadedIndex,data.downloads,data.version),
         LocalAbCoverDataVersion provides data.version,
         androidx.compose.material3.LocalTextStyle provides readableTextStyle) {
     Box(Modifier.fillMaxSize().background(theme.background)) {
@@ -11252,7 +11256,7 @@ private fun AbContinuationSettings(theme:AbTheme,onOpen:(BookRef)->Unit) {
     if(notices.isNotEmpty())AbButton("Очистить список",theme){notices.forEach{AbContinuationAlerts.consume(context,it.id)};store.clearNotices()}
 }
 
-internal enum class AbSettingsSection(val label:String,val subtitle:String,val icon:AbIcon) {
+private enum class AbSettingsSection(val label:String,val subtitle:String,val icon:AbIcon) {
     HOME("Настройки","",AbIcon.SETTINGS),
     SPEED("Скорость","Темп прослушивания",AbIcon.PLAY),
     EQUALIZER("Эквалайзер","Профиль и усиление",AbIcon.EQUALIZER),
