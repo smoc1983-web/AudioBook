@@ -1,0 +1,10 @@
+{
+  "packageName": "com.audiobookdownloader.preview",
+  "versionCode": 100078,
+  "versionName": "4.2.78",
+  "size": 33052272,
+  "sha256": "cd449e8fec5806459002178e636dffd57362212b1a3f67e18dd5b5a84d26655b",
+  "certificateSha256": "3a4cecd14bb3e983843871766909c3f07b3dc64379800f3e270e4a27d39affb7",
+  "apk": "Audiobook-Preview.apk",
+  "commit": "de9ae460371f4a165762f5cff23834168cbb129b"
+}

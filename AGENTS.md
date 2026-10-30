@@ -10,15 +10,16 @@ User approved ub-mode for inline collection continuations and simpler menus on20
 User approved ub-mode for book description on cover tap on2026-10-30; do not ask again within this task.
 This supersedes the earlier unconditional ub-mode instruction below.
 
-Current released version is4.2.74 /100074 (2026-10-30): descriptions on cover tap,
-offline annotation cache and independent title listen action. PR6, scoped41014370607
-(API23/36:15/15 each), normal41015767058, signed inspection41018067403,
-exact-report recovery41018566005 and public Site17 completed. Native-header clients
-73/72 fetched every part and verified the full APK SHA. See docs/RELEASE-4.2.74.md
-and docs/HANDOFF.md. This task is complete; ask whether to use ub-mode before
-the next new development task. Next normal run74 plus permanent offset1 produces
-75 /100075. Do not rebuild or replace published74 under the same code, rotate
-the signing identity, or affect original stable/files/settings. Keep keys private.
+The nine library/player improvements task completed2026-10-30 as4.2.78/100078.
+Owner explicitly declined ub-mode for this task; ordinary JVM/native/security/upgrade
+checks passed. Before the next new development task ask the owner's choice again.
+Do not rebuild/re-publish78 or rotate package/signature. See docs/LIBRARY-EXPERIENCE.md,
+docs/RELEASE-4.2.78.md, docs/HANDOFF.md and exact docs/release-4.2.78/ evidence.
+Current public Site18 serves100078; full41099446302 and focused41099442777 passed.
+Compiled de9ae460371f4a165762f5cff23834168cbb129b. Native-header74/73 downloaded every
+part and matched the signed APK SHA. Next normal raw78+permanentoffset1 produces79.
+Physical phone, Android updater network APK download and PlayProtect remain untested.
+Main release/proof merge uses[skip ci]; no extra application build is required.
 
 The user explicitly requested ub-mode on 2026-10-27. For future code changes,
 read and apply [.agents/skills/ub-mode/SKILL.md](.agents/skills/ub-mode/SKILL.md)

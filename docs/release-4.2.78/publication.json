@@ -1,0 +1,27 @@
+{
+  "versionCode": 100078,
+  "versionName": "4.2.78",
+  "siteVersion": 18,
+  "projectId": "appgprj_6add1a69b6f481918b5e390c8f413992",
+  "siteSourceCommit": "60f72b668dcbd87075bfa3507e3e11716cc01db7",
+  "savedVersionId": "appgprj_6add1a69b6f481918b5e390c8f413992~appgver_4b683e133e288191829999b9897dd9d7",
+  "deploymentId": "appgdep_6ae51e1fcd908191867217560824c257",
+  "status": "succeeded",
+  "url": "https://audiobook-smoc1983-updates.amplecoot2048.chatgpt.site",
+  "updatedAt": "2026-10-30T22:46:20.584069+00:00",
+  "archive": {
+    "archive_format": "tar",
+    "sediment_file_id": "file_000000006848820aa17db20e58a3b86c",
+    "content_hash": "sha256:2c0e5f47e871918cd812a3c3f9a43d09db9354c3865a87ea1960faa7c5a6d0de",
+    "size_bytes": 230901760,
+    "file_count": 36
+  },
+  "compressedArchiveBytes": 227950169,
+  "compiledSource": "de9ae460371f4a165762f5cff23834168cbb129b",
+  "normalRun": 41099446302,
+  "scopedRun": 41099442777,
+  "apkSha256": "cd449e8fec5806459002178e636dffd57362212b1a3f67e18dd5b5a84d26655b",
+  "apkBytes": 33052272,
+  "signatureAndPackagePreserved": true,
+  "physicalPhone": false
+}

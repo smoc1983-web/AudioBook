@@ -1,7 +1,7 @@
 name: Build Audiobook APK
 on:
   push:
-    branches: [main]
+    branches: [main, build/library-experience]
     paths-ignore: ['docs/**', 'README.md', 'FILES.json']
   workflow_dispatch:
 concurrency:
@@ -109,13 +109,13 @@ jobs:
           name: installable-permission-audit
           path: dist/permission-audit.json
       - name: Publish private in-app update channel
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/build/library-experience'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           tag="$(cat dist/tag.txt)"
           if ! gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release create "$tag" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --draft --prerelease --title "Audiobook $tag" --notes "Audiobook: описание книги по нажатию на обложку, чтение сохранённой аннотации без интернета, обновление описания без смены плеера. Прежние пакет и подпись; аудиофайлы, коллекции и настройки сохраняются."
+            gh release create "$tag" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --draft --prerelease --title "Audiobook $tag" --notes "Audiobook: компактные коллекции, общая карточка книги, постоянная очередь загрузок, резервные копии с аудио, управление памятью, статусы серий, настройки таймера и перемотки, одна кнопка обновлений, читаемость и тема «Графит» без свечения. Пакет и подпись прежние; данные сохраняются."
           fi
           gh release upload "$tag" dist/Audiobook-Preview.apk dist/preview-update.json --repo "$GITHUB_REPOSITORY" --clobber
           gh release edit "$tag" --repo "$GITHUB_REPOSITORY" --draft=false --prerelease --latest=false

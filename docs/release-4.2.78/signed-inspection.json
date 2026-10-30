@@ -1,0 +1,140 @@
+{
+  "schema": 1,
+  "source": "de9ae460371f4a165762f5cff23834168cbb129b",
+  "versionCode": 100078,
+  "bytes": 33052272,
+  "sha256": "cd449e8fec5806459002178e636dffd57362212b1a3f67e18dd5b5a84d26655b",
+  "certificateSha256": "3a4cecd14bb3e983843871766909c3f07b3dc64379800f3e270e4a27d39affb7",
+  "packageName": "com.audiobookdownloader.preview",
+  "label": "Audiobook",
+  "debuggable": false,
+  "signaturesV1V2": true,
+  "definedClassCount": 15857,
+  "definedMethods": {
+    "BookDescriptionParser": [],
+    "BookDescriptionRepository": [
+      "load"
+    ],
+    "LibraryBackup": [
+      "export",
+      "inspect",
+      "manifest",
+      "restore",
+      "safeEntry"
+    ],
+    "AbPersistentDownloads": [
+      "cancelBook",
+      "cancelChapter",
+      "enqueueBatch",
+      "entries",
+      "install",
+      "pause",
+      "pump",
+      "restore"
+    ],
+    "AbDownloadsWorker": [
+      "doWork"
+    ],
+    "AbQueueRecoveryWorker": [
+      "doWork"
+    ],
+    "LibraryExperienceRules": [
+      "completedEdition"
+    ],
+    "ExperiencePanelsKt": [
+      "AbBackupPanel",
+      "AbPersistentQueueDialog",
+      "AbReadabilityPanel",
+      "AbStoragePanel",
+      "AbUnifiedBookDialog"
+    ],
+    "MainActivityKt": [
+      "AbBookDescriptionDialog",
+      "AbDialog"
+    ]
+  },
+  "debugFixturesAbsent": true,
+  "releaseNotes": [
+    "Коллекции стали компактнее: переключение списка и обложек, сворачивание полок и сохранение выбранного вида.",
+    "На обложке открывается общая карточка книги: описание, прослушивание, коллекции, сведения об издании и продолжения серии.",
+    "Постоянная очередь загрузок сохраняет задания после закрытия приложения. Доступны прогресс, повтор ошибок, пауза следующих глав и Wi-Fi для новых загрузок.",
+    "Добавлена резервная копия коллекций, закладок, позиций и настроек в ZIP с возможностью включить аудиофайлы. При восстановлении существующие главы не перезаписываются.",
+    "В настройках появился раздел памяти: размеры книг, частично скачанные и прослушанные книги, удаление после подтверждения.",
+    "В официальном списке серии показаны книги на устройстве, прослушанные тома и текстовые издания; неподтверждённые совпадения отмечены отдельно.",
+    "Настраиваются интервалы перемотки и затихание таймера сна; перед остановкой можно автоматически сохранить закладку.",
+    "Обновления устанавливаются через одну кнопку с действиями по текущему этапу. Показаны размер выпуска и список изменений.",
+    "Добавлены затемнение фоновой картинки, масштаб текста, прозрачность карточек и тема «Графит» без свечения. Системный размер текста Android учитывается."
+  ],
+  "permissionsUnchangedFrom74": true,
+  "actualSignedApkInspected": true,
+  "publicFeedPublished": false,
+  "publicFeedStill": 100074,
+  "physicalPhone": false,
+  "actualAndroidUpdaterNetworkDownload": false,
+  "tests": {
+    "jvmDebug": {
+      "tests": 147,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    },
+    "jvmRelease": {
+      "tests": 147,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    },
+    "android36": {
+      "tests": 75,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 3
+    },
+    "scoped23": {
+      "tests": 33,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "scoped36": {
+      "tests": 34,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "lint": {
+      "Warning": 78,
+      "Information": 72
+    },
+    "osv": {
+      "complete": true,
+      "resolvedModules": 68,
+      "findings": []
+    }
+  },
+  "upgrade": {
+    "baselineCode": 100074,
+    "newCode": 100078,
+    "oldUpdaterAcceptedNewApk": true,
+    "oldUpdaterOpenedSystemConfirmation": true,
+    "systemConfirmationCancelledForHostReplacement": true,
+    "releaseBaselineSeededBySameSignedInstrumentation": true,
+    "standalonePlatformProbe": true,
+    "probeHasNoAppImplementationCopies": true,
+    "probeNeedsNoNewRuntimeBridge": true,
+    "androidPackageReplacementSucceeded": true,
+    "label": "Audiobook",
+    "settingsCollectionFolderAndPrivateFilePreserved": true,
+    "certificateUnchanged": true,
+    "installationMethod": "adb install -r in disposable emulator; user will confirm installer on phone",
+    "actualInAppNetworkDownloadTested": false,
+    "physicalPhone": false,
+    "newBuildType": "release",
+    "debuggable": false,
+    "privateAudioFileChecksumPreserved": true,
+    "googlePlayProtectVerdictTested": false
+  },
+  "normalRun": 41099446302,
+  "scopedRun": 41099442777,
+  "applicationTestsRerun": false
+}

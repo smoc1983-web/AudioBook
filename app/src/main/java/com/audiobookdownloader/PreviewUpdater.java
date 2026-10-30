@@ -16,6 +16,7 @@ final class PreviewUpdater {
     interface Progress { void value(int percent); }
     static final class Release {
         final PreviewUpdateRules info;
+        String notes="";
         Release(PreviewUpdateRules info){this.info=info;}
     }
     private final Context context;
@@ -54,7 +55,13 @@ final class PreviewUpdater {
     Release latest() throws Exception {
         JSONObject json=new JSONObject(read(BuildConfig.UPDATE_ORIGIN+"/updates/"+BuildConfig.UPDATE_METADATA,65536));
         if(!json.optBoolean("available",true))throw new IOException("Подписанное обновление этого канала ещё не опубликовано. Попробуйте позже.");
-        return new Release(new PreviewUpdateRules(json));
+        Release release=new Release(new PreviewUpdateRules(json));
+        JSONArray changes=json.optJSONArray("changes");
+        if(changes!=null){StringBuilder text=new StringBuilder();for(int i=0;i<Math.min(changes.length(),12);i++){
+            String line=changes.optString(i,"").replaceAll("[\\p{Cntrl}&&[^\\n]]", " ");
+            if(line.length()>300)line=line.substring(0,300);if(!line.isEmpty())text.append("• ").append(line).append("\n");
+        }release.notes=text.toString();}
+        return release;
     }
     static long code(PackageInfo info){return Build.VERSION.SDK_INT>=28?info.getLongVersionCode():info.versionCode;}
     private static Signature[] signatures(PackageInfo p){

@@ -32,7 +32,7 @@ class BookDescriptionTest {
         compose.onNodeWithText("Описание книги").assertIsDisplayed()
         compose.waitUntil(5000){compose.onAllNodesWithText("Для этой книги не сохранена ссылка",substring=true).fetchSemanticsNodes().isNotEmpty()}
         assertEquals(0,opens);assertEquals(0,menus);assertEquals(before,PlaybackService.state.value)
-        compose.onNodeWithText("Закрыть описание").performScrollTo().performClick()
+        compose.onNodeWithText("Закрыть описание").assertIsDisplayed().performClick()
         compose.onNodeWithText("Описание книги").assertDoesNotExist()
         compose.onNodeWithText("Книга без источника").performClick()
         assertEquals(1,opens)
@@ -47,7 +47,7 @@ class BookDescriptionTest {
         // Both fixture URLs are deliberately unsupported, so this never contacts a site.
         compose.runOnIdle{chosen=chosen.copy(url="not-a-page")}
         compose.onNodeWithText("Описание книги").assertIsDisplayed()
-        compose.onNodeWithText("Закрыть описание").performScrollTo().performClick()
+        compose.onNodeWithText("Закрыть описание").assertIsDisplayed().performClick()
         compose.onNodeWithText("Описание книги").assertDoesNotExist()
         assertEquals(before,PlaybackService.state.value)
     }
@@ -85,17 +85,39 @@ class BookDescriptionTest {
         }finally{cache.deleteRecursively()}
     }
     @Test(timeout=30000) fun dialogRetainsReadableTextWhenUserRefreshesOffline() {
-        val cache=folder();val before=PlaybackService.state.value
+        val cache=folder();val before=PlaybackService.state.value;val refreshes=AtomicInteger()
         try {
             runBlocking{BookDescriptionRepository(context,ContinuationFetcher{html()},prefs(),cache).load(ref)}
             val offline=BookDescriptionRepository(context,ContinuationFetcher{error("offline")},prefs(),cache)
-            compose.setContent {AbBookDescriptionDialog(ref,null,abTheme(2),{},loader={book,local,force->offline.load(book,local,force)})}
+            compose.setContent {AbBookDescriptionDialog(ref,null,abTheme(2),{},loader={book,local,force->if(force)refreshes.incrementAndGet();offline.load(book,local,force)})}
             compose.waitUntil(5000){compose.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty()}
             compose.onNodeWithText(text).performScrollTo().assertIsDisplayed()
-            compose.onNodeWithText("Обновить описание").performScrollTo().performClick()
+            compose.onNodeWithText("Обновить описание").assertIsDisplayed().assertIsEnabled().performClick()
+            compose.waitUntil(5000){refreshes.get()==1}
             compose.waitUntil(5000){compose.onAllNodesWithText("Не удалось загрузить описание",substring=true).fetchSemanticsNodes().isNotEmpty()}
             compose.onNodeWithText(text).performScrollTo().assertIsDisplayed()
             assertEquals(before,PlaybackService.state.value)
+        }finally{cache.deleteRecursively()}
+    }
+    @Test(timeout=30000) fun longDescriptionKeepsRefreshAndCloseVisibleAtLargeTextSize() {
+        var show by mutableStateOf(true)
+        val cache=folder()
+        val longText=(1..60).joinToString("\n"){"Раздел $it. $text"}
+        try {
+            val book=runBlocking{BookDescriptionRepository(context,
+                ContinuationFetcher{"<h1>${ref.title}</h1><div itemprop='description'><p>$longText</p></div>"},
+                prefs(),cache).load(ref)}
+            compose.setContent {
+                val density=androidx.compose.ui.platform.LocalDensity.current
+                CompositionLocalProvider(androidx.compose.ui.platform.LocalDensity provides
+                    androidx.compose.ui.unit.Density(density.density,density.fontScale*1.5f)) {
+                    if(show)AbBookDescriptionDialog(ref,null,abTheme(10),{show=false},loader={_,_,_->book})
+                }
+            }
+            compose.waitUntil(5000){compose.onAllNodesWithText("Обновить описание").fetchSemanticsNodes().isNotEmpty()}
+            compose.onNodeWithText("Обновить описание").assertIsDisplayed().assertIsEnabled()
+            compose.onNodeWithText("Закрыть описание").assertIsDisplayed().performClick()
+            compose.onNodeWithText("Описание книги").assertDoesNotExist()
         }finally{cache.deleteRecursively()}
     }
     @Test(timeout=30000) fun closingDialogCancelsItsLoaderWithoutChangingPlayback() {
@@ -105,7 +127,7 @@ class BookDescriptionTest {
             entered=true;try{awaitCancellation()}finally{cancelled=true}
         })}
         compose.waitUntil(5000){entered}
-        compose.onNodeWithText("Закрыть описание").performScrollTo().performClick()
+        compose.onNodeWithText("Закрыть описание").assertIsDisplayed().performClick()
         compose.waitUntil(5000){cancelled}
         compose.onNodeWithText("Описание книги").assertDoesNotExist()
         assertEquals(before,PlaybackService.state.value)

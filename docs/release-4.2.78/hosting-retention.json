@@ -1,0 +1,60 @@
+{
+  "previousSiteVersion": 17,
+  "reason": "Make room for the next signed APK within 256MiB hosting archive limit",
+  "removedOnlyUnreferenced": true,
+  "parts": [
+    {
+      "path": "updates/parts/preview-100066-4ca319ad2f1fbedc-00.bin",
+      "bytes": 8388608,
+      "sha256": "c97a5b1012ee6b9456ccf72ffaa2673302dea407b553ca507ea7428ec2466f95"
+    },
+    {
+      "path": "updates/parts/preview-100066-4ca319ad2f1fbedc-01.bin",
+      "bytes": 8388608,
+      "sha256": "65c624f26cf6f8a02dc2c706e053eed6da28424070741753f94cc17044deea41"
+    },
+    {
+      "path": "updates/parts/preview-100066-4ca319ad2f1fbedc-02.bin",
+      "bytes": 8388608,
+      "sha256": "1c473b0f86e45a34dc9734d8f395696b811cdb2fe1c2fd7f87337604afceb79c"
+    },
+    {
+      "path": "updates/parts/preview-100066-4ca319ad2f1fbedc-03.bin",
+      "bytes": 7427943,
+      "sha256": "8f0f9c25e889d135eb78c078bea9d5b0751e9d9cb190ced87300770ccc243a63"
+    },
+    {
+      "path": "updates/parts/preview-100068-06fc6db6c81d085c-00.bin",
+      "bytes": 8388608,
+      "sha256": "4f9a7153cfbc7d3d00076b17a552c80ae76f322bc948c5ffa7903bdc56bc05ff"
+    },
+    {
+      "path": "updates/parts/preview-100068-06fc6db6c81d085c-01.bin",
+      "bytes": 8388608,
+      "sha256": "6be7abff1bda0faa2d0645c32dd321fc1bee1c3932244ae06b309ea4f2ed19a0"
+    },
+    {
+      "path": "updates/parts/preview-100068-06fc6db6c81d085c-02.bin",
+      "bytes": 8388608,
+      "sha256": "93d392a4ae5cdb978aede6886ad4ddb12af3e4e2633bb9087226c123507f0c61"
+    },
+    {
+      "path": "updates/parts/preview-100068-06fc6db6c81d085c-03.bin",
+      "bytes": 7460868,
+      "sha256": "bd27da68ce1d75a5d52ef86e82f7af17a2d30e39e1cb18e1f37de887a8408ae8"
+    }
+  ],
+  "bytesRemoved": 65220459,
+  "backupVerified": true,
+  "preserved": [
+    "current74",
+    "previous73",
+    "previous72",
+    "manual69",
+    "70",
+    "71"
+  ],
+  "userLibraryUntouched": true,
+  "backupName": "unreferenced-hosting-parts66-68.tar.gz",
+  "previousSiteSource": "7fb585db3dca693f081cf33e2b9ce1895be08a2a"
+}

@@ -54,7 +54,7 @@ class CollectionSeriesTest {
         val muted=store.preferences.getStringSet("muted_titles",null)?.toSet()
         val sourceNext="https://bookinfo.net/fantastika/andrey-vasiliev/hotel-2"
         try {
-            prefs.edit().clear().putString("shelves_v1",JSONArray().put(JSONObject().put("n","Отель").put("b",
+            prefs.edit().clear().putBoolean("experience_collection_list",false).putString("shelves_v1",JSONArray().put(JSONObject().put("n","Отель").put("b",
                 JSONArray().put(JSONObject().put("t",title).put("u",ref.url).put("c","")))) .toString()).commit()
             abRememberCatalog(prefs,BookLink(title,ref.url,author=author))
             abRememberCatalog(prefs,BookLink(next,sourceNext,author=author))
@@ -117,6 +117,7 @@ class CollectionSeriesTest {
     @Test(timeout=30000) fun collectionDoesNotHideBooksAfterTheFifthAndScrollDoesNotOpenPlayer() {
         val context=ApplicationProvider.getApplicationContext<Context>()
         val prefs=context.getSharedPreferences("collection-scroll-test",0)
+        prefs.edit().putBoolean("experience_collection_list",false).commit()
         val refs=(1..12).map{BookRef("Тестовая книга $it","","")};var opens=0
         compose.setContent {AbCollectionShelf(Shelf("Длинная полка",refs),emptyList(),prefs,0,abTheme(2),{opens++},{},{},{},{},{})}
         compose.onNodeWithContentDescription("Книги коллекции: Длинная полка").performScrollToIndex(11)

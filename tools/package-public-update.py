@@ -1,7 +1,7 @@
 """Prepare a public read-only update feed from a verified, already signed APK.
 Private signing keys and GitHub access credentials are never read or packaged.
 """
-import argparse,hashlib,json,os,re,subprocess
+import argparse,hashlib,json,os,re,subprocess,zipfile
 from pathlib import Path
 CERTIFICATES={'stable':'020e6c23aad35b45e6ef2ee3ef3326a6ddac731b8491162f0d340848887c9bc7','preview':'3a4cecd14bb3e983843871766909c3f07b3dc64379800f3e270e4a27d39affb7'}
 def package(apk,channel,output,build_tools):
@@ -27,6 +27,12 @@ def package(apk,channel,output,build_tools):
         (output/'parts'/filename).write_bytes(chunk)
         parts.append({'url':'parts/'+filename,'size':len(chunk),'sha256':hashlib.sha256(chunk).hexdigest()})
     result={'packageName':m[1],'versionCode':code,'versionName':m[3],'size':len(data),'sha256':sha,'certificateSha256':cert[1],'apk':name,'parts':parts}
+    with zipfile.ZipFile(apk) as archive:
+        notes=archive.read('assets/release-notes.json')
+        if len(notes)>32768:raise ValueError('Release notes exceed limit')
+        changes=json.loads(notes)['changes']
+        if not isinstance(changes,list) or any(not isinstance(line,str) or len(line)>500 for line in changes):raise ValueError('Invalid release notes')
+        result['changes']=changes[:12]
     temp=metadata_path.with_suffix('.tmp');temp.write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n');temp.replace(metadata_path)
     return result
 if __name__=='__main__':

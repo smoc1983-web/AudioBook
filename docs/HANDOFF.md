@@ -1,3 +1,49 @@
+## Audiobook4.2.78 опубликована · 2026-10-30
+
+Девять улучшений библиотеки/плеера завершены. Для этой задачи владелец выбрал **без
+ub-mode**; выполнены обычные JVM/native/permission/lint/advisory/upgrade проверки.
+Для следующей новой разработки спросить выбор снова. Не повторять сборку/публикацию78.
+
+Compiled de9ae460371f4a165762f5cff23834168cbb129b,
+tree d69ec76699143f653bc9a74cbcbe88379510ce01. Каноническийmain содержит тот же код
+и последующие release/proof документы. Full41099446302/job124213990045 success;
+focused41099442777 success (23:33/33,36:34/34). JVM147pervariant/skip1,nativeXML75/
+skip3,Lint0Error/Fatal,OSV68complete/0known findings. Отдельно проверен actual signedAPK
+и definedDEXmethods, debugfixtureabsence, unchangedpermissions. ActualWi-Fi-only
+DownloadManager HTTP bytes/reload/cancelpreserve test passed36. Upgrade74→78 сохранил
+контрольные настройки/коллекцию/папку/privateaudioSHA. PhysicalSamsung/actualAndroid
+networkAPKdownload/PlayProtect не проверялись. Не обещать отсутствие всех уязвимостей.
+
+APK100078/name4.2.78,labelAudiobook,33052272bytes,
+SHA256cd449e8fec5806459002178e636dffd57362212b1a3f67e18dd5b5a84d26655b,
+packagecom.audiobookdownloader.preview,cert3a4cecd14bb3e983843871766909c3f07b3dc64379800f3e270e4a27d39affb7,
+v1+v2,nondebuggable. Originalstable packagecom.audiobookdownloader не трогать;
+не удалять установленную новую Audiobook и не очищать данные для обновления.
+
+ExistingpublicSite18 succeeded,source60f72b668dcbd87075bfa3507e3e11716cc01db7,
+savedappgprj_6add1a69b6f481918b5e390c8f413992~appgver_4b683e133e288191829999b9897dd9d7,
+deploymentappgdep_6ae51e1fcd908191867217560824c257.
+https://audiobook-smoc1983-updates.amplecoot2048.chatgpt.site
+Metadata100078 и все4chunks HTTP200 с nativeheaders74/73, полныйSHA совпал.
+Архив227950169compressed/230901760normalizedbytes/36files <268435456limit.
+Только unreferenced66/68 chunks предварительно сохранены/проверены и убраны из
+активного hosting payload. Current74/73/72/manual69/70/71 сохранены; userbooks не затронуты.
+
+[Функции](LIBRARY-EXPERIENCE.md),[выпуск](RELEASE-4.2.78.md),
+[проверки](release-4.2.78/verification.json),[публикация](release-4.2.78/publication.json).
+Memory smoc1983-web/ai-project-memory обновляется отдельно после этогоmainmerge.
+Локальный stash preserve-local-queue-guards-before-remote-recovery сохранён; изменения
+из него уже вошли в remote code, не применять его поверх свежих исходников повторно.
+
+Во время задачи exec временно отсутствовал; изменения были продолжены GitHubAPI.
+Теперь exec работает. Промежуточные75/76 не опубликованы (исправлены physical-refresh
+UI и3lint findings),77 superseded/cancelled при добавлении явного NETWORK_WIFI.
+Следующий новый normal raw78+permanentoffset1 даёт79. Main release/proof merge
+использует[skip ci], чтобы не создавать лишний79 и не запускать отклонённые ub-mode tools.
+Ключи/credentials не сохранять вGitHub. ForTanya/SimpMusic не часть этой задачи.
+
+### Исторические завершённые этапы
+
 ## Audiobook4.2.74 опубликована (2026-10-30)
 
 Описание книги по нажатию на обложку готово и доступно через существующее меню
