@@ -19,6 +19,8 @@ class DeletionFixtureProvider:DocumentsProvider() {
         return f
     }
     override fun onCreate()=true
+    override fun isChildDocument(parentDocumentId:String,documentId:String)=
+        file(documentId).canonicalPath.startsWith(file(parentDocumentId).canonicalPath+File.separator)
     private fun cursor(projection:Array<out String>?)=MatrixCursor(projection ?: arrayOf(
         Document.COLUMN_DOCUMENT_ID,Document.COLUMN_DISPLAY_NAME,Document.COLUMN_MIME_TYPE,Document.COLUMN_SIZE,Document.COLUMN_FLAGS))
     private fun add(c:MatrixCursor,f:File) {

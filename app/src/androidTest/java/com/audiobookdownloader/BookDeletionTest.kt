@@ -60,11 +60,12 @@ class BookDeletionTest {
         try {
             File(folder,"01.mp3").writeText("first");File(folder,"02.M4B").writeText("second")
             File(folder,"book_metadata.json").writeText("{}");File(folder,"notes.txt").writeText("keep")
+            context.contentResolver.openFileDescriptor(android.net.Uri.parse(chapter.audioUri),"r")!!.use{assertTrue(it.statSize>0)}
             DeletionFixtureProvider.deniedName="book_metadata.json"
             val partial=AbBookDeletion.remove(context,book)
             assertFalse("Sidecar failure cannot be a successful deletion",partial.success)
             assertTrue(partial.needsFolder)
-            assertFalse(File(folder,"02.M4B").exists());assertTrue(File(folder,"book_metadata.json").exists())
+            assertFalse("The granted document chapter must be gone: ${partial.message}",File(folder,"02.M4B").exists());assertTrue(File(folder,"book_metadata.json").exists())
             DeletionFixtureProvider.deniedName=""
             assertTrue(AbBookDeletion.remove(context,book).success)
             assertEquals(listOf("notes.txt"),folder.listFiles()!!.map{it.name})
