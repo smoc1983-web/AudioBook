@@ -1,3 +1,18 @@
+## Active: inline collection continuations and clearer menus (2026-10-30)
+
+User approved ub-mode for this new task. Branch feature/collection-continuations.
+Published feed remains72 until new checks, signed APK and actual publication pass.
+Baseline remote main0c03c5a81498bc99386d75b57e8ae5e704f41b94, local24d327e;
+trees equal. Red source37431ab7564ce4360f563261de0b25da4bdb04db,
+scoped run41003278510 tests old card missing requested control. See
+COLLECTION-SERIES.md. Local implementation uses existing official-series cache,
+strict source seeds, bounded inline panels and LazyRow all shelf books. Await
+red evidence then push/check new implementation on API23/36, then normal build73.
+Final scoped41005118622 succeeded20/20 on each API23/36, source5a5d17acb690941ab2fba6c3acd881b63d47e2ae.
+PR5 ready for normal73; no public73 claim until release/upgrade/site receipts.
+Preserve download/delete safety and original stable. Site16 needs safe unused-old
+APK chunk cleanup (refs+backup); do not remove current72/manual69/previous71.
+
 ## Audiobook4.2.72 опубликована (2026-10-30)
 
 Текущая задача завершена. Скачивание коллекций и надёжное удаление аудиофайлов,

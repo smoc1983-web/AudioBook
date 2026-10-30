@@ -1,0 +1,35 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuite name="com.audiobookdownloader.CollectionSeriesTest" tests="20" failures="1" errors="0" skipped="0" time="35.126" timestamp="2026-10-30T04:49:06" hostname="localhost">
+  <properties>
+    <property name="device" value="emulator-5554 - 6.0" />
+    <property name="flavor" value="" />
+    <property name="project" value=":app" />
+  </properties>
+  <testcase name="continuationButtonExpandsInlineWithoutOpeningPlayerAndCanCollapse" classname="com.audiobookdownloader.CollectionSeriesTest" time="2.833" />
+  <testcase name="collectionMenuUsesNamedActionsWithoutDeletingAudioOrOpeningPlayer" classname="com.audiobookdownloader.CollectionSeriesTest" time="2.209" />
+  <testcase name="shelfShowsCachedTextAudioAndOwnedVolumeInlineButNeverUnrelatedFeed" classname="com.audiobookdownloader.CollectionSeriesTest" time="3.087" />
+  <testcase name="collectionDoesNotHideBooksAfterTheFifthAndScrollDoesNotOpenPlayer" classname="com.audiobookdownloader.CollectionSeriesTest" time="1.944" />
+  <testcase name="removedDuringReferenceFetchCannotCreateAudioNotice" classname="com.audiobookdownloader.OfficialSeriesTest" time="1.132" />
+  <testcase name="bothProvidersRefreshTextBaselineFutureVolumesFailureAndPartialLists" classname="com.audiobookdownloader.OfficialSeriesTest" time="1.192" />
+  <testcase name="conflictingSeriesOrOrdersDoNotCreateTextAlerts" classname="com.audiobookdownloader.OfficialSeriesTest" time="0.869" />
+  <testcase name="officialPanelGroupsFormatsAndCanFilterTextAndAudio" classname="com.audiobookdownloader.OfficialSeriesTest" time="2.66" />
+  <testcase name="watchingTwoVolumesSharesBaselineAndMigratesOldTextStateSilently" classname="com.audiobookdownloader.OfficialSeriesTest" time="0.999" />
+  <testcase name="litresAudioFollowsOnlyTheCollectedDirectSeries" classname="com.audiobookdownloader.OfficialSeriesTest" time="1.086" />
+  <testcase name="explicitSourceCycleWorksWhenReferenceSearchHasNoMatch" classname="com.audiobookdownloader.SeriesRecoveryTest" time="0.162" />
+  <testcase name="legacyOriginRecoveryShowsExistingSecondVolumeAndExcludesAnotherDirectSeries" classname="com.audiobookdownloader.SeriesRecoveryTest" time="0.812" />
+  <testcase name="serializesBooksSkipsOwnedAndPreviewAndKeepsPlayerSelection" classname="com.audiobookdownloader.CollectionDownloadTest" time="2.645" />
+  <testcase name="closingStopsFutureBooksButDoesNotCancelAnAcceptedDownload" classname="com.audiobookdownloader.CollectionDownloadTest" time="1.971" />
+  <testcase name="downloadHasDetailsAndDoesNotChangeTheCurrentPlayer" classname="com.audiobookdownloader.EditionDownloadTest" time="1.294" />
+  <testcase name="parserUsesTheSelectedEditionAndRejectsMissingAudio" classname="com.audiobookdownloader.EditionDownloadTest" time="0.667" />
+  <testcase name="alreadyDownloadedChaptersAreRecognizedAndPartialSizeIsNotATotal" classname="com.audiobookdownloader.EditionDownloadTest" time="1.109" />
+  <testcase name="explicitExcerptCannotBeDownloadedEvenWithKnownSize" classname="com.audiobookdownloader.EditionDownloadTest" time="0.787" />
+  <testcase name="noCollectionsNeverFetchesGeneralFeedEvenWithOldOptIn" classname="com.audiobookdownloader.CollectionNotificationTest" time="0.056" />
+  <testcase name="legacyGlobalAndUnrelatedAlertsAreCancelledWhileCollectionAlertAndPlayerRemain" classname="com.audiobookdownloader.CollectionNotificationTest" time="5.342">
+    <failure>java.lang.AssertionError: Notification state did not settle
+at org.junit.Assert.fail(Assert.java:89)
+at org.junit.Assert.assertTrue(Assert.java:42)
+at com.audiobookdownloader.CollectionNotificationTest.awaitState(CollectionNotificationTest.kt:27)
+at com.audiobookdownloader.CollectionNotificationTest.legacyGlobalAndUnrelatedAlertsAreCancelledWhileCollectionAlertAndPlayerRemain(CollectionNotificationTest.kt:49)
+</failure>
+  </testcase>
+</testsuite>

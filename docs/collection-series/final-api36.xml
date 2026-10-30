@@ -1,0 +1,28 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuite name="com.audiobookdownloader.CollectionSeriesTest" tests="20" failures="0" errors="0" skipped="0" time="8.2" timestamp="2026-10-30T04:56:03" hostname="localhost">
+  <properties>
+    <property name="device" value="emulator-5554 - 16" />
+    <property name="flavor" value="" />
+    <property name="project" value=":app" />
+  </properties>
+  <testcase name="continuationButtonExpandsInlineWithoutOpeningPlayerAndCanCollapse" classname="com.audiobookdownloader.CollectionSeriesTest" time="1.044" />
+  <testcase name="collectionMenuUsesNamedActionsWithoutDeletingAudioOrOpeningPlayer" classname="com.audiobookdownloader.CollectionSeriesTest" time="0.673" />
+  <testcase name="shelfShowsCachedTextAudioAndOwnedVolumeInlineButNeverUnrelatedFeed" classname="com.audiobookdownloader.CollectionSeriesTest" time="0.516" />
+  <testcase name="collectionDoesNotHideBooksAfterTheFifthAndScrollDoesNotOpenPlayer" classname="com.audiobookdownloader.CollectionSeriesTest" time="0.279" />
+  <testcase name="removedDuringReferenceFetchCannotCreateAudioNotice" classname="com.audiobookdownloader.OfficialSeriesTest" time="0.341" />
+  <testcase name="bothProvidersRefreshTextBaselineFutureVolumesFailureAndPartialLists" classname="com.audiobookdownloader.OfficialSeriesTest" time="0.509" />
+  <testcase name="conflictingSeriesOrOrdersDoNotCreateTextAlerts" classname="com.audiobookdownloader.OfficialSeriesTest" time="0.309" />
+  <testcase name="officialPanelGroupsFormatsAndCanFilterTextAndAudio" classname="com.audiobookdownloader.OfficialSeriesTest" time="0.435" />
+  <testcase name="watchingTwoVolumesSharesBaselineAndMigratesOldTextStateSilently" classname="com.audiobookdownloader.OfficialSeriesTest" time="0.305" />
+  <testcase name="litresAudioFollowsOnlyTheCollectedDirectSeries" classname="com.audiobookdownloader.OfficialSeriesTest" time="0.415" />
+  <testcase name="explicitSourceCycleWorksWhenReferenceSearchHasNoMatch" classname="com.audiobookdownloader.SeriesRecoveryTest" time="0.056" />
+  <testcase name="legacyOriginRecoveryShowsExistingSecondVolumeAndExcludesAnotherDirectSeries" classname="com.audiobookdownloader.SeriesRecoveryTest" time="0.259" />
+  <testcase name="serializesBooksSkipsOwnedAndPreviewAndKeepsPlayerSelection" classname="com.audiobookdownloader.CollectionDownloadTest" time="1.038" />
+  <testcase name="closingStopsFutureBooksButDoesNotCancelAnAcceptedDownload" classname="com.audiobookdownloader.CollectionDownloadTest" time="0.405" />
+  <testcase name="downloadHasDetailsAndDoesNotChangeTheCurrentPlayer" classname="com.audiobookdownloader.EditionDownloadTest" time="0.23" />
+  <testcase name="parserUsesTheSelectedEditionAndRejectsMissingAudio" classname="com.audiobookdownloader.EditionDownloadTest" time="0.109" />
+  <testcase name="alreadyDownloadedChaptersAreRecognizedAndPartialSizeIsNotATotal" classname="com.audiobookdownloader.EditionDownloadTest" time="0.23" />
+  <testcase name="explicitExcerptCannotBeDownloadedEvenWithKnownSize" classname="com.audiobookdownloader.EditionDownloadTest" time="0.132" />
+  <testcase name="noCollectionsNeverFetchesGeneralFeedEvenWithOldOptIn" classname="com.audiobookdownloader.CollectionNotificationTest" time="0.032" />
+  <testcase name="legacyGlobalAndUnrelatedAlertsAreCancelledWhileCollectionAlertAndPlayerRemain" classname="com.audiobookdownloader.CollectionNotificationTest" time="0.124" />
+</testsuite>

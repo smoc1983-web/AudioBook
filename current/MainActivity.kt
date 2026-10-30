@@ -10644,11 +10644,114 @@ private fun AbLibraryScreen(data: AbScreenData,actions: AbActions,sync: LibraryS
     }
 }
 
+/** Only the requested book loads series data; scrolling closed cards performs no reference requests. */
+@Composable
+internal fun AbCollectionBookCard(ref:BookRef,local:LibraryBook?,theme:AbTheme,expanded:Boolean,
+    onOpen:()->Unit,onMenu:()->Unit,onContinuations:()->Unit) {
+    Column(Modifier.width(152.dp),verticalArrangement=Arrangement.spacedBy(4.dp)) {
+        Box {
+            AbPoster(ref,local,theme,null,Modifier.fillMaxWidth(),onOpen)
+            AbIconButton(AbIcon.MORE,"Действия: ${ref.title}",theme,
+                Modifier.align(Alignment.TopEnd).padding(7.dp).abGlass(theme,16,opaque=true),onClick=onMenu)
+        }
+        AbButton(if(expanded) "Скрыть" else "Продолжения",theme,onClick=onContinuations)
+    }
+}
+
+@Composable
+internal fun AbCollectionShelf(shelf:Shelf,books:List<LibraryBook>,prefs:android.content.SharedPreferences,
+    version:Int,theme:AbTheme,onOpen:(BookRef)->Unit,onMenu:(BookRef)->Unit,onSelect:()->Unit,
+    onDownload:()->Unit,onRename:()->Unit,onDelete:()->Unit) {
+    var expanded by androidx.compose.runtime.saveable.rememberSaveable(shelf.name){mutableStateOf<String?>(null)}
+    var menu by remember(shelf.name){mutableStateOf(false)}
+    val chosen=shelf.books.firstOrNull{it.title==expanded}
+    Column(Modifier.fillMaxWidth().abGlass(theme,18).padding(14.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
+        Row(verticalAlignment=Alignment.CenterVertically) {
+            Column(Modifier.weight(1f).clickable(onClick=onSelect).padding(vertical=8.dp)) {
+                Text(shelf.name,color=theme.text,fontSize=18.sp,fontWeight=FontWeight.SemiBold)
+                Text("Книг: ${shelf.books.size} · открыть коллекцию",color=theme.muted,fontSize=12.sp)
+            }
+            AbIconButton(AbIcon.MORE,"Меню коллекции: ${shelf.name}",theme){menu=true}
+        }
+        if(shelf.books.isNotEmpty()) {
+            AbButton("Скачать книги",theme,onClick=onDownload)
+            androidx.compose.foundation.lazy.LazyRow(Modifier.semantics{contentDescription="Книги коллекции: ${shelf.name}"},horizontalArrangement=Arrangement.spacedBy(9.dp)) {
+                itemsIndexed(shelf.books,key={i,ref->"$i:${ref.title}"}) {_,ref ->
+                    AbCollectionBookCard(ref,abFindLocal(books,ref.title),theme,chosen?.title==ref.title,
+                        {onOpen(ref)},{onMenu(ref)},{expanded=if(expanded==ref.title)null else ref.title})
+                }
+            }
+        }
+        if(chosen!=null)key(chosen.title,chosen.url) {
+            AbCollectionContinuations(chosen,books,prefs,version,theme,onOpen)
+        }
+    }
+    if(menu)AbDialog("Коллекция «${shelf.name}»",theme,{menu=false}) {
+        AbButton("Открыть коллекцию",theme){menu=false;onSelect()}
+        AbButton("Переименовать",theme){menu=false;onRename()}
+        AbButton("Удалить коллекцию",theme){menu=false;onDelete()}
+        Text("Удаление коллекции не удаляет скачанные книги.",color=theme.muted,fontSize=12.sp)
+    }
+}
+
+@Composable
+internal fun AbCollectionContinuations(ref:BookRef,books:List<LibraryBook>,prefs:android.content.SharedPreferences,
+    version:Int,theme:AbTheme,onOpen:(BookRef)->Unit) {
+    val context=androidx.compose.ui.platform.LocalContext.current.applicationContext
+    val store=remember(context){ContinuationStore(context)}
+    var revision by remember{mutableStateOf(0)}
+    DisposableEffect(store) {
+        val listener=android.content.SharedPreferences.OnSharedPreferenceChangeListener{_,_->revision++}
+        store.preferences.registerOnSharedPreferenceChangeListener(listener)
+        onDispose{store.preferences.unregisterOnSharedPreferenceChangeListener(listener)}
+    }
+    val metadata=remember(ref.title,version){abStoredCatalog(prefs,ref.title)}
+    var available by remember(ref.title,ref.url){mutableStateOf(emptyList<ContinuationNotice>())}
+    LaunchedEffect(ref.title,ref.url,version,revision) {
+        available=withContext(Dispatchers.IO) {
+            // Display is independent of notification opt-in/muting, but bound to this collected work.
+            val seeds=loadShelves(prefs).flatMap{it.books}.filter{SeriesAuthorityRules.title(it.title)==SeriesAuthorityRules.title(ref.title)}
+                .map{ContinuationStore.hash(it.url.ifBlank{SearchBookIndex.normal(it.title)})}.toSet()
+            val policy=ContinuationPolicy(AB_EXTRA_SOURCE_JSON)
+            val verified=metadata.cycles.filter{it.referenceUrl.isNotBlank()}.map{SeriesAuthorityRules.series(it.title)}.toSet()
+            store.available().filter{it.seed in seeds&&policy.book(it.url)&&
+                (verified.isEmpty()||SeriesAuthorityRules.series(it.series) in verified)&&
+                !SeriesAuthorityRules.sameTitle(ref.title,it.title,it.series)&&
+                (metadata.author.isBlank()||SeriesAuthorityRules.author(metadata.author)==SeriesAuthorityRules.author(it.author))}.distinctBy{it.url}
+        }
+    }
+    val local=remember(books,ref.title,metadata,version) {
+        val names=LocalSeriesRules.siblings(ref.title,books.map{it.title})
+        books.filter{!SeriesAuthorityRules.sameTitle(ref.title,it.title,"")&&it.title in names}.filter {
+            val author=abStoredCatalog(prefs,it.title).author
+            metadata.author.isBlank()||author.isBlank()||SeriesAuthorityRules.author(metadata.author)==SeriesAuthorityRules.author(author)
+        }
+    }
+    Column(Modifier.fillMaxWidth().abGlass(theme,16,field=true).padding(12.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
+        Text("Продолжения · ${ref.title}",color=theme.text,fontSize=16.sp,fontWeight=FontWeight.SemiBold)
+        if(local.isNotEmpty()) {
+            Text("Похожие названия на устройстве",color=theme.accent,fontSize=13.sp)
+            Text("Совпадение названия не подтверждает порядок томов. Сверенные сведения показаны ниже.",color=theme.muted,fontSize=11.sp)
+            var shown by remember(ref.title){mutableStateOf(5)}
+            local.take(shown).forEach {book ->AbButton(book.title+" · на устройстве",theme){onOpen(bookRefFor(prefs,book.title))}}
+            if(shown<local.size)AbButton("Ещё книги на устройстве",theme){shown+=5}
+        }
+        if(available.isNotEmpty()) {
+            Text("Другие книги серии в аудиоисточнике",color=theme.accent,fontSize=13.sp)
+            var shown by remember(ref.title,ref.url){mutableStateOf(5)}
+            available.take(shown).forEach{book ->AbButton(book.title,theme){onOpen(BookRef(book.title,book.url,""))}}
+            if(shown<available.size)AbButton("Ещё книги источника",theme){shown+=5}
+        }
+        AbOfficialSeriesPanel(metadata.title,metadata.author,prefs,theme,compact=true)
+    }
+}
+
 @Composable
 private fun AbCollectionsScreen(data: AbScreenData,actions: AbActions,books: List<LibraryBook>,
     prefs: android.content.SharedPreferences,theme: AbTheme,onMenu:(BookRef)->Unit) {
     val context=androidx.compose.ui.platform.LocalContext.current
     var continuationSettings by remember {mutableStateOf(false)}
+    var management by remember {mutableStateOf(false)}
     if(continuationSettings) AbDialog("Продолжения",theme,{continuationSettings=false}) {
         AbContinuationSettings(theme){ref -> continuationSettings=false;actions.openRef(ref)}
     }
@@ -10668,48 +10771,43 @@ private fun AbCollectionsScreen(data: AbScreenData,actions: AbActions,books: Lis
                 if(selected!=null) AbIconButton(AbIcon.BACK,"Все коллекции",theme,onClick={selectedShelf=null})
                 Text(selected?.name ?: "Мои коллекции",color=theme.text,fontSize=25.sp,fontWeight=FontWeight.Bold,
                     modifier=Modifier.weight(1f))
-                AbIconButton(AbIcon.PLUS,"Создать коллекцию",theme) {name="";oldName=null;editing=true}
+                AbIconButton(AbIcon.MORE,"Управление коллекциями",theme) {management=true}
             }
-            Text("Собирайте книги на своих полках",color=theme.muted,fontSize=13.sp,modifier=Modifier.padding(top=8.dp))
-            AbButton("Перенести коллекции",theme){context.startActivity(Intent(context,CollectionTransferActivity::class.java))}
-            AbButton("Продолжения книг в коллекциях",theme){continuationSettings=true}
-            val downloadable=selected?.books ?: shelves.flatMap{it.books}
-            if(downloadable.isNotEmpty())AbButton(if(selected==null) "Скачать книги из всех коллекций" else "Скачать книги",theme) {
-                downloadBooks=downloadable.toList()
-            }
+            Text("Нажмите «Продолжения» у книги, чтобы посмотреть другие тома здесь.",color=theme.muted,fontSize=13.sp,modifier=Modifier.padding(top=8.dp))
+            AbButton("Новая коллекция",theme) {name="";oldName=null;editing=true}
+            if(selected!=null && selected.books.isNotEmpty())AbButton("Скачать книги",theme){downloadBooks=selected.books.toList()}
+
         }
         if(selected==null) {
             if(shelves.isEmpty()) item {
-                AbButton("Создать первую коллекцию",theme,primary=true) {name="";oldName=null;editing=true}
+                Text("Коллекций пока нет. Нажмите «Новая коллекция», затем добавьте книги через меню карточки.",color=theme.muted,fontSize=14.sp)
             }
             itemsIndexed(shelves,key={_,shelf->shelf.name}) {_,shelf ->
-                Column(Modifier.fillMaxWidth().abGlass(theme,18).padding(14.dp)) {
-                    Row(verticalAlignment=Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f).clickable{selectedShelf=shelf.name}) {
-                            Text(shelf.name,color=theme.text,fontSize=18.sp,fontWeight=FontWeight.SemiBold)
-                            Text("${shelf.books.size} книг",color=theme.muted,fontSize=12.sp)
-                        }
-                        AbIconButton(AbIcon.SETTINGS,"Переименовать коллекцию",theme) {oldName=shelf.name;name=shelf.name;editing=true}
-                        AbIconButton(AbIcon.CLOSE,"Удалить коллекцию",theme) {deleting=shelf.name}
-                    }
-                    if(shelf.books.isNotEmpty())AbButton("Скачать книги",theme){downloadBooks=shelf.books.toList()}
-                    if(shelf.books.isNotEmpty()) Row(Modifier.padding(top=10.dp).horizontalScroll(rememberScrollState()),
-                        horizontalArrangement=Arrangement.spacedBy(9.dp)) {
-                        shelf.books.take(5).forEach {ref -> AbPoster(ref,abFindLocal(books,ref.title),theme,null,
-                            Modifier.width(104.dp)){actions.openRef(ref)} }
-                    }
-                }
+                AbCollectionShelf(shelf,books,prefs,data.version,theme,actions.openRef,onMenu,
+                    {selectedShelf=shelf.name},{downloadBooks=shelf.books.toList()},
+                    {oldName=shelf.name;name=shelf.name;editing=true},{deleting=shelf.name})
             }
         } else {
             itemsIndexed(selected.books,key={index,ref->"$index:${ref.title}"}) {_,ref ->
+                var expanded by androidx.compose.runtime.saveable.rememberSaveable(selected.name,ref.title){mutableStateOf(false)}
                 AbBookRow(ref,abFindLocal(books,ref.title),"В коллекции",theme,
                     onClick={actions.openRef(ref)},onMenu={onMenu(ref)})
-                Text("Убрать из коллекции",color=theme.muted,fontSize=11.sp,
-                    modifier=Modifier.clickable{toggleShelfBook(prefs,selected.name,ref)}.padding(8.dp))
+                AbButton(if(expanded) "Скрыть продолжения" else "Продолжения",theme){expanded=!expanded}
+                if(expanded)AbCollectionContinuations(ref,books,prefs,data.version,theme,actions.openRef)
+                AbButton("Убрать из этой коллекции",theme){toggleShelfBook(prefs,selected.name,ref)}
             }
             if(selected.books.isEmpty()) item {
-                Text("Добавьте книги через меню карточки → «В коллекцию».",color=theme.muted,fontSize=14.sp)
+                Text("Добавьте книги через меню карточки → «Добавить в коллекцию».",color=theme.muted,fontSize=14.sp)
             }
+        }
+    }
+    if(management)AbDialog("Коллекции",theme,{management=false}) {
+        AbButton("Настроить уведомления о продолжениях",theme){management=false;continuationSettings=true}
+        AbButton("Скачать книги из всех коллекций",theme,enabled=shelves.any{it.books.isNotEmpty()}) {
+            management=false;downloadBooks=shelves.flatMap{it.books}
+        }
+        AbButton("Перенести коллекции из старого приложения",theme){
+            management=false;context.startActivity(Intent(context,CollectionTransferActivity::class.java))
         }
     }
     if(editing) AbDialog(if(oldName==null) "Новая коллекция" else "Название коллекции",theme,{editing=false}) {
@@ -11563,6 +11661,7 @@ private fun AbBookMenu(ref: BookRef,local: LibraryBook?,prefs: android.content.S
     downloads:List<AbDownloadItem>,onShelf:()->Unit,dismiss:()->Unit) {
     val context=androidx.compose.ui.platform.LocalContext.current
     var confirmDelete by remember(ref.title){mutableStateOf(false)}
+    var moreActions by remember(ref.title){mutableStateOf(false)}
     var deleting by remember(ref.title){mutableStateOf(false)}
     var deleteMessage by remember(ref.title){mutableStateOf("")}
     val favorite=remember(version,ref.title) {loadBookRefs(prefs,FAVORITES_KEY).any{it.title==ref.title}}
@@ -11589,9 +11688,11 @@ private fun AbBookMenu(ref: BookRef,local: LibraryBook?,prefs: android.content.S
             }
             AbButton("Отмена",theme,enabled=!deleting) {confirmDelete=false;deleteMessage=""}
         } else {
-            AbButton("Удалить скачанные файлы",theme){confirmDelete=true}
+            AbButton("Слушать книгу",theme,primary=true){dismiss();actions.openRef(ref)}
             AbMenuEditionDownload(ref,local,index,downloads,theme,actions.downloadEdition)
-            AbButton("Открыть книгу",theme,primary=true){dismiss();actions.openRef(ref)}
+            AbButton("Добавить в коллекцию",theme,onClick=onShelf)
+            AbButton(if(moreActions) "Скрыть другие действия" else "Другие действия",theme){moreActions=!moreActions}
+            if(moreActions) {
             AbButton(if(favorite) "Убрать из избранного" else "В избранное",theme){toggleFavorite(prefs,ref)}
             AbButton(if(queue.contains(queueTitle)) "Убрать из очереди" else "В очередь",theme,enabled=local!=null) {
                 saveQueue(prefs,if(queue.contains(queueTitle)) queue.filter{it!=queueTitle} else queue+queueTitle)
@@ -11612,10 +11713,11 @@ private fun AbBookMenu(ref: BookRef,local: LibraryBook?,prefs: android.content.S
                     }
                 }
             }
-            AbButton("В коллекцию",theme,onClick=onShelf)
-            if(ref.url.isNotBlank()) AbButton("Открыть источник",theme) {
+            if(ref.url.isNotBlank()) AbButton("Открыть страницу книги на сайте",theme) {
                 dismiss();actions.openSite(BookLink(ref.title,ref.url,ref.cover),ref.url)
             }
+            }
+            AbButton("Удалить скачанные файлы",theme){confirmDelete=true}
         }
     }
 }
@@ -12780,7 +12882,7 @@ private fun AbSeriesBlock(cycles: List<BookCycle>,theme: AbTheme,actions: AbActi
 }
 
 @Composable
-internal fun AbOfficialSeriesPanel(title:String,author:String,prefs:android.content.SharedPreferences,theme:AbTheme) {
+internal fun AbOfficialSeriesPanel(title:String,author:String,prefs:android.content.SharedPreferences,theme:AbTheme,compact:Boolean=false) {
     val context=androidx.compose.ui.platform.LocalContext.current.applicationContext
     val store=remember(context){OfficialSeriesStore(context)}
     var revision by remember{mutableStateOf(0)}
@@ -12789,6 +12891,7 @@ internal fun AbOfficialSeriesPanel(title:String,author:String,prefs:android.cont
     var failure by remember(title,author){mutableStateOf("")}
     var filter by androidx.compose.runtime.saveable.rememberSaveable(title,author){mutableStateOf(0)}
     var scope by androidx.compose.runtime.saveable.rememberSaveable(title,author){mutableStateOf(0)}
+    var details by remember(title,author){mutableStateOf(false)}
     DisposableEffect(store){val listener=android.content.SharedPreferences.OnSharedPreferenceChangeListener{_,_->revision++}
         store.preferences.registerOnSharedPreferenceChangeListener(listener)
         onDispose{store.preferences.unregisterOnSharedPreferenceChangeListener(listener)}}
@@ -12810,14 +12913,18 @@ internal fun AbOfficialSeriesPanel(title:String,author:String,prefs:android.cont
         if(failure.isNotBlank())Text(failure,color=theme.muted,fontSize=12.sp)
         val current=snapshot?.takeIf{SeriesAuthorityRules.sameTitle(title,it.title,"")}
         if(current!=null) {
-            current.sources.forEach{s->
+            if(compact&&current.sources.any{it.error.isNotBlank()})
+                Text("Часть справочников недоступна. Сохранённые сведения доступны; подробности — ниже.",color=theme.muted,fontSize=11.sp)
+            if(!compact||details)current.sources.forEach{s->
                 val checked=if(s.checked>0)java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.SHORT,java.text.DateFormat.SHORT).format(java.util.Date(s.checked)) else "успешной сверки ещё нет"
                 Text(s.provider+" · "+checked+if(s.error.isBlank())"" else "\n"+s.error,color=theme.muted,fontSize=11.sp)
             }
             if(current.conflict)Text("Справочники указывают разные прямые серии. Они показаны раздельно; уведомления по противоречивым сведениям не создаются.",color=theme.accent,fontSize=12.sp)
             if(current.orderConflict)Text("Нумерация томов различается или неоднозначна. Книги доступны в каталоге; уведомления по их порядку приостановлены.",color=theme.accent,fontSize=12.sp)
-            AbOptions(listOf("Все форматы","Текст","Аудио"),filter,theme){filter=it}
-            AbOptions(listOf("Продолжения","Вся серия"),scope,theme){scope=it}
+            if(!compact||details) {
+                AbOptions(listOf("Все форматы","Текст","Аудио"),filter,theme){filter=it}
+                AbOptions(listOf("Продолжения","Вся серия"),scope,theme){scope=it}
+            }
             val grouped=remember(current,filter,scope) {
                 current.sources.flatMap{s->s.books.filter{b->
                     (filter==0||b.format==if(filter==1)"text" else "audio")&&
@@ -12827,7 +12934,7 @@ internal fun AbOfficialSeriesPanel(title:String,author:String,prefs:android.cont
                     .values.sortedWith(compareBy<List<OfficialEdition>>{it.first().series}.thenBy{it.mapNotNull{b->b.order}.minOrNull() ?: Double.MAX_VALUE})
             }
             if(grouped.isEmpty())Text(if(running)"Загружаем сведения…" else "Подтверждённых продолжений для выбранного формата пока не найдено. Можно открыть всю серию или повторить сверку.",color=theme.muted,fontSize=12.sp)
-            var shown by androidx.compose.runtime.saveable.rememberSaveable(title,filter,scope){mutableStateOf(20)}
+            var shown by androidx.compose.runtime.saveable.rememberSaveable(title,filter,scope){mutableStateOf(if(compact)5 else 20)}
             grouped.take(shown).forEach{editions->
                 val book=editions.first();val orders=editions.mapNotNull{it.order}.distinct()
                 Column(Modifier.fillMaxWidth().abGlass(theme,13,field=true).padding(10.dp),verticalArrangement=Arrangement.spacedBy(6.dp)) {
@@ -12846,7 +12953,8 @@ internal fun AbOfficialSeriesPanel(title:String,author:String,prefs:android.cont
                     }
                 }
             }
-            if(shown<grouped.size)AbButton("Показать ещё · ${minOf(shown,grouped.size)} из ${grouped.size}",theme){shown+=20}
+            if(shown<grouped.size)AbButton("Показать ещё · ${minOf(shown,grouped.size)} из ${grouped.size}",theme){shown+=if(compact)5 else 20}
+            if(compact)AbButton(if(details) "Скрыть подробности" else "Форматы и сведения о сверке",theme){details=!details}
         }else if(!running)Text("Сведения пока не сохранены. Нажмите сверку; при недоступности сайтов аудиокниги на устройстве продолжат работать.",color=theme.muted,fontSize=12.sp)
     }
 }
