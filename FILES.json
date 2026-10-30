@@ -1474,8 +1474,8 @@
     },
     {
       "path": "docs/COLLECTION-SERIES.md",
-      "bytes": 3124,
-      "sha256": "417af5a8dc6390104092f9ce0cc314366a1c641d150e733ac9cfc94aa291bb5f"
+      "bytes": 3418,
+      "sha256": "9cc5cb4ffc2751993aa8493e132621f52a4a6f5f42220096221b3effc61ea665"
     },
     {
       "path": "docs/COLLECTION-TRANSFER.md",
@@ -1494,8 +1494,8 @@
     },
     {
       "path": "docs/HANDOFF.md",
-      "bytes": 80182,
-      "sha256": "39ffd53ecd3d4ddf1524e20b351d89d2d70161114c37cd7d0523ea32761b0f93"
+      "bytes": 80366,
+      "sha256": "090c38548c95e2a7b02de12f4dc2a50f166d3818aee2f7f10cc789952b7f5c1c"
     },
     {
       "path": "docs/INSTALL.md",
@@ -1898,9 +1898,54 @@
       "sha256": "fb706a8b0d0b4fecf6aaa7af6cfa54e95d2315a20a00f6f808bae3829fd213e7"
     },
     {
+      "path": "docs/collection-series/final-api23.json",
+      "bytes": 4820,
+      "sha256": "79c19399f20a8c742a683d6a530e287367b3eeae333a1efbb805ff22e5face44"
+    },
+    {
+      "path": "docs/collection-series/final-api23.xml",
+      "bytes": 3454,
+      "sha256": "d134c470c02b81305a5c148e08280494c157ba6abca6bae2952a0533ca15c547"
+    },
+    {
+      "path": "docs/collection-series/final-api36.json",
+      "bytes": 4820,
+      "sha256": "b3eb90bfe645bd09309eaf9b1077b432b9365475a09f49143aebbddcc6ba3438"
+    },
+    {
+      "path": "docs/collection-series/final-api36.xml",
+      "bytes": 3450,
+      "sha256": "bc19397ad5a96e9787d793be06e8594411062a8ca6079a0ad4dee5828dad57a9"
+    },
+    {
+      "path": "docs/collection-series/green1-api23.json",
+      "bytes": 4879,
+      "sha256": "8828e5d70ef46f40fb367c6e3351e6a5c3aeaf9c58e02378a47f8f9e865b755e"
+    },
+    {
+      "path": "docs/collection-series/green1-api23.xml",
+      "bytes": 3906,
+      "sha256": "a55e70f27b6528e26a3ab0596428db47703938ca62704589390cf6818a076614"
+    },
+    {
+      "path": "docs/collection-series/green1-api36.json",
+      "bytes": 4879,
+      "sha256": "be723fa1be6df67a375d83fa98f930c93062f2ff7290657c9447a6761d2c85a5"
+    },
+    {
+      "path": "docs/collection-series/green1-api36.xml",
+      "bytes": 3906,
+      "sha256": "2e31c8f74c85e45cdd4b4bdf68a98e8d5c8e5afe89cde2a7be6d4ef157414f2e"
+    },
+    {
       "path": "docs/collection-series/mutator.log",
       "bytes": 27,
       "sha256": "23b1a985013505bb2c040aabb9af6fbd28fa9b38a32470a2a96e5ef0bcbd4020"
+    },
+    {
+      "path": "docs/collection-series/native-verification.json",
+      "bytes": 458,
+      "sha256": "9875ac01d01ba13ce1e2761f517a715bf974968c9434a2c4c7de0bc09abe23e3"
     },
     {
       "path": "docs/collection-series/red-api36.xml",

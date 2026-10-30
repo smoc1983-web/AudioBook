@@ -1,0 +1,24 @@
+{
+  "run": 41005118622,
+  "source": "5a5d17acb690941ab2fba6c3acd881b63d47e2ae",
+  "tree": "365195c99e20681378a655c892c2e2b2bf8b9f17",
+  "conclusion": "success",
+  "apis": [
+    {
+      "api": 23,
+      "tests": 20,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "api": 36,
+      "tests": 20,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  ],
+  "physicalPhone": false,
+  "kotlinMetrics": "unsupported/N/A"
+}

@@ -1,0 +1,169 @@
+{
+  "api": 23,
+  "tests": 20,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "cases": [
+    {
+      "class": "com.audiobookdownloader.CollectionSeriesTest",
+      "name": "continuationButtonExpandsInlineWithoutOpeningPlayerAndCanCollapse",
+      "skipped": false,
+      "failures": 0,
+      "errors": 0,
+      "message": ""
+    },
+    {
+      "class": "com.audiobookdownloader.CollectionSeriesTest",
+      "name": "collectionMenuUsesNamedActionsWithoutDeletingAudioOrOpeningPlayer",
+      "skipped": false,
+      "failures": 0,
+      "errors": 0,
+      "message": ""
+    },
+    {
+      "class": "com.audiobookdownloader.CollectionSeriesTest",
+      "name": "shelfShowsCachedTextAudioAndOwnedVolumeInlineButNeverUnrelatedFeed",
+      "skipped": false,
+      "failures": 0,
+      "errors": 0,
+      "message": ""
+    },
+    {
+      "class": "com.audiobookdownloader.CollectionSeriesTest",
+      "name": "collectionDoesNotHideBooksAfterTheFifthAndScrollDoesNotOpenPlayer",
+      "skipped": false,
+      "failures": 0,
+      "errors": 0,
+      "message": ""
+    },
+    {
+      "class": "com.audiobookdownloader.OfficialSeriesTest",
+      "name": "removedDuringReferenceFetchCannotCreateAudioNotice",
+      "skipped": false,
+      "failures": 0,
+      "errors": 0,
+      "message": ""
+    },
+    {
+      "class": "com.audiobookdownloader.OfficialSeriesTest",
+      "name": "bothProvidersRefreshTextBaselineFutureVolumesFailureAndPartialLists",
+      "skipped": false,
+      "failures": 0,
+      "errors": 0,
+      "message": ""
+    },
+    {
+      "class": "com.audiobookdownloader.OfficialSeriesTest",
+      "name": "conflictingSeriesOrOrdersDoNotCreateTextAlerts",
+      "skipped": false,
+      "failures": 0,
+      "errors": 0,
+      "message": ""
+    },
+    {
+      "class": "com.audiobookdownloader.OfficialSeriesTest",
+      "name": "officialPanelGroupsFormatsAndCanFilterTextAndAudio",
+      "skipped": false,
+      "failures": 0,
+      "errors": 0,
+      "message": ""
+    },
+    {
+      "class": "com.audiobookdownloader.OfficialSeriesTest",
+      "name": "watchingTwoVolumesSharesBaselineAndMigratesOldTextStateSilently",
+      "skipped": false,
+      "failures": 0,
+      "errors": 0,
+      "message": ""
+    },
+    {
+      "class": "com.audiobookdownloader.OfficialSeriesTest",
+      "name": "litresAudioFollowsOnlyTheCollectedDirectSeries",
+      "skipped": false,
+      "failures": 0,
+      "errors": 0,
+      "message": ""
+    },
+    {
+      "class": "com.audiobookdownloader.SeriesRecoveryTest",
+      "name": "explicitSourceCycleWorksWhenReferenceSearchHasNoMatch",
+      "skipped": false,
+      "failures": 0,
+      "errors": 0,
+      "message": ""
+    },
+    {
+      "class": "com.audiobookdownloader.SeriesRecoveryTest",
+      "name": "legacyOriginRecoveryShowsExistingSecondVolumeAndExcludesAnotherDirectSeries",
+      "skipped": false,
+      "failures": 0,
+      "errors": 0,
+      "message": ""
+    },
+    {
+      "class": "com.audiobookdownloader.CollectionDownloadTest",
+      "name": "serializesBooksSkipsOwnedAndPreviewAndKeepsPlayerSelection",
+      "skipped": false,
+      "failures": 0,
+      "errors": 0,
+      "message": ""
+    },
+    {
+      "class": "com.audiobookdownloader.CollectionDownloadTest",
+      "name": "closingStopsFutureBooksButDoesNotCancelAnAcceptedDownload",
+      "skipped": false,
+      "failures": 0,
+      "errors": 0,
+      "message": ""
+    },
+    {
+      "class": "com.audiobookdownloader.EditionDownloadTest",
+      "name": "downloadHasDetailsAndDoesNotChangeTheCurrentPlayer",
+      "skipped": false,
+      "failures": 0,
+      "errors": 0,
+      "message": ""
+    },
+    {
+      "class": "com.audiobookdownloader.EditionDownloadTest",
+      "name": "parserUsesTheSelectedEditionAndRejectsMissingAudio",
+      "skipped": false,
+      "failures": 0,
+      "errors": 0,
+      "message": ""
+    },
+    {
+      "class": "com.audiobookdownloader.EditionDownloadTest",
+      "name": "alreadyDownloadedChaptersAreRecognizedAndPartialSizeIsNotATotal",
+      "skipped": false,
+      "failures": 0,
+      "errors": 0,
+      "message": ""
+    },
+    {
+      "class": "com.audiobookdownloader.EditionDownloadTest",
+      "name": "explicitExcerptCannotBeDownloadedEvenWithKnownSize",
+      "skipped": false,
+      "failures": 0,
+      "errors": 0,
+      "message": ""
+    },
+    {
+      "class": "com.audiobookdownloader.CollectionNotificationTest",
+      "name": "noCollectionsNeverFetchesGeneralFeedEvenWithOldOptIn",
+      "skipped": false,
+      "failures": 0,
+      "errors": 0,
+      "message": ""
+    },
+    {
+      "class": "com.audiobookdownloader.CollectionNotificationTest",
+      "name": "legacyGlobalAndUnrelatedAlertsAreCancelledWhileCollectionAlertAndPlayerRemain",
+      "skipped": false,
+      "failures": 0,
+      "errors": 0,
+      "message": ""
+    }
+  ]
+}

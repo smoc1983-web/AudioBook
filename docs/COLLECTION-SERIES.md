@@ -39,3 +39,5 @@ changes. Corrected only that unstable precondition to await its independent medi
 notice; kept every final assertion (own alert present, orphan/global absent,
 media retained, history/routes/removal scopes correct). No notification production
 code or assertions of final behavior weakened. Repeat native matrix required.
+
+Final focused run41005118622 on source5a5d17acb690941ab2fba6c3acd881b63d47e2ae passed20/20 cases on each API23 and36, no failures/errors/skips. Actual XML and JSON saved. Next: normal signed build73 and upgrade/data/identity validation before public feed changes. Physical Samsung not tested.

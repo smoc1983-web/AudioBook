@@ -8,6 +8,8 @@ scoped run41003278510 tests old card missing requested control. See
 COLLECTION-SERIES.md. Local implementation uses existing official-series cache,
 strict source seeds, bounded inline panels and LazyRow all shelf books. Await
 red evidence then push/check new implementation on API23/36, then normal build73.
+Final scoped41005118622 succeeded20/20 on each API23/36, source5a5d17acb690941ab2fba6c3acd881b63d47e2ae.
+PR5 ready for normal73; no public73 claim until release/upgrade/site receipts.
 Preserve download/delete safety and original stable. Site16 needs safe unused-old
 APK chunk cleanup (refs+backup); do not remove current72/manual69/previous71.
 
