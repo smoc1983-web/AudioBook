@@ -1,0 +1,30 @@
+name: Inspect old Actions archives
+on:
+  push:
+    branches: ['maintenance/actions-storage-20261030']
+    paths: ['.github/workflows/actions-storage-20261030.yml']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  inventory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: List archive metadata without reading credentials or changing files
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import os,json,urllib.request
+          repo=os.environ['GITHUB_REPOSITORY'];assert repo=='smoc1983-web/AudioBook'
+          rows=[]
+          for page in range(1,100):
+              req=urllib.request.Request(f'https://api.github.com/repos/{repo}/actions/artifacts?per_page=100&page={page}',headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'})
+              with urllib.request.urlopen(req,timeout=30) as r:data=json.load(r)
+              batch=data['artifacts'];rows+=batch
+              if len(batch)<100:break
+          else:raise RuntimeError('Inventory page limit reached')
+          result={'repository':repo,'total':len(rows),'bytes':sum(x['size_in_bytes'] for x in rows),'artifacts':[{'id':x['id'],'name':x['name'],'bytes':x['size_in_bytes'],'created':x['created_at'],'expired':x['expired'],'run':x.get('workflow_run',{}).get('id')} for x in rows]}
+          print('ARCHIVE_INVENTORY='+json.dumps(result,separators=(',',':')))
+          PY
