@@ -1,20 +1,73 @@
-## Active: book descriptions — native passed, signed release pending (2026-10-30)
+## Book descriptions: signed74 verified; public delivery pending (2026-10-30)
 
-User approved ub-mode; do not ask again within this task. PR6, branchfeature/book-description.
-Final native41014370607 on sourcee1cf58ec672b65601a2c98f222528d8a2068136d,
-tree92f991aaa9549c17966436b9f0f4f9a7008f467a:15/15 native onAPI23/36,
-JVM142passed+1optional skip each. PR quality41014583440 success; local parser11/11,
-fresh coverage/Crapper<10/Dryer no>=0.8,3 targeted guard mutations killed.
-Cover and title have separate actions; private cached annotation survives offline
-refresh failure; source recovery cannot close its dialog. See BOOK-DESCRIPTION.md.
+The user approved ub-mode and authorized development/publication. Implementation
+and checks are complete. PR6 merged, compiled8528d13e51db5b8565163ff80921cf21021fa3d6,
+tree96472954858a70fcd38daa4ba0afe8332b3d6f27. Do not rebuild ready74 or ask ub-mode
+again within this continuation. Next normal run74+offset1 would produce75.
+[Release proof](release-4.2.74/verification.json), [work log](BOOK-DESCRIPTION.md).
 
-Execution environment became unavailable (exec tool: No usable execution environment).
-Provider status still said connected; do not treat that as usable filesystem access.
-All code and proof are on GitHub. Next: merge PR6 after current gates, normal signed74
-(run73+offset1), verify actual upgrade/cert/hash, then same public Site17 publication.
-XML artifacts retained; local extraction deferred. Keep feed73 until exact APK and
-deployment verified. Do not expose credentials in Actions/commits to bypass outage.
-Original stable, downloaded audio and ForTanya stay intact.
+Common AbCover opens a cancellable description dialog; poster title has its own
+44dp listen action. Private80-entry/128KiB-per-file cache, source URL/title/author
+identity, atomic writes/striped locks,20s source deadline,20k-character text.
+Offline use and failed refresh preserve text; source recovery doesn't dismiss
+the dialog. Parser prunes recommendations before identity checks, bounds JSON,
+removes scripts/HTML. Unsupported/absent source returns a friendly message.
+Live Bookinfo returned the expected annotation. Audio/public book folders aren't
+written. Existing downloads/deletion/collection-only notices remain unchanged.
+
+Native41014370607:15/15 on API23 and36. Java parser11/11; fresh JaCoCo, all changed
+Java methods CRAP<10, Dryer no>=0.8,3 targeted identity-guard mutants killed.
+Kotlin tools unsupported/N/A. Normal41015767058 success,JVM143/1optional skip per
+variant,Android61/3opt-in skips plus3 separate upgrade phases,Lint0Error/Fatal,
+74Warning/67Info,OSV68modules/complete/0known findings. Exact XML/JSON recovered
+on GitHub in41018566005; not inferred solely from job status.
+Signed release inspection41018067403 verifies actual class definitions/methods,
+notes/no debug fixtures/unchanged permissions,v1+v2 and certificate.
+Actual release73→74 accepted by old updater/opened Android confirmation; adb -r
+preserved control settings,collection,private file/audio SHA. Phone and actual
+Android network APK download/PlayProtect verdict weren't tested.
+
+## Only pending: publish the existing APK via the existing Site
+
+Execution is unavailable: exec returnedNo usable execution environment, despite
+provider statusconnected. The owner asked how to restart; clarified this is this
+chat's infrastructure, no phone changes required. Do not pass Site tokens through
+Actions/commits to work around the outage. All source/proofs remain on GitHub.
+
+1. Obtain usable execution; inspect runtime/network policy. Local checkout before
+   outage wasfeature/book-description/aa7f069,tree92f991aaa9549c17966436b9f0f4f9a7008f467a,
+   while remote main includes later proof commits. Inspect remote; no blind/force push.
+2. Download existing private releasepreview-v100074 or artifact12959607904 (ZIP,
+   32591516bytes, below32MiB tool limit). Extract Audiobook-Preview.apk safely.
+   APK32986390bytes,SHA876b5739e36c41340177534d2766be812cf597959dfa12b24b822ffc0ac01d5d;
+   cert3a4cecd14bb3e983843871766909c3f07b3dc64379800f3e270e4a27d39affb7,
+   packagecom.audiobookdownloader.preview,version100074/name4.2.74,labelAudiobook.
+   A transport hash check is needed; full app tests need not be rerun.
+3. Read Sites skill,get existing projectappgprj_6add1a69b6f481918b5e390c8f413992
+   (owner/public,Site16),mint short-lived credential and open source before edits.
+   Source69c4e28fc4b18d7ee8b8cae98c4a3ff68ec0054a; providercloudflare_artifact,
+   git.chatgpt-team.site. Tokens only hidden stdin/env,never GitHub/logs/files.
+4. tools/package-public-update.py --channel preview with exact74. Add static74
+   notes/update blueprint; keep download.js unless an observed issue requires it.
+   Current raw Site archive230113280bytes. New74 should fit under268435456bytes
+   without deleting older parts; check actual archive. Keep73/72/manual69/71.
+5. Push exact Site source,package matching .openai/hosting.json+dist,save version
+   and deploy returned saved id (expected Site17,do not invent id). Stop terminal
+   deployment polling. Verify metadata and every part/whole SHA with updater73/72
+   headers against exact signed APK. Origin stays unchanged:
+   https://audiobook-smoc1983-updates.amplecoot2048.chatgpt.site
+6. Only after actual success mark public74 in README/AGENTS/HANDOFF and shared memory,
+   clear active task/update release. Proof/hosting-only app commits use[skip ci].
+   Current public feed is still100073; no74parts/metadata deployed yet.
+
+Raw normal artifacts: native12959811878,source12959353887,permission12959433396;
+signed inspection12960596542,combined recovered reports12960153762.
+Audit workflows in audit/book-description-release74 branch and canonical copies
+here are verification only,no app publication/signing key writes.
+Original stablecom.audiobookdownloader and ForTanya untouched. Keep all book files,
+settings,collections; no signing identity change. Before next NEW task ask ub-mode.
+
+## Historical released73 context
 
 ## Audiobook4.2.73 опубликована (2026-10-30)
 

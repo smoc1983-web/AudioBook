@@ -1,0 +1,33 @@
+{
+  "jvmDebug": {
+    "tests": 143,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1
+  },
+  "jvmRelease": {
+    "tests": 143,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1
+  },
+  "android36": {
+    "name": "com.audiobookdownloader.BookDeletionTest",
+    "tests": "61",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "3",
+    "time": "70.248",
+    "timestamp": "2026-10-30T06:53:25",
+    "hostname": "localhost"
+  },
+  "lint": {
+    "Warning": 74,
+    "Information": 67
+  },
+  "osv": {
+    "complete": true,
+    "resolvedModules": 68,
+    "findings": []
+  }
+}

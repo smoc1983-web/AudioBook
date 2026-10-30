@@ -38,3 +38,17 @@ URL must identify this work. Live Bookinfo HTTP200/120091bytes: Сыны гро�
 retained only in scratch, not published as app/user content. Native rerun required.
 
 Final native41014370607 on sourcee1cf58ec672b65601a2c98f222528d8a2068136d succeeded on API23 and36:15 tests started/finished each; JVM142 passed+1optional skip each. Actual completed job logs verified; artifacts12959181462/12959580815 retained. PR source-analysis41014583440 succeeded; targeted Java metrics/mutations recorded separately. The local execution environment became unavailable before XML extraction; all code is on GitHub. Full signed74/upgrade gate can run there; APK inspection and same-Site publication require restored execution access. Public feed remains73 until verified deployment.
+
+Signed build74 normal41015767058 succeeded. Actual release APK independently
+verified in41018067403: package/code/cert/v1+v2/hash, real DEX definitions for parser,
+repository and model, dialog method, notes, no debug fixtures, unchanged permissions.
+The audit helper's first attempt lacked its CLI output flag; corrected without
+changing app/APK. Exact JVM/Android/Lint/OSV/upgrade XML/JSON recovered on GitHub
+in41018566005 without rerunning application tests. JVM143/skip1 each; Android61
+main methods/3opt-in skips and separate upgrade phases; errors0. Release73→74
+preserved settings, collection and audioSHA. No physical-phone claim.
+
+Public delivery remains blocked by unavailable execution. Site16/feed73 unchanged.
+The verified APK74 is available as private release/artifact; do not rebuild or
+rotate keys. Continue only same-Site17 source packaging/deployment and public
+transport checks when execution is usable. See release-4.2.74/verification.json.

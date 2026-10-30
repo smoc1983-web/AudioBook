@@ -1,5 +1,5 @@
 {
-  "revision": "book-description-native-passed-signed74-pending",
+  "revision": "audiobook-4.2.74-signed-verified-public-site-pending",
   "storage": "GitHub export; see releases/ARCHIVE-PARTS.json for three multipart historical ZIPs",
   "files": [
     {
@@ -21,6 +21,11 @@
       "path": ".github/workflows/build-apk.yml",
       "bytes": 8443,
       "sha256": "128dce64f291302288734f15c9c27cac898e6f4bf0d1c5cea7e364de3a2f430c"
+    },
+    {
+      "path": ".github/workflows/collect-description-reports74.yml",
+      "bytes": 3771,
+      "sha256": "dec5a2be77f4917287cd3d7d18dc1ee0c86ed27594445713e752c219d5c0e098"
     },
     {
       "path": ".github/workflows/collection-notices.yml",
@@ -53,19 +58,24 @@
       "sha256": "d6a9c7a57a75aa6f7e283ec49318976217d6416d1543ec7996cdec91cfa68ac3"
     },
     {
+      "path": ".github/workflows/verify-description-release74.yml",
+      "bytes": 5359,
+      "sha256": "97de577dfdb87ad08556e876091d0b8740525dc8401792ef2adc6a0d9b3f2383"
+    },
+    {
       "path": ".gitignore",
       "bytes": 625,
       "sha256": "feb04dec4fff0f2ee6b39eeb3102d745ea224e70d8c56053800de3c787bf416c"
     },
     {
       "path": "AGENTS.md",
-      "bytes": 3012,
-      "sha256": "2d46a15a46b7b8cb581981a8bb8a88ad20972849969f26a638ed832daef326d3"
+      "bytes": 3289,
+      "sha256": "c387ffc5ebba4a10036ea131c05294d898e666a95a28c2159398d4955b3cd69c"
     },
     {
       "path": "README.md",
-      "bytes": 20637,
-      "sha256": "b5e2221775ab181adb3c055d68dfa45f22318088cef4b8c1f023e82269b7fb50"
+      "bytes": 21679,
+      "sha256": "597a99830c266857af0782b4203fd849250f67cefe87c70b6fd01149fbf5ec44"
     },
     {
       "path": "app/build.gradle.kts",
@@ -1479,8 +1489,8 @@
     },
     {
       "path": "docs/BOOK-DESCRIPTION.md",
-      "bytes": 3190,
-      "sha256": "67ab43fc0625b732b03bddc5c0290a03bbcccf2641f7dba1f699060766802c54"
+      "bytes": 4154,
+      "sha256": "945280bf96b6570b3ad15d4c3a33a4bdb0a18391ebe50610d057d86de0b1daf7"
     },
     {
       "path": "docs/BUILD-4.1.md",
@@ -1524,8 +1534,8 @@
     },
     {
       "path": "docs/HANDOFF.md",
-      "bytes": 82703,
-      "sha256": "3ba9e80c3bc34f391f71328f83d2e064893fcaef4201491f2c86011e6f4e5879"
+      "bytes": 86330,
+      "sha256": "f29493d5e07914601b09a2df978f6969f94ca2dd9e74d48c510f8ec4d2ed3884"
     },
     {
       "path": "docs/INSTALL.md",
@@ -1616,6 +1626,11 @@
       "path": "docs/RELEASE-4.2.73.md",
       "bytes": 3287,
       "sha256": "a51429040c4252d772abe10888f4fe6b6a7c419b0b7b754224809111addbedce"
+    },
+    {
+      "path": "docs/RELEASE-4.2.74.md",
+      "bytes": 2768,
+      "sha256": "28a65046e38abeb8047448caa1980817e902cb011daf1d52cd00b0040a61686e"
     },
     {
       "path": "docs/SCREENSHOT-SOURCES.md",
@@ -2411,6 +2426,36 @@
       "path": "docs/release-4.2.73/verification.json",
       "bytes": 8717,
       "sha256": "7c660e5b9fd97cf5ea573f9cfa3cc94fec093627bac3496a8197645a4830532a"
+    },
+    {
+      "path": "docs/release-4.2.74/apk-audit.json",
+      "bytes": 606,
+      "sha256": "7bd2927f7a855e70bf6b000bd4416d6358be69230544daccd5c881a65f3c20a5"
+    },
+    {
+      "path": "docs/release-4.2.74/installed-upgrade.json",
+      "bytes": 844,
+      "sha256": "e46687872a29321c424b598f1cdee95a7bd4b34d0e697e00357126ee327fa34c"
+    },
+    {
+      "path": "docs/release-4.2.74/manifest.json",
+      "bytes": 388,
+      "sha256": "a1037397d4fb910cf3c781e027d81c65305c4ae112ce8604d375e09a4916bad3"
+    },
+    {
+      "path": "docs/release-4.2.74/recovered-reports.json",
+      "bytes": 2444,
+      "sha256": "0a8377f78f124eb5d3cd98702f03087f9d4b43108fd7e46a4571331cee5375a3"
+    },
+    {
+      "path": "docs/release-4.2.74/test-summary.json",
+      "bytes": 578,
+      "sha256": "e78104e4377180f5aa825fbdf0e8fb8e4a40fcf36e425e7a9275db5ed2fe468d"
+    },
+    {
+      "path": "docs/release-4.2.74/verification.json",
+      "bytes": 5763,
+      "sha256": "f16c9617a3c2fb22cac42676c026dd3e9661ba34deda7a5c99e2f8dcdd461b35"
     },
     {
       "path": "docs/screenshot-source-registry.json",

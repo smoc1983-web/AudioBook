@@ -1,0 +1,18 @@
+{
+  "versionCode": 100074,
+  "packageName": "com.audiobookdownloader.preview",
+  "bytes": 32986390,
+  "sha256": "876b5739e36c41340177534d2766be812cf597959dfa12b24b822ffc0ac01d5d",
+  "certificateSha256": "3a4cecd14bb3e983843871766909c3f07b3dc64379800f3e270e4a27d39affb7",
+  "signaturesV1V2": true,
+  "label": "Audiobook",
+  "debuggable": false,
+  "definedClassCount": 15746,
+  "descriptionClassesPresent": true,
+  "descriptionDialogPresent": true,
+  "debugFixturesAbsent": true,
+  "releaseNotesUpdated": true,
+  "permissionsUnchanged": true,
+  "actualReleaseAssetVerified": true,
+  "physicalPhone": false
+}

@@ -1,0 +1,61 @@
+name: Collect actual release74 report receipts
+on:
+  push:
+    branches: ['audit/book-description-release74']
+    paths: ['.github/workflows/collect-description-reports74.yml']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  reports:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Read existing reports without rerunning application tests
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh run download 41015767058 --repo "$GITHUB_REPOSITORY" --name source-test-reports --dir reports/source
+          gh run download 41015767058 --repo "$GITHUB_REPOSITORY" --name android-startup-test-reports --dir reports/native
+          gh run download 41018067403 --repo "$GITHUB_REPOSITORY" --name description-release74-inspection --dir reports/apk
+      - name: Verify actual XML, upgrade and advisory report contents
+        run: |
+          python3 - <<'PY'
+          import json,xml.etree.ElementTree as E
+          from pathlib import Path
+          root=Path('reports');summary={}
+          for variant in ['Debug','Release']:
+              counts=dict(tests=0,failures=0,errors=0,skipped=0)
+              files=[p for p in (root/'source').rglob('*.xml') if 'test-results/test'+variant+'UnitTest/' in p.as_posix()]
+              assert files
+              for p in files:
+                  r=E.parse(p).getroot()
+                  for key in counts:counts[key]+=int(r.get(key,0))
+              assert counts['tests']==143 and counts['failures']==counts['errors']==0 and counts['skipped']==1
+              summary['jvm'+variant]=counts
+          suites=[]
+          for p in (root/'native').rglob('*.xml'):
+              if 'androidTest-results' in p.as_posix():suites.append(E.parse(p).getroot().attrib)
+          assert suites
+          main=max(suites,key=lambda s:int(s.get('tests',0)))
+          assert int(main['tests'])>=61 and int(main['failures'])==int(main['errors'])==0
+          summary['android36']=main
+          upgrade=json.loads(next((root/'native').rglob('installed-upgrade.json')).read_text())
+          assert upgrade['baselineCode']==100073 and upgrade['newCode']==100074
+          for key in ['oldUpdaterAcceptedNewApk','oldUpdaterOpenedSystemConfirmation','androidPackageReplacementSucceeded','settingsCollectionFolderAndPrivateFilePreserved','certificateUnchanged','privateAudioFileChecksumPreserved']:assert upgrade[key]
+          lint=E.parse(next((root/'source').rglob('lint-results-release.xml'))).getroot();severities={}
+          for row in lint.findall('issue'):severities[row.get('severity')]=severities.get(row.get('severity'),0)+1
+          assert not(severities.get('Error',0) or severities.get('Fatal',0));summary['lint']=severities
+          osv=json.loads(next((root/'source').rglob('dependency-advisories.json')).read_text())
+          assert osv['complete'] and not osv['findings']
+          summary['osv']={'complete':True,'resolvedModules':len(osv['modules']),'findings':[]}
+          audit=json.loads(next((root/'apk').rglob('description-release-verification.json')).read_text())
+          assert audit['actualReleaseAssetVerified'] and audit['versionCode']==100074
+          result={'schema':1,'source':'8528d13e51db5b8565163ff80921cf21021fa3d6','normalRun':41015767058,'signedInspectionRun':41018067403,'tests':summary,'upgrade':upgrade,'apkAudit':audit,'applicationTestsRerun':False,'publicFeedPublished':False,'publicFeedStill':100073}
+          Path('description-release74-full-verification.json').write_text(json.dumps(result,indent=2)+'\n')
+          print(json.dumps(result))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: description-release74-full-verification
+          path: description-release74-full-verification.json

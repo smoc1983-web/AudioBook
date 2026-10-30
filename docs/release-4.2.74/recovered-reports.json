@@ -1,0 +1,82 @@
+{
+  "schema": 1,
+  "source": "8528d13e51db5b8565163ff80921cf21021fa3d6",
+  "normalRun": 41015767058,
+  "signedInspectionRun": 41018067403,
+  "tests": {
+    "jvmDebug": {
+      "tests": 143,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    },
+    "jvmRelease": {
+      "tests": 143,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    },
+    "android36": {
+      "name": "com.audiobookdownloader.BookDeletionTest",
+      "tests": "61",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "3",
+      "time": "70.248",
+      "timestamp": "2026-10-30T06:53:25",
+      "hostname": "localhost"
+    },
+    "lint": {
+      "Warning": 74,
+      "Information": 67
+    },
+    "osv": {
+      "complete": true,
+      "resolvedModules": 68,
+      "findings": []
+    }
+  },
+  "upgrade": {
+    "baselineCode": 100073,
+    "newCode": 100074,
+    "oldUpdaterAcceptedNewApk": true,
+    "oldUpdaterOpenedSystemConfirmation": true,
+    "systemConfirmationCancelledForHostReplacement": true,
+    "releaseBaselineSeededBySameSignedInstrumentation": true,
+    "standalonePlatformProbe": true,
+    "probeHasNoAppImplementationCopies": true,
+    "probeNeedsNoNewRuntimeBridge": true,
+    "androidPackageReplacementSucceeded": true,
+    "label": "Audiobook",
+    "settingsCollectionFolderAndPrivateFilePreserved": true,
+    "certificateUnchanged": true,
+    "installationMethod": "adb install -r in disposable emulator; user will confirm installer on phone",
+    "actualInAppNetworkDownloadTested": false,
+    "physicalPhone": false,
+    "newBuildType": "release",
+    "debuggable": false,
+    "privateAudioFileChecksumPreserved": true,
+    "googlePlayProtectVerdictTested": false
+  },
+  "apkAudit": {
+    "versionCode": 100074,
+    "packageName": "com.audiobookdownloader.preview",
+    "bytes": 32986390,
+    "sha256": "876b5739e36c41340177534d2766be812cf597959dfa12b24b822ffc0ac01d5d",
+    "certificateSha256": "3a4cecd14bb3e983843871766909c3f07b3dc64379800f3e270e4a27d39affb7",
+    "signaturesV1V2": true,
+    "label": "Audiobook",
+    "debuggable": false,
+    "definedClassCount": 15746,
+    "descriptionClassesPresent": true,
+    "descriptionDialogPresent": true,
+    "debugFixturesAbsent": true,
+    "releaseNotesUpdated": true,
+    "permissionsUnchanged": true,
+    "actualReleaseAssetVerified": true,
+    "physicalPhone": false
+  },
+  "applicationTestsRerun": false,
+  "publicFeedPublished": false,
+  "publicFeedStill": 100073
+}
