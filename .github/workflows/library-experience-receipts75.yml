@@ -1,0 +1,55 @@
+name: Inspect actual library release75 failure receipts
+on:
+  push:
+    branches: ['audit/library-experience-receipts75']
+    paths: ['.github/workflows/library-experience-receipts75.yml']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  receipts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Download existing failure evidence only
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh run download 41091566152 --repo "$GITHUB_REPOSITORY" --name android-startup-test-reports --dir reports/native
+          gh run download 41091566152 --repo "$GITHUB_REPOSITORY" --name source-test-reports --dir reports/source
+      - name: Read exact failed method and bounded activity log context
+        run: |
+          python3 - <<'PY'
+          import json,xml.etree.ElementTree as E
+          from pathlib import Path
+          root=Path('reports');result={}
+          for variant in ['Debug','Release']:
+              counts=dict(tests=0,failures=0,errors=0,skipped=0)
+              for p in (root/'source').rglob('*.xml'):
+                  if 'test-results/test'+variant+'UnitTest/' not in p.as_posix():continue
+                  r=E.parse(p).getroot()
+                  for k in counts:counts[k]+=int(r.get(k,0))
+              result['jvm'+variant]=counts
+          failures=[]
+          for p in (root/'native').rglob('*.xml'):
+              if 'androidTest-results' not in p.as_posix():continue
+              r=E.parse(p).getroot()
+              result['nativeSuite']=r.attrib
+              for test in r.iter('testcase'):
+                  f=test.find('failure')
+                  if f is not None:failures.append({'class':test.get('classname'),'name':test.get('name'),'failure':(f.text or '')[:18000]})
+          result['failures']=failures
+          logs=[]
+          for p in (root/'native').rglob('*'):
+              if not p.is_file() or 'logcat' not in p.name.lower():continue
+              lines=p.read_text(errors='replace').splitlines()
+              chosen=[line[:700] for line in lines if 'ReleaseNotesActivity' in line or 'BookDescriptionTest' in line or 'FATAL EXCEPTION' in line or 'ANR in ' in line]
+              logs.append({'file':p.as_posix(),'lines':chosen[-100:]})
+          result['boundedActivityLogs']=logs
+          print(json.dumps(result,ensure_ascii=False,indent=2))
+          Path('release75-failure-receipt.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release75-failure-receipt
+          path: release75-failure-receipt.json
