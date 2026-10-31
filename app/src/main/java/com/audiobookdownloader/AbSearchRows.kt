@@ -27,10 +27,8 @@ internal object AbSearchRows {
             val local=exact[book.title]?.firstOrNull() ?: normalized[localKey(book.title)]?.singleOrNull()
             AbSearchRow(book,BookRef(book.title,book.url,book.coverUrl),local,bookSources(book))
         }
-        if(cycle==null) rows else rows.sortedBy {row->row.book.cycles.firstOrNull{
-            if(cycle.url.isNotBlank() && it.url.isNotBlank())
-                it.url.substringBefore('#').trimEnd('/')==cycle.url.substringBefore('#').trimEnd('/')
-            else it.title.equals(cycle.title,true)
-        }?.order ?: Double.MAX_VALUE}
+        val prepared=AbSearchPresentation.prepare(rows.map{it.book},cycle=cycle)
+        val indexed=rows.associateBy{it.book.url}
+        prepared.mapNotNull{book->indexed[book.url]?.copy(book=book,sources=bookSources(book))}
     }
 }

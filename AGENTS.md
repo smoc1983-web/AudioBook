@@ -42,3 +42,5 @@ Read docs/HANDOFF.md before resuming work. Keep short progress updates during wo
   Existing user instructions and higher-priority instructions take precedence.
 - Before GitHub changes inspect the remote head: this checkout can have different
   local commit IDs with identical trees. Never blindly push or force-push main.
+
+Active task2026-10-31: search ordering/relevance/dedup/cache/reset, per-book collection actions, conditional local deletion, widget4x1/4x2 and compact player. Owner chose WITHOUT ub-mode; ordinary checks required. Do not ask again in this task. Preserve signature/package/library/progress.

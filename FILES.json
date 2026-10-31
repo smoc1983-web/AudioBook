@@ -1,5 +1,5 @@
 {
-  "revision": "audiobook-4.2.78-library-player-release",
+  "revision": "search-collection-layout-first-pass",
   "storage": "GitHub export; see releases/ARCHIVE-PARTS.json for three multipart historical ZIPs",
   "files": [
     {
@@ -44,8 +44,8 @@
     },
     {
       "path": ".github/workflows/library-experience.yml",
-      "bytes": 2674,
-      "sha256": "d3ef000ac50e1c1afd783a7f3203626b847d253f74b209cb52910f5af076b953"
+      "bytes": 2762,
+      "sha256": "447246b5c92054563d4dc1214d1ef2339076e376d090d514b5c272601e0ad80b"
     },
     {
       "path": ".github/workflows/library-file-actions.yml",
@@ -74,8 +74,8 @@
     },
     {
       "path": "AGENTS.md",
-      "bytes": 3216,
-      "sha256": "ec35b9cf2b241d13e68bd88b3cc02d03112270f39666adf0321fb677d3e3018a"
+      "bytes": 3507,
+      "sha256": "13a532f6c984c918484d20a25909cb2fc6d554d7ec265b57455ff8dccce949f4"
     },
     {
       "path": "README.md",
@@ -161,6 +161,11 @@
       "path": "app/src/androidTest/java/com/audiobookdownloader/PermissionSurfaceTest.java",
       "bytes": 1724,
       "sha256": "e3cd035858a60a19cac047a245f579f508ce070ded1acd4183ab3e14faf6f65e"
+    },
+    {
+      "path": "app/src/androidTest/java/com/audiobookdownloader/SearchCollectionLayoutTest.kt",
+      "bytes": 2872,
+      "sha256": "242643f8a54a496d28eda2e6487867ef8173ad33021675edd06cf683578e74a0"
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/SearchScrollTest.kt",
@@ -278,14 +283,24 @@
       "sha256": "98113d86c880241391fd9ff6a3a8afd278a1e726eea77a1d810d1b12748b99f2"
     },
     {
+      "path": "app/src/main/java/com/audiobookdownloader/AbSearchCache.kt",
+      "bytes": 1030,
+      "sha256": "ba6885d4ffeeabb9367213d69770ea6054da318b31c97164b543fbab5d3ec5c5"
+    },
+    {
       "path": "app/src/main/java/com/audiobookdownloader/AbSearchCoordinator.kt",
       "bytes": 1618,
       "sha256": "fde8bda9bc40198c75fa97d1bd0c5583b55b1b0faf2c038b6d95f7292e303790"
     },
     {
+      "path": "app/src/main/java/com/audiobookdownloader/AbSearchPresentation.kt",
+      "bytes": 2344,
+      "sha256": "877a13f46741d97be0efa5687134d77d14c734c83527f0fb6eb3d66b3cbdc94c"
+    },
+    {
       "path": "app/src/main/java/com/audiobookdownloader/AbSearchRows.kt",
-      "bytes": 2021,
-      "sha256": "5992f11bc336601a6bbf72ae7feedad7e3642a7958decec1c9252d71ca7f5efc"
+      "bytes": 1912,
+      "sha256": "3c5f118c543cc2f7b113f025da5c38562789097f6b375743eac3744315f6951a"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/AdditionalBookSources.kt",
@@ -734,8 +749,8 @@
     },
     {
       "path": "current/MainActivity.kt",
-      "bytes": 783532,
-      "sha256": "bcc800cb353be91eecaf5127601bd2a954fc390f895b5736998cb589d588bfe4"
+      "bytes": 785818,
+      "sha256": "4c30592dbcd11cd0c17656da6005ad2645dc19ccf7d0196d61a38dc755c58232"
     },
     {
       "path": "current/PlaybackService.kt",
@@ -884,8 +899,8 @@
     },
     {
       "path": "current/app/src/main/res/layout/ab_widget_compact.xml",
-      "bytes": 3293,
-      "sha256": "5dad6857e414d9640b371e9f230d73ad6a8abbee2f7e7adbb8eb2ed8ae3bcc3a"
+      "bytes": 3342,
+      "sha256": "b671bb15bf4f73a3b56c97c75dff8ca1d2e06e00a11874469a59a4fdb1800b2f"
     },
     {
       "path": "current/app/src/main/res/layout/ab_widget_cover.xml",
@@ -894,8 +909,8 @@
     },
     {
       "path": "current/app/src/main/res/layout/ab_widget_player.xml",
-      "bytes": 4783,
-      "sha256": "9c98cd7869e1242a31484f1262bc1c8dec77fa9ce9a346cf24407e292a3f9d8b"
+      "bytes": 4914,
+      "sha256": "31ae8b21fb910a16db3027531baab306ea3d6852eece36ca2a559f890018ca78"
     },
     {
       "path": "current/app/src/main/res/layout/ab_widget_preview_compact.xml",
@@ -1686,6 +1701,11 @@
       "path": "docs/SCREENSHOT-SOURCES.md",
       "bytes": 10487,
       "sha256": "c5d4cf3356d422253e96a7100a42e23db0a0983c0607cb357f65505020186f11"
+    },
+    {
+      "path": "docs/SEARCH-COLLECTION-LAYOUT.md",
+      "bytes": 1428,
+      "sha256": "71869963c9c5b59b2a934ec66e1280fef29701e791cf4b4b3af3ae8d9ee6cf4d"
     },
     {
       "path": "docs/SEARCH-SCROLL-PERFORMANCE.md",
