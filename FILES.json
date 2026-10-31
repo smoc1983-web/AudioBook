@@ -1,5 +1,5 @@
 {
-  "revision": "audiobook-4.2.78-library-player-release",
+  "revision": "release-4.2.85-verified-published",
   "storage": "GitHub export; see releases/ARCHIVE-PARTS.json for three multipart historical ZIPs",
   "files": [
     {
@@ -19,8 +19,8 @@
     },
     {
       "path": ".github/workflows/build-apk.yml",
-      "bytes": 8673,
-      "sha256": "32490e95f04668e7d2a1686cf4faf010157a6dfd8915181cedbe014a486356dc"
+      "bytes": 8768,
+      "sha256": "9dbd641f56a3e8b5f052019f206e4f73ce7efd78d77e5292b4824147b14253e4"
     },
     {
       "path": ".github/workflows/collect-description-reports74.yml",
@@ -44,8 +44,8 @@
     },
     {
       "path": ".github/workflows/library-experience.yml",
-      "bytes": 2674,
-      "sha256": "d3ef000ac50e1c1afd783a7f3203626b847d253f74b209cb52910f5af076b953"
+      "bytes": 2803,
+      "sha256": "18741d7fbfb18d93078cec090fbb6d2f8aa90b70879ecdc0c97d7ea747201c3a"
     },
     {
       "path": ".github/workflows/library-file-actions.yml",
@@ -74,8 +74,8 @@
     },
     {
       "path": "AGENTS.md",
-      "bytes": 3216,
-      "sha256": "ec35b9cf2b241d13e68bd88b3cc02d03112270f39666adf0321fb677d3e3018a"
+      "bytes": 3806,
+      "sha256": "42daf51f27130bfba098ee668e0c7afc11c3e3cf52b29e32ca6b64a19073cb27"
     },
     {
       "path": "README.md",
@@ -124,8 +124,8 @@
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/EditionDownloadTest.kt",
-      "bytes": 4417,
-      "sha256": "d4f6e0019b62b0ad2630418eb9a805b2e1e94038827faa1d327a19d96ea65a3c"
+      "bytes": 5502,
+      "sha256": "ab2c3c21cd03ca47ee32c230e41ff27ee336e7bdc65334615a2d046a2a8adb09"
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/InstallerLaunchTest.java",
@@ -163,6 +163,11 @@
       "sha256": "e3cd035858a60a19cac047a245f579f508ce070ded1acd4183ab3e14faf6f65e"
     },
     {
+      "path": "app/src/androidTest/java/com/audiobookdownloader/SearchCollectionLayoutTest.kt",
+      "bytes": 4995,
+      "sha256": "151694c52d088f433a8741351eba1638adfe94728843cd23f3630f07aa30039c"
+    },
+    {
       "path": "app/src/androidTest/java/com/audiobookdownloader/SearchScrollTest.kt",
       "bytes": 6259,
       "sha256": "af39b46d158f611d4a64e2c574ae37cea8bfa3b0656c845c9e110f32b0f2f51b"
@@ -179,8 +184,8 @@
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/StartupSmokeTest.java",
-      "bytes": 21822,
-      "sha256": "fcce8f9eaedd0eada6803cc840d5340900338d4c84c59a4d636ea7cc4e6653ca"
+      "bytes": 22900,
+      "sha256": "029403fdef5453b1be45721dd623778a71d9a377b3b976ad60c62fa88cdda201"
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/TestBitmapExports.java",
@@ -204,8 +209,8 @@
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/WidgetPreviewTest.java",
-      "bytes": 3473,
-      "sha256": "f7f2c1bcbf562e9c6342a05a166fc58075b0b5b69f0f7f9afda6a16832967174"
+      "bytes": 7935,
+      "sha256": "5a88c016be9b5810eff57ec57a5788a53870ca08c1d24067e64437caa948acac"
     },
     {
       "path": "app/src/debug/AndroidManifest.xml",
@@ -239,8 +244,8 @@
     },
     {
       "path": "app/src/main/assets/release-notes.json",
-      "bytes": 2368,
-      "sha256": "e15676ca1595ee39a897176ba254608558ffb133cec632b5786c34ad7920a917"
+      "bytes": 2067,
+      "sha256": "babe1b5b7a756383877a4cb2e2e47a8277dd46b096c6f4282acde7e85f376808"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/AbAudioDurations.kt",
@@ -278,14 +283,24 @@
       "sha256": "98113d86c880241391fd9ff6a3a8afd278a1e726eea77a1d810d1b12748b99f2"
     },
     {
+      "path": "app/src/main/java/com/audiobookdownloader/AbSearchCache.kt",
+      "bytes": 1030,
+      "sha256": "ba6885d4ffeeabb9367213d69770ea6054da318b31c97164b543fbab5d3ec5c5"
+    },
+    {
       "path": "app/src/main/java/com/audiobookdownloader/AbSearchCoordinator.kt",
       "bytes": 1618,
       "sha256": "fde8bda9bc40198c75fa97d1bd0c5583b55b1b0faf2c038b6d95f7292e303790"
     },
     {
+      "path": "app/src/main/java/com/audiobookdownloader/AbSearchPresentation.kt",
+      "bytes": 4239,
+      "sha256": "0f05fe4878fcd05d35040028d357b3acfd69876d7c1631808aa4f59c0fe3a225"
+    },
+    {
       "path": "app/src/main/java/com/audiobookdownloader/AbSearchRows.kt",
-      "bytes": 2021,
-      "sha256": "5992f11bc336601a6bbf72ae7feedad7e3642a7958decec1c9252d71ca7f5efc"
+      "bytes": 1946,
+      "sha256": "5269aef6baf5f7ca2e307fbc8370e25529fe267040bd990aa47c6baf586e66e5"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/AdditionalBookSources.kt",
@@ -734,8 +749,8 @@
     },
     {
       "path": "current/MainActivity.kt",
-      "bytes": 783532,
-      "sha256": "bcc800cb353be91eecaf5127601bd2a954fc390f895b5736998cb589d588bfe4"
+      "bytes": 787307,
+      "sha256": "c7b9e2ff2eaa53f42f83359c173e788446b326939f987c4ff72f413acd8174f2"
     },
     {
       "path": "current/PlaybackService.kt",
@@ -759,8 +774,8 @@
     },
     {
       "path": "current/app/src/main/java/com/AbGlassWidgets.kt",
-      "bytes": 32672,
-      "sha256": "fa96032f413e59e7ceb80b7650a1adab25ec1eb91f916c4291132a5368987b1b"
+      "bytes": 33416,
+      "sha256": "e89a581ce8dddfa2aa7da058c9dc6603705d56058f011198f34e1c2ad3b3bd53"
     },
     {
       "path": "current/app/src/main/java/com/LibraryRecoveryRules.java",
@@ -884,8 +899,8 @@
     },
     {
       "path": "current/app/src/main/res/layout/ab_widget_compact.xml",
-      "bytes": 3293,
-      "sha256": "5dad6857e414d9640b371e9f230d73ad6a8abbee2f7e7adbb8eb2ed8ae3bcc3a"
+      "bytes": 3376,
+      "sha256": "72ce8801e27b052a3136eaa8c3e678b6e8f2e620c145d2eec89ea2486076b143"
     },
     {
       "path": "current/app/src/main/res/layout/ab_widget_cover.xml",
@@ -894,8 +909,13 @@
     },
     {
       "path": "current/app/src/main/res/layout/ab_widget_player.xml",
-      "bytes": 4783,
-      "sha256": "9c98cd7869e1242a31484f1262bc1c8dec77fa9ce9a346cf24407e292a3f9d8b"
+      "bytes": 4908,
+      "sha256": "776023b7530d731a07c218e72d9d5cca6c871cd7db87e92a1d2837385c9f6b1b"
+    },
+    {
+      "path": "current/app/src/main/res/layout/ab_widget_player_compact.xml",
+      "bytes": 4882,
+      "sha256": "a6df283f74f2b54db1a3b316e296feceb6fdf8491e046d6a8c91ae7159b1a02d"
     },
     {
       "path": "current/app/src/main/res/layout/ab_widget_preview_compact.xml",
@@ -1574,8 +1594,8 @@
     },
     {
       "path": "docs/HANDOFF.md",
-      "bytes": 90398,
-      "sha256": "510b13395a9fea279c977ad017618426a4172261c1e18a1fe4f50bc38c1e3159"
+      "bytes": 92124,
+      "sha256": "14cab943c1228eb813ad3f228fce762f6f0cbfc59cad401784fb3044206fcfa0"
     },
     {
       "path": "docs/INSTALL.md",
@@ -1683,9 +1703,19 @@
       "sha256": "0ee28d0cd97d52655c601a8d315227bebe1f0ace5693e3d68c708855f30fe5c3"
     },
     {
+      "path": "docs/RELEASE-4.2.85.md",
+      "bytes": 4629,
+      "sha256": "7d94823a2f0bf69ece7e9375406b1313d709cdff01a042dcdf651d5eb4383516"
+    },
+    {
       "path": "docs/SCREENSHOT-SOURCES.md",
       "bytes": 10487,
       "sha256": "c5d4cf3356d422253e96a7100a42e23db0a0983c0607cb357f65505020186f11"
+    },
+    {
+      "path": "docs/SEARCH-COLLECTION-LAYOUT.md",
+      "bytes": 6752,
+      "sha256": "a1ecd0f08af49d17a4db48c184c0b5c97c3b2dee552b292f24d4aa026a4b13b3"
     },
     {
       "path": "docs/SEARCH-SCROLL-PERFORMANCE.md",
@@ -2571,6 +2601,46 @@
       "path": "docs/release-4.2.78/verification.json",
       "bytes": 9270,
       "sha256": "fe9e9cffad9d14f9e33b7e79569852ca091a455b63df31c1b2ca076df1519617"
+    },
+    {
+      "path": "docs/release-4.2.85/installed-upgrade.json",
+      "bytes": 844,
+      "sha256": "e90dd1938c05fe7b2a0cb53a16aaee85ade96bf77c38e5513452071fe17e3d84"
+    },
+    {
+      "path": "docs/release-4.2.85/manifest.json",
+      "bytes": 388,
+      "sha256": "72e8d5cda9e6df31a008984adf50fcd0edc55120c663a0ef2a900e2c2076abcf"
+    },
+    {
+      "path": "docs/release-4.2.85/permission-audit.json",
+      "bytes": 1029,
+      "sha256": "50966fa7ad848bddaf039303d8d2b9093eb1326ce9150a895ace16ae35fc7fd8"
+    },
+    {
+      "path": "docs/release-4.2.85/public-check.json",
+      "bytes": 2341,
+      "sha256": "d46502f15db7a4824a8902baf58bbd8d3c7feb1d9a109f6495045c47a569dbf1"
+    },
+    {
+      "path": "docs/release-4.2.85/public-manifest.json",
+      "bytes": 3071,
+      "sha256": "3de34627ffe76fc14752ea8ba47714e41db05a9e5d2c816a8ad581dd6f3c3e4e"
+    },
+    {
+      "path": "docs/release-4.2.85/publication.json",
+      "bytes": 1109,
+      "sha256": "555a525b9cf70cc4c9ebe28d74ec599d071d07ee10cceeeba5eafd93e62332b6"
+    },
+    {
+      "path": "docs/release-4.2.85/signed-inspection.json",
+      "bytes": 5489,
+      "sha256": "be7e71422778eaa04f8980e8adcfa83888021d955e513d74b7ecf7b1c1e70f7c"
+    },
+    {
+      "path": "docs/release-4.2.85/verification.json",
+      "bytes": 8414,
+      "sha256": "271ecf904c7e49a3e1cd72eae0bde5fa98d0b90f3008d1a9f56d915e38baad40"
     },
     {
       "path": "docs/screenshot-source-registry.json",

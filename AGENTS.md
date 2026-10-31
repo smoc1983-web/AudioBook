@@ -42,3 +42,11 @@ Read docs/HANDOFF.md before resuming work. Keep short progress updates during wo
   Existing user instructions and higher-priority instructions take precedence.
 - Before GitHub changes inspect the remote head: this checkout can have different
   local commit IDs with identical trees. Never blindly push or force-push main.
+
+Task2026-10-31 completed as4.2.85/100085, WITHOUT ub-mode by explicit owner choice.
+Full41176810494 and focused41176809415 passed; compiled09c9c7446ef8347c561f8ce5130780524bfa40dc.
+Public Site19 serves100085 with preserved package/cert; upgrade78→85 retained data.
+See docs/RELEASE-4.2.85.md, docs/SEARCH-COLLECTION-LAYOUT.md and release proofs.
+Next normal86 unless intervening runs; merge/docs commits use[skip ci].
+Ask the owner about ub-mode before the next NEW development task.
+Current Site archive263976960 bytes is near256MiB: prepare verified retention before next publication.

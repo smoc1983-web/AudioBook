@@ -3062,6 +3062,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
     val modernActions = AbActions(
         navigate = { if(it==AppPage.SEARCH && appPage==AppPage.SEARCH && searchSessionActive) backToSearchResults() else appPage=it },
         home = {showSearchHome()},
+        resetSearch = {AbSearchCache.clear();AbCoverStore.clearMemory();showSearchHome()},
         backSearch = {backToSearchResults()},
         retryBook = {bookOpening?.let{openWebsiteBook(it.book,it.sourceUrl)}},
         query = { searchText = it },
@@ -3221,6 +3222,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
             key(unifiedSearchId) {
                 val requestId = unifiedSearchId
                 val requestSources=unifiedSources.toList()
+                val requestQuery=unifiedQuery
                 UnifiedBookSearch(unifiedQuery, prefs,requestSources) { site, report ->
                     if (requestId == unifiedSearchId && unifiedQuery.isNotBlank()) {
                         val limited=report.copy(books=report.books.take(AB_SEARCH_LIMIT))
@@ -3234,7 +3236,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                             try {
                                 val merged=withContext(Dispatchers.Default) {
                                     val context=kotlinx.coroutines.currentCoroutineContext()
-                                    mergeSearchBooks(requestSources.flatMap{reports[it]?.books.orEmpty()}){context.ensureActive()}.take(AB_SEARCH_LIMIT)
+                                    AbSearchPresentation.prepare(requestSources.flatMap{reports[it]?.books.orEmpty()},requestQuery,checkActive={context.ensureActive()}).take(AB_SEARCH_LIMIT)
                                 }
                                 if(version!=unifiedMergeVersion || requestId!=unifiedSearchId || unifiedQuery.isBlank())return@launch
                                 bookLinks=merged
@@ -9047,7 +9049,7 @@ fun UnifiedBookSearch(query: String, prefs: android.content.SharedPreferences,
         // Two browsers at most; slow sitemap enumeration never occupies the first slot.
         val scheduled=requested.sortedBy{if(it==AbBookSources.AZBYKA)1 else 0}
         AbSearchCoordinator.search(scheduled,{site ->if(site==AbBookSources.AZBYKA)95_000L else 50_000L},
-            {site ->abSearchOneSource(context,site,query,prefs)}, {site,result ->report(site,result)})
+            {site ->AbSearchCache.get(site,query) ?: abSearchOneSource(context,site,query,prefs).also{AbSearchCache.put(site,query,it)}}, {site,result ->report(site,result)})
     }
 }
 
@@ -9627,6 +9629,7 @@ private data class AbScreenData(
 private data class AbActions(
     val navigate: (AppPage) -> Unit,
     val home: () -> Unit,
+    val resetSearch: () -> Unit,
     val backSearch: () -> Unit,
     val retryBook: () -> Unit,
     val query: (String) -> Unit,
@@ -10215,8 +10218,9 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
     // Playback ticks and lazy-list recycling must not reparse every book's reference metadata.
     val seriesRevision=remember(prefs,data.version) {prefs.getInt("book_series_revision",0)}
     val prepared by androidx.compose.runtime.produceState<List<AbSearchRow>?>(null,
-        data.results,books,seriesRevision,data.cycle,data.cycleBrowsing) {
-        value=AbSearchRows.prepare(data.results,books,prefs,data.cycle.takeIf{data.cycleBrowsing})
+        data.results,books,seriesRevision,data.cycle,data.cycleBrowsing,data.query,data.genre) {
+        value=AbSearchRows.prepare(data.results,books,prefs,data.cycle.takeIf{data.cycleBrowsing},
+            query=if(data.genre.isBlank()&&!data.cycleBrowsing)data.query else "")
     }
     val resultBooks=prepared.orEmpty()
     val visibleResults=remember(resultBooks,visibleCount) {resultBooks.take(visibleCount)}
@@ -10228,6 +10232,9 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
     else androidx.compose.runtime.CompositionLocalProvider(LocalAbCoverScrollState provides listState) {
     LazyColumn(Modifier.fillMaxSize(),state=listState,contentPadding=PaddingValues(horizontal=20.dp,vertical=14.dp),
         verticalArrangement=Arrangement.spacedBy(12.dp)) {
+        if(data.searchActive) item(key="search-reset") {
+            AbButton("Сбросить результаты поиска",theme,onClick=actions.resetSearch)
+        }
         if(data.searchActive) item(key="search-home") {
             Row(verticalAlignment=Alignment.CenterVertically) {
                 val backLabel=if(data.canReturnResults) "К результатам поиска" else "На главную"
@@ -10734,6 +10741,10 @@ private fun AbLibraryScreen(data: AbScreenData,actions: AbActions,sync: LibraryS
     }
 }
 
+internal fun abRemoveShelfBook(prefs:android.content.SharedPreferences,name:String,ref:BookRef) {
+    saveShelves(prefs,loadShelves(prefs).map{if(it.name==name)it.copy(books=it.books.filterNot{book->book.title==ref.title}) else it})
+}
+
 /** Only the requested book loads series data; scrolling closed cards performs no reference requests. */
 @Composable
 internal fun AbCollectionBookCard(ref:BookRef,local:LibraryBook?,theme:AbTheme,expanded:Boolean,
@@ -10772,6 +10783,8 @@ internal fun AbCollectionShelf(shelf:Shelf,books:List<LibraryBook>,prefs:android
             if(listMode) {
                 shelf.books.take(3).forEach {ref ->
                     AbBookRow(ref,abFindLocal(books,ref.title),"В коллекции",theme,onClick={onOpen(ref)},onMenu={onMenu(ref)})
+                    AbButton("Скачать книгу или главы",theme){onMenu(ref)}
+                    AbButton("Убрать из коллекции",theme){abRemoveShelfBook(prefs,shelf.name,ref)}
                     AbButton(if(expanded==ref.title)"Скрыть продолжения" else "Продолжения",theme){expanded=if(expanded==ref.title)null else ref.title}
                 }
                 if(shelf.books.size>3)AbButton("Все книги · ${shelf.books.size}",theme,onClick=onSelect)
@@ -10895,7 +10908,7 @@ private fun AbCollectionsScreen(data: AbScreenData,actions: AbActions,books: Lis
                     onClick={actions.openRef(ref)},onMenu={onMenu(ref)})
                 AbButton(if(expanded) "Скрыть продолжения" else "Продолжения",theme){expanded=!expanded}
                 if(expanded)AbCollectionContinuations(ref,books,prefs,data.version,theme,actions.openRef)
-                AbButton("Убрать из этой коллекции",theme){toggleShelfBook(prefs,selected.name,ref)}
+                AbButton("Убрать из этой коллекции",theme){abRemoveShelfBook(prefs,selected.name,ref)}
             }
             if(selected.books.isEmpty()) item {
                 Text("Добавьте книги через меню карточки → «Добавить в коллекцию».",color=theme.muted,fontSize=14.sp)
@@ -10933,13 +10946,13 @@ private fun AbPlayerScreen(data: AbScreenData,actions: AbActions,books: List<Lib
     val context=androidx.compose.ui.platform.LocalContext.current
     val state=data.playback
     var tab by androidx.compose.runtime.saveable.rememberSaveable {mutableStateOf(0)}
-    var chaptersExpanded by androidx.compose.runtime.saveable.rememberSaveable(state.bookTitle) {mutableStateOf(false)}
+    var shownDetails by remember(state.bookTitle,tab){mutableStateOf(20)}
     var dragging by remember(state.bookTitle,state.trackIndex) {mutableStateOf<Float?>(null)}
     val ref=remember(prefs,state.bookTitle,data.version) {bookRefFor(prefs,state.bookTitle)}
     val local=remember(books,state.bookTitle) {abFindLocal(books,state.bookTitle)}
     val marks=remember(prefs,state.bookTitle,data.version) {loadBookmarks(prefs,state.bookTitle)}
     val queue=remember(prefs,data.version) {loadQueue(prefs)}
-    val coverHeight=(androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp*.25f).coerceIn(150f,220f).dp
+    val coverHeight=(androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp*.15f).coerceIn(64f,100f).dp
     val downloading=data.downloads.any{AbLibraryHousekeeping.bookKey(it.book)==AbLibraryHousekeeping.bookKey(state.bookTitle) && it.state==TrackState.DOWNLOADING}
     val canDownload=state.sourceType=="online" && state.tracks.any {
         isNetworkAudio(it.src) &&
@@ -10950,9 +10963,9 @@ private fun AbPlayerScreen(data: AbScreenData,actions: AbActions,books: List<Lib
         if(canDownload)actions.downloadEdition(ref,state.tracks.filter{isNetworkAudio(it.src)}.map{AudioTrack(it.title,it.durationMs/1000,it.src)})
         else Toast.makeText(context,"Книга уже на устройстве",Toast.LENGTH_SHORT).show()
     }
-    fun toggleChapters() {if(tab!=0){tab=0;chaptersExpanded=true}else chaptersExpanded=!chaptersExpanded}
+    fun toggleChapters() {tab=if(tab==4)0 else 4}
     LazyColumn(Modifier.fillMaxSize(),contentPadding=PaddingValues(horizontal=16.dp,vertical=4.dp),
-        verticalArrangement=Arrangement.spacedBy(8.dp)) {
+        verticalArrangement=Arrangement.spacedBy(4.dp)) {
         item {
             Row(verticalAlignment=Alignment.CenterVertically) {
                 AbIconButton(AbIcon.BACK,"В библиотеку",theme) {actions.navigate(AppPage.LIBRARY)}
@@ -10963,6 +10976,19 @@ private fun AbPlayerScreen(data: AbScreenData,actions: AbActions,books: List<Lib
                 }
                 AbIconButton(AbIcon.SETTINGS,"Настройки плеера",theme) {onSettings(AbSettingsSection.HOME)}
                 AbIconButton(AbIcon.MORE,"Действия с книгой",theme,enabled=state.hasSelection) {onMenu(ref)}
+            }
+        }
+        if(state.hasSelection) item {
+            Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(6.dp)) {
+                listOf("Закладки · ${marks.size}","Очередь · ${queue.size}","Серия").forEachIndexed{index,label->
+                    val active=tab==index+1
+                    Box(Modifier.weight(1f).heightIn(min=44.dp).abGlass(theme,14,field=true,primary=active,selected=active)
+                        .semantics{selected=active;role=androidx.compose.ui.semantics.Role.Tab}
+                        .clickable{tab=if(active)0 else index+1}.padding(horizontal=4.dp,vertical=10.dp),contentAlignment=Alignment.Center) {
+                        Text(label,color=if(active)theme.onAccent else theme.text,fontSize=13.sp,maxLines=2,
+                            textAlign=androidx.compose.ui.text.style.TextAlign.Center)
+                    }
+                }
             }
         }
         if(!state.hasSelection) item {
@@ -10985,9 +11011,7 @@ private fun AbPlayerScreen(data: AbScreenData,actions: AbActions,books: List<Lib
                 if(author.isNotBlank()) Text(author,color=theme.muted,fontSize=12.sp,maxLines=1,
                     overflow=TextOverflow.Ellipsis,textAlign=androidx.compose.ui.text.style.TextAlign.Center,
                     modifier=Modifier.fillMaxWidth().padding(top=3.dp))
-                AbBookPlaybackProgress(data,theme)
-                AbBookSize(state.bookTitle,remember(state.tracks){state.tracks.map{AudioTrack(it.title,it.durationMs/1000,it.src)}},
-                    local,ref.url,theme)
+                AbBookPlaybackProgress(data,theme,compact=true)
             }
             item {
                 Box(Modifier.fillMaxWidth(),contentAlignment=Alignment.Center) {
@@ -11013,12 +11037,12 @@ private fun AbPlayerScreen(data: AbScreenData,actions: AbActions,books: List<Lib
             item {
                 Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
                     Row(Modifier.weight(1f).heightIn(min=48.dp).clip(RoundedCornerShape(12.dp))
-                        .semantics{contentDescription="Текущая глава; "+if(chaptersExpanded) "свернуть список глав" else "развернуть список глав";
+                        .semantics{contentDescription="Текущая глава; "+if(tab==4) "свернуть список глав" else "развернуть список глав";
                             role=androidx.compose.ui.semantics.Role.Button}
                         .clickable{toggleChapters()}.padding(horizontal=8.dp),verticalAlignment=Alignment.CenterVertically) {
                         Text(state.tracks.getOrNull(state.trackIndex)?.title.orEmpty(),color=theme.text,fontSize=12.sp,
                             maxLines=1,overflow=TextOverflow.Ellipsis,modifier=Modifier.weight(1f))
-                        AbIcon(if(chaptersExpanded) AbIcon.UP else AbIcon.DOWN,theme.accent,Modifier.padding(start=8.dp).size(18.dp))
+                        AbIcon(if(tab==4) AbIcon.UP else AbIcon.DOWN,theme.accent,Modifier.padding(start=8.dp).size(18.dp))
                     }
                     if(downloading)Box(Modifier.size(48.dp),contentAlignment=Alignment.Center) {
                         androidx.compose.material3.CircularProgressIndicator(Modifier.size(22.dp),color=theme.accent,strokeWidth=2.dp)
@@ -11057,7 +11081,7 @@ private fun AbPlayerScreen(data: AbScreenData,actions: AbActions,books: List<Lib
                     AbPlayerAction(AbIcon.EQUALIZER,"Эквалайзер",theme,loadEqSettings(prefs,state.bookTitle).let {it.preset!=0 || it.gainDb!=0},Modifier.weight(1f)) {
                         onSettings(AbSettingsSection.EQUALIZER)
                     }
-                    AbPlayerAction(AbIcon.BOOKS,"Главы",theme,tab==0 && chaptersExpanded,Modifier.weight(1f)) {
+                    AbPlayerAction(AbIcon.BOOKS,"Главы",theme,tab==4,Modifier.weight(1f)) {
                         toggleChapters()
                     }
                     Column(Modifier.weight(1f).heightIn(min=58.dp).clip(RoundedCornerShape(13.dp))
@@ -11081,18 +11105,15 @@ private fun AbPlayerScreen(data: AbScreenData,actions: AbActions,books: List<Lib
                 if(state.error.isNotBlank()) Text(state.error,color=theme.error,fontSize=12.sp)
                 if(state.playbackNote.isNotBlank()) Text(state.playbackNote,color=theme.accent,fontSize=12.sp)
             }
-            item {
-                AbChips(listOf("Закладки · ${marks.size}","Очередь · ${queue.size}","Серия"),tab-1,theme){tab=it+1}
-            }
-            when(tab) {
-                3->item {
-                    val metadata=remember(prefs,state.bookTitle,data.version) {abStoredCatalog(prefs,state.bookTitle)}
-                    AbPlayerSeries(metadata,ref,books,prefs,theme,actions,onShelf,onSettings)
-                }
-                0->{ if(chaptersExpanded) itemsIndexed(state.tracks) {index,track ->
+
+        }
+    }
+    if(state.hasSelection&&tab>0)AbDialog(listOf("","Закладки книги","Очередь прослушивания","Серия книги","Главы книги")[tab],theme,{tab=0}) {
+        when(tab) {
+                4->{state.tracks.take(shownDetails).forEachIndexed {index,track ->
                     val active=index==state.trackIndex
                     Row(Modifier.fillMaxWidth().abGlass(theme,12,selected=active)
-                        .clickable{PlaybackService.selectChapter(context,index,0)}.padding(12.dp),
+                        .clickable{tab=0;PlaybackService.selectChapter(context,index,0)}.padding(12.dp),
                         verticalAlignment=Alignment.CenterVertically) {
                         Text(if(active) "▶" else "${index+1}",color=if(active) theme.accent else theme.muted,
                             fontSize=12.sp,modifier=Modifier.width(27.dp))
@@ -11102,12 +11123,20 @@ private fun AbPlayerScreen(data: AbScreenData,actions: AbActions,books: List<Lib
                         if(duration>0) Text(formatMillis(duration),color=theme.muted,fontSize=10.sp)
                     }
                 }
+
+                }
+                3->{
+                    val metadata=remember(prefs,state.bookTitle,data.version) {abStoredCatalog(prefs,state.bookTitle)}
+                    AbPlayerSeries(metadata,ref,books,prefs,theme,actions.copy(
+                        openRef={tab=0;actions.openRef(it)},cycle={tab=0;actions.cycle(it)},
+                        openSite={book,url->tab=0;actions.openSite(book,url)}),
+                        {tab=0;onShelf(it)},{tab=0;onSettings(it)})
                 }
                 1->{
-                    if(marks.isEmpty()) item {Text("Сохраните момент кнопкой «Закладка».",color=theme.muted,fontSize=13.sp)}
-                    itemsIndexed(marks) {_,mark ->
+                    if(marks.isEmpty()) {Text("Сохраните момент кнопкой «Закладка».",color=theme.muted,fontSize=13.sp)}
+                    marks.take(shownDetails).forEach {mark ->
                         Row(Modifier.fillMaxWidth().abGlass(theme,13)
-                            .clickable{PlaybackService.selectChapter(context,mark.track,mark.position)}.padding(start=12.dp),
+                            .clickable{tab=0;PlaybackService.selectChapter(context,mark.track,mark.position)}.padding(start=12.dp),
                             verticalAlignment=Alignment.CenterVertically) {
                             Column(Modifier.weight(1f)) {
                                 Text(mark.trackTitle.ifBlank{"Глава ${mark.track+1}"},color=theme.text,fontSize=13.sp)
@@ -11118,12 +11147,12 @@ private fun AbPlayerScreen(data: AbScreenData,actions: AbActions,books: List<Lib
                     }
                 }
                 else->{
-                    if(queue.isEmpty()) item {Text("Добавьте скачанные книги в очередь через меню карточки.",color=theme.muted,fontSize=13.sp)}
-                    itemsIndexed(queue) {index,title ->
+                    if(queue.isEmpty()) {Text("Добавьте скачанные книги в очередь через меню карточки.",color=theme.muted,fontSize=13.sp)}
+                    queue.take(shownDetails).forEachIndexed {index,title ->
                         Row(Modifier.fillMaxWidth().abGlass(theme,13).padding(start=12.dp),
                             verticalAlignment=Alignment.CenterVertically) {
                             Text(title,color=theme.text,fontSize=13.sp,modifier=Modifier.weight(1f)
-                                .clickable{actions.openRef(bookRefFor(prefs,title))},maxLines=2,overflow=TextOverflow.Ellipsis)
+                                .clickable{tab=0;actions.openRef(bookRefFor(prefs,title))},maxLines=2,overflow=TextOverflow.Ellipsis)
                             AbIconButton(AbIcon.UP,"Выше в очереди",theme,enabled=index>0) {
                                 val moved=queue.toMutableList();java.util.Collections.swap(moved,index,index-1);saveQueue(prefs,moved)
                             }
@@ -11135,8 +11164,10 @@ private fun AbPlayerScreen(data: AbScreenData,actions: AbActions,books: List<Lib
                     }
                 }
             }
-        }
+        if((tab==1&&marks.size>shownDetails)||(tab==2&&queue.size>shownDetails)||(tab==4&&state.tracks.size>shownDetails))
+            AbButton("Ещё записи",theme){shownDetails+=20}
     }
+
 }
 
 @Composable
@@ -11152,7 +11183,7 @@ private fun AbPlayerAction(icon: AbIcon,label: String,theme: AbTheme,active: Boo
 }
 
 @Composable
-private fun AbBookPlaybackProgress(data: AbScreenData,theme: AbTheme) {
+private fun AbBookPlaybackProgress(data: AbScreenData,theme: AbTheme,compact:Boolean=false) {
     val state=data.playback
     val context=androidx.compose.ui.platform.LocalContext.current.applicationContext
     val cached by AbAudioDurations.state.collectAsState()
@@ -11180,9 +11211,9 @@ private fun AbBookPlaybackProgress(data: AbScreenData,theme: AbTheme) {
                 if(checking)"Уточняем время книги: ${timing.knownRemaining} из ${timing.totalRemaining} оставшихся глав"
                 else "Время до конца книги пока не определено"
         }
-        Text(text,color=theme.muted,fontSize=11.sp,maxLines=3,modifier=Modifier.fillMaxWidth()
+        Text(text,color=theme.muted,fontSize=11.sp,maxLines=if(compact)2 else 3,modifier=Modifier.fillMaxWidth()
             .semantics{contentDescription=text},textAlign=androidx.compose.ui.text.style.TextAlign.Center)
-        Text((if(timing.totalMs>0)"Прогресс книги: " else "Прогресс по главам: ")+"${(timing.progress*100).toInt()}% · ${state.trackIndex+1} из ${state.tracks.size}",
+        if(!compact)Text((if(timing.totalMs>0)"Прогресс книги: " else "Прогресс по главам: ")+"${(timing.progress*100).toInt()}% · ${state.trackIndex+1} из ${state.tracks.size}",
             color=theme.muted,fontSize=10.sp,modifier=Modifier.fillMaxWidth(),
             textAlign=androidx.compose.ui.text.style.TextAlign.Center)
         if(timing.remainingMs<0 && !checking && state.tracks.any{isNetworkAudio(it.src)})
@@ -11193,7 +11224,7 @@ private fun AbBookPlaybackProgress(data: AbScreenData,theme: AbTheme) {
 
 @Composable
 private fun AbSeekButton(seconds: Int,state: ServicePlaybackState,theme: AbTheme,modifier: Modifier,onClick:()->Unit) {
-    val amount=if(kotlin.math.abs(seconds)==60) "1 мин" else "10 с"
+    val amount=if(kotlin.math.abs(seconds)%60==0) "${kotlin.math.abs(seconds)/60} мин" else "${kotlin.math.abs(seconds)} с"
     val label=(if(seconds<0) "Назад на " else "Вперёд на ")+amount
     Column(modifier.heightIn(min=48.dp).clip(RoundedCornerShape(12.dp))
         .semantics{contentDescription=label;role=androidx.compose.ui.semantics.Role.Button}
@@ -11609,6 +11640,9 @@ internal fun abDownloadEdition(ref:BookRef,root:JSONObject,url:String):AbDownloa
 @Composable
 internal fun AbEditionDownloadControls(edition:AbDownloadEdition,index:DownloadedChapterIndex,
     activeChapters:Set<String>,theme:AbTheme,onDownload:(BookRef,List<AudioTrack>)->Unit) {
+    var chooseChapters by remember(edition.ref){mutableStateOf(false)}
+    var chapterLimit by remember(edition.ref){mutableStateOf(8)}
+    val editionPrefs=androidx.compose.ui.platform.LocalContext.current.getSharedPreferences("audiobook_downloader",0)
     val remaining=edition.tracks.count{!isTrackDownloaded(it,edition.ref.title,index)}
     val active=edition.tracks.any{it.title in activeChapters}
     Text("Доступно глав: ${edition.tracks.size}",color=theme.text,fontSize=13.sp)
@@ -11624,6 +11658,18 @@ internal fun AbEditionDownloadControls(edition:AbDownloadEdition,index:Downloade
         else->"Скачать"
     },theme,enabled=!edition.preview&&!active&&remaining>0) {
         onDownload(edition.ref,edition.tracks)
+    }
+    if(!edition.preview)AbButton(if(chooseChapters)"Скрыть выбор глав" else "Скачать отдельные главы",theme){chooseChapters=!chooseChapters}
+    if(chooseChapters&&!edition.preview) {
+        edition.tracks.take(chapterLimit).forEachIndexed{i,track ->
+            val saved=isTrackDownloaded(track,edition.ref.title,index)
+            val working=track.title in activeChapters
+            AbButton("${i+1}. ${track.title} · "+if(saved)"На устройстве" else if(working)"В очереди" else "Скачать главу",theme,enabled=!saved&&!working) {
+                editionPrefs.edit().putInt(bookTotalKey(edition.ref.title),maxOf(edition.tracks.size,editionPrefs.getInt(bookTotalKey(edition.ref.title),0))).apply()
+                onDownload(edition.ref,listOf(track))
+            }
+        }
+        if(chapterLimit<edition.tracks.size)AbButton("Ещё главы",theme){chapterLimit+=8}
     }
 }
 
@@ -11772,11 +11818,12 @@ private fun AbBookMenu(ref: BookRef,local: LibraryBook?,prefs: android.content.S
     val favorite=remember(version,ref.title) {loadBookRefs(prefs,FAVORITES_KEY).any{it.title==ref.title}}
     val queue=remember(version) {loadQueue(prefs)}
     val queueTitle=local?.title ?: ref.title
+    val canDelete=local?.files?.isNotEmpty()==true
     val deleteTarget=local ?: LibraryBook(ref.title,File(libraryRoot(),safeFileName(ref.title)),emptyList())
-    AbDialog(if(confirmDelete) "Удалить книгу?" else "Действия с книгой",theme,{if(!deleting)dismiss()}) {
+    AbDialog(if(confirmDelete&&canDelete) "Удалить книгу?" else "Действия с книгой",theme,{if(!deleting)dismiss()}) {
         Text(ref.title,color=theme.text,fontSize=17.sp,fontWeight=FontWeight.SemiBold)
         if(local!=null)Text("На устройстве: ${local.files.size} глав · "+abLocalSize(local),color=theme.muted,fontSize=12.sp)
-        if(confirmDelete) {
+        if(confirmDelete&&canDelete) {
             Text("Будут удалены скачанные главы и служебные файлы этой книги. Коллекции, закладки и другие документы сохранятся. Отменить удаление нельзя.",color=theme.muted,fontSize=14.sp)
             if(deleteMessage.isNotBlank())Text(deleteMessage,color=theme.muted,fontSize=13.sp,lineHeight=20.sp)
             if(deleting)Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(10.dp)) {
@@ -11796,6 +11843,9 @@ private fun AbBookMenu(ref: BookRef,local: LibraryBook?,prefs: android.content.S
             AbButton("Слушать книгу",theme,primary=true){dismiss();actions.openRef(ref)}
             AbMenuEditionDownload(ref,local,index,downloads,theme,actions.downloadEdition)
             AbButton("Добавить в коллекцию",theme,onClick=onShelf)
+            loadShelves(prefs).filter{it.books.any{book->book.title==ref.title}}.forEach{collection ->
+                AbButton("Убрать из коллекции «${collection.name}»",theme){abRemoveShelfBook(prefs,collection.name,ref)}
+            }
             AbButton(if(moreActions) "Скрыть другие действия" else "Другие действия",theme){moreActions=!moreActions}
             if(moreActions) {
             AbButton(if(favorite) "Убрать из избранного" else "В избранное",theme){toggleFavorite(prefs,ref)}
@@ -11822,7 +11872,7 @@ private fun AbBookMenu(ref: BookRef,local: LibraryBook?,prefs: android.content.S
                 dismiss();actions.openSite(BookLink(ref.title,ref.url,ref.cover),ref.url)
             }
             }
-            AbButton("Удалить скачанные файлы",theme){confirmDelete=true}
+            if(canDelete)AbButton("Удалить скачанные файлы",theme){confirmDelete=true}
         }
     }
 }
@@ -12905,7 +12955,7 @@ private fun abLibrarySeries(refs: List<BookRef>,prefs: android.content.SharedPre
     }.sortedBy{it.cycle.title.lowercase(java.util.Locale.ROOT)}
 }
 
-private fun abMergeCycles(first: List<BookCycle>,second: List<BookCycle>): List<BookCycle> {
+internal fun abMergeCycles(first: List<BookCycle>,second: List<BookCycle>): List<BookCycle> {
     val trusted=(first+second).filter{it.referenceUrl.isNotBlank()}
     if(trusted.isNotEmpty())return trusted.distinctBy{SeriesAuthorityRules.series(it.title)}
     val result=first.filter{SeriesAuthorityRules.plausibleSeriesTitle(it.title)}.toMutableList()
