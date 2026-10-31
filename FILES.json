@@ -1,5 +1,5 @@
 {
-  "revision": "release-4.2.85-verified-published",
+  "revision": "release-4.2.88-verified-published",
   "storage": "GitHub export; see releases/ARCHIVE-PARTS.json for three multipart historical ZIPs",
   "files": [
     {
@@ -19,8 +19,8 @@
     },
     {
       "path": ".github/workflows/build-apk.yml",
-      "bytes": 8768,
-      "sha256": "9dbd641f56a3e8b5f052019f206e4f73ce7efd78d77e5292b4824147b14253e4"
+      "bytes": 8855,
+      "sha256": "09b6e7b90cf27ba73357d9c7f648587d8984d28e4c558fe9a7d982860404cae9"
     },
     {
       "path": ".github/workflows/collect-description-reports74.yml",
@@ -44,8 +44,8 @@
     },
     {
       "path": ".github/workflows/library-experience.yml",
-      "bytes": 2803,
-      "sha256": "18741d7fbfb18d93078cec090fbb6d2f8aa90b70879ecdc0c97d7ea747201c3a"
+      "bytes": 2384,
+      "sha256": "f69b9e28bc5672ca6173fa8cd36d6b8fdb145c0d472caad73171f4380a738002"
     },
     {
       "path": ".github/workflows/library-file-actions.yml",
@@ -74,8 +74,8 @@
     },
     {
       "path": "AGENTS.md",
-      "bytes": 3806,
-      "sha256": "42daf51f27130bfba098ee668e0c7afc11c3e3cf52b29e32ca6b64a19073cb27"
+      "bytes": 4869,
+      "sha256": "fbef77c78b3439ef551310b407eeff5e0b6a93159a9b1e6b6e0968eec696137b"
     },
     {
       "path": "README.md",
@@ -116,6 +116,11 @@
       "path": "app/src/androidTest/java/com/audiobookdownloader/CollectionTransferTest.java",
       "bytes": 4821,
       "sha256": "4726e652eac74d692bbd0d07c42aea80e61e458c17c81f74f2db6bff78afc4a8"
+    },
+    {
+      "path": "app/src/androidTest/java/com/audiobookdownloader/CompactPlayerTest.java",
+      "bytes": 8792,
+      "sha256": "be036168deaca67c6d2da5908fb85b0028b6e0c4f7e6425427451603714e0b23"
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/ContinuationWorkerTest.kt",
@@ -184,8 +189,8 @@
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/StartupSmokeTest.java",
-      "bytes": 22900,
-      "sha256": "029403fdef5453b1be45721dd623778a71d9a377b3b976ad60c62fa88cdda201"
+      "bytes": 23083,
+      "sha256": "04c8c3c7a05ad35aae0f22fcbd5de6469babf9df57c9a930f64abf9b92022109"
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/TestBitmapExports.java",
@@ -244,8 +249,8 @@
     },
     {
       "path": "app/src/main/assets/release-notes.json",
-      "bytes": 2067,
-      "sha256": "babe1b5b7a756383877a4cb2e2e47a8277dd46b096c6f4282acde7e85f376808"
+      "bytes": 1493,
+      "sha256": "e9c3afa3222e94ff5eaac76f700ae6de99dd3953fb5f9e4515d16e1005dba81d"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/AbAudioDurations.kt",
@@ -749,8 +754,8 @@
     },
     {
       "path": "current/MainActivity.kt",
-      "bytes": 787307,
-      "sha256": "c7b9e2ff2eaa53f42f83359c173e788446b326939f987c4ff72f413acd8174f2"
+      "bytes": 787281,
+      "sha256": "e509d6e86aa2d5877787363e6589d8168632f1220148c34f16614224c0d134bc"
     },
     {
       "path": "current/PlaybackService.kt",
@@ -1594,8 +1599,8 @@
     },
     {
       "path": "docs/HANDOFF.md",
-      "bytes": 92124,
-      "sha256": "14cab943c1228eb813ad3f228fce762f6f0cbfc59cad401784fb3044206fcfa0"
+      "bytes": 94052,
+      "sha256": "9db10c853e8435d67ab5930fd399fc81d84f84129c7f2d342298dda313d79867"
     },
     {
       "path": "docs/INSTALL.md",
@@ -1653,6 +1658,11 @@
       "sha256": "405d789a7c56f4bd220eed71ce72597ae2e634e12e87197cad2f6f5a34a4cf19"
     },
     {
+      "path": "docs/PLAYER-DESIGN.md",
+      "bytes": 4671,
+      "sha256": "003dba068186d8cb6e4c851d6053db96e68ace2b44af0027f026343dedca1f24"
+    },
+    {
       "path": "docs/PREDANIE-AND-DIRECT-UPDATES.md",
       "bytes": 10337,
       "sha256": "bea14cb2b1605233564ab3bfe57b2baec4559b710163d472b42ada0aa4dda772"
@@ -1706,6 +1716,11 @@
       "path": "docs/RELEASE-4.2.85.md",
       "bytes": 4629,
       "sha256": "7d94823a2f0bf69ece7e9375406b1313d709cdff01a042dcdf651d5eb4383516"
+    },
+    {
+      "path": "docs/RELEASE-4.2.88.md",
+      "bytes": 4842,
+      "sha256": "4246b8fe6125724af21d224fa075bee9b6a5cc35692fbf71141c6a1ae11acc89"
     },
     {
       "path": "docs/SCREENSHOT-SOURCES.md",
@@ -2303,6 +2318,11 @@
       "sha256": "02f5ccd2c0c8885ee395b5e0a328bb81afed8be3bcb8b0348c6c8b51dade121d"
     },
     {
+      "path": "docs/quality/PLAYER-DESIGN-LOG.md",
+      "bytes": 12526,
+      "sha256": "7ed2612c821be27bc339decee9fa5afd51bc6d76692ac42cafad3ac8e1d833ae"
+    },
+    {
       "path": "docs/quality/baseline-crap.edn",
       "bytes": 19901,
       "sha256": "6fb1519c88d2d7e876c52161e42bfea6ecd2be4b3bfac819da42b9fabe4616fa"
@@ -2641,6 +2661,51 @@
       "path": "docs/release-4.2.85/verification.json",
       "bytes": 8414,
       "sha256": "271ecf904c7e49a3e1cd72eae0bde5fa98d0b90f3008d1a9f56d915e38baad40"
+    },
+    {
+      "path": "docs/release-4.2.88/hosting-retention.json",
+      "bytes": 2471,
+      "sha256": "f55cf03052898ca52e2ea26e309db62c87de729c62add0a55a2bfb61044b9f27"
+    },
+    {
+      "path": "docs/release-4.2.88/installed-upgrade.json",
+      "bytes": 844,
+      "sha256": "8720bf57e0bdcce9f1db8fe2aaff19aec4a36ec850dcb0b276cd3643fa977ef6"
+    },
+    {
+      "path": "docs/release-4.2.88/manifest.json",
+      "bytes": 388,
+      "sha256": "7126d1b7dac087eff3db1a3f0df851274f88b210cd388cad321ba3e4713d82f2"
+    },
+    {
+      "path": "docs/release-4.2.88/permission-audit.json",
+      "bytes": 1029,
+      "sha256": "a55e9db43a082919879c14524fa70d8fd3f0c5d26adc38a4f7a26028e01ba6a7"
+    },
+    {
+      "path": "docs/release-4.2.88/public-check.json",
+      "bytes": 2341,
+      "sha256": "4f848f887b18cb7e72158930b2573278d669ab510f6a985678e379c6946d6949"
+    },
+    {
+      "path": "docs/release-4.2.88/public-manifest.json",
+      "bytes": 2497,
+      "sha256": "3be833f79317ca7ede530417cdb419d93faa00dc2a171eda76184efbc95d44c8"
+    },
+    {
+      "path": "docs/release-4.2.88/publication.json",
+      "bytes": 1171,
+      "sha256": "8dbf7171472c52e6d5437c94c8ea9677eece817012eacf78c634f14f5d4f9a32"
+    },
+    {
+      "path": "docs/release-4.2.88/signed-inspection.json",
+      "bytes": 3310,
+      "sha256": "f4b20f80c919a433f57597a0a4932f95e9400db3c86f1f78e1b38b26f4d803bf"
+    },
+    {
+      "path": "docs/release-4.2.88/verification.json",
+      "bytes": 8493,
+      "sha256": "5d32b5c5936cd76b25f99a30043f52cb8760734d0f51cd6539d5c61e1ec0e82c"
     },
     {
       "path": "docs/screenshot-source-registry.json",
@@ -12244,13 +12309,18 @@
     },
     {
       "path": "scripts/test-android-startup.sh",
-      "bytes": 3161,
-      "sha256": "1d3b1cae8a1e8302478eaa8478112aa869061aace1b05636ed840823edbca888"
+      "bytes": 3399,
+      "sha256": "05c2f17d8a47860df85a6251e88e1c147f58ce80293732a453633e1e99b82362"
     },
     {
       "path": "scripts/test-permission-audit.py",
       "bytes": 1453,
       "sha256": "f07d80c5e764bbf2776e9a086842871cdb653b95a7c05ff68ad3fc972f52feda"
+    },
+    {
+      "path": "scripts/test-player-layout.sh",
+      "bytes": 1136,
+      "sha256": "47e1273310f9de8f8c2581c57efa543cdfef6c25770585a7a0b1b42d0fe83159"
     },
     {
       "path": "scripts/test-preview-upgrade.py",

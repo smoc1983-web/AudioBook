@@ -18,7 +18,8 @@ import static org.junit.Assert.*;
 public class StartupSmokeTest {
     private final Context context=InstrumentationRegistry.getInstrumentation().getTargetContext();
     private final UiDevice device=UiDevice.getInstance(InstrumentationRegistry.getInstrumentation());
-    private void dismissUnrelatedSystemAnr() {
+    private void dismissUnrelatedSystemAnr() {dismissUnrelatedSystemAnr(device);}
+    static void dismissUnrelatedSystemAnr(UiDevice device) {
         UiObject2 title=device.findObject(By.res("android","alertTitle"));
         if(title==null)return;
         String value=title.getText();
@@ -215,12 +216,12 @@ public class StartupSmokeTest {
             assertTrue("Playback position lacks a clock timestamp",controller.getPlaybackState().getLastPositionUpdateTime()>0);
             visible(By.text("Плеер"),"Player navigation missing").click();
             // Core controls must be reachable together before any scroll gesture.
-            for(String label:new String[]{"Закладки · 0","Очередь · 0","Серия","Таймер","Главы","Скорость","Закладка","В коллекцию"}) {
+            for(String label:new String[]{"Закладки","Очередь","Продолжения","Таймер","Главы","Скорость","В коллекцию"}) {
                 UiObject2 control=visible(By.text(label),"Compact player control requires scrolling: "+label);
                 android.graphics.Rect bounds=control.getVisibleBounds();
                 assertTrue("Player control clipped: "+label,bounds.height()>0&&bounds.width()>0&&bounds.top>=0&&bounds.bottom<=device.getDisplayHeight()&&bounds.left>=0&&bounds.right<=device.getDisplayWidth());
             }
-            for(String[] panel:new String[][]{{"Закладки · 0","Закладки книги"},{"Очередь · 0","Очередь прослушивания"},{"Главы","Главы книги"}}){
+            for(String[] panel:new String[][]{{"Закладки","Закладки книги"},{"Очередь","Очередь прослушивания"},{"Главы","Главы книги"}}){
                 visible(By.text(panel[0]),"Player details control missing").click();
                 visible(By.text(panel[1]),"Player details did not open immediately");
                 visible(By.desc("Закрыть"),"Player details close action missing").click();
@@ -236,6 +237,7 @@ public class StartupSmokeTest {
             Shelf shelf=MainActivityKt.loadShelves(context.getSharedPreferences("audiobook_downloader",0)).stream()
                 .filter(value->value.getName().equals("Из плеера")).findFirst().orElseThrow(()->new AssertionError("Collection not created"));
             assertTrue("Current book not saved in collection",shelf.getBooks().stream().anyMatch(book->book.getTitle().equals("Проверка таймера")));
+            visible(By.text("В коллекции"),"Player collection membership did not update after saving");
             android.util.Log.i("PreviewUITest","Collection saved; starting sleep countdown");
             PlaybackService.Companion.setSleepTimer(context,60,false);
             playback(s->s.getShakeListening()&&s.getSleepSeconds()<=57&&s.getSleepSeconds()>=54,"Timer/sensor did not start counting down");

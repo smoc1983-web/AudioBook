@@ -50,6 +50,10 @@ for preview_direction in left right; do
     timeout 15s adb pull "/sdcard/Download/curl-cylinder-${preview_direction}-${preview_frame}.png" startup-evidence/ || true
   done
 done
+for player_skin in 1 5 10 150; do
+  timeout 15s adb pull "/sdcard/Download/compact-player-theme-${player_skin}.png" startup-evidence/ || true
+done
+timeout 15s adb pull /sdcard/Download/compact-player-failure.png startup-evidence/ || true
 for widget_kind in 0 1 2; do
   timeout 15s adb pull "/sdcard/Download/preview-widget-${widget_kind}.png" startup-evidence/ || true
 done

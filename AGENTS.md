@@ -1,3 +1,16 @@
+# Current Audiobook release:4.2.88/100088,2026-10-31
+
+Compact player option2 and selected themes task completed WITH owner-approved ub-mode.
+Full41220372143/sourcea13ac3c6955d95ad999b322ec425b57633d90ec5 passed.
+Focused41221382589/source472ece78b20a80de21ea977abd9821e4264c9310 passed43/44;
+onlyAndroidTest/docdiff, production paths identical. PublicSite20 serves100088;
+upgrade85→88 retaineddata, originalpackage/certificatepreserved. Read latestdocs/HANDOFF.md,
+docs/RELEASE-4.2.88.md,docs/PLAYER-DESIGN.md and docs/quality/PLAYER-DESIGN-LOG.md.
+Before nextNEWdevelopmenttask ask owner's ub-mode choice. No further tests/builds for
+unchanged completedwork. Nextnormal89 unless interveningruns;mainproofmerge[skip ci].
+Hostingarchive231086080bytes;measure nextpayload against256MiB. Preserve user files.
+Historical instructions/status below are superseded by this current header.
+
 # Audiobook development instructions
 
 Latest user preference (2026-10-29): before starting each application development
@@ -50,3 +63,5 @@ See docs/RELEASE-4.2.85.md, docs/SEARCH-COLLECTION-LAYOUT.md and release proofs.
 Next normal86 unless intervening runs; merge/docs commits use[skip ci].
 Ask the owner about ub-mode before the next NEW development task.
 Current Site archive263976960 bytes is near256MiB: prepare verified retention before next publication.
+
+Active task: compact player option2, bound to selected Audiobook themes. Owner approved ub-mode for this task. Do not ask again. Baseline85 preserved until verified replacement.

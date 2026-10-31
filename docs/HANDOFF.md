@@ -1,3 +1,25 @@
+# Актуально: Audiobook 4.2.88 / 100088, плеер варианта2
+
+Задача завершена с одобреннымub-mode. [Описание](RELEASE-4.2.88.md),[поведение](PLAYER-DESIGN.md),
+[журнал](quality/PLAYER-DESIGN-LOG.md),[проверки](release-4.2.88/verification.json).
+Full41220372143 compileda13ac3c6955d95ad999b322ec425b57633d90ec5,treed5bd2329971ff7dd95654c9a48983bfc0ae347a6.
+Targeted41221382589/source472ece78b20a80de21ea977abd9821e4264c9310:толькоharness/docdiff,
+production paths exactlysame. JVM147each/1skip,native83/3skip,targeted43/44,noerrors;
+lint0Error/Fatal,OSV68/0,upgrade85→88 retainedsettings/collection/folder/privateaudioSHA.
+PublicSite20/source654f47c414809b0c04e3b6b8bb24c2c90acc34a7 succeeded.
+URL https://audiobook-smoc1983-updates.amplecoot2048.chatgpt.site .
+Nativeheaders85/78:metadata/all4parts200,fullSHA совпалсactualsignedAPK.
+Передследующейновойзадачейспроситьвыборub-mode;текущуюнепереспрашивать.
+Следующийnormal raw88+offset1=89 приотсутствиипромежуточныхrun. 86/87непубликовались.
+Не менятьpackage/cert,неудалятьприложениеилиuserfiles,неприменятьстарыйstashповторно.
+Sourceproofmergeиспользует[skip ci];нетнеобходимостипересобиратьнеизменённыйAPK.
+Site20архив231086080/268435456:nextpayloadmeasure,один≈33MBAPKможетпоместиться.
+Внешняяbackupunreferenced72/73сохранена,proofhosting-retention.json;85/78/74/manual69/70/71retained.
+НафизическомS24/AndroidnetworkAPK/PlayProtectнепроверено. SDK23WAVfixture−38,
+успешноевоспроизведение23незаявлено,UI/errorstateпротестированы;serviceunchanged.
+
+---
+
 # Актуальный выпуск: 4.2.85 / 100085, 2026-10-31
 
 Текущая задача завершена без ub-mode по явному выбору владельца.
