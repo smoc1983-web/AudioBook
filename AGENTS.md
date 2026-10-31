@@ -50,3 +50,5 @@ See docs/RELEASE-4.2.85.md, docs/SEARCH-COLLECTION-LAYOUT.md and release proofs.
 Next normal86 unless intervening runs; merge/docs commits use[skip ci].
 Ask the owner about ub-mode before the next NEW development task.
 Current Site archive263976960 bytes is near256MiB: prepare verified retention before next publication.
+
+Active task: compact player option2, bound to selected Audiobook themes. Owner approved ub-mode for this task. Do not ask again. Baseline85 preserved until verified replacement.
