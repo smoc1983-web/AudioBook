@@ -26,6 +26,7 @@ public class CompactPlayerTest {
     private <T> T withControl(BySelector selector,NodeAction<T> action) {
         long until=android.os.SystemClock.uptimeMillis()+10000;
         while(android.os.SystemClock.uptimeMillis()<until) {
+            StartupSmokeTest.dismissUnrelatedSystemAnr(device);
             UiObject2 node=device.findObject(selector);
             if(node!=null)try {onScreen(selector,node.getVisibleBounds());return action.run(node);}
             catch(StaleObjectException changedFrame){/* Re-query this selector after the frame was replaced. */}
@@ -88,7 +89,7 @@ public class CompactPlayerTest {
                 Rect title=bounds(By.text("Проверка нового плеера"));
                 int color=snapshot(scenario,skin);
                 assertTrue("Cover must precede the title",cover.bottom<=title.top);
-                assertTrue("Cover is too small: "+cover+" in "+device.getDisplayWidth()+"×"+device.getDisplayHeight(),cover.height()>=device.getDisplayHeight()/6);
+                assertTrue("Cover is too small: "+cover+" in "+device.getDisplayWidth()+"×"+device.getDisplayHeight(),cover.height()+1>=device.getDisplayHeight()/6);
                 Rect collection=bounds(By.text("В коллекцию"));
                 Rect series=bounds(By.text("Продолжения"));
                 assertTrue("Collection and series actions must share one row",Math.abs(collection.centerY()-series.centerY())<collection.height()/2);

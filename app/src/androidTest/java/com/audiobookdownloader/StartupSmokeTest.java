@@ -18,7 +18,8 @@ import static org.junit.Assert.*;
 public class StartupSmokeTest {
     private final Context context=InstrumentationRegistry.getInstrumentation().getTargetContext();
     private final UiDevice device=UiDevice.getInstance(InstrumentationRegistry.getInstrumentation());
-    private void dismissUnrelatedSystemAnr() {
+    private void dismissUnrelatedSystemAnr() {dismissUnrelatedSystemAnr(device);}
+    static void dismissUnrelatedSystemAnr(UiDevice device) {
         UiObject2 title=device.findObject(By.res("android","alertTitle"));
         if(title==null)return;
         String value=title.getText();

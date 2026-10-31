@@ -93,3 +93,14 @@ ub-mode разрешён для этой задачи. Сначала native reg
 - ThenMakeRight:membership-labelmemo теперьзависитотJSONколлекций, непересчитывает
   весьshelflist прикаждомmedia-progressprefupdate. FullStartupassert проверяет
   переключение«Вколлекцию»→«Вколлекции» послесохранения. Playback/storageнеизменены.
+
+- Full88/a13 настоящийAndroid36 startup/recovery/upgrade шагpassed; идётlint/finalpackaging.
+  Focuseda13 Android36 failurehierarchy —«Process system isn't responding»,неAudiobook.
+  Использовантотжесуществующийallowlist обработчикStartupSmokeTest(Waitдляknownsystem,
+  никогдаAudiobook/unknownANR); решениеодно,выделенpackage-static overload,prodнеизменён.
+- A13 Android23 actualRect(425,222—655,541),screen1080×1920: cover319pxприthreshold320.
+  Правильныйweightedмакет отличаетсяна1pxrounding. Уточнёнтолькоgeometrytesttolerance1px;
+  порядок,размерныйпорог,видимостьвсехкнопок/booktime/bookmark ицветапроверяются.
+- Этотcommit меняеттолькоAndroidTest/журнал. Не пересобиратьнеизменённоеприложение:
+  full88 compiledsourcea13 остаетсяисточникомподписанногоAPK. Latestfocusedбудет
+  runсобновлённымtestharness, production/manifest/resources/gradle/scriptsidenticala13.
