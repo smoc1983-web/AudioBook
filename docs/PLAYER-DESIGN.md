@@ -54,3 +54,14 @@ ub-mode разрешён для этой задачи. Сначала native reg
   Убранаэтазависимостьотпорядкадругихтестов: fixture явно выдаёт существующие
   runtimepermissions передlaunch. Productpermissionsнеизменены. Full87 superseded
   до публикации; следующийfull88 только послефактическогоfocusedlayoutрезультата.
+
+- Реальныйper-testlogcat e6 показалGrantPermissionsActivity поверхMainActivity;
+  missingpermissions —подтверждённаяfixtureошибка. Послеисправления7e UI36
+  прошёлзапуск,ноreadbounds поймалStaleObjectException: тестдержалустаревший
+  accessibilitynode междукадрами. Теперь каждыйclick/bounds занововыбираетузел;
+  boundedretry толькоStaleObjectException, assertion/producterrorsнеподавляются.
+- API23 UiAutomation.grantRuntimePermission отсутствует: fixtureпереведённа
+  pmgrant черездоступный23+shell сassertпроверкойpermission. Productнеизменён.
+- AGPcleanup удаляетapp-specificexternalfiles дотранспортаартефактов: снимки
+  теперь используютпроверенныйTestBitmapExports/MediaStore иshellcopyдля23,
+  hierarchy прикладываетсякassertion иfailurePNG сохраняетсявpublicDownload.
