@@ -73,6 +73,13 @@ public class CompactPlayerTest {
                 int color=snapshot(scenario,skin);if(skin==1)light=color;else if(skin==10)dark=color;
             }
             assertNotEquals("Selected light/dark themes must change player background",light,dark);
+            prefs.edit().putFloat("appearance_text_scale",1.5f).commit();scenario.recreate();
+            control(By.text("Плеер")).click();
+            for(String label:new String[]{"Главы","Закладки","Очередь","Таймер","Скорость"})control(By.text(label));
+            control(By.text("Главы")).click();control(By.text("Главы книги"));control(By.desc("Закрыть")).click();
+            control(By.text("Таймер")).click();control(By.text("Таймер сна"));control(By.desc("Закрыть")).click();
+            assertTrue(device.wait(Until.gone(By.text("Таймер сна")),5000));
+            snapshot(scenario,150);
         } finally {PlaybackService.Companion.stop(context,true,null);context.stopService(new android.content.Intent(context,PlaybackService.class));audio.delete();prefs.edit().clear().commit();}
     }
 }

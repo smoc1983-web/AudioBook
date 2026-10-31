@@ -1,5 +1,5 @@
 {
-  "revision": "release-4.2.85-verified-published",
+  "revision": "compact-player-theme-candidate",
   "storage": "GitHub export; see releases/ARCHIVE-PARTS.json for three multipart historical ZIPs",
   "files": [
     {
@@ -19,8 +19,8 @@
     },
     {
       "path": ".github/workflows/build-apk.yml",
-      "bytes": 8768,
-      "sha256": "9dbd641f56a3e8b5f052019f206e4f73ce7efd78d77e5292b4824147b14253e4"
+      "bytes": 8855,
+      "sha256": "09b6e7b90cf27ba73357d9c7f648587d8984d28e4c558fe9a7d982860404cae9"
     },
     {
       "path": ".github/workflows/collect-description-reports74.yml",
@@ -44,8 +44,8 @@
     },
     {
       "path": ".github/workflows/library-experience.yml",
-      "bytes": 2803,
-      "sha256": "18741d7fbfb18d93078cec090fbb6d2f8aa90b70879ecdc0c97d7ea747201c3a"
+      "bytes": 2384,
+      "sha256": "f69b9e28bc5672ca6173fa8cd36d6b8fdb145c0d472caad73171f4380a738002"
     },
     {
       "path": ".github/workflows/library-file-actions.yml",
@@ -74,8 +74,8 @@
     },
     {
       "path": "AGENTS.md",
-      "bytes": 3806,
-      "sha256": "42daf51f27130bfba098ee668e0c7afc11c3e3cf52b29e32ca6b64a19073cb27"
+      "bytes": 3985,
+      "sha256": "d4fd81afdda29e65b1d9b185889d337261bdb0920a3dd010ab4486a0fcc0d370"
     },
     {
       "path": "README.md",
@@ -116,6 +116,11 @@
       "path": "app/src/androidTest/java/com/audiobookdownloader/CollectionTransferTest.java",
       "bytes": 4821,
       "sha256": "4726e652eac74d692bbd0d07c42aea80e61e458c17c81f74f2db6bff78afc4a8"
+    },
+    {
+      "path": "app/src/androidTest/java/com/audiobookdownloader/CompactPlayerTest.java",
+      "bytes": 6669,
+      "sha256": "31e9c25d264776ec083dfdbd218abf7f9004741655370322d62ad147e6fe0fa7"
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/ContinuationWorkerTest.kt",
@@ -184,8 +189,8 @@
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/StartupSmokeTest.java",
-      "bytes": 22900,
-      "sha256": "029403fdef5453b1be45721dd623778a71d9a377b3b976ad60c62fa88cdda201"
+      "bytes": 22873,
+      "sha256": "0d28bf0129fef9eb443482f545e22b8103dc509e387889b3ef2456bef6be109d"
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/TestBitmapExports.java",
@@ -244,8 +249,8 @@
     },
     {
       "path": "app/src/main/assets/release-notes.json",
-      "bytes": 2067,
-      "sha256": "babe1b5b7a756383877a4cb2e2e47a8277dd46b096c6f4282acde7e85f376808"
+      "bytes": 1493,
+      "sha256": "e9c3afa3222e94ff5eaac76f700ae6de99dd3953fb5f9e4515d16e1005dba81d"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/AbAudioDurations.kt",
@@ -749,8 +754,8 @@
     },
     {
       "path": "current/MainActivity.kt",
-      "bytes": 787307,
-      "sha256": "c7b9e2ff2eaa53f42f83359c173e788446b326939f987c4ff72f413acd8174f2"
+      "bytes": 786467,
+      "sha256": "6a76810fa61f9cfd0902d5e6b2957789d51d26aff18caff7c10bffb8933963d5"
     },
     {
       "path": "current/PlaybackService.kt",
@@ -1651,6 +1656,11 @@
       "path": "docs/PLAYER-CURL-SLEEP.md",
       "bytes": 13850,
       "sha256": "405d789a7c56f4bd220eed71ce72597ae2e634e12e87197cad2f6f5a34a4cf19"
+    },
+    {
+      "path": "docs/PLAYER-DESIGN.md",
+      "bytes": 4108,
+      "sha256": "d1535cb48654292f8bebda51f40aa902710c8f2a7658a698e628d30002345101"
     },
     {
       "path": "docs/PREDANIE-AND-DIRECT-UPDATES.md",
@@ -12251,6 +12261,11 @@
       "path": "scripts/test-permission-audit.py",
       "bytes": 1453,
       "sha256": "f07d80c5e764bbf2776e9a086842871cdb653b95a7c05ff68ad3fc972f52feda"
+    },
+    {
+      "path": "scripts/test-player-layout.sh",
+      "bytes": 856,
+      "sha256": "049a7fd4464990b4bb94131628a77a483fd91555c5051a284fd69e87cd834615"
     },
     {
       "path": "scripts/test-preview-upgrade.py",

@@ -45,13 +45,14 @@ jobs:
           profile: ${{ matrix.api == 23 && 'Nexus 5' || 'pixel_6' }}
           emulator-boot-timeout: 300
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -memory 2048 -cores 2
-          script: GITHUB_RUN_NUMBER=71 gradle :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.audiobookdownloader.CompactPlayerTest,com.audiobookdownloader.SearchScrollTest,com.audiobookdownloader.SearchCollectionLayoutTest,com.audiobookdownloader.LibraryExperienceTest,com.audiobookdownloader.CollectionDownloadTest,com.audiobookdownloader.BookDescriptionTest,com.audiobookdownloader.CollectionSeriesTest,com.audiobookdownloader.EditionDownloadTest,com.audiobookdownloader.UpdateScreenTest,com.audiobookdownloader.WidgetPreviewTest --stacktrace
+          script: bash scripts/test-player-layout.sh
       - name: Save reports only
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: library-experience-api${{ matrix.api }}
           path: |
+            compact-player-evidence/
             app/build/test-results/testDebugUnitTest/
             app/build/outputs/androidTest-results/
             app/build/reports/androidTests/
