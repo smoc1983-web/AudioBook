@@ -215,12 +215,12 @@ public class StartupSmokeTest {
             assertTrue("Playback position lacks a clock timestamp",controller.getPlaybackState().getLastPositionUpdateTime()>0);
             visible(By.text("Плеер"),"Player navigation missing").click();
             // Core controls must be reachable together before any scroll gesture.
-            for(String label:new String[]{"Закладки · 0","Очередь · 0","Серия","Таймер","Главы","Скорость","Закладка","В коллекцию"}) {
+            for(String label:new String[]{"Закладки","Очередь","Продолжения","Таймер","Главы","Скорость","В коллекцию"}) {
                 UiObject2 control=visible(By.text(label),"Compact player control requires scrolling: "+label);
                 android.graphics.Rect bounds=control.getVisibleBounds();
                 assertTrue("Player control clipped: "+label,bounds.height()>0&&bounds.width()>0&&bounds.top>=0&&bounds.bottom<=device.getDisplayHeight()&&bounds.left>=0&&bounds.right<=device.getDisplayWidth());
             }
-            for(String[] panel:new String[][]{{"Закладки · 0","Закладки книги"},{"Очередь · 0","Очередь прослушивания"},{"Главы","Главы книги"}}){
+            for(String[] panel:new String[][]{{"Закладки","Закладки книги"},{"Очередь","Очередь прослушивания"},{"Главы","Главы книги"}}){
                 visible(By.text(panel[0]),"Player details control missing").click();
                 visible(By.text(panel[1]),"Player details did not open immediately");
                 visible(By.desc("Закрыть"),"Player details close action missing").click();

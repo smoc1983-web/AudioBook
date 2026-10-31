@@ -14,7 +14,6 @@ import java.io.FileOutputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import static org.junit.Assert.*;
@@ -36,7 +35,7 @@ public class CompactPlayerTest {
         data.put("RIFF".getBytes(StandardCharsets.US_ASCII)).putInt(36+samples*2).put("WAVEfmt ".getBytes(StandardCharsets.US_ASCII));
         data.putInt(16).putShort((short)1).putShort((short)1).putInt(22050).putInt(44100).putShort((short)2).putShort((short)16);
         data.put("data".getBytes(StandardCharsets.US_ASCII)).putInt(samples*2);
-        File result=new File(context.getFilesDir(),"compact-player.wav");Files.write(result.toPath(),data.array());return result;
+        File result=new File(context.getFilesDir(),"compact-player.wav");try(FileOutputStream out=new FileOutputStream(result)){out.write(data.array());}return result;
     }
     private int snapshot(ActivityScenario<MainActivity> scenario,int skin) throws Exception {
         Bitmap[] image={null};
@@ -49,7 +48,7 @@ public class CompactPlayerTest {
         Configurator.getInstance().setWaitForIdleTimeout(0);device.wakeUp();device.executeShellCommand("wm dismiss-keyguard");
         if(Build.VERSION.SDK_INT>=33)InstrumentationRegistry.getInstrumentation().getUiAutomation().grantRuntimePermission(context.getPackageName(),"android.permission.READ_MEDIA_AUDIO");
         android.content.SharedPreferences prefs=context.getSharedPreferences("audiobook_downloader",0);
-        prefs.edit().clear().putInt("glass_theme",1).putFloat("experience_text_scale",1f).commit();
+        prefs.edit().clear().putInt("glass_theme",1).putFloat("appearance_text_scale",1f).commit();
         context.getSharedPreferences("audiobook_startup",0).edit().clear().commit();
         File audio=audio();
         try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(MainActivity.class)) {
@@ -70,6 +69,7 @@ public class CompactPlayerTest {
                 control(By.desc("Позиция воспроизведения в главе"));
                 control(By.desc("Продолжения серии")).click();control(By.text("Серия книги"));control(By.desc("Закрыть")).click();
                 control(By.text("Закладки")).click();control(By.text("Закладки книги"));control(By.text("Добавить закладку")).click();control(By.desc("Закрыть")).click();
+                assertTrue(device.wait(Until.gone(By.text("Закладки книги")),5000));
                 int color=snapshot(scenario,skin);if(skin==1)light=color;else if(skin==10)dark=color;
             }
             assertNotEquals("Selected light/dark themes must change player background",light,dark);
