@@ -214,7 +214,12 @@ public class StartupSmokeTest {
             assertEquals(android.media.session.PlaybackState.STATE_PLAYING,controller.getPlaybackState().getState());
             assertTrue("Playback position lacks a clock timestamp",controller.getPlaybackState().getLastPositionUpdateTime()>0);
             visible(By.text("Плеер"),"Player navigation missing").click();
-            // The whole player remains vertically scrollable; collection action is above chapter tabs.
+            // Core controls must be reachable together before any scroll gesture.
+            for(String label:new String[]{"Закладки · 0","Очередь · 0","Серия","Таймер","Главы","Скорость","Закладка","В коллекцию"}) {
+                UiObject2 control=visible(By.text(label),"Compact player control requires scrolling: "+label);
+                android.graphics.Rect bounds=control.getVisibleBounds();
+                assertTrue("Player control clipped: "+label,bounds.height()>0&&bounds.top>=0&&bounds.bottom<=device.getDisplayHeight());
+            }
             for(int i=0;i<3&&!device.hasObject(By.text("В коллекцию"));i++)
                 device.swipe(device.getDisplayWidth()/2,device.getDisplayHeight()*3/4,device.getDisplayWidth()/2,device.getDisplayHeight()/2,20);
             visible(By.text("В коллекцию"),"Direct player collection action missing").click();

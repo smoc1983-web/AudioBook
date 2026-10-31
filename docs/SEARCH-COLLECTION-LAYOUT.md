@@ -18,3 +18,10 @@ widget bounds, chapter choice, local-delete visibility and compact player geomet
 review relevance/sort handling of unknown/conflicting series orders. Do not claim
 strict chronological truth when sources do not supply confirmed order. No publication
 before full gate/upgrade/signature/actual APK checks. Current workflow is focused-only.
+
+First focused run41173054814 compiled on both23/36 and entered native tests from761fead.
+Follow-up adds exact widget cover/control-width assertions, individual-chapter UI
+regression preserving total count and playback, and full startup no-scroll checks
+for player controls. Authority-cache-enriched rows are re-filtered against the query,
+so corrected cycles cannot retain unrelated results. Collection picker remains a
+separate add/toggle action; removals are idempotent and scoped to one shelf.

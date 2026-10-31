@@ -10217,8 +10217,9 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
     // Playback ticks and lazy-list recycling must not reparse every book's reference metadata.
     val seriesRevision=remember(prefs,data.version) {prefs.getInt("book_series_revision",0)}
     val prepared by androidx.compose.runtime.produceState<List<AbSearchRow>?>(null,
-        data.results,books,seriesRevision,data.cycle,data.cycleBrowsing) {
-        value=AbSearchRows.prepare(data.results,books,prefs,data.cycle.takeIf{data.cycleBrowsing})
+        data.results,books,seriesRevision,data.cycle,data.cycleBrowsing,data.query,data.genre) {
+        value=AbSearchRows.prepare(data.results,books,prefs,data.cycle.takeIf{data.cycleBrowsing},
+            query=if(data.genre.isBlank()&&!data.cycleBrowsing)data.query else "")
     }
     val resultBooks=prepared.orEmpty()
     val visibleResults=remember(resultBooks,visibleCount) {resultBooks.take(visibleCount)}
@@ -11796,11 +11797,12 @@ private fun AbBookMenu(ref: BookRef,local: LibraryBook?,prefs: android.content.S
     val favorite=remember(version,ref.title) {loadBookRefs(prefs,FAVORITES_KEY).any{it.title==ref.title}}
     val queue=remember(version) {loadQueue(prefs)}
     val queueTitle=local?.title ?: ref.title
+    val canDelete=local?.files?.isNotEmpty()==true
     val deleteTarget=local ?: LibraryBook(ref.title,File(libraryRoot(),safeFileName(ref.title)),emptyList())
-    AbDialog(if(confirmDelete) "Удалить книгу?" else "Действия с книгой",theme,{if(!deleting)dismiss()}) {
+    AbDialog(if(confirmDelete&&canDelete) "Удалить книгу?" else "Действия с книгой",theme,{if(!deleting)dismiss()}) {
         Text(ref.title,color=theme.text,fontSize=17.sp,fontWeight=FontWeight.SemiBold)
         if(local!=null)Text("На устройстве: ${local.files.size} глав · "+abLocalSize(local),color=theme.muted,fontSize=12.sp)
-        if(confirmDelete) {
+        if(confirmDelete&&canDelete) {
             Text("Будут удалены скачанные главы и служебные файлы этой книги. Коллекции, закладки и другие документы сохранятся. Отменить удаление нельзя.",color=theme.muted,fontSize=14.sp)
             if(deleteMessage.isNotBlank())Text(deleteMessage,color=theme.muted,fontSize=13.sp,lineHeight=20.sp)
             if(deleting)Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(10.dp)) {
@@ -11849,7 +11851,7 @@ private fun AbBookMenu(ref: BookRef,local: LibraryBook?,prefs: android.content.S
                 dismiss();actions.openSite(BookLink(ref.title,ref.url,ref.cover),ref.url)
             }
             }
-            if(local?.files?.isNotEmpty()==true)AbButton("Удалить скачанные файлы",theme){confirmDelete=true}
+            if(canDelete)AbButton("Удалить скачанные файлы",theme){confirmDelete=true}
         }
     }
 }
@@ -11862,7 +11864,7 @@ internal fun AbShelfPicker(ref: BookRef,prefs: android.content.SharedPreferences
         Text(ref.title,color=theme.muted,fontSize=14.sp)
         remember(version) {loadShelves(prefs)}.forEach {shelf ->
             AbButton((if(shelf.books.any{it.title==ref.title}) "✓ " else "")+shelf.name,theme) {
-                abRemoveShelfBook(prefs,shelf.name,ref)
+                toggleShelfBook(prefs,shelf.name,ref)
             }
         }
         AbTextField(name,"Новая коллекция",theme,{name=it})

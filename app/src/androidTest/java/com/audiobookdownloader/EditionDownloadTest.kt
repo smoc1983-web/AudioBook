@@ -57,6 +57,19 @@ class EditionDownloadTest {
         compose.onNodeWithText("Скачана").assertIsNotEnabled()
     }
 
+    @Test(timeout=30000) fun oneChapterCanBeDownloadedWithoutSelectingTheBookOrLosingEditionTotal() {
+        known();val before=PlaybackService.state.value;var chosen=emptyList<AudioTrack>()
+        val context=androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>()
+        val p=context.getSharedPreferences("audiobook_downloader",0);val key=bookTotalKey(ref.title);val previous=p.getInt(key,0)
+        try {
+            compose.setContent {Column {AbEditionDownloadControls(edition(),DownloadedChapterIndex.EMPTY,emptySet(),abTheme(2)){_,tracks->chosen=tracks}}}
+            compose.onNodeWithText("Скачать отдельные главы").performClick()
+            compose.onNodeWithText("2. Глава 2 · Скачать главу").assertIsDisplayed().performClick()
+            assertEquals(listOf(track(2)),chosen);assertEquals(2,p.getInt(key,0));assertEquals(before,PlaybackService.state.value)
+            compose.onNodeWithText("Скачать").assertIsEnabled()
+        }finally{p.edit().putInt(key,previous).commit()}
+    }
+
     @Test fun parserUsesTheSelectedEditionAndRejectsMissingAudio() {
         val root=JSONObject("""{"title":"Книга (ознакомительный фрагмент)","cover":"https://cdn.example/cover.jpg","player":{"playlist":[{"title":"01","src":"https://cdn.example/1.mp3"},{"title":"bad","src":"file:///private"}]}}""")
         val result=abDownloadEdition(ref,root,ref.url)!!

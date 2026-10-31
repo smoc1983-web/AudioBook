@@ -12,7 +12,7 @@ internal data class AbSearchRow(val book:BookLink,val ref:BookRef,val local:Libr
 /** Build once per result/library/reference change, outside composition and off the UI thread. */
 internal object AbSearchRows {
     suspend fun prepare(books:List<BookLink>,library:List<LibraryBook>,prefs:SharedPreferences,
-        cycle:BookCycle?):List<AbSearchRow> = withContext(Dispatchers.Default) {
+        cycle:BookCycle?,query:String=""):List<AbSearchRow> = withContext(Dispatchers.Default) {
         val playable=library.filter{it.files.isNotEmpty()}
         val exact=playable.groupBy{it.title}
         fun localKey(title:String)=safeFileName(cleanBookTitle(title)).lowercase(Locale.ROOT)
@@ -27,7 +27,7 @@ internal object AbSearchRows {
             val local=exact[book.title]?.firstOrNull() ?: normalized[localKey(book.title)]?.singleOrNull()
             AbSearchRow(book,BookRef(book.title,book.url,book.coverUrl),local,bookSources(book))
         }
-        val prepared=AbSearchPresentation.prepare(rows.map{it.book},cycle=cycle)
+        val prepared=AbSearchPresentation.prepare(rows.map{it.book},query=query,cycle=cycle)
         val indexed=rows.associateBy{it.book.url}
         prepared.mapNotNull{book->indexed[book.url]?.copy(book=book,sources=bookSources(book))}
     }
