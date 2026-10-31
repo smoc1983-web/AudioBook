@@ -75,3 +75,9 @@ its normalized result(sources contains the real link). Order and identity were c
 The regression now asserts last title+author+URL and retained source URL, preserving
 the actual behavior requirement rather than comparing incidental representation.
 Full84 supersedes83 to include this corrected test. No production change in this fix.
+
+Final compact-cover inset accounts for the painted rounded border, not merely the
+background ImageView rectangle: bounded40dp artwork is inset further from the corner.
+The native assertion includes a16dp minimum cover inset. The final layout-only fix
+supersedes84 before publication; fresh full85 must validate these exact resources.
+No additional functional changes are planned; proceed with actual verification.

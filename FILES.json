@@ -1,5 +1,5 @@
 {
-  "revision": "search-layout-behavioral-order-assertion",
+  "revision": "search-layout-rounded-compact-cover-inset",
   "storage": "GitHub export; see releases/ARCHIVE-PARTS.json for three multipart historical ZIPs",
   "files": [
     {
@@ -209,8 +209,8 @@
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/WidgetPreviewTest.java",
-      "bytes": 7813,
-      "sha256": "62d37c7fb38ecf6275d2b274ad453c6efe84d0dd1470cf8aad7b0a2374aa96d8"
+      "bytes": 7935,
+      "sha256": "5a88c016be9b5810eff57ec57a5788a53870ca08c1d24067e64437caa948acac"
     },
     {
       "path": "app/src/debug/AndroidManifest.xml",
@@ -899,8 +899,8 @@
     },
     {
       "path": "current/app/src/main/res/layout/ab_widget_compact.xml",
-      "bytes": 3342,
-      "sha256": "b671bb15bf4f73a3b56c97c75dff8ca1d2e06e00a11874469a59a4fdb1800b2f"
+      "bytes": 3376,
+      "sha256": "72ce8801e27b052a3136eaa8c3e678b6e8f2e620c145d2eec89ea2486076b143"
     },
     {
       "path": "current/app/src/main/res/layout/ab_widget_cover.xml",
@@ -1709,8 +1709,8 @@
     },
     {
       "path": "docs/SEARCH-COLLECTION-LAYOUT.md",
-      "bytes": 5456,
-      "sha256": "70ceb3d9adb8071f388cc838a831b808677adfe051d857b85c8033b4c3c84e9b"
+      "bytes": 5871,
+      "sha256": "da23bf76f841aeb377f60d7af7637b7b01cd604f0944614cd91d9183e0b0379a"
     },
     {
       "path": "docs/SEARCH-SCROLL-PERFORMANCE.md",

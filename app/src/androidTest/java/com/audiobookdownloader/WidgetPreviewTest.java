@@ -43,6 +43,7 @@ public class WidgetPreviewTest {
                         View background=view.findViewById(R.id.ab_widget_background);background.getDrawingRect(backgroundBounds);
                         ((android.view.ViewGroup)view).offsetDescendantRectToMyCoords(background,backgroundBounds);
                         assertTrue("Cover crosses the widget border",backgroundBounds.contains(coverBounds));
+                        if(selected==0)assertTrue("Cover intrudes into the rounded border",coverBounds.left>=16*density);
                         if(selected==2){
                             View previous=view.findViewById(R.id.ab_widget_previous),timer=view.findViewById(R.id.ab_widget_timer);
                             assertTrue("Player controls leave unused row width",timer.getRight()-previous.getLeft()>=((View)previous.getParent()).getWidth()*.95f);
