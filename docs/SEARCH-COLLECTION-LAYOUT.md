@@ -68,3 +68,10 @@ Widget range handling uses Android's paired landscape/portrait RemoteViews: a sm
 MIN_HEIGHT landscape range must not select the compact layout for a tall portrait
 widget. The explicit mixed-range native regression exercises this launcher contract.
 This corrects the first adaptive-layout selection before publication; full83 replaces82.
+
+Focused41175056142 reported42/43 native cases (API23/36) with exactly one failing
+assertion: the new standalone-last test compared a raw BookLink(sources=empty) to
+its normalized result(sources contains the real link). Order and identity were correct.
+The regression now asserts last title+author+URL and retained source URL, preserving
+the actual behavior requirement rather than comparing incidental representation.
+Full84 supersedes83 to include this corrected test. No production change in this fix.

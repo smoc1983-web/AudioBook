@@ -1,5 +1,5 @@
 {
-  "revision": "search-layout-widget-orientation-ranges",
+  "revision": "search-layout-behavioral-order-assertion",
   "storage": "GitHub export; see releases/ARCHIVE-PARTS.json for three multipart historical ZIPs",
   "files": [
     {
@@ -164,8 +164,8 @@
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/SearchCollectionLayoutTest.kt",
-      "bytes": 4813,
-      "sha256": "9ee4b594f71df3fd62e0b5968c354e473d3b8862e19f9f8d6203533f11e6834f"
+      "bytes": 4995,
+      "sha256": "151694c52d088f433a8741351eba1638adfe94728843cd23f3630f07aa30039c"
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/SearchScrollTest.kt",
@@ -1709,8 +1709,8 @@
     },
     {
       "path": "docs/SEARCH-COLLECTION-LAYOUT.md",
-      "bytes": 4951,
-      "sha256": "d643b0ff857165eeb3ce718cd7a6c27519f4db6f476fb535f2c01b7e7b93c131"
+      "bytes": 5456,
+      "sha256": "70ceb3d9adb8071f388cc838a831b808677adfe051d857b85c8033b4c3c84e9b"
     },
     {
       "path": "docs/SEARCH-SCROLL-PERFORMANCE.md",

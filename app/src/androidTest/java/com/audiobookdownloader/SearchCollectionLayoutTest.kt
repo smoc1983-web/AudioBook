@@ -19,7 +19,9 @@ class SearchCollectionLayoutTest {
         assertEquals(listOf(1.0,2.0,10.0),AbSearchPresentation.prepare(books,"Отдел 15-К").map{it.cycles.first().order})
         assertEquals(listOf(1.0,2.0,10.0),AbSearchPresentation.prepare(books,"Отдел 15К").map{it.cycles.first().order})
         val standalone=BookLink("Без серии","https://example.invalid/standalone",author="Автор")
-        assertEquals(standalone,AbSearchPresentation.prepare(books+standalone,"Автор").last())
+        val last=AbSearchPresentation.prepare(books+standalone,"Автор").last()
+        assertEquals(standalone.title,last.title);assertEquals(standalone.author,last.author);assertEquals(standalone.url,last.url)
+        assertTrue(bookSources(last).any{it.url==standalone.url})
         assertTrue(AbSearchPresentation.prepare(listOf(BookLink("Отделение 15-К","https://example.invalid/wrong")),"Отдел 15-К").isEmpty())
     }
     @Test fun narratorVariantsBecomeOneWorkWithAllSources() {
