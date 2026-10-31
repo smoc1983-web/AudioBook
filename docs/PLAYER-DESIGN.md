@@ -71,3 +71,14 @@ ub-mode разрешён для этой задачи. Сначала native reg
   updater перекрылтестовыйплеер. Убранапредпосылкасвободногоstartupwindow:
   толькоfixture выключаетpreview_updates.auto, послеcase восстанавливаетBoolean.
   ReleaseNotesseen выставлендляfixture; ниupdatepolicy,ниproductionповедениенеменяются.
+
+- 5196 реальныеPNG1/5 просмотрены: правильныеpalette,всеосновныедействиявидны,
+  нофиксированныйhero оставлялбольшойпустойпромежутокмеждупрогрессомичаптерseek.
+  API23 впервые дошёлдомакета: Cover is too small. Удалёнheuristicreserve400:
+  обычныйэкран измеряетmetadata исначаладаётостатокобложке(weightedlayout,cap320).
+  Дляlargefont/короткогоокнаmetadataвscroll,нижниеcontrolspinned. Вертикальныегапы
+  уплотнены, footer54dp сохранёнбольше48dp touch target;chapterdropdown доступенизfooter.
+- Android36 проходилtheme1/5, останавливалсянаcloseпослеaddbookmark3: тестотключил
+  idleожидание(0), ановаяbookmarkrow двигаетцентрдиалога. Установлено500msframework
+  idleпередUiAutomatoroperations; проверкизакрытиясохранены,bookmarkзаписьasserted,
+  проверкавремениbookтеперьявная. Приошибкезакрытиясохраняетсяhierarchy+PNG.

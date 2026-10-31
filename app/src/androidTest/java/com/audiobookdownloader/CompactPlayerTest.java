@@ -65,7 +65,7 @@ public class CompactPlayerTest {
         int pixel=image[0].getPixel(image[0].getWidth()/20,image[0].getHeight()/2);image[0].recycle();return pixel;
     }
     @Test(timeout=180000) public void selectedThemesKeepCoverAndAllPrimaryActionsOnScreen() throws Exception {
-        Configurator.getInstance().setWaitForIdleTimeout(0);device.wakeUp();device.executeShellCommand("wm dismiss-keyguard");
+        Configurator.getInstance().setWaitForIdleTimeout(500);device.wakeUp();device.executeShellCommand("wm dismiss-keyguard");
         String read=Build.VERSION.SDK_INT>=33?"android.permission.READ_MEDIA_AUDIO":"android.permission.READ_EXTERNAL_STORAGE";
         device.executeShellCommand("pm grant "+context.getPackageName()+" "+read);
         assertEquals(android.content.pm.PackageManager.PERMISSION_GRANTED,context.checkSelfPermission(read));
@@ -92,10 +92,10 @@ public class CompactPlayerTest {
                 Rect series=bounds(By.text("Продолжения"));
                 assertTrue("Collection and series actions must share one row",Math.abs(collection.centerY()-series.centerY())<collection.height()/2);
                 for(String label:new String[]{"Главы","Закладки","Очередь","Таймер","Скорость"})control(By.text(label));
-                control(By.desc("Позиция воспроизведения в главе"));
+                control(By.desc("Позиция воспроизведения в главе"));control(By.textContains("До конца книги:"));
                 click(By.desc("Продолжения серии"));control(By.text("Серия книги"));click(By.desc("Закрыть"));
-                click(By.text("Закладки"));control(By.text("Закладки книги"));click(By.text("Добавить закладку"));click(By.desc("Закрыть"));
-                assertTrue(device.wait(Until.gone(By.text("Закладки книги")),5000));
+                click(By.text("Закладки"));control(By.text("Закладки книги"));click(By.text("Добавить закладку"));assertFalse(MainActivityKt.loadBookmarks(prefs,"Проверка нового плеера").isEmpty());click(By.desc("Закрыть"));
+                if(!device.wait(Until.gone(By.text("Закладки книги")),5000))throw unavailable(By.text("Закладки книги"));
                 int color=snapshot(scenario,skin);if(skin==1)light=color;else if(skin==10)dark=color;
             }
             assertNotEquals("Selected light/dark themes must change player background",light,dark);

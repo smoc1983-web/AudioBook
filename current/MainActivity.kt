@@ -10965,8 +10965,8 @@ private fun AbPlayerScreen(data: AbScreenData,actions: AbActions,books: List<Lib
     }
     BoxWithConstraints(Modifier.fillMaxSize().background(theme.background.copy(alpha=if(theme.light).96f else .90f))) {
         val fontScale=androidx.compose.ui.platform.LocalDensity.current.fontScale.coerceAtLeast(1f)
-        val coverHeight=((maxHeight.value-400f*fontScale)/fontScale).coerceIn(80f,224f).dp
-        Column(Modifier.fillMaxSize().padding(horizontal=16.dp),verticalArrangement=Arrangement.spacedBy(4.dp)) {
+        val scrollDetails=fontScale>1.2f || maxHeight<480.dp
+        Column(Modifier.fillMaxSize().padding(horizontal=16.dp),verticalArrangement=Arrangement.spacedBy(2.dp)) {
             Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
                 AbIconButton(AbIcon.BACK,"В библиотеку",theme) {actions.navigate(AppPage.LIBRARY)}
                 Text(if(state.hasSelection)"Сейчас играет" else "Выберите книгу",color=theme.muted,fontSize=12.sp,modifier=Modifier.weight(1f),
@@ -10985,20 +10985,16 @@ private fun AbPlayerScreen(data: AbScreenData,actions: AbActions,books: List<Lib
                 if(state.error.isNotBlank())Text(state.error,color=theme.error,fontSize=13.sp)
                 AbButton("Открыть библиотеку",theme,primary=true) {actions.navigate(AppPage.LIBRARY)}
             } else {
-                Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()),
-                    horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(5.dp)) {
-                    AbCover(state.bookTitle,local,ref,theme,Modifier.height(coverHeight).width(coverHeight*.72f),widgetBook=true)
-                    Text(state.bookTitle,color=theme.text,fontSize=21.sp,fontWeight=FontWeight.SemiBold,
-                        maxLines=2,overflow=TextOverflow.Ellipsis,textAlign=androidx.compose.ui.text.style.TextAlign.Center)
-                    val author=prefs.getString(abAuthorKey(state.bookTitle),"").orEmpty()
-                    if(author.isNotBlank())Text(author,color=theme.accent,fontSize=13.sp,maxLines=1,overflow=TextOverflow.Ellipsis)
-                    val collected=remember(prefs,state.bookTitle,data.version){loadShelves(prefs).any{shelf->shelf.books.any{it.title.equals(state.bookTitle,true)}}}
-                    Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(10.dp)) {
-                        AbButton(if(collected)"В коллекции" else "В коллекцию",theme,Modifier.weight(1f)) {onShelf(ref)}
-                        AbButton("Продолжения",theme,Modifier.weight(1f).semantics{contentDescription="Продолжения серии"}) {tab=3}
+                if(scrollDetails)Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()),
+                    horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(3.dp)) {
+                    AbCover(state.bookTitle,local,ref,theme,Modifier.height(96.dp).width(69.dp),widgetBook=true)
+                    AbPlayerIdentity(data,prefs,ref,theme,onShelf,{tab=3})
+                } else Column(Modifier.weight(1f).fillMaxWidth(),verticalArrangement=Arrangement.spacedBy(3.dp)) {
+                    BoxWithConstraints(Modifier.weight(1f).fillMaxWidth(),contentAlignment=Alignment.Center) {
+                        val height=maxHeight.coerceAtMost(320.dp)
+                        AbCover(state.bookTitle,local,ref,theme,Modifier.height(height).width(height*.72f),widgetBook=true)
                     }
-                    AbBookPlaybackProgress(data,theme,compact=true)
-                    AbBookDownloadFeedback(data,state.bookTitle,theme)
+                    AbPlayerIdentity(data,prefs,ref,theme,onShelf,{tab=3})
                 }
                 AbPlayerChapterSeek(state,theme,{tab=4})
                 AbPlayerTransport(state,prefs,theme)
@@ -11009,10 +11005,10 @@ private fun AbPlayerScreen(data: AbScreenData,actions: AbActions,books: List<Lib
                     AbPlayerAction(AbIcon.TIMER,if(state.sleepSeconds>0)formatSleepTime(state.sleepSeconds)
                         else if(state.sleepChapterTarget.isNotBlank())"До конца главы" else "Таймер",theme,
                         state.sleepSeconds>0||state.sleepChapterTarget.isNotBlank(),Modifier.weight(1f)) {onSettings(AbSettingsSection.TIMER)}
-                    Column(Modifier.weight(1f).heightIn(min=58.dp).clip(RoundedCornerShape(13.dp))
+                    Column(Modifier.weight(1f).heightIn(min=54.dp).clip(RoundedCornerShape(13.dp))
                         .semantics{contentDescription="Скорость воспроизведения ${state.speed}";role=androidx.compose.ui.semantics.Role.Button}
-                        .clickable{onSettings(AbSettingsSection.SPEED)}.padding(horizontal=3.dp,vertical=8.dp),
-                        horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(7.dp)) {
+                        .clickable{onSettings(AbSettingsSection.SPEED)}.padding(horizontal=3.dp,vertical=7.dp),
+                        horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(4.dp)) {
                         Text("${state.speed}×",color=theme.accent,fontSize=17.sp,fontWeight=FontWeight.Medium)
                         Text("Скорость",color=theme.muted,fontSize=10.sp)
                     }
@@ -11091,11 +11087,30 @@ private fun AbPlayerScreen(data: AbScreenData,actions: AbActions,books: List<Lib
 }
 
 @Composable
+private fun AbPlayerIdentity(data:AbScreenData,prefs:android.content.SharedPreferences,ref:BookRef,
+    theme:AbTheme,onShelf:(BookRef)->Unit,onSeries:()->Unit) {
+    val title=data.playback.bookTitle
+    val author=remember(prefs,title,data.version){prefs.getString(abAuthorKey(title),"").orEmpty()}
+    val collected=remember(prefs,title,data.version){loadShelves(prefs).any{shelf->shelf.books.any{it.title.equals(title,true)}}}
+    Column(Modifier.fillMaxWidth(),horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(3.dp)) {
+        Text(title,color=theme.text,fontSize=21.sp,fontWeight=FontWeight.SemiBold,maxLines=2,
+            overflow=TextOverflow.Ellipsis,textAlign=androidx.compose.ui.text.style.TextAlign.Center)
+        if(author.isNotBlank())Text(author,color=theme.accent,fontSize=13.sp,maxLines=1,overflow=TextOverflow.Ellipsis)
+        Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(10.dp)) {
+            AbButton(if(collected)"В коллекции" else "В коллекцию",theme,Modifier.weight(1f)) {onShelf(ref)}
+            AbButton("Продолжения",theme,Modifier.weight(1f).semantics{contentDescription="Продолжения серии"},onClick=onSeries)
+        }
+        AbBookPlaybackProgress(data,theme,compact=true)
+        AbBookDownloadFeedback(data,title,theme)
+    }
+}
+
+@Composable
 private fun AbPlayerChapterSeek(state:ServicePlaybackState,theme:AbTheme,onChapters:()->Unit) {
     val context=androidx.compose.ui.platform.LocalContext.current
     var dragging by remember(state.bookTitle,state.trackIndex){mutableStateOf<Float?>(null)}
     Column(Modifier.fillMaxWidth()) {
-        Row(Modifier.fillMaxWidth().heightIn(min=32.dp).clip(RoundedCornerShape(10.dp))
+        Row(Modifier.fillMaxWidth().heightIn(min=24.dp).clip(RoundedCornerShape(10.dp))
             .semantics{contentDescription="Текущая глава; открыть список глав";role=androidx.compose.ui.semantics.Role.Button}
             .clickable(onClick=onChapters).padding(horizontal=2.dp),verticalAlignment=Alignment.CenterVertically) {
             Text("Глава ${state.trackIndex+1} из ${state.tracks.size}",color=theme.text,fontSize=13.sp,fontWeight=FontWeight.Medium)
@@ -11152,10 +11167,10 @@ private fun AbPlayerTransport(state:ServicePlaybackState,prefs:android.content.S
 
 @Composable
 private fun AbPlayerAction(icon: AbIcon,label: String,theme: AbTheme,active: Boolean,modifier:Modifier,onClick:()->Unit) {
-    Column(modifier.heightIn(min=58.dp).clip(RoundedCornerShape(13.dp))
+    Column(modifier.heightIn(min=54.dp).clip(RoundedCornerShape(13.dp))
         .semantics{contentDescription=label;role=androidx.compose.ui.semantics.Role.Button}.clickable(onClick=onClick)
-        .padding(horizontal=4.dp,vertical=8.dp),horizontalAlignment=Alignment.CenterHorizontally,
-        verticalArrangement=Arrangement.spacedBy(7.dp)) {
+        .padding(horizontal=4.dp,vertical=7.dp),horizontalAlignment=Alignment.CenterHorizontally,
+        verticalArrangement=Arrangement.spacedBy(4.dp)) {
         AbIcon(icon,if(active) theme.accent else theme.text)
         Text(label,color=if(active) theme.accent else theme.muted,fontSize=10.sp,maxLines=2,
             textAlign=androidx.compose.ui.text.style.TextAlign.Center)
