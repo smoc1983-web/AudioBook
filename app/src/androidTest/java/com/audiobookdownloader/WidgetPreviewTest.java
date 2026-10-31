@@ -70,6 +70,20 @@ public class WidgetPreviewTest {
                         android.graphics.Rect bounds=new android.graphics.Rect();toggle.getDrawingRect(bounds);
                         ((android.view.ViewGroup)compact).offsetDescendantRectToMyCoords(toggle,bounds);
                         assertTrue("Resized controls outside widget",new android.graphics.Rect(0,0,cw,ch).contains(bounds));
+                        // Real launchers send both orientation ranges; a small landscape height
+                        // must not force the portrait widget into the small layout.
+                        options.putInt(android.appwidget.AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH,360);
+                        options.putInt(android.appwidget.AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH,480);
+                        options.putInt(android.appwidget.AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT,200);
+                        android.content.res.Configuration config=new android.content.res.Configuration(context.getResources().getConfiguration());
+                        config.orientation=android.content.res.Configuration.ORIENTATION_PORTRAIT;
+                        Context portrait=context.createConfigurationContext(config);
+                        View full=AbGlassWidgets.INSTANCE.previewKind(portrait,2,options).apply(portrait,new FrameLayout(portrait));
+                        int pw=(int)(360*density),ph=(int)(200*density);
+                        full.measure(View.MeasureSpec.makeMeasureSpec(pw,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(ph,View.MeasureSpec.EXACTLY));
+                        full.layout(0,0,pw,ph);
+                        assertTrue("Landscape range selected the wrong portrait layout",full.findViewById(R.id.ab_widget_cover).getHeight()>=ph*.7f);
+
                     });
                     if(theme==2)TestBitmapExports.write(context,result[0],"preview-widget-"+kind+".png");
                     result[0].recycle();

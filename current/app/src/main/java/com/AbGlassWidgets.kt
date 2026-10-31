@@ -253,16 +253,21 @@ internal object AbGlassWidgets {
         worker.execute {done(try {previewKind(app,kind)}catch(_:Exception){null}catch(_:OutOfMemoryError){null})}
     }
 
-    private fun renderKind(context: Context,kind: Int,id: Int,state: AbWidgetSnapshot,selected: Int,options: Bundle): RemoteViews {
+    private fun renderKind(context: Context,kind: Int,id: Int,state: AbWidgetSnapshot,selected: Int,options: Bundle,
+        landscape:Boolean?=null): RemoteViews {
+        if(kind==2&&landscape==null&&options.containsKey(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT)&&
+            options.containsKey(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT))
+            return RemoteViews(renderKind(context,kind,id,state,selected,options,true),
+                renderKind(context,kind,id,state,selected,options,false))
+        val wide=landscape ?: (context.resources.configuration.orientation==android.content.res.Configuration.ORIENTATION_LANDSCAPE)
         val appTheme=context.getSharedPreferences("audiobook_downloader",Context.MODE_PRIVATE).getInt("glass_theme",2)
         val palette=abWidgetPalettes.firstOrNull {it.id==(if(selected==0)appTheme else selected)} ?: abWidgetPalettes[1]
         val defaultWidth=if(kind==1)170 else 340
         val defaultHeight=if(kind==0)72 else 190
-        val width=options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH,defaultWidth).coerceIn(if(kind==1)130 else 250,640)
-        val height=options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT,defaultHeight).coerceIn(if(kind==0)64 else 150,480)
-        val minimumHeight=options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT,defaultHeight)
+        val width=options.getInt(if(wide)AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH else AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH,defaultWidth).coerceIn(if(kind==1)130 else 250,640)
+        val height=options.getInt(if(wide)AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT else AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT,defaultHeight).coerceIn(if(kind==0)64 else 150,480)
         val layout=when(kind) {0->R.layout.ab_widget_compact;1->R.layout.ab_widget_cover
-            else->if(width<340||minimumHeight<180)R.layout.ab_widget_player_compact else R.layout.ab_widget_player}
+            else->if(width<340||height<180)R.layout.ab_widget_player_compact else R.layout.ab_widget_player}
         val views=RemoteViews(context.packageName,layout)
         views.setImageViewBitmap(R.id.ab_widget_background,AbWidgetArt.background(palette,width,height))
         views.setImageViewBitmap(R.id.ab_widget_cover,AbWidgetArt.cover(context,state.title,palette,kind==1))

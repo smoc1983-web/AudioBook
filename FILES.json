@@ -1,5 +1,5 @@
 {
-  "revision": "search-layout-responsive-widget-player",
+  "revision": "search-layout-widget-orientation-ranges",
   "storage": "GitHub export; see releases/ARCHIVE-PARTS.json for three multipart historical ZIPs",
   "files": [
     {
@@ -209,8 +209,8 @@
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/WidgetPreviewTest.java",
-      "bytes": 6410,
-      "sha256": "a24e671e6268de99bf9a94cb6152c1b7b17e32f1eb764f906755aa328e85ec98"
+      "bytes": 7813,
+      "sha256": "62d37c7fb38ecf6275d2b274ad453c6efe84d0dd1470cf8aad7b0a2374aa96d8"
     },
     {
       "path": "app/src/debug/AndroidManifest.xml",
@@ -774,8 +774,8 @@
     },
     {
       "path": "current/app/src/main/java/com/AbGlassWidgets.kt",
-      "bytes": 32897,
-      "sha256": "9fcb719195c4278b71c3fa2bb0abd8cd9467f8f0d0c3f5572d4bd93b32e001ab"
+      "bytes": 33416,
+      "sha256": "e89a581ce8dddfa2aa7da058c9dc6603705d56058f011198f34e1c2ad3b3bd53"
     },
     {
       "path": "current/app/src/main/java/com/LibraryRecoveryRules.java",
@@ -1709,8 +1709,8 @@
     },
     {
       "path": "docs/SEARCH-COLLECTION-LAYOUT.md",
-      "bytes": 4610,
-      "sha256": "643635ee09cca3dcec320dabf0a87d055ec09dca938ec41c2a48ee80a2e35024"
+      "bytes": 4951,
+      "sha256": "d643b0ff857165eeb3ce718cd7a6c27519f4db6f476fb535f2c01b7e7b93c131"
     },
     {
       "path": "docs/SEARCH-SCROLL-PERFORMANCE.md",

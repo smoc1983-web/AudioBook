@@ -63,3 +63,8 @@ width/height uses a separate compact vertical RemoteViews layout. All IDs/callba
 are retained. Tests assert coverheight and controls filling their actual parent row,
 and render actual resized280x150 RemoteViews. Candidate81 is superseded before
 publication; final full82 required. This corrects the observed empty-space issue.
+
+Widget range handling uses Android's paired landscape/portrait RemoteViews: a small
+MIN_HEIGHT landscape range must not select the compact layout for a tall portrait
+widget. The explicit mixed-range native regression exercises this launcher contract.
+This corrects the first adaptive-layout selection before publication; full83 replaces82.
