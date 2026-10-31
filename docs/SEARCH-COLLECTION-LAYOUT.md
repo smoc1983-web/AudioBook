@@ -49,3 +49,9 @@ scrollable chips: bookmark/queue counts must not push Series past the right edge
 Startup assertions cover both horizontal and vertical visible bounds. This is a
 required fix for the no-scroll request; the superseded79 candidate must not be
 published. A fresh full80 gate will verify the exact final source.
+
+A strict-query negative case rejects “Отделение15-К” for “Отдел15-К”: token-prefix
+matching would admit a different word, so relevance now requires complete normalized
+query tokens. Roman-number and digit/letter normalization are retained. Candidate80
+is superseded before publication; exact final source needs a fresh complete81 gate.
+No further feature additions are planned; fix only observed failures from this gate.

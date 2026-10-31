@@ -11,7 +11,7 @@ internal object AbSearchPresentation {
     private fun work(book:BookLink)=if(book.author.isBlank())"" else title(book)+"\u0000"+SeriesAuthorityRules.author(book.author)
     private fun matches(wanted:List<String>,book:BookLink):Boolean {
         val tokens=tokens(SearchBookIndex.titleKey(book.title)+" "+book.author+" "+book.cycles.joinToString(" "){it.title}).toSet()
-        return wanted.all{word->tokens.any{token->token==word || word.length>=4 && word.all{it.isLetter()} && token.startsWith(word)}}
+        return tokens.containsAll(wanted)
     }
     private fun conflicting(first:BookLink,second:BookLink)=second.cycles.any{incoming->
         incoming.order!=null&&first.cycles.any{old->old.order!=null&&old.order!=incoming.order&&

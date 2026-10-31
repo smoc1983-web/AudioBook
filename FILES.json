@@ -1,5 +1,5 @@
 {
-  "revision": "search-layout-visible-player-tabs",
+  "revision": "search-layout-strict-query-tokens",
   "storage": "GitHub export; see releases/ARCHIVE-PARTS.json for three multipart historical ZIPs",
   "files": [
     {
@@ -164,8 +164,8 @@
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/SearchCollectionLayoutTest.kt",
-      "bytes": 4657,
-      "sha256": "9823cd35a391e609effd7dbb9f64ddb52cdb362aee3ec15906d81e9ca6c4c11e"
+      "bytes": 4813,
+      "sha256": "9ee4b594f71df3fd62e0b5968c354e473d3b8862e19f9f8d6203533f11e6834f"
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/SearchScrollTest.kt",
@@ -294,8 +294,8 @@
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/AbSearchPresentation.kt",
-      "bytes": 4332,
-      "sha256": "3ce6ff922fe2a56e057ce92df080dc474cd101054a8e9e95705f891237bc1527"
+      "bytes": 4239,
+      "sha256": "0f05fe4878fcd05d35040028d357b3acfd69876d7c1631808aa4f59c0fe3a225"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/AbSearchRows.kt",
@@ -1704,8 +1704,8 @@
     },
     {
       "path": "docs/SEARCH-COLLECTION-LAYOUT.md",
-      "bytes": 3583,
-      "sha256": "80b74d0f6fc95b8b528f97379959224065ff321eb5e416e25d8a58c378981997"
+      "bytes": 4029,
+      "sha256": "446a733001c50b7abdc5b3d32cf97a52831ee32f00bd148318809ada51d50fee"
     },
     {
       "path": "docs/SEARCH-SCROLL-PERFORMANCE.md",
