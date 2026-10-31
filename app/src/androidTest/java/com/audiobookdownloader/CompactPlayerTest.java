@@ -51,7 +51,9 @@ public class CompactPlayerTest {
     }
     @Test(timeout=180000) public void selectedThemesKeepCoverAndAllPrimaryActionsOnScreen() throws Exception {
         Configurator.getInstance().setWaitForIdleTimeout(0);device.wakeUp();device.executeShellCommand("wm dismiss-keyguard");
-        if(Build.VERSION.SDK_INT>=33)InstrumentationRegistry.getInstrumentation().getUiAutomation().grantRuntimePermission(context.getPackageName(),"android.permission.READ_MEDIA_AUDIO");
+        InstrumentationRegistry.getInstrumentation().getUiAutomation().grantRuntimePermission(context.getPackageName(),
+            Build.VERSION.SDK_INT>=33?"android.permission.READ_MEDIA_AUDIO":"android.permission.READ_EXTERNAL_STORAGE");
+        if(Build.VERSION.SDK_INT>=33)InstrumentationRegistry.getInstrumentation().getUiAutomation().grantRuntimePermission(context.getPackageName(),"android.permission.POST_NOTIFICATIONS");
         android.content.SharedPreferences prefs=context.getSharedPreferences("audiobook_downloader",0);
         prefs.edit().clear().putInt("glass_theme",1).putFloat("appearance_text_scale",1f).commit();
         context.getSharedPreferences("audiobook_startup",0).edit().clear().commit();

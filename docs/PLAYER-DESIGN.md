@@ -47,3 +47,10 @@ ub-mode разрешён для этой задачи. Сначала native reg
   черезнавигацию, не предполагаетстартовыйэкран. Всеassertionsмакета сохранены.
   Добавленыfailurehierarchy/screenshot/privatecrash/logcat дляследующейдиагностики.
   Full86 superseded до публикации, требуетсяfull87 наитоговомтесте.
+
+- Проверена повторившаясяpremise остановкинастартовомэкране: тест предполагал,
+  чтоMainActivity ужеимеетвсеразрешения. УrequestMissingPermissions дваобязательства
+  (libraryaudio на23+/notifications на33+), fixture выдавал толькоaudio на33+.
+  Убранаэтазависимостьотпорядкадругихтестов: fixture явно выдаёт существующие
+  runtimepermissions передlaunch. Productpermissionsнеизменены. Full87 superseded
+  до публикации; следующийfull88 только послефактическогоfocusedlayoutрезультата.
