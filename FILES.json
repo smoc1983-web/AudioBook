@@ -1,5 +1,5 @@
 {
-  "revision": "search-collection-layout-regressions",
+  "revision": "search-collection-layout-bibliographic-order",
   "storage": "GitHub export; see releases/ARCHIVE-PARTS.json for three multipart historical ZIPs",
   "files": [
     {
@@ -19,8 +19,8 @@
     },
     {
       "path": ".github/workflows/build-apk.yml",
-      "bytes": 8673,
-      "sha256": "32490e95f04668e7d2a1686cf4faf010157a6dfd8915181cedbe014a486356dc"
+      "bytes": 8768,
+      "sha256": "9dbd641f56a3e8b5f052019f206e4f73ce7efd78d77e5292b4824147b14253e4"
     },
     {
       "path": ".github/workflows/collect-description-reports74.yml",
@@ -44,8 +44,8 @@
     },
     {
       "path": ".github/workflows/library-experience.yml",
-      "bytes": 2762,
-      "sha256": "447246b5c92054563d4dc1214d1ef2339076e376d090d514b5c272601e0ad80b"
+      "bytes": 2803,
+      "sha256": "18741d7fbfb18d93078cec090fbb6d2f8aa90b70879ecdc0c97d7ea747201c3a"
     },
     {
       "path": ".github/workflows/library-file-actions.yml",
@@ -164,8 +164,8 @@
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/SearchCollectionLayoutTest.kt",
-      "bytes": 2872,
-      "sha256": "242643f8a54a496d28eda2e6487867ef8173ad33021675edd06cf683578e74a0"
+      "bytes": 3427,
+      "sha256": "00549e9244978f4b56e98c75d0fef77ab3ab97470a4551b9d4c239382f58eac0"
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/SearchScrollTest.kt",
@@ -294,8 +294,8 @@
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/AbSearchPresentation.kt",
-      "bytes": 2595,
-      "sha256": "9a1899599efcd119d9526efe6c49012b30a38653573b3d2ca72b645e47a6e609"
+      "bytes": 3175,
+      "sha256": "c05943c0aa78c92fc23056f426b79181536bc00715d4e0b1736192ae708b1e78"
     },
     {
       "path": "app/src/main/java/com/audiobookdownloader/AbSearchRows.kt",
@@ -1704,8 +1704,8 @@
     },
     {
       "path": "docs/SEARCH-COLLECTION-LAYOUT.md",
-      "bytes": 1926,
-      "sha256": "da248cfdf28d5061fca0e63ba5258af3efaf256db8a55ea0b88ab5195e5c54a4"
+      "bytes": 2498,
+      "sha256": "ea62beb303c703326bb40e8c14eeb94808993a5fe1928e03268d9984cc440eee"
     },
     {
       "path": "docs/SEARCH-SCROLL-PERFORMANCE.md",

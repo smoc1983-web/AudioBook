@@ -25,3 +25,11 @@ regression preserving total count and playback, and full startup no-scroll check
 for player controls. Authority-cache-enriched rows are re-filtered against the query,
 so corrected cycles cannot retain unrelated results. Collection picker remains a
 separate add/toggle action; removals are idempotent and scoped to one shelf.
+
+Final review reuses existing bibliographic title normalization (ordinal/narrator
+suffixes) and protects distinct known series orders when titles coincide. Sort keys
+are computed once per book, not repeatedly inside comparison. Source-authority cache
+is applied before the final query filter. Focused suite now includes the600-row
+scroll/return/append regression. Complete build-apk gate can run from the isolated
+build/search-collections-layout branch, preserving the original signing/version and
+all ordinary checks, without invoking declined optional ub-mode analysis.

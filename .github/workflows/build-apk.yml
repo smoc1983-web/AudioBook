@@ -1,7 +1,7 @@
 name: Build Audiobook APK
 on:
   push:
-    branches: [main, build/library-experience]
+    branches: [main, build/library-experience, build/search-collections-layout]
     paths-ignore: ['docs/**', 'README.md', 'FILES.json']
   workflow_dispatch:
 concurrency:
@@ -109,7 +109,7 @@ jobs:
           name: installable-permission-audit
           path: dist/permission-audit.json
       - name: Publish private in-app update channel
-        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/build/library-experience'
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/build/library-experience' || github.ref == 'refs/heads/build/search-collections-layout'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
