@@ -86,8 +86,9 @@ public class CompactPlayerTest {
                 click(By.text("Плеер"));
                 Rect cover=bounds(By.desc("Описание: Проверка нового плеера"));
                 Rect title=bounds(By.text("Проверка нового плеера"));
+                int color=snapshot(scenario,skin);
                 assertTrue("Cover must precede the title",cover.bottom<=title.top);
-                assertTrue("Cover is too small for the selected design",cover.height()>=device.getDisplayHeight()/6);
+                assertTrue("Cover is too small: "+cover+" in "+device.getDisplayWidth()+"×"+device.getDisplayHeight(),cover.height()>=device.getDisplayHeight()/6);
                 Rect collection=bounds(By.text("В коллекцию"));
                 Rect series=bounds(By.text("Продолжения"));
                 assertTrue("Collection and series actions must share one row",Math.abs(collection.centerY()-series.centerY())<collection.height()/2);
@@ -96,7 +97,7 @@ public class CompactPlayerTest {
                 click(By.desc("Продолжения серии"));control(By.text("Серия книги"));click(By.desc("Закрыть"));
                 click(By.text("Закладки"));control(By.text("Закладки книги"));click(By.text("Добавить закладку"));assertFalse(MainActivityKt.loadBookmarks(prefs,"Проверка нового плеера").isEmpty());click(By.desc("Закрыть"));
                 if(!device.wait(Until.gone(By.text("Закладки книги")),5000))throw unavailable(By.text("Закладки книги"));
-                int color=snapshot(scenario,skin);if(skin==1)light=color;else if(skin==10)dark=color;
+                if(skin==1)light=color;else if(skin==10)dark=color;
             }
             assertNotEquals("Selected light/dark themes must change player background",light,dark);
             prefs.edit().putFloat("appearance_text_scale",1.5f).commit();scenario.recreate();

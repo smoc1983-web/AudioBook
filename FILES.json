@@ -1,5 +1,5 @@
 {
-  "revision": "compact-player-theme-candidate",
+  "revision": "compact-themed-player-final-candidate",
   "storage": "GitHub export; see releases/ARCHIVE-PARTS.json for three multipart historical ZIPs",
   "files": [
     {
@@ -119,8 +119,8 @@
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/CompactPlayerTest.java",
-      "bytes": 6669,
-      "sha256": "31e9c25d264776ec083dfdbd218abf7f9004741655370322d62ad147e6fe0fa7"
+      "bytes": 8726,
+      "sha256": "84c9168ef3c491e58e575cfc8c4c0ab4ad401876ab5a81840833c4ab347d1d8c"
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/ContinuationWorkerTest.kt",
@@ -189,8 +189,8 @@
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/StartupSmokeTest.java",
-      "bytes": 22873,
-      "sha256": "0d28bf0129fef9eb443482f545e22b8103dc509e387889b3ef2456bef6be109d"
+      "bytes": 22987,
+      "sha256": "faeba98f64d0bc28505a1a9b94b01798112b1dd9e173e73eadebaba041370e8c"
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/TestBitmapExports.java",
@@ -754,8 +754,8 @@
     },
     {
       "path": "current/MainActivity.kt",
-      "bytes": 786467,
-      "sha256": "6a76810fa61f9cfd0902d5e6b2957789d51d26aff18caff7c10bffb8933963d5"
+      "bytes": 787281,
+      "sha256": "e509d6e86aa2d5877787363e6589d8168632f1220148c34f16614224c0d134bc"
     },
     {
       "path": "current/PlaybackService.kt",
@@ -1659,8 +1659,8 @@
     },
     {
       "path": "docs/PLAYER-DESIGN.md",
-      "bytes": 4108,
-      "sha256": "d1535cb48654292f8bebda51f40aa902710c8f2a7658a698e628d30002345101"
+      "bytes": 9515,
+      "sha256": "b07430b41120adbca8da10a0a04ffe39f3735f4384d81b0c393cc4f4ff07daa1"
     },
     {
       "path": "docs/PREDANIE-AND-DIRECT-UPDATES.md",
@@ -12254,8 +12254,8 @@
     },
     {
       "path": "scripts/test-android-startup.sh",
-      "bytes": 3161,
-      "sha256": "1d3b1cae8a1e8302478eaa8478112aa869061aace1b05636ed840823edbca888"
+      "bytes": 3399,
+      "sha256": "05c2f17d8a47860df85a6251e88e1c147f58ce80293732a453633e1e99b82362"
     },
     {
       "path": "scripts/test-permission-audit.py",
@@ -12264,8 +12264,8 @@
     },
     {
       "path": "scripts/test-player-layout.sh",
-      "bytes": 856,
-      "sha256": "049a7fd4464990b4bb94131628a77a483fd91555c5051a284fd69e87cd834615"
+      "bytes": 1136,
+      "sha256": "47e1273310f9de8f8c2581c57efa543cdfef6c25770585a7a0b1b42d0fe83159"
     },
     {
       "path": "scripts/test-preview-upgrade.py",

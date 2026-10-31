@@ -82,3 +82,14 @@ ub-mode разрешён для этой задачи. Сначала native reg
   idleожидание(0), ановаяbookmarkrow двигаетцентрдиалога. Установлено500msframework
   idleпередUiAutomatoroperations; проверкизакрытиясохранены,bookmarkзаписьasserted,
   проверкавремениbookтеперьявная. Приошибкезакрытиясохраняетсяhierarchy+PNG.
+
+- 455b:Android36 targeted44/44pass, включаяtheme1/5/10/150,закрытиеbookmarkdialog,
+  реальнуюзаписьbookmark/bookremaining. Android23:Cover is too small повторился.
+  Проверенаскрытаяpremise:twoactor-layouts —weightedregular иfixed96dpscroll;
+  прежнийheight<480 направлялобычныймалыйportraitвfixedветку,поэтомуправка
+  weightedизмерения не затрагивалаеё. Убранаэтажёсткая480assignment:scroll
+  требуетсядляlargefontилидействительнокороткогоviewport<360. Передsizeassert
+  snapshot/boundsтеперьсохраняются длядиагностики, thresholdassert неизменён.
+- ThenMakeRight:membership-labelmemo теперьзависитотJSONколлекций, непересчитывает
+  весьshelflist прикаждомmedia-progressprefupdate. FullStartupassert проверяет
+  переключение«Вколлекцию»→«Вколлекции» послесохранения. Playback/storageнеизменены.

@@ -10965,7 +10965,7 @@ private fun AbPlayerScreen(data: AbScreenData,actions: AbActions,books: List<Lib
     }
     BoxWithConstraints(Modifier.fillMaxSize().background(theme.background.copy(alpha=if(theme.light).96f else .90f))) {
         val fontScale=androidx.compose.ui.platform.LocalDensity.current.fontScale.coerceAtLeast(1f)
-        val scrollDetails=fontScale>1.2f || maxHeight<480.dp
+        val scrollDetails=fontScale>1.2f || maxHeight<360.dp
         Column(Modifier.fillMaxSize().padding(horizontal=16.dp),verticalArrangement=Arrangement.spacedBy(2.dp)) {
             Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
                 AbIconButton(AbIcon.BACK,"В библиотеку",theme) {actions.navigate(AppPage.LIBRARY)}
@@ -11091,7 +11091,8 @@ private fun AbPlayerIdentity(data:AbScreenData,prefs:android.content.SharedPrefe
     theme:AbTheme,onShelf:(BookRef)->Unit,onSeries:()->Unit) {
     val title=data.playback.bookTitle
     val author=remember(prefs,title,data.version){prefs.getString(abAuthorKey(title),"").orEmpty()}
-    val collected=remember(prefs,title,data.version){loadShelves(prefs).any{shelf->shelf.books.any{it.title.equals(title,true)}}}
+    val shelves=prefs.getString(SHELVES_KEY,"[]")
+    val collected=remember(prefs,title,shelves){loadShelves(prefs).any{shelf->shelf.books.any{it.title.equals(title,true)}}}
     Column(Modifier.fillMaxWidth(),horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(3.dp)) {
         Text(title,color=theme.text,fontSize=21.sp,fontWeight=FontWeight.SemiBold,maxLines=2,
             overflow=TextOverflow.Ellipsis,textAlign=androidx.compose.ui.text.style.TextAlign.Center)

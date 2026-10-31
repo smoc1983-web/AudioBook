@@ -236,6 +236,7 @@ public class StartupSmokeTest {
             Shelf shelf=MainActivityKt.loadShelves(context.getSharedPreferences("audiobook_downloader",0)).stream()
                 .filter(value->value.getName().equals("Из плеера")).findFirst().orElseThrow(()->new AssertionError("Collection not created"));
             assertTrue("Current book not saved in collection",shelf.getBooks().stream().anyMatch(book->book.getTitle().equals("Проверка таймера")));
+            visible(By.text("В коллекции"),"Player collection membership did not update after saving");
             android.util.Log.i("PreviewUITest","Collection saved; starting sleep countdown");
             PlaybackService.Companion.setSleepTimer(context,60,false);
             playback(s->s.getShakeListening()&&s.getSleepSeconds()<=57&&s.getSleepSeconds()>=54,"Timer/sensor did not start counting down");
