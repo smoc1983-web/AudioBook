@@ -1,5 +1,5 @@
 {
-  "revision": "search-layout-strict-query-tokens",
+  "revision": "search-layout-responsive-widget-player",
   "storage": "GitHub export; see releases/ARCHIVE-PARTS.json for three multipart historical ZIPs",
   "files": [
     {
@@ -209,8 +209,8 @@
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/WidgetPreviewTest.java",
-      "bytes": 4670,
-      "sha256": "4a82f5f3bb2357b97ec09da686f495be43cd019bf86a4563845cafa86b4c93b2"
+      "bytes": 6410,
+      "sha256": "a24e671e6268de99bf9a94cb6152c1b7b17e32f1eb764f906755aa328e85ec98"
     },
     {
       "path": "app/src/debug/AndroidManifest.xml",
@@ -774,8 +774,8 @@
     },
     {
       "path": "current/app/src/main/java/com/AbGlassWidgets.kt",
-      "bytes": 32672,
-      "sha256": "fa96032f413e59e7ceb80b7650a1adab25ec1eb91f916c4291132a5368987b1b"
+      "bytes": 32897,
+      "sha256": "9fcb719195c4278b71c3fa2bb0abd8cd9467f8f0d0c3f5572d4bd93b32e001ab"
     },
     {
       "path": "current/app/src/main/java/com/LibraryRecoveryRules.java",
@@ -909,8 +909,13 @@
     },
     {
       "path": "current/app/src/main/res/layout/ab_widget_player.xml",
-      "bytes": 4914,
-      "sha256": "31ae8b21fb910a16db3027531baab306ea3d6852eece36ca2a559f890018ca78"
+      "bytes": 4908,
+      "sha256": "776023b7530d731a07c218e72d9d5cca6c871cd7db87e92a1d2837385c9f6b1b"
+    },
+    {
+      "path": "current/app/src/main/res/layout/ab_widget_player_compact.xml",
+      "bytes": 4882,
+      "sha256": "a6df283f74f2b54db1a3b316e296feceb6fdf8491e046d6a8c91ae7159b1a02d"
     },
     {
       "path": "current/app/src/main/res/layout/ab_widget_preview_compact.xml",
@@ -1704,8 +1709,8 @@
     },
     {
       "path": "docs/SEARCH-COLLECTION-LAYOUT.md",
-      "bytes": 4029,
-      "sha256": "446a733001c50b7abdc5b3d32cf97a52831ee32f00bd148318809ada51d50fee"
+      "bytes": 4610,
+      "sha256": "643635ee09cca3dcec320dabf0a87d055ec09dca938ec41c2a48ee80a2e35024"
     },
     {
       "path": "docs/SEARCH-SCROLL-PERFORMANCE.md",

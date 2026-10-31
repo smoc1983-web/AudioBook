@@ -55,3 +55,11 @@ matching would admit a different word, so relevance now requires complete normal
 query tokens. Roman-number and digit/letter normalization are retained. Candidate80
 is superseded before publication; exact final source needs a fresh complete81 gate.
 No further feature additions are planned; fix only observed failures from this gate.
+
+Visual review of the real baseline4x2 export showed that enlarging only the cover's
+container does not enlarge the fitted artwork while it stays in a short top row.
+Normal4x2 now uses full-height left artwork and right metadata/control column; small
+width/height uses a separate compact vertical RemoteViews layout. All IDs/callbacks
+are retained. Tests assert coverheight and controls filling their actual parent row,
+and render actual resized280x150 RemoteViews. Candidate81 is superseded before
+publication; final full82 required. This corrects the observed empty-space issue.
