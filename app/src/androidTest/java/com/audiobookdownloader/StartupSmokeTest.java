@@ -220,6 +220,11 @@ public class StartupSmokeTest {
                 android.graphics.Rect bounds=control.getVisibleBounds();
                 assertTrue("Player control clipped: "+label,bounds.height()>0&&bounds.top>=0&&bounds.bottom<=device.getDisplayHeight());
             }
+            for(String[] panel:new String[][]{{"Закладки · 0","Закладки книги"},{"Очередь · 0","Очередь прослушивания"},{"Главы","Главы книги"}}){
+                visible(By.text(panel[0]),"Player details control missing").click();
+                visible(By.text(panel[1]),"Player details did not open immediately");
+                visible(By.desc("Закрыть"),"Player details close action missing").click();
+            }
             for(int i=0;i<3&&!device.hasObject(By.text("В коллекцию"));i++)
                 device.swipe(device.getDisplayWidth()/2,device.getDisplayHeight()*3/4,device.getDisplayWidth()/2,device.getDisplayHeight()/2,20);
             visible(By.text("В коллекцию"),"Direct player collection action missing").click();

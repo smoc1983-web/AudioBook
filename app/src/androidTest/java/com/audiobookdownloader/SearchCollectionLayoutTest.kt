@@ -5,14 +5,21 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.*
 import org.junit.Test
+import org.junit.Rule
+import androidx.compose.ui.test.*
+import androidx.compose.ui.test.junit4.createComposeRule
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class SearchCollectionLayoutTest {
+    @get:Rule val compose=createComposeRule()
     private fun book(title:String,order:Double,url:String="https://knigoblud.club/"+order)=BookLink(title,url,author="Автор",cycles=listOf(BookCycle("Отдел 15-К",order=order)))
     @Test fun seriesResultsAreOrderedNumericallyAndWrongResultsExcluded() {
         val books=listOf(book("Последняя книга",10.0),book("Первая книга",1.0),book("Вторая книга",2.0),BookLink("Другая история","https://other.invalid"))
         assertEquals(listOf(1.0,2.0,10.0),AbSearchPresentation.prepare(books,"Отдел 15-К").map{it.cycles.first().order})
+        assertEquals(listOf(1.0,2.0,10.0),AbSearchPresentation.prepare(books,"Отдел 15К").map{it.cycles.first().order})
+        val standalone=BookLink("Без серии","https://example.invalid/standalone",author="Автор")
+        assertEquals(standalone,AbSearchPresentation.prepare(books+standalone,"Автор").last())
     }
     @Test fun narratorVariantsBecomeOneWorkWithAllSources() {
         val a=book("Первая книга (в исполнении Ивана)",1.0)
@@ -36,6 +43,18 @@ class SearchCollectionLayoutTest {
             assertNotNull(AbSearchCache.get("one","Отдел 15-К"));assertNull(AbSearchCache.get("two","Отдел 15-К"))
             AbSearchCache.clear();assertNull(AbSearchCache.get("one","Отдел 15-К"));assertEquals("kept",p.getString("library",""));assertEquals(123,p.getInt("position",0))
         }finally{p.edit().clear().commit();AbSearchCache.clear()}
+    }
+    @Test fun existingCollectionPickerStillAddsWhileRemoveActionOnlyRemoves() {
+        val p=ApplicationProvider.getApplicationContext<Context>().getSharedPreferences("shelf-picker-add-test",0)
+        val ref=BookRef("Первая","https://example.invalid/1","")
+        try {
+            saveShelves(p,listOf(Shelf("Выбранная",emptyList())))
+            compose.setContent{AbShelfPicker(ref,p,abTheme(2),0){}}
+            compose.onNodeWithText("Выбранная").performClick()
+            assertEquals(listOf(ref),loadShelves(p).single().books)
+            abRemoveShelfBook(p,"Выбранная",ref)
+            assertTrue(loadShelves(p).single().books.isEmpty())
+        }finally{p.edit().clear().commit()}
     }
     @Test fun collectionRemovalIsSpecificAndIdempotent() {
         val p=ApplicationProvider.getApplicationContext<Context>().getSharedPreferences("shelf-remove-test",0)

@@ -17,12 +17,12 @@ internal object AbSearchRows {
         val exact=playable.groupBy{it.title}
         fun localKey(title:String)=safeFileName(cleanBookTitle(title)).lowercase(Locale.ROOT)
         val normalized=playable.groupBy{localKey(it.title)}
-        val expected=cycle?.let{SeriesAuthorityRules.series(it.title)}
+        val expected=cycle?.let{AbSearchPresentation.seriesKey(it.title)}
         val rows=books.mapNotNull{raw->
             currentCoroutineContext().ensureActive()
             val cycles=SeriesAuthorityCache.cycles(prefs,raw.title,raw.author,raw.cycles,raw.url)
             if(expected!=null && cycles.any{it.referenceUrl.isNotBlank()} &&
-                cycles.none{SeriesAuthorityRules.series(it.title)==expected})return@mapNotNull null
+                cycles.none{AbSearchPresentation.seriesKey(it.title)==expected})return@mapNotNull null
             val book=if(cycles==raw.cycles)raw else raw.copy(cycles=cycles)
             val local=exact[book.title]?.firstOrNull() ?: normalized[localKey(book.title)]?.singleOrNull()
             AbSearchRow(book,BookRef(book.title,book.url,book.coverUrl),local,bookSources(book))

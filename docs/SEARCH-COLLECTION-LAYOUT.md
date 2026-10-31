@@ -33,3 +33,13 @@ is applied before the final query filter. Focused suite now includes the600-row
 scroll/return/append regression. Complete build-apk gate can run from the isolated
 build/search-collections-layout branch, preserving the original signing/version and
 all ordinary checks, without invoking declined optional ub-mode analysis.
+
+Follow-up: player bookmark/queue/series/chapter panels open immediately in bounded
+paged dialogs; startup smoke asserts all core controls before any swipe and opens
+bookmark/queue/chapter windows. Explicit reset has its own action: clears search
+results/cache and cover-memory LRU, while ordinary home navigation keeps the TTL cache.
+The collection picker add/toggle regression is tested separately from idempotent
+removal. Unified search now uses the same single identity policy (URL aliases,
+explicit author, conflicting volume protection) rather than pre-merging ambiguous
+records. Digit/letter series codes normalize consistently. Release notes updated;
+full gate79 pending, public78 unchanged.
