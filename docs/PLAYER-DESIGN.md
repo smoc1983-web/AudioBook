@@ -65,3 +65,9 @@ ub-mode разрешён для этой задачи. Сначала native reg
 - AGPcleanup удаляетapp-specificexternalfiles дотранспортаартефактов: снимки
   теперь используютпроверенныйTestBitmapExports/MediaStore иshellcopyдля23,
   hierarchy прикладываетсякassertion иfailurePNG сохраняетсявpublicDownload.
+
+- c353 actualfailurehierarchy: «ОбновлениеAudiobook / Доступна4.2.85 / Позже /
+  Обновления». Targeteddebugверсия100071 нижеlive85, поэтомуштатныйbackground
+  updater перекрылтестовыйплеер. Убранапредпосылкасвободногоstartupwindow:
+  толькоfixture выключаетpreview_updates.auto, послеcase восстанавливаетBoolean.
+  ReleaseNotesseen выставлендляfixture; ниupdatepolicy,ниproductionповедениенеменяются.

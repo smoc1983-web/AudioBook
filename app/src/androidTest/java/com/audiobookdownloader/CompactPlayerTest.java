@@ -71,9 +71,12 @@ public class CompactPlayerTest {
         assertEquals(android.content.pm.PackageManager.PERMISSION_GRANTED,context.checkSelfPermission(read));
         if(Build.VERSION.SDK_INT>=33)device.executeShellCommand("pm grant "+context.getPackageName()+" android.permission.POST_NOTIFICATIONS");
         android.content.SharedPreferences prefs=context.getSharedPreferences("audiobook_downloader",0);
-        prefs.edit().clear().putInt("glass_theme",1).putFloat("appearance_text_scale",1f).commit();
+        prefs.edit().clear().putInt("glass_theme",1).putFloat("appearance_text_scale",1f).putInt("release_notes_seen_code",BuildConfig.VERSION_CODE).commit();
         context.getSharedPreferences("audiobook_startup",0).edit().clear().commit();
         File audio=audio();
+        android.content.SharedPreferences updates=context.getSharedPreferences("preview_updates",0);
+        boolean autoUpdates=updates.getBoolean("auto",true);
+        updates.edit().putBoolean("auto",false).commit();
         try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(MainActivity.class)) {
             click(By.text("Плеер"));
             PlaybackService.Companion.play(context,"Проверка нового плеера","local",java.util.Collections.singletonList(new ServiceTrack("Глава 1",audio.getAbsolutePath(),30000)),0,0);
@@ -103,6 +106,6 @@ public class CompactPlayerTest {
             click(By.text("Таймер"));control(By.text("Таймер сна"));click(By.desc("Закрыть"));
             assertTrue(device.wait(Until.gone(By.text("Таймер сна")),5000));
             snapshot(scenario,150);
-        } finally {PlaybackService.Companion.stop(context,true,null);context.stopService(new android.content.Intent(context,PlaybackService.class));audio.delete();prefs.edit().clear().commit();}
+        } finally {PlaybackService.Companion.stop(context,true,null);context.stopService(new android.content.Intent(context,PlaybackService.class));audio.delete();prefs.edit().clear().commit();updates.edit().putBoolean("auto",autoUpdates).commit();}
     }
 }
