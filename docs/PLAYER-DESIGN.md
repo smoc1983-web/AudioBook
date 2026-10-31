@@ -41,3 +41,9 @@ ub-mode разрешён для этой задачи. Сначала native reg
 - Подготовлена внешняя tarbackup8unreferenced72/73 hostingparts(65956503bytes),
   каждый файлсверенпослеархивации; Siteисточник/public пока безизменений.
   Это место для следующегоAPK, не пользовательскаябиблиотека.
+
+- Focused41215689341 compiled both platforms, ноCompactPlayerTest остановилсяна
+  unrelatedprecondition «Жанры» допроверокплеера. Тесттеперьявновыбирает «Плеер»
+  черезнавигацию, не предполагаетстартовыйэкран. Всеassertionsмакета сохранены.
+  Добавленыfailurehierarchy/screenshot/privatecrash/logcat дляследующейдиагностики.
+  Full86 superseded до публикации, требуетсяfull87 наитоговомтесте.

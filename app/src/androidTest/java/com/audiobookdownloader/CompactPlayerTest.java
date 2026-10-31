@@ -24,6 +24,11 @@ public class CompactPlayerTest {
     private final UiDevice device=UiDevice.getInstance(InstrumentationRegistry.getInstrumentation());
     private UiObject2 control(BySelector selector) {
         UiObject2 result=device.wait(Until.findObject(selector),10000);
+        if(result==null)try {
+            File folder=context.getExternalFilesDir(null);
+            device.dumpWindowHierarchy(new File(folder,"compact-player-failure.xml"));
+            device.takeScreenshot(new File(folder,"compact-player-failure.png"));
+        } catch(Exception diagnosticFailure){android.util.Log.w("CompactPlayerTest","Unable to save failure evidence",diagnosticFailure);}
         assertNotNull("Player control unavailable without scrolling: "+selector,result);
         Rect r=result.getVisibleBounds();
         assertTrue("Control outside screen: "+selector,r.width()>0&&r.height()>0&&r.left>=0&&r.right<=device.getDisplayWidth()&&r.top>=0&&r.bottom<=device.getDisplayHeight());
@@ -52,7 +57,7 @@ public class CompactPlayerTest {
         context.getSharedPreferences("audiobook_startup",0).edit().clear().commit();
         File audio=audio();
         try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(MainActivity.class)) {
-            control(By.text("Жанры"));
+            control(By.text("Плеер")).click();
             PlaybackService.Companion.play(context,"Проверка нового плеера","local",java.util.Collections.singletonList(new ServiceTrack("Глава 1",audio.getAbsolutePath(),30000)),0,0);
             int light=0,dark=0;
             for(int skin:new int[]{1,5,10}) {
