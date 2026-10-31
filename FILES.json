@@ -1,5 +1,5 @@
 {
-  "revision": "search-collection-layout-compact-details-and-reset",
+  "revision": "search-layout-visible-player-tabs",
   "storage": "GitHub export; see releases/ARCHIVE-PARTS.json for three multipart historical ZIPs",
   "files": [
     {
@@ -184,8 +184,8 @@
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/StartupSmokeTest.java",
-      "bytes": 22826,
-      "sha256": "d4e7b69cd85494c455c09557b87bbf39ea552ccb5eb6758b3b80ce615d236d48"
+      "bytes": 22900,
+      "sha256": "029403fdef5453b1be45721dd623778a71d9a377b3b976ad60c62fa88cdda201"
     },
     {
       "path": "app/src/androidTest/java/com/audiobookdownloader/TestBitmapExports.java",
@@ -749,8 +749,8 @@
     },
     {
       "path": "current/MainActivity.kt",
-      "bytes": 786577,
-      "sha256": "dc06e1fc4640fea74bbc5464c4e9bbc53f9a6e665ab19374cb81a6ab918e1cca"
+      "bytes": 787307,
+      "sha256": "c7b9e2ff2eaa53f42f83359c173e788446b326939f987c4ff72f413acd8174f2"
     },
     {
       "path": "current/PlaybackService.kt",
@@ -1704,8 +1704,8 @@
     },
     {
       "path": "docs/SEARCH-COLLECTION-LAYOUT.md",
-      "bytes": 3198,
-      "sha256": "78d3960dafb66cf6465584b948706c8f9b8c6d39a4abbefcc6f420829c02c16e"
+      "bytes": 3583,
+      "sha256": "80b74d0f6fc95b8b528f97379959224065ff321eb5e416e25d8a58c378981997"
     },
     {
       "path": "docs/SEARCH-SCROLL-PERFORMANCE.md",

@@ -10979,7 +10979,17 @@ private fun AbPlayerScreen(data: AbScreenData,actions: AbActions,books: List<Lib
             }
         }
         if(state.hasSelection) item {
-            AbChips(listOf("Закладки · ${marks.size}","Очередь · ${queue.size}","Серия"),tab-1,theme){tab=if(tab==it+1)0 else it+1}
+            Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(6.dp)) {
+                listOf("Закладки · ${marks.size}","Очередь · ${queue.size}","Серия").forEachIndexed{index,label->
+                    val active=tab==index+1
+                    Box(Modifier.weight(1f).heightIn(min=44.dp).abGlass(theme,14,field=true,primary=active,selected=active)
+                        .semantics{selected=active;role=androidx.compose.ui.semantics.Role.Tab}
+                        .clickable{tab=if(active)0 else index+1}.padding(horizontal=4.dp,vertical=10.dp),contentAlignment=Alignment.Center) {
+                        Text(label,color=if(active)theme.onAccent else theme.text,fontSize=13.sp,maxLines=2,
+                            textAlign=androidx.compose.ui.text.style.TextAlign.Center)
+                    }
+                }
+            }
         }
         if(!state.hasSelection) item {
             Spacer(Modifier.height(40.dp))

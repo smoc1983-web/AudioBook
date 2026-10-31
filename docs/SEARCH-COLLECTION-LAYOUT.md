@@ -43,3 +43,9 @@ removal. Unified search now uses the same single identity policy (URL aliases,
 explicit author, conflicting volume protection) rather than pre-merging ambiguous
 records. Digit/letter series codes normalize consistently. Release notes updated;
 full gate79 pending, public78 unchanged.
+
+The player tab row now uses equal width cells, not the generic horizontally
+scrollable chips: bookmark/queue counts must not push Series past the right edge.
+Startup assertions cover both horizontal and vertical visible bounds. This is a
+required fix for the no-scroll request; the superseded79 candidate must not be
+published. A fresh full80 gate will verify the exact final source.
