@@ -9,8 +9,24 @@ if (-not $env:PREVIEW_KEYSTORE) {
 $env:Path = [Environment]::GetEnvironmentVariable('Path', 'User') + ';' + $env:Path
 $gradle = Join-Path $env:LOCALAPPDATA 'Programs\Gradle\gradle-8.9\bin\gradle.bat'
 if (-not (Test-Path $gradle)) { throw 'Gradle 8.9 is not installed on this host.' }
-Push-Location (Split-Path $PSScriptRoot -Parent)
-try {
-    & $gradle '-Pandroid.overridePathCheck=true' @GradleArguments
-    exit $LASTEXITCODE
-} finally { Pop-Location }
+$projectDirectory = Split-Path $PSScriptRoot -Parent
+$projectItem = Get-Item -LiteralPath $projectDirectory
+if ($projectItem.LinkType -eq 'Junction') { $projectDirectory = @($projectItem.Target)[0] }
+# Java 17 reads Windows @argfiles using the native code page; Gradle writes UTF-8.
+# ASCII junctions keep Cyrillic paths out of worker classpaths without moving files.
+$aliasRoot = Join-Path $env:PUBLIC 'Documents\AudiobookDev'
+New-Item -ItemType Directory -Force -Path $aliasRoot | Out-Null
+function Use-DirectoryAlias([string]$Name, [string]$Target) {
+    $aliasPath = Join-Path $aliasRoot $Name
+    if (-not (Test-Path -LiteralPath $aliasPath)) {
+        New-Item -ItemType Junction -Path $aliasPath -Target $Target | Out-Null
+    }
+    $existing = Get-Item -LiteralPath $aliasPath
+    if ($existing.LinkType -ne 'Junction' -or @($existing.Target)[0] -ne $Target) {
+        throw "Development alias points to another directory: $aliasPath"
+    }
+    return $aliasPath
+}
+$env:GRADLE_USER_HOME = Use-DirectoryAlias 'gradle-cache' (Join-Path $env:USERPROFILE '.gradle')
+$projectAlias = Use-DirectoryAlias 'AudioBook' $projectDirectory
+Pus
