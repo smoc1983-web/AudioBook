@@ -29,4 +29,8 @@ function Use-DirectoryAlias([string]$Name, [string]$Target) {
 }
 $env:GRADLE_USER_HOME = Use-DirectoryAlias 'gradle-cache' (Join-Path $env:USERPROFILE '.gradle')
 $projectAlias = Use-DirectoryAlias 'AudioBook' $projectDirectory
-Pus
+Push-Location $projectAlias
+try {
+    & $gradle '-Pandroid.overridePathCheck=true' @GradleArguments
+    exit $LASTEXITCODE
+} finally { Pop-Location }
