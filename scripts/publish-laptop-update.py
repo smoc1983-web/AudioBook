@@ -32,6 +32,8 @@ def main():
     parser.add_argument('--build-tools', type=Path, required=True)
     parser.add_argument('--release-number', type=int, required=True)
     args = parser.parse_args()
+    if args.release_number < 89:
+        parser.error('Laptop releases start at89; do not regress the existing Preview installation')
     audit = runpy.run_path(str(Path(__file__).with_name('audit-installable-apk.py')))
     report = audit['audit'](args.apk, args.build_tools)
     identity = subprocess.check_output([str(args.build_tools/'aapt'), 'dump', 'badging', str(args.apk)], text=True)
@@ -42,7 +44,7 @@ def main():
         raise ValueError('Unexpected application label')
     signer = args.build_tools/('apksigner.bat' if os.name == 'nt' else 'apksigner')
     signature = subprocess.check_output([str(signer), 'verify', '--verbose', '--print-certs', str(args.apk)], text=True)
-    if f'Signer #1 certificate SHA-256 digest: {CERTIFICATE}' not in signature:
+    if re.findall(r'Signer #\d+ certificate SHA-256 digest: ([0-9a-f]+)', signature) != [CERTIFICATE]:
         raise ValueError('Original Preview signing certificate does not match')
     with zipfile.ZipFile(args.apk) as archive:
         if not any(ORIGIN.encode() in archive.read(name) for name in archive.namelist() if re.fullmatch(r'classes\d*\.dex', name)):

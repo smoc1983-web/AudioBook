@@ -1,5 +1,5 @@
 param(
-    [Parameter(Mandatory = $true)][ValidateRange(1, 9999999)][int]$ReleaseNumber,
+    [Parameter(Mandatory = $true)][ValidateRange(89, 9999999)][int]$ReleaseNumber,
     [string]$PublicDirectory = (Join-Path (Split-Path $PSScriptRoot -Parent) '..\laptop-updates-public')
 )
 $ErrorActionPreference = 'Stop'
