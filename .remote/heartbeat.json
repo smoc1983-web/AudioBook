@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-11-01T14:33:17.559698+00:00",
+  "updatedAt": "2026-11-01T14:39:07.645970+00:00",
   "host": "DESKTOP-QG19B0C",
   "repository": "smoc1983-web/AudioBook",
   "localHead": "84b501986abff6b0688871ec8c59579402ad3c66",
@@ -11,7 +11,9 @@
   "remoteEditor": "https://vscode.dev/tunnel/audiobook-laptop",
   "codexConnection": "Check the host connection in the mobile/desktop app; heartbeat alone is not proof of Codex availability.",
   "newFilesIncluded": [
-    "scripts/laptop-update-server.py"
+    "scripts/laptop-update-server.py",
+    "scripts/publish-laptop-update.py",
+    "scripts/tests/test-laptop-update-server.py"
   ],
   "untrackedNotBackedUp": [],
   "sensitivePathsExcluded": []
