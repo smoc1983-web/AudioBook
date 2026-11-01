@@ -52,6 +52,8 @@ def main():
                 'size': args.apk.stat().st_size, 'sha256': sha, 'certificateSha256': CERTIFICATE,
                 'apk': 'Audiobook-Preview.apk',
                 'parts': [{'url': f'{match[3]}/Audiobook-Preview.apk', 'size': args.apk.stat().st_size, 'sha256': sha}],
+                'changes': ['Новый значок «Книга в наушниках».',
+                            'Обновления загружаются с ноутбука. Tailscale на телефоне не требуется.'],
                 'notes': 'Новый значок «Книга в наушниках». Обновления загружаются с ноутбука; Tailscale на телефоне не требуется.'}
     updates = args.directory/'updates'
     updates.mkdir(parents=True, exist_ok=True)
@@ -62,6 +64,8 @@ def main():
             raise ValueError('Refusing to regress or reuse an already published version')
     version_dir = updates/match[3]
     version_dir.mkdir(exist_ok=True)
+    icon = Path(__file__).resolve().parents[1]/'docs/assets/launcher-book-headphones.svg'
+    atomic_copy(icon, args.directory/'icon.svg')
     atomic_copy(args.apk, version_dir/'Audiobook-Preview.apk')
     atomic_copy(args.apk, updates/'Audiobook-Preview.apk')
     atomic_text(manifest, json.dumps(metadata, ensure_ascii=False, indent=2)+'\n')

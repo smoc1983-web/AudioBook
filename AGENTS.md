@@ -1,3 +1,11 @@
+# Active task 2026-11-01: local Windows build, new launcher, laptop-hosted updates
+
+Owner explicitly chose ordinary checks WITHOUT ub-mode for this task. Do not ask
+again within this task. Phone must download updates WITHOUT a Tailscale client.
+See docs/LAPTOP-UPDATES.md. Release89 is reserved for this local build; not yet
+declared published. Preserve original Preview package/certificate and user data.
+Use the laptop for the actual APK build. No cloud build is needed for this task.
+
 # Current Audiobook release:4.2.88/100088,2026-10-31
 
 ## Execution host preference (owner instruction, 2026-11-01)

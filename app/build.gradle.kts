@@ -1,3 +1,5 @@
+import java.net.URI
+
 plugins { id("com.android.application"); id("org.jetbrains.kotlin.android"); id("org.jetbrains.kotlin.plugin.compose") }
 val audiobookChannel=providers.gradleProperty("audiobookChannel").orElse("preview").get()
 require(audiobookChannel in listOf("preview","stable")) { "Unknown Audiobook channel" }
@@ -9,12 +11,13 @@ val updateOrigin=providers.gradleProperty("audiobookUpdateOrigin").orElse(
     if(stableChannel) "https://audiobook-smoc1983-updates.amplecoot2048.chatgpt.site"
     else "https://audiobook-laptop.tail1dbbf9.ts.net"
 ).get()
-val updateUri=java.net.URI(updateOrigin)
+val updateUri=URI(updateOrigin)
 require(updateUri.scheme=="https" && updateUri.host!=null && updateUri.rawAuthority==updateUri.host &&
     updateUri.rawPath.isNullOrEmpty() && updateUri.rawQuery==null && updateUri.rawFragment==null) { "Update origin must be an HTTPS host without a path or credentials" }
 android {
     namespace="com.audiobookdownloader"
     compileSdk=36
+    buildToolsVersion="35.0.0"
     defaultConfig {
         applicationId=if(stableChannel) "com.audiobookdownloader" else "com.audiobookdownloader.preview"
         minSdk=23;targetSdk=36
