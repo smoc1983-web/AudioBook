@@ -68,6 +68,11 @@ main не обновляется фоновым копированием. Пуб
 - Репозиторий: `C:\Users\иван\Documents\Codex\2026-11-01\audiobook\outputs\AudioBook`.
 - Java 17, Gradle 8.9, Android SDK API 36, Build Tools 35.0.0, ADB установлены.
 - `JAVA_HOME` и `ANDROID_HOME` заданы для пользователя Windows.
+- `scripts/windows-development.ps1` обновляет окружение процесса из настроек
+  пользователя и запускает Gradle. Без аргументов проверяет версию; для сборки
+  использовать `-GradleArguments @(':app:assembleDebug')` после постановки задачи.
+  Передаётся `-Pandroid.overridePathCheck=true`, потому что путь содержит кириллицу.
+  В этой задаче сборка приложения и установка APK на телефон не выполнялись.
 - Дополнительный редактор: https://vscode.dev/tunnel/audiobook-laptop
 - Tailscale: `100.92.141.29`, режим работы без входа пользователя включён.
 - VS Code Tunnel и процесс обслуживания запускаются после входа в Windows.
