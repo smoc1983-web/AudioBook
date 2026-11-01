@@ -19,9 +19,12 @@ try:
     else:
         def git(*args):
             return subprocess.check_output(['git', '-C', a.repo, *args], stderr=subprocess.PIPE, timeout=45).decode().strip()
-        git('fetch', '--quiet', '--no-tags', 'origin', 'refs/heads/backup/audiobook-laptop')
-        snapshot = git('rev-parse', 'FETCH_HEAD')
-        heartbeat = json.loads(git('show', 'FETCH_HEAD:.remote/heartbeat.json'))
+        remote = git('ls-remote', 'origin', 'refs/heads/backup/audiobook-laptop')
+        if not remote:
+            raise ValueError('No uploaded laptop snapshot exists yet')
+        snapshot = remote.split()[0]
+        git('fetch', '--quiet', '--no-tags', '--no-write-fetch-head', 'origin', snapshot)
+        heartbeat = json.loads(git('show', snapshot + ':.remote/heartbeat.json'))
     updated = dt.datetime.fromisoformat(heartbeat['updatedAt'].replace('Z', '+00:00'))
     if updated.tzinfo is None:
         raise ValueError('Heartbeat timestamp has no timezone')
