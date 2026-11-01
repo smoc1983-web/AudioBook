@@ -1,0 +1,19 @@
+{
+  "updatedAt": "2026-11-01T13:13:17.338307+00:00",
+  "host": "DESKTOP-QG19B0C",
+  "repository": "smoc1983-web/AudioBook",
+  "localHead": "22f244a281c8231f8d1da37491bdb3eb78b2668c",
+  "localBranch": "main",
+  "recoveryBranch": "backup/audiobook-laptop",
+  "intervalSeconds": 300,
+  "staleAfterSeconds": 900,
+  "workingDirectory": "C:\\Users\\иван\\Documents\\Codex\\2026-11-01\\audiobook\\outputs\\AudioBook",
+  "remoteEditor": "https://vscode.dev/tunnel/audiobook-laptop",
+  "codexConnection": "Check the host connection in the mobile/desktop app; heartbeat alone is not proof of Codex availability.",
+  "newFilesIncluded": [
+    "docs/REMOTE-DEVELOPMENT.md",
+    "scripts/check-development-host.py"
+  ],
+  "untrackedNotBackedUp": [],
+  "sensitivePathsExcluded": []
+}

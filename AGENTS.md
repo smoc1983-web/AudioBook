@@ -1,5 +1,16 @@
 # Current Audiobook release:4.2.88/100088,2026-10-31
 
+## Execution host preference (owner instruction, 2026-11-01)
+
+Prefer the owner's connected Windows laptop DESKTOP-QG19B0C for development.
+Before new or resumed work, read docs/REMOTE-DEVELOPMENT.md and check the actual
+Codex host connection plus scripts/check-development-host.py. If the laptop is
+unavailable, continue in a cloud Codex environment from backup/audiobook-laptop
+on a new cloud/recovery-* branch, reporting the snapshot time and omitted files.
+Do not overwrite local uncommitted work or push cloud work to the backup branch.
+An offline local chat cannot migrate itself: do not claim autonomous failover.
+The existing per-task ub-mode choice and release/signing safeguards still apply.
+
 Compact player option2 and selected themes task completed WITH owner-approved ub-mode.
 Full41220372143/sourcea13ac3c6955d95ad999b322ec425b57633d90ec5 passed.
 Focused41221382589/source472ece78b20a80de21ea977abd9821e4264c9310 passed43/44;
