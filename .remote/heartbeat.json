@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-11-01T14:59:24.850901+00:00",
+  "updatedAt": "2026-11-01T15:04:53.445284+00:00",
   "host": "DESKTOP-QG19B0C",
   "repository": "smoc1983-web/AudioBook",
   "localHead": "84b501986abff6b0688871ec8c59579402ad3c66",
@@ -18,8 +18,6 @@
     "scripts/publish-laptop-update.py",
     "scripts/tests/test-laptop-update-server.py"
   ],
-  "untrackedNotBackedUp": [
-    ".kotlin/sessions/kotlin-compiler-12627382027930591138.salive"
-  ],
+  "untrackedNotBackedUp": [],
   "sensitivePathsExcluded": []
 }
