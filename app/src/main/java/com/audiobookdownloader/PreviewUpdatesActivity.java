@@ -50,6 +50,7 @@ public final class PreviewUpdatesActivity extends Activity {
         scroll.addView(root);setContentView(scroll);
         text(root,"Обновления "+BuildConfig.PRODUCT_NAME,25).setTypeface(null,Typeface.BOLD);
         text(root,"Установлена "+BuildConfig.VERSION_NAME+" · "+BuildConfig.VERSION_CODE,14);
+        text(root,"Сервер обновлений: "+Uri.parse(BuildConfig.UPDATE_ORIGIN).getHost()+". Для загрузки ноутбук должен быть включён и подключён к интернету.",13);
         text(root,(BuildConfig.APPLICATION_ID.endsWith(".preview")?
             "Это отдельное приложение. Стабильная Audiobook и её книги не изменяются.":
             "Обновления сохраняют библиотеку и настройки. Не удаляйте приложение перед установкой.")+" Новая версия загрузится здесь; установку подтвердит Android.",15);

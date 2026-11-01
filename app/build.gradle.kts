@@ -2,16 +2,26 @@ plugins { id("com.android.application"); id("org.jetbrains.kotlin.android"); id(
 val audiobookChannel=providers.gradleProperty("audiobookChannel").orElse("preview").get()
 require(audiobookChannel in listOf("preview","stable")) { "Unknown Audiobook channel" }
 val stableChannel=audiobookChannel=="stable"
+val releaseNumber=providers.gradleProperty("audiobookReleaseNumber").orNull
+    ?: System.getenv("GITHUB_RUN_NUMBER")
+require(releaseNumber==null || releaseNumber.matches(Regex("[1-9][0-9]{0,6}"))) { "Invalid release number" }
+val updateOrigin=providers.gradleProperty("audiobookUpdateOrigin").orElse(
+    if(stableChannel) "https://audiobook-smoc1983-updates.amplecoot2048.chatgpt.site"
+    else "https://audiobook-laptop.tail1dbbf9.ts.net"
+).get()
+val updateUri=java.net.URI(updateOrigin)
+require(updateUri.scheme=="https" && updateUri.host!=null && updateUri.rawAuthority==updateUri.host &&
+    updateUri.rawPath.isNullOrEmpty() && updateUri.rawQuery==null && updateUri.rawFragment==null) { "Update origin must be an HTTPS host without a path or credentials" }
 android {
     namespace="com.audiobookdownloader"
     compileSdk=36
     defaultConfig {
         applicationId=if(stableChannel) "com.audiobookdownloader" else "com.audiobookdownloader.preview"
         minSdk=23;targetSdk=36
-        versionCode=100000+(System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull() ?: 0)
-        versionName="4.2."+(System.getenv("GITHUB_RUN_NUMBER") ?: "local")
+        versionCode=100000+(releaseNumber?.toInt() ?: 0)
+        versionName="4.2."+(releaseNumber ?: "local")
         buildConfigField("String","PRODUCT_NAME","\"Audiobook\"")
-        buildConfigField("String","UPDATE_ORIGIN","\"https://audiobook-smoc1983-updates.amplecoot2048.chatgpt.site\"")
+        buildConfigField("String","UPDATE_ORIGIN","\"$updateOrigin\"")
         buildConfigField("String","UPDATE_PREFIX",if(stableChannel) "\"stable-v\"" else "\"preview-v\"")
         buildConfigField("String","UPDATE_APK",if(stableChannel) "\"Audiobook.apk\"" else "\"Audiobook-Preview.apk\"")
         buildConfigField("String","UPDATE_METADATA",if(stableChannel) "\"stable-update.json\"" else "\"preview-update.json\"")
