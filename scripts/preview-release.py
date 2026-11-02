@@ -21,7 +21,7 @@ for release in old:
         if asset:
             previous=json.loads(subprocess.check_output(['gh','api','-H','Accept: application/octet-stream',f"repos/{os.environ['GITHUB_REPOSITORY']}/releases/assets/{asset['id']}?download=1"],text=True))
             assert previous['certificateSha256']==fingerprint, 'Preview signing identity changed; refusing publication'
-            assert version>=previous['versionCode'], 'Version code regressed; refusing publication'
+            assert version>previous['versionCode'], 'Version must increase; refusing to replace a published release'
         break
 out=Path('dist');out.mkdir(exist_ok=True)
 subprocess.run(['python','scripts/audit-installable-apk.py','--apk',str(apk),'--build-tools',str(build_tools),'--output',str(out/'permission-audit.json')],check=True)
@@ -29,6 +29,9 @@ shutil.copyfile(apk,out/'Audiobook-Preview.apk')
 manifest={'packageName':m[1],'versionCode':version,'versionName':m[3],'size':apk.stat().st_size,
     'sha256':hashlib.sha256(apk.read_bytes()).hexdigest(),'certificateSha256':fingerprint,
     'apk':'Audiobook-Preview.apk','commit':os.environ['GITHUB_SHA']}
+import zipfile
+with zipfile.ZipFile(apk) as archive:
+    manifest['changes']=json.loads(archive.read('assets/release-notes.json'))['changes'][:12]
 (out/'preview-update.json').write_text(json.dumps(manifest,indent=2)+'\n')
 (out/'tag.txt').write_text(f'preview-v{version}\n')
 print(json.dumps(manifest,indent=2))
