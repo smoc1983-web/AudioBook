@@ -37,7 +37,7 @@ import org.json.JSONObject
 import java.io.File
 import java.util.concurrent.Executors
 
-data class ServiceTrack(val title: String, val src: String, val durationMs: Int = 0)
+data class ServiceTrack(val title: String, val src: String, val durationMs: Int = 0, val editionId:String = "")
 
 data class ServicePlaybackState(
     val bookTitle: String = "",
@@ -112,7 +112,7 @@ class PlaybackService : Service() {
             (0 until array.length()).mapNotNull {index ->
                 val item=array.optJSONObject(index) ?: return@mapNotNull null
                 val src=item.optString("s")
-                if(src.isBlank())null else ServiceTrack(item.optString("t"),src,item.optInt("d",0))
+                if(src.isBlank())null else ServiceTrack(item.optString("t"),src,item.optInt("d",0),item.optString("e"))
             }
 
         suspend fun restoreScreenState(context:Context) {
@@ -160,7 +160,7 @@ class PlaybackService : Service() {
             selectionRevision.incrementAndGet()
             val playlist = JSONArray()
             tracks.forEach { playlist.put(JSONObject().put("t", it.title)
-                .put("s", it.src).put("d", it.durationMs)) }
+                .put("s", it.src).put("d", it.durationMs).put("e",it.editionId)) }
             val request = JSONObject().put("book", bookTitle).put("source", sourceType)
                 .put("tracks", playlist).put("index", index).put("position", positionMs)
             // Большой плейлист не передаётся через Binder (лимит размера Intent).
@@ -536,7 +536,7 @@ class PlaybackService : Service() {
 
     private fun persistPlaylist() {
         val array = JSONArray()
-        playlist.forEach { array.put(JSONObject().put("t", it.title).put("s", it.src).put("d", it.durationMs)) }
+        playlist.forEach { array.put(JSONObject().put("t", it.title).put("s", it.src).put("d", it.durationMs).put("e",it.editionId)) }
         val cover = File(File(File(Environment.getExternalStoragePublicDirectory(
             Environment.DIRECTORY_DOWNLOADS), BuildConfig.LIBRARY_DIRECTORY), safeFileName(bookTitle)), "cover.jpg")
         playbackPrefs.edit().putString("widget_playlist", array.toString())
@@ -769,7 +769,7 @@ class PlaybackService : Service() {
         positionMs = durationMs
         if(LibraryExperienceRules.completedEdition(trackIndex,playlist.size,
             playbackPrefs.getInt(bookTotalKey(bookTitle),0),EditionDownloadRules.isPreview(bookTitle,playlist.map{it.src})))
-            playbackPrefs.edit().putBoolean("book_completed_"+safeFileName(bookTitle),true).apply()
+            StableProgress.completed(playbackPrefs,bookTitle,playlist)
         persistState()
         if (sleepChapterTarget == chapterKey()) {
             trace("Сработал таймер до конца главы")
@@ -814,10 +814,10 @@ class PlaybackService : Service() {
                 }
                 bookTitle = nextBook.title
                 sourceType = "local"
-                playlist = nextBook.files.map { ServiceTrack(it.nameWithoutExtension, libraryTrackSource(it)) }
-                val index = playbackPrefs.getInt(bookProgressTrackKey(bookTitle), 0)
-                    .coerceIn(0, playlist.lastIndex)
-                val position = playbackPrefs.getInt(bookProgressPositionKey(bookTitle), 0)
+                playlist = StableProgress.localTracks(playbackPrefs,bookTitle,nextBook.files)
+                val resume=StableProgress.resume(playbackPrefs,bookTitle,playlist)
+                val index=resume.index
+                val position=resume.position
                 persistPlaylist()
                 addListeningHistory(playbackPrefs, bookTitle)
                 startTrack(index, position, autoPlay = playWhenReady)
@@ -832,6 +832,7 @@ class PlaybackService : Service() {
 
     private fun persistState() {
         if (trackIndex !in playlist.indices || bookTitle.isBlank()) return
+        StableProgress.save(playbackPrefs,bookTitle,playlist,trackIndex,positionMs)
         val lastPrefix = if (sourceType == "online") "online_last_" else "player_last_"
         playbackPrefs.edit().putString("widget_book", bookTitle).putString("widget_track", trackTitle)
             .putInt("widget_track_index", trackIndex).putInt("widget_position", positionMs)

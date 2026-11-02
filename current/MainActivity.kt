@@ -148,7 +148,9 @@ data class LibraryBook(
     val coverUri: String = "",
     val coverFilePath: String = "",
     val coverRevision: Long = 0L,
-    val audioSizes: Map<String,Long> = emptyMap()
+    val audioSizes: Map<String,Long> = emptyMap(),
+    val editionId:String="",
+    val chapterSources:Map<String,String> = emptyMap()
 ) {
     val audioBytes:Long get()=audioSizes.values.sum()
     val sizeKnown:Boolean get()=files.isNotEmpty() && audioSizes.size==files.size
@@ -2077,14 +2079,9 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
         bookTitle: String, files: List<File>, index: Int, restorePosition: Boolean
     ) {
         if (index !in files.indices) return
-        val savedIndex = prefs.getInt(bookProgressTrackKey(bookTitle),
-            if (prefs.getString("player_last_book", "") == bookTitle)
-                prefs.getInt("player_last_track", 0) else 0)
-        val position = if (restorePosition && savedIndex == index) {
-            prefs.getInt(bookProgressPositionKey(bookTitle),
-                if (prefs.getString("player_last_book", "") == bookTitle)
-                    prefs.getInt("player_last_position", 0) else 0)
-        } else 0
+        val tracks=StableProgress.localTracks(prefs,bookTitle,files)
+        val resume=StableProgress.resume(prefs,bookTitle,tracks)
+        val position=if(restorePosition && resume.index==index)resume.position else 0
         try {
             playingBook = bookTitle
             playingFiles = files
@@ -2096,7 +2093,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
             onlineBookTitle = ""
             onlineIsPlaying = false
             PlaybackService.play(context, bookTitle, "local",
-                files.map { ServiceTrack(it.nameWithoutExtension, libraryTrackSource(it)) }, index, position)
+                tracks, index, position)
         } catch (error: Exception) {
             localPlayback = null
             isPlaying = false
@@ -2113,12 +2110,10 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
     fun startOnlineTrack(book: PlayerData, index: Int, restorePosition: Boolean) {
         if (index !in book.tracks.indices) return
         val title = cleanBookTitle(pageTitle)
-        val savedIndex = prefs.getInt(bookProgressTrackKey(title),
-            if (prefs.getString("online_last_book", "") == title) prefs.getInt("online_last_track", -1) else -1)
-        val position = if (restorePosition && savedIndex == index) {
-            prefs.getInt(bookProgressPositionKey(title),
-                if (prefs.getString("online_last_book", "") == title) prefs.getInt("online_last_position", 0) else 0)
-        } else 0
+        val serviceTracks=book.tracks.map { ServiceTrack(it.title,it.src,it.duration*1000,
+            ChapterIdentity.edition(title,currentUrl)) }
+        val resume=StableProgress.resume(prefs,title,serviceTracks)
+        val position=if(restorePosition && resume.index==index)resume.position else 0
         if (currentCoverUrl.isNotBlank() && !isBadCoverUrl(currentCoverUrl)) {
             prefs.edit().putString(bookCoverKey(title), currentCoverUrl).apply()
         }
@@ -2136,7 +2131,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
             isPlaying = false
             PlaybackService.play(context, title, "online",
                 preferDownloadedTracks(title,
-                    book.tracks.map { ServiceTrack(it.title, it.src, it.duration * 1000) },libraryBooks),
+                    serviceTracks,libraryBooks),
                 index, position)
         } catch (error: Exception) {
             onlinePlayback = null
@@ -2400,28 +2395,9 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
         unifiedQuery="";unifiedSearchId++
         cycleLoading=false;cycleRequestId++
         genrePending=emptySet();genreExternalLoading=false;genreRequestId++;genreExternalId++
-            val savedTrack =
-                prefs.getInt(
-                    bookProgressTrackKey(
-                        libraryBook.title
-                    ),
-                    if (
-                        prefs.getString(
-                            "player_last_book",
-                            ""
-                        ) == libraryBook.title
-                    ) {
-                        prefs.getInt(
-                            "player_last_track",
-                            0
-                        )
-                    } else {
-                        0
-                    }
-                ).coerceIn(
-                    0,
-                    libraryBook.files.lastIndex
-                )
+            if(libraryBook.files.isEmpty())return
+            val savedTrack=StableProgress.resume(prefs,libraryBook.title,
+                StableProgress.localTracks(prefs,libraryBook.title,libraryBook.files)).index
 
             startLibraryTrack(
                 libraryBook.title,
@@ -2472,7 +2448,8 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                     val title=cleanBookTitle(pageTitle)
                     abRememberCatalog(prefs,BookLink(title,sourceUrl,loaded.cover,loaded.author))
                     prefs.edit().putString(bookUrlKey(title),sourceUrl).putString(bookCoverKey(title),loaded.cover)
-                        .putString(abAuthorKey(title),loaded.author).putInt(bookTotalKey(title),loaded.data.tracks.size).apply()
+                        .putString(abAuthorKey(title),loaded.author).apply()
+                    StableProgress.observe(prefs,title,loaded.data.tracks,true)
                     loaded.data.tracks.forEach{track->trackStates[track.title]=if(isTrackDownloaded(track,title,downloadedIndex))TrackState.DOWNLOADED else TrackState.READY}
                 }catch(cancel:kotlinx.coroutines.CancellationException){throw cancel}
                 catch(error:Exception){if(request==bookOpenId){bookPageLoading=false;bookPageError=error.message?:"Не удалось получить главы";status=bookPageError}}
@@ -2845,9 +2822,8 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
         if (resumeAfterLoad && book != null && book.tracks.isNotEmpty()) {
             resumeAfterLoad = false
             val title = cleanBookTitle(pageTitle)
-            val index = prefs.getInt(bookProgressTrackKey(title),
-                if (prefs.getString("online_last_book", "") == title) prefs.getInt("online_last_track", 0) else 0)
-                .coerceIn(0, book.tracks.lastIndex)
+            val index=StableProgress.resume(prefs,title,book.tracks.map {
+                ServiceTrack(it.title,it.src,it.duration*1000,ChapterIdentity.edition(title,currentUrl)) }).index
             startOnlineTrack(book, index, true)
             appPage = AppPage.PLAYER
         }
@@ -3049,8 +3025,9 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
             val ref=edition.ref
             abRememberCatalog(prefs,BookLink(ref.title,ref.url,ref.cover))
             val edit=prefs.edit().putString(bookUrlKey(ref.title),ref.url).putString(bookCoverKey(ref.title),ref.cover)
-            if(recordTotal)edit.putInt(bookTotalKey(ref.title),maxOf(prefs.getInt(bookTotalKey(ref.title),0),edition.tracks.size))
+
             edit.apply()
+            StableProgress.observe(prefs,ref.title,edition.tracks,recordTotal)
         }
         withContext(Dispatchers.IO){AbPersistentDownloads.enqueueBatch(context.applicationContext,editions)}
         editions.forEach{keepDownloadedCover(it.ref.title)}
@@ -3115,7 +3092,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
         val book=cleanBookTitle(pageTitle)
         val queued=durableQueue.filter{AbLibraryHousekeeping.bookKey(it.book)==AbLibraryHousekeeping.bookKey(book)}.associateBy{it.key}
         player?.tracks.orEmpty().associate{track->
-            val row=queued[AbPersistentDownloads.key(book,track.title)]
+            val row=queued.values.firstOrNull{it.title==track.title && it.src==track.src}
             track.title to when {
                 row?.state in listOf("queued","active")->TrackState.DOWNLOADING
                 row?.state=="complete"||abHasDownloadedChapter(downloadedIndex,book,track)->TrackState.DOWNLOADED
@@ -3381,12 +3358,6 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                                                     ),
                                                     currentUrl
                                                 )
-                                                .putInt(
-                                                    bookTotalKey(
-                                                        realBookTitle
-                                                    ),
-                                                    parsed.tracks.size
-                                                )
                                                 .putString(
                                                     bookCoverKey(
                                                         realBookTitle
@@ -3395,6 +3366,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                                                 )
                                                 .apply()
 
+                                            StableProgress.observe(prefs,realBookTitle,parsed.tracks,true)
                                             parsed.tracks.forEach { track ->
 
                                                 trackStates[
@@ -7228,7 +7200,7 @@ fun downloadTrack(
 
 /** Pure snapshot lookup: no filesystem or Android provider calls. */
 fun isTrackDownloaded(track: AudioTrack,bookTitle: String,index: DownloadedChapterIndex): Boolean =
-    index.contains(bookTitle,track.title)
+    index.contains(bookTitle,track.title,track.src)
 
 /*
  * =============================================================
@@ -7250,6 +7222,8 @@ fun isNetworkAudio(source:String):Boolean =
 /** Exact chapter identity; choosing a source never accesses disk or the network. */
 fun preferDownloadedTracks(title:String,tracks:List<ServiceTrack>,books:List<LibraryBook>):List<ServiceTrack> {
     val book=findDownloadedBook(books,title) ?: return tracks
+    val selectedEdition=tracks.firstOrNull()?.editionId.orEmpty()
+    if(selectedEdition.isNotBlank() && selectedEdition!=book.editionId)return tracks
     val chapters=book.files.groupBy {
         safeFileName(it.nameWithoutExtension).lowercase(java.util.Locale.ROOT)
     }
@@ -7258,7 +7232,7 @@ fun preferDownloadedTracks(title:String,tracks:List<ServiceTrack>,books:List<Lib
             val key=safeFileName(track.title).lowercase(java.util.Locale.ROOT)
             // An ambiguous name must not silently select another chapter.
             val local=chapters[key]?.singleOrNull()
-            if(local==null)track else track.copy(src=libraryTrackSource(local))
+            if(local==null || book.chapterSources[local.name]!=track.src)track else track.copy(src=libraryTrackSource(local))
         }
     }
 }
@@ -7642,13 +7616,18 @@ fun scanLibraryReport(context: Context? = null): LibraryScanResult {
             bookKey+"\u0000"+safeFileName(file.nameWithoutExtension).lowercase(java.util.Locale.ROOT) !in unfinished
         })
     }.filter{it.files.isNotEmpty()}
+    StableProgress.observeLibrary(treePrefs,completed)
     val libraryTrace=JSONObject().put("root",root.absolutePath).put("audioPermission",hasLibraryAudioPermission(context))
         .put("treeConfigured",treeText.isNotBlank()).put("folderUnavailable",folderUnavailable)
         .put("booksBeforeDownloadFilter",books.size).put("books",completed.size)
         .put("chapters",completed.sumOf{it.files.size}).put("unfinishedKeys",unfinished.size)
     context.getSharedPreferences("audiobook_diagnostics",Context.MODE_PRIVATE).edit()
         .putString("last_library",java.util.Date().toString()+"\n"+libraryTrace.toString(2)).apply()
-    return LibraryScanResult(completed.map{abWithLibrarySizes(abLibraryCoverMetadata(it),context)}.sortedBy { it.title.lowercase() }, folderUnavailable)
+    return LibraryScanResult(completed.map{book->
+        val url=treePrefs.getString("book_local_edition_"+safeFileName(book.title),"").orEmpty()
+        val sources=book.files.mapNotNull{file->AbPersistentDownloads.sourceFor(context,book.title,file.nameWithoutExtension)?.let{file.name to it}}.toMap()
+        abWithLibrarySizes(abLibraryCoverMetadata(book.copy(editionId=if(url.isNotBlank())ChapterIdentity.edition(book.title,url) else "",chapterSources=sources)),context)
+    }.sortedBy { it.title.lowercase() }, folderUnavailable)
 }
 
 /** Materialize byte counts in the IO scan; rendering a card never stats files or opens providers. */
@@ -10566,9 +10545,8 @@ private fun AbOnlineBookDetails(data: AbScreenData,actions: AbActions,books: Lis
         }
         Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
             AbButton("Слушать",theme,Modifier.weight(1f),primary=true,enabled=book.tracks.isNotEmpty()) {
-                val index=prefs.getInt(bookProgressTrackKey(title),
-                    if(prefs.getString("online_last_book","")==title) prefs.getInt("online_last_track",0) else 0)
-                    .coerceIn(0,book.tracks.lastIndex)
+                val index=StableProgress.resume(prefs,title,book.tracks.map {
+                    ServiceTrack(it.title,it.src,it.duration*1000,ChapterIdentity.edition(title,data.pageUrl)) }).index
                 actions.playOnline(index)
             }
             AbButton(if(active) "Загружается…" else if(downloaded>=book.tracks.size) "Скачана" else if(downloaded>0) "Дозагрузить" else "Скачать",
@@ -11663,7 +11641,7 @@ internal fun AbEditionDownloadControls(edition:AbDownloadEdition,index:Downloade
             val saved=isTrackDownloaded(track,edition.ref.title,index)
             val working=track.title in activeChapters
             AbButton("${i+1}. ${track.title} · "+if(saved)"На устройстве" else if(working)"В очереди" else "Скачать главу",theme,enabled=!saved&&!working) {
-                editionPrefs.edit().putInt(bookTotalKey(edition.ref.title),maxOf(edition.tracks.size,editionPrefs.getInt(bookTotalKey(edition.ref.title),0))).apply()
+                StableProgress.observe(editionPrefs,edition.ref.title,edition.tracks,true)
                 onDownload(edition.ref,listOf(track))
             }
         }
@@ -15306,23 +15284,30 @@ private fun abAzbykaM3uJs(text: String,url: String): String = """
 """.trimIndent().replace("__AB_M3U_TEXT__",JSONObject.quote(text)).replace("__AB_M3U_URL__",JSONObject.quote(url))
 
 /** Built from a completed library scan, never from a directory listing on the UI thread. */
-class DownloadedChapterIndex private constructor(private val chapters: Map<String, Set<String>>) {
-    fun contains(bookTitle: String, trackTitle: String): Boolean =
-        chapters[bookKey(bookTitle)]?.contains(fileKey(safeFileName(trackTitle)+".mp3")) == true
+class DownloadedChapterIndex private constructor(private val chapters: Map<String, Set<String>>,private val sources:Map<String,String> = emptyMap()) {
+    fun contains(bookTitle: String, trackTitle: String,src:String=""): Boolean {
+        val book=bookKey(bookTitle);val file=fileKey(safeFileName(trackTitle)+".mp3")
+        return chapters[book]?.contains(file)==true &&
+            (src.isBlank() || !isNetworkAudio(src) || sources[book+"\u0000"+file]==src)
+    }
 
     companion object {
         val EMPTY=DownloadedChapterIndex(emptyMap())
         private fun fileKey(value: String)=value.lowercase(java.util.Locale.ROOT)
         private fun bookKey(value: String)=fileKey(safeFileName(value))
         fun fromLibrary(books: List<LibraryBook>): DownloadedChapterIndex {
-            val result=linkedMapOf<String, MutableSet<String>>()
+            val result=linkedMapOf<String, MutableSet<String>>();val sources=linkedMapOf<String,String>()
             books.forEach {book ->
                 val names=book.files.map{fileKey(it.name)}
                 // File.name only parses the path; no exists/length/listFiles calls.
                 result.getOrPut(bookKey(book.title)){linkedSetOf()}.addAll(names)
                 result.getOrPut(bookKey(book.folder.name)){linkedSetOf()}.addAll(names)
+                book.chapterSources.forEach{(file,src)->
+                    sources[bookKey(book.title)+"\u0000"+fileKey(file)]=src
+                    sources[bookKey(book.folder.name)+"\u0000"+fileKey(file)]=src
+                }
             }
-            return DownloadedChapterIndex(result.mapValues{it.value.toSet()})
+            return DownloadedChapterIndex(result.mapValues{it.value.toSet()},sources)
         }
     }
 }

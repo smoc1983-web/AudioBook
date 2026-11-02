@@ -10,7 +10,7 @@ import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
 import java.util.zip.ZipEntry
 
-internal data class BackupPreview(val values:Map<String,Any>,val chapters:Int,val bytes:Long,val files:Map<String,Long> = emptyMap())
+internal data class BackupPreview(val values:Map<String,Any>,val chapters:Int,val bytes:Long,val files:Map<String,Long> = emptyMap(),val hashes:Map<String,String> = emptyMap())
 
 /** Explicit allowlist: access tokens, Android jobs, signing data and URI grants never enter a backup. */
 internal object LibraryBackup {
@@ -21,7 +21,7 @@ internal object LibraryBackup {
     private val floats=setOf("playback_speed","appearance_dim","appearance_card_opacity","appearance_text_scale")
     private fun type(key:String):String?=when {
         key.startsWith("book_cover_revision_")->"long"
-        key in strings||listOf("book_url_","book_cover_","book_author_","bookmarks_","eq_book_").any{key.startsWith(it)}->"string"
+        key in strings||listOf("book_url_","book_cover_","book_author_","bookmarks_","eq_book_","book_progress_identity_","book_edition_revision_","book_chapter_titles_","book_local_edition_","book_completed_chapters_").any{key.startsWith(it)}->"string"
         key in ints||key.startsWith("book_progress_")||key.startsWith("book_total_")||key.startsWith("book_duration_")->"int"
         key in flags||key.startsWith("book_completed_")||key.startsWith("experience_collapsed_")->"boolean"
         key in floats||key.startsWith("book_speed_")->"float"
@@ -35,14 +35,20 @@ internal object LibraryBackup {
         }
         val files=JSONArray();val seen=mutableSetOf<String>();val queue=if(audio)AbPersistentDownloads.entries(c).associateBy{it.key} else emptyMap()
         if(audio)for(book in books)for(file in book.files) {
-            check();require(queue[AbPersistentDownloads.key(book.title,file.nameWithoutExtension)]?.state !in listOf("active","error","queued")){"Дождитесь завершения загрузки этой главы перед копированием"}
+            check();require(queue.values.none{it.book==book.title && safeFileName(it.title)==file.nameWithoutExtension && it.state in listOf("active","error","queued")}){"Дождитесь завершения загрузки этой главы перед копированием"}
             val name=entryName(book,file);require(safeEntry(name)&&seen.add(name)){"Совпадают имена глав в резервной копии"}
             val source=libraryTrackSource(file)
             var size=book.audioSizes[source] ?: (file as? LibraryAudioFile)?.sizeBytes?.takeIf{it>=0} ?: if(source.startsWith("content://"))
                 c.contentResolver.openFileDescriptor(Uri.parse(source),"r")?.use{it.statSize} ?: -1 else file.length()
             if(size<0)size=requireNotNull(c.contentResolver.openInputStream(Uri.parse(source))).use{input->var count=0L;val b=ByteArray(65536);while(true){check();val n=input.read(b);if(n<0)break;count+=n;require(count<=2L*1024*1024*1024)};count}
             require(size in 1..2L*1024*1024*1024){"Не удалось определить размер главы ${file.name}"}
-            files.put(JSONObject().put("name",name).put("size",size))
+            val digest=ChapterIdentity.digest();var read=0L
+            val input=if(source.startsWith("content://"))c.contentResolver.openInputStream(Uri.parse(source)) else file.inputStream()
+            requireNotNull(input).use {stream->val buffer=ByteArray(65536)
+                while(true){check();val n=stream.read(buffer);if(n<0)break;read+=n;require(read<=size){"Глава изменилась во время проверки"};digest.update(buffer,0,n)}
+            }
+            require(read==size){"Глава прочитана не полностью"}
+            files.put(JSONObject().put("name",name).put("size",size).put("sha256",ChapterIdentity.hex(digest.digest())))
         }
         return JSONObject().put("format","AudiobookBackup").put("schema",1).put("created",System.currentTimeMillis())
             .put("values",values).put("chapters",files.length()).put("files",files)
@@ -57,6 +63,7 @@ internal object LibraryBackup {
     fun export(c:Context,uri:Uri,books:List<LibraryBook>,audio:Boolean,check:()->Unit={},progress:(String)->Unit) {
         val metadata=manifest(c,books,audio,check)
         val expected=metadata.getJSONArray("files").let{a->(0 until a.length()).associate{a.getJSONObject(it).getString("name") to a.getJSONObject(it).getLong("size")}}
+        val expectedHashes=metadata.getJSONArray("files").let{a->(0 until a.length()).associate{a.getJSONObject(it).getString("name") to a.getJSONObject(it).getString("sha256")}}
         val bytes=metadata.toString().toByteArray(Charsets.UTF_8);require(bytes.size<=MAX_MANIFEST);parse(bytes)
         c.contentResolver.openOutputStream(uri,"wt")?.use {raw->ZipOutputStream(raw).use {zip->
             zip.putNextEntry(ZipEntry("audiobook.json"));zip.write(bytes);zip.closeEntry()
@@ -67,9 +74,10 @@ internal object LibraryBackup {
                 val source=libraryTrackSource(file)
                 val input=if(source.startsWith("content://"))c.contentResolver.openInputStream(Uri.parse(source)) else file.inputStream()
                 requireNotNull(input){"Нет доступа к главе ${file.name}"}.use{source->
-                    val b=ByteArray(65536);var count=0L
-                    while(true){check();val n=source.read(b);if(n<0)break;count+=n;require(count<=expected.getValue(name)){"Размер главы изменился во время копирования"};zip.write(b,0,n)}
+                    val b=ByteArray(65536);var count=0L;val digest=ChapterIdentity.digest()
+                    while(true){check();val n=source.read(b);if(n<0)break;count+=n;require(count<=expected.getValue(name)){"Размер главы изменился во время копирования"};digest.update(b,0,n);zip.write(b,0,n)}
                     require(count==expected.getValue(name)){"Глава скопирована не полностью"}
+                    require(ChapterIdentity.hex(digest.digest())==expectedHashes.getValue(name)){"Содержимое главы изменилось во время копирования"}
                 };zip.closeEntry()
             }
         }} ?: error("Не удалось открыть файл резервной копии")
@@ -104,10 +112,10 @@ internal object LibraryBackup {
         }
         val chapters=root.optInt("chapters");require(chapters in 0..30000)
         val files=root.getJSONArray("files");require(files.length()==chapters)
-        val expected=linkedMapOf<String,Long>()
-        for(i in 0 until files.length()){val file=files.getJSONObject(i);val name=file.getString("name");val size=file.getLong("size");require(safeEntry(name)&&size in 1..2L*1024*1024*1024&&expected.put(name,size)==null)}
+        val expected=linkedMapOf<String,Long>();val hashes=linkedMapOf<String,String>()
+        for(i in 0 until files.length()){val file=files.getJSONObject(i);val name=file.getString("name");val size=file.getLong("size");require(safeEntry(name)&&size in 1..2L*1024*1024*1024&&expected.put(name,size)==null);if(file.has("sha256")){val hash=file.getString("sha256");require(hash.matches(Regex("[0-9a-f]{64}")));hashes[name]=hash}}
         val total=expected.values.sum();require(total<=50L*1024*1024*1024);require(root.getLong("audioBytes")==total)
-        return BackupPreview(values,chapters,total,expected)
+        return BackupPreview(values,chapters,total,expected,hashes)
     }
     fun inspect(c:Context,uri:Uri):BackupPreview {
         return requireNotNull(c.contentResolver.openInputStream(uri)).use{raw->ZipInputStream(raw).use {zip->
@@ -128,7 +136,7 @@ internal object LibraryBackup {
         require(!PlaybackService.state.value.isPlaying){"Сначала поставьте воспроизведение на паузу"}
         // Parse and validate everything before any preference is changed.
         val checked=inspect(c,uri);require(checked==preview){"Резервная копия изменилась"}
-        var copied=0;var skipped=0;var count=0;var total=0L;val seen=mutableSetOf<String>();val folders=mutableMapOf<String,Uri>();val names=mutableMapOf<String,MutableSet<String>>()
+        var copied=0;var skipped=0;var conflicts=0;var count=0;var total=0L;val seen=mutableSetOf<String>();val folders=mutableMapOf<String,Uri>();val names=mutableMapOf<String,MutableMap<String,Uri>>()
         if(tree!=null) {
             val root=Documents.buildDocumentUriUsingTree(tree,Documents.getTreeDocumentId(tree));val roots=children(c,root)
             requireNotNull(c.contentResolver.openInputStream(uri)).use{raw->ZipInputStream(raw).use{zip->
@@ -136,21 +144,44 @@ internal object LibraryBackup {
                 while(true) {
                     val entry=zip.nextEntry?:break;require(!entry.isDirectory&&safeEntry(entry.name)){"Небезопасный путь в архиве"};require(++count<=30000&&seen.add(entry.name)&&entry.name in checked.files)
                     val p=entry.name.split('/');val folder=folders.getOrPut(p[1]){roots[p[1]]?:requireNotNull(Documents.createDocument(c.contentResolver,root,Documents.Document.MIME_TYPE_DIR,p[1]))}
-                    val existing=names.getOrPut(p[1]){children(c,folder).keys.toMutableSet()}
-                    if(p[2] in existing){
-                        val discard=ByteArray(65536);var fileBytes=0L
-                        while(true){check();val n=zip.read(discard);if(n<0)break;fileBytes+=n;total+=n;require(fileBytes<=2L*1024*1024*1024&&total<=50L*1024*1024*1024){"Архив превышает допустимый объём"}}
-                        require(fileBytes==checked.files.getValue(entry.name)){"Глава в архиве записана не полностью"};skipped++;continue
-                    }
+                    val existing=names.getOrPut(p[1]){children(c,folder).toMutableMap()}
                     progress("Восстанавливаем: ${p[1]} · ${p[2]}")
                     val temp=requireNotNull(Documents.createDocument(c.contentResolver,folder,"application/octet-stream",".audiobook-"+java.util.UUID.randomUUID()+".part"))
                     try {
+                        val digest=ChapterIdentity.digest()
                         requireNotNull(c.contentResolver.openOutputStream(temp,"w")).use{out->
                             val b=ByteArray(65536);var fileBytes=0L
-                            while(true){check();val n=zip.read(b);if(n<0)break;fileBytes+=n;total+=n;require(fileBytes<=checked.files.getValue(entry.name)&&total<=50L*1024*1024*1024){"Архив превышает допустимый объём"};out.write(b,0,n)}
+                            while(true){check();val n=zip.read(b);if(n<0)break;fileBytes+=n;total+=n;require(fileBytes<=checked.files.getValue(entry.name)&&total<=50L*1024*1024*1024){"Архив превышает допустимый объём"};digest.update(b,0,n);out.write(b,0,n)}
                             require(fileBytes==checked.files.getValue(entry.name)){"Глава в архиве записана не полностью"}
                         }
-                        requireNotNull(Documents.renameDocument(c.contentResolver,temp,p[2])){"Не удалось завершить запись главы"};existing.add(p[2]);copied++
+                        val hash=ChapterIdentity.hex(digest.digest())
+                        require(checked.hashes[entry.name]?.let{it==hash}!=false){"Контрольная сумма главы не совпадает"}
+                        // Read back the temporary document: a provider may truncate a write.
+                        fun checksum(document:Uri):String = requireNotNull(c.contentResolver.openInputStream(document)).use{input->
+                            val d=ChapterIdentity.digest();val buffer=ByteArray(65536);var size=0L
+                            while(true){check();val n=input.read(buffer);if(n<0)break;size+=n
+                                if(size>checked.files.getValue(entry.name))return@use "different-size"
+                                d.update(buffer,0,n)
+                            }
+                            if(size!=checked.files.getValue(entry.name))"different-size" else ChapterIdentity.hex(d.digest())
+                        }
+                        require(checksum(temp)==hash){"Не удалось проверить записанную главу"}
+                        var target=p[2];var attempt=0;var identical=false
+                        // Both a mismatching original and every previous restored conflict
+                        // remain untouched. Identical content is skipped, even in old backups
+                        // without checksums (the archive itself was fully read and validated).
+                        while(target in existing) {
+                            val same=try{checksum(existing.getValue(target))==hash}catch(_:java.util.concurrent.CancellationException){throw java.util.concurrent.CancellationException()}catch(_:Exception){false}
+                            if(same){identical=true;break}
+                            target=ChapterIdentity.conflictName(p[2],hash,attempt++)
+                            require(attempt<=10000){"Слишком много одноимённых файлов"}
+                        }
+                        if(identical) {
+                            require(Documents.deleteDocument(c.contentResolver,temp)){"Не удалось удалить проверенный временный файл"};skipped++
+                        } else {
+                            val written=requireNotNull(Documents.renameDocument(c.contentResolver,temp,target)){"Не удалось завершить запись главы"}
+                            existing[target]=written;copied++;if(target!=p[2])conflicts++
+                        }
                     }catch(e:Exception){try{Documents.deleteDocument(c.contentResolver,temp)}catch(_:Exception){};throw e}
                 }
             }}
@@ -166,6 +197,6 @@ internal object LibraryBackup {
             val rollback=prefs.edit();for(key in checked.values.keys)set(rollback,key,before[key]);rollback.commit()
             error("Не удалось сохранить настройки. Проверьте свободное место. Прежние значения восстановлены в памяти.")
         }
-        return "Восстановлено настроек: ${checked.values.size}. Глав скопировано: $copied, уже имелось: $skipped. При необходимости подключите папку через библиотеку."
+        return "Восстановлено настроек: ${checked.values.size}. Глав скопировано: $copied, совпало по содержимому: $skipped. Конфликтов сохранено отдельно: $conflicts. При необходимости подключите папку через библиотеку."
     }
 }

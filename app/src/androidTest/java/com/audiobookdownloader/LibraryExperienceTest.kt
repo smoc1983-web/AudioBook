@@ -72,7 +72,14 @@ class LibraryExperienceTest {
             assertArrayEquals(chapter,File(target,"01.mp3").readBytes())
             File(target,"01.mp3").writeText("existing")
             LibraryBackup.restore(context,Uri.fromFile(archive),tree,preview){}
-            assertEquals("existing",File(target,"01.mp3").readText());assertEquals(1,target.listFiles()!!.size)
+            assertEquals("existing",File(target,"01.mp3").readText());assertEquals(2,target.listFiles()!!.size)
+            val restored=target.listFiles()!!.single{it.name!="01.mp3"};assertArrayEquals(chapter,restored.readBytes())
+            LibraryBackup.restore(context,Uri.fromFile(archive),tree,preview){}
+            assertEquals("Repeated conflict restore must be idempotent",2,target.listFiles()!!.size)
+            // Wrong content with exactly the same length must also be preserved separately.
+            restored.delete();File(target,"01.mp3").writeBytes(ByteArray(chapter.size){99})
+            LibraryBackup.restore(context,Uri.fromFile(archive),tree,preview){}
+            assertEquals(2,target.listFiles()!!.size);assertArrayEquals(ByteArray(chapter.size){99},File(target,"01.mp3").readBytes())
         }finally{source.deleteRecursively();archive.delete();target.deleteRecursively();restorePrefs(old)}
     }
     @Test fun queueKeepsTwoBooksWithIdenticalChapterNamesAndPersistsPause() {

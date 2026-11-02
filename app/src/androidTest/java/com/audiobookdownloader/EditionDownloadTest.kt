@@ -47,7 +47,7 @@ class EditionDownloadTest {
         val a=AudioTrack("Первая",0,"http://127.0.0.1:1/edition-partial-a.mp3")
         val b=AudioTrack("Вторая",0,"http://127.0.0.1:1/edition-partial-b.mp3")
         AbAudioSizes.remember(a.src,1048576)
-        val book=LibraryBook(ref.title,File("/unused"),listOf(File("/unused/Первая.mp3")))
+        val book=LibraryBook(ref.title,File("/unused"),listOf(File("/unused/Первая.mp3")),chapterSources=mapOf("Первая.mp3" to a.src,"Вторая.mp3" to b.src))
         var index by mutableStateOf(DownloadedChapterIndex.fromLibrary(listOf(book)))
         compose.setContent {Column {AbEditionDownloadControls(AbDownloadEdition(ref,listOf(a,b),false),index,emptySet(),abTheme(2)) {_,_->}}}
         compose.onNodeWithText("Дозагрузить глав: 1").assertIsEnabled()

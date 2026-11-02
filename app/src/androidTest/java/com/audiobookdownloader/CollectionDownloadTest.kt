@@ -19,7 +19,7 @@ class CollectionDownloadTest {
         AudioTrack("Глава 1",60,"http://127.0.0.1:1/collection-${ref.title}.mp3")),preview)
     @Test(timeout=30000) fun queuesBooksSkipsOwnedAndPreviewAndKeepsPlayerSelection() {
         val a=ref("First");val b=ref("Second");val owned=ref("Owned");val preview=ref("Preview")
-        val index=DownloadedChapterIndex.fromLibrary(listOf(LibraryBook(owned.title,File("/unused"),listOf(File("/unused/Глава 1.mp3")))))
+        val index=DownloadedChapterIndex.fromLibrary(listOf(LibraryBook(owned.title,File("/unused"),listOf(File("/unused/Глава 1.mp3")),chapterSources=mapOf("Глава 1.mp3" to edition(owned).tracks.single().src))))
         val calls=mutableListOf<String>();val readers=mutableListOf<String>()
         var downloads by mutableStateOf(emptyList<AbDownloadItem>())
         val before=PlaybackService.state.value
