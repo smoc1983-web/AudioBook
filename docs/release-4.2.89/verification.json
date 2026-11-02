@@ -1,0 +1,77 @@
+{
+  "versionName": "4.2.89",
+  "versionCode": 100089,
+  "packageName": "com.audiobookdownloader.preview",
+  "commit": "11a6cc1800e387136540b137ff3bf572f77def6c",
+  "baselineCommit": "a13ac3c6955d95ad999b322ec425b57633d90ec5",
+  "baselineVersionCode": 100088,
+  "buildResult": "BUILD SUCCESSFUL",
+  "tests": {
+    "testReleaseUnitTest": {
+      "tests": 166,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    },
+    "testDebugUnitTest": {
+      "tests": 166,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    }
+  },
+  "newRegressionTests": 19,
+  "skippedTest": "LiveCatalogTest.liveSourcesSearchResolveDownloadAndDecode",
+  "lint": {
+    "Error": 0,
+    "Fatal": 0,
+    "Warning": 86,
+    "Information": 74
+  },
+  "apkSize": 33069639,
+  "sha256": "ab3b62622245c2d74d67e8631655f6be7bb5e4a4bbc83d03c62eafc13f8abe68",
+  "certificateSha256": "3a4cecd14bb3e983843871766909c3f07b3dc64379800f3e270e4a27d39affb7",
+  "signatureVerified": true,
+  "signatureMatchesPreviousPublicApk": true,
+  "packageNameMatchesPreviousPublicApk": true,
+  "versionCodeIncreased": true,
+  "nonDebuggable": true,
+  "unchangedResourceEntriesComparedToPublicBaseline": 87,
+  "publicRelease": {
+    "assets": [
+      {
+        "name": "Audiobook-Preview.apk",
+        "size": 33069639,
+        "url": "https://github.com/smoc1983-web/AudioBook/releases/download/preview-v100089/Audiobook-Preview.apk"
+      },
+      {
+        "name": "preview-update.json",
+        "size": 1452,
+        "url": "https://github.com/smoc1983-web/AudioBook/releases/download/preview-v100089/preview-update.json"
+      },
+      {
+        "name": "site-update-4.2.89.zip",
+        "size": 32662156,
+        "url": "https://github.com/smoc1983-web/AudioBook/releases/download/preview-v100089/site-update-4.2.89.zip"
+      }
+    ],
+    "isDraft": false,
+    "publishedAt": "2026-11-02T18:34:05Z",
+    "tagName": "preview-v100089",
+    "url": "https://github.com/smoc1983-web/AudioBook/releases/tag/preview-v100089"
+  },
+  "publicDownloadSha256Matches": true,
+  "sitePackageReassembledAndSha256Verified": true,
+  "siteFeedCurrentVersionCode": 100088,
+  "siteFeedUrl": "https://audiobook-smoc1983-updates.amplecoot2048.chatgpt.site/updates/preview-update.json",
+  "siteDeployPendingOwner": true,
+  "androidInstallationReplacementTested": false,
+  "runtimeInstrumentationTested": false,
+  "physicalPhoneTested": false,
+  "playProtectTested": false,
+  "limitations": [
+    "Disposable emulator system image could not be installed due to disk capacity; no actual Android replacement/data-retention run.",
+    "In-app channel continues to serve 4.2.88 until owner deploys provided site ZIP in original project.",
+    "Live source network/decode test skipped; fixture regressions passed."
+  ]
+}
