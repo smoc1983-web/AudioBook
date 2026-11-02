@@ -125,7 +125,8 @@ data class BookLink(
     val sources: List<BookSource> = emptyList(),
     val genres: List<String> = emptyList(),
     val cycles: List<BookCycle> = emptyList(),
-    val genreOrigin: String = ""
+    val genreOrigin: String = "",
+    val searchQuery: String = ""
 )
 
 data class AudioTrack(
@@ -2445,6 +2446,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                     if(request!=bookOpenId)return@launch
                     pageTitle=loaded.title;currentBookAuthor=loaded.author;currentCoverUrl=loaded.cover;player=loaded.data
                     bookPageLoading=false;bookOpening=null;bookPageError="";status="Глав: ${loaded.data.tracks.size}"
+                    AbSourceAvailability.record(prefs,sourceUrl,loaded.data.tracks.isNotEmpty())
                     val title=cleanBookTitle(pageTitle)
                     abRememberCatalog(prefs,BookLink(title,sourceUrl,loaded.cover,loaded.author))
                     prefs.edit().putString(bookUrlKey(title),sourceUrl).putString(bookCoverKey(title),loaded.cover)
@@ -3215,7 +3217,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                             try {
                                 val merged=withContext(Dispatchers.Default) {
                                     val context=kotlinx.coroutines.currentCoroutineContext()
-                                    AbSearchPresentation.prepare(requestSources.flatMap{reports[it]?.books.orEmpty()},requestQuery,checkActive={context.ensureActive()}).take(AB_SEARCH_LIMIT)
+                                    AbGlobalBookResults.prepare(reports,requestSources,requestQuery,AB_SEARCH_LIMIT,checkActive={context.ensureActive()})
                                 }
                                 if(version!=unifiedMergeVersion || requestId!=unifiedSearchId || unifiedQuery.isBlank())return@launch
                                 bookLinks=merged
@@ -3285,6 +3287,8 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                         },timeoutMs=45_000L) {root,url,message ->
                         if(navigationActive[0] && navigationId==loadId) {
                             if(root==null||message.isNotBlank()) {
+                                if(message=="Страница открылась, но источник не передал читаемый список глав.")
+                                    AbSourceAvailability.record(prefs,url,false)
                                 if(root!=null&&AbBookSources.isAudioOnline(url)) {
                                     pageTitle=root.optString("title").ifBlank{pageTitle}
                                     currentCoverUrl=root.optString("cover")
@@ -3331,6 +3335,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                                         if (
                                             parsed != null
                                         ) {
+                                            AbSourceAvailability.record(prefs,url,parsed.tracks.isNotEmpty())
 
                                             player =
                                                 parsed
@@ -3411,7 +3416,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                                                 }
 
                                         } else {
-
+                                            AbSourceAvailability.record(prefs,url,false)
                                             status =
                                                 "Плейлист пуст"
                                         }
@@ -9030,7 +9035,7 @@ fun UnifiedBookSearch(query: String, prefs: android.content.SharedPreferences,
         // Two browsers at most; slow sitemap enumeration never occupies the first slot.
         val scheduled=requested.sortedBy{if(it==AbBookSources.AZBYKA)1 else 0}
         AbSearchCoordinator.search(scheduled,{site ->if(site==AbBookSources.AZBYKA)95_000L else 50_000L},
-            {site ->AbSearchCache.get(site,query) ?: abSearchOneSource(context,site,query,prefs).also{AbSearchCache.put(site,query,it)}}, {site,result ->report(site,result)})
+            {site ->AbSearchCache.get(site,query) ?: abSearchOneSource(context,site,query,prefs).also{AbSearchCache.put(site,query,it)}}, {site,result ->report(site,AbGlobalBookResults.nativeResult(result,query))})
     }
 }
 
@@ -10361,8 +10366,12 @@ internal fun AbSearchResultCard(row:AbSearchRow,theme:AbTheme,onOpen:(BookLink,S
                 }
                 Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(6.dp)) {
                     row.sources.forEach { source ->
-                        Text(source.site,color=theme.accent,fontSize=11.sp,modifier=Modifier.abGlass(theme,9,field=true).clickable{onOpen(book,source.url)}
-                            .padding(horizontal=12.dp,vertical=7.dp))
+                        Column(Modifier.abGlass(theme,9,field=true).clickable{onOpen(book,source.url)}
+                            .padding(horizontal=12.dp,vertical=7.dp)) {
+                            Text(source.site,color=theme.accent,fontSize=11.sp)
+                            Text(AbSourceAvailability.get(androidx.compose.ui.platform.LocalContext.current.getSharedPreferences("audiobook_downloader",Context.MODE_PRIVATE),source.url).label,
+                                color=theme.muted,fontSize=9.sp,maxLines=1)
+                        }
                     }
                 }
             }

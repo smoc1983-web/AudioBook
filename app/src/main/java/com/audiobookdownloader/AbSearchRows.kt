@@ -30,5 +30,6 @@ internal object AbSearchRows {
         val prepared=AbSearchPresentation.prepare(rows.map{it.book},query=query,cycle=cycle)
         val indexed=rows.associateBy{it.book.url}
         prepared.mapNotNull{book->indexed[book.url]?.copy(book=book,sources=bookSources(book))}
+            .sortedWith(compareBy<AbSearchRow>{AbSourceAvailability.priority(prefs,it.sources)})
     }
 }
