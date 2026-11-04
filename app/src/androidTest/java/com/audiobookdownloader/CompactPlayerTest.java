@@ -80,7 +80,7 @@ public class CompactPlayerTest {
         updates.edit().putBoolean("auto",false).commit();
         try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(MainActivity.class)) {
             click(By.text("Плеер"));
-            PlaybackService.Companion.play(context,"Проверка нового плеера","local",java.util.Collections.singletonList(new ServiceTrack("Глава 1",audio.getAbsolutePath(),30000)),0,0);
+            PlaybackService.Companion.play(context,"Проверка нового плеера","local",java.util.Collections.singletonList(new ServiceTrack("Глава 1",audio.getAbsolutePath(),30000,"")),0,0);
             int light=0,dark=0;
             for(int skin:new int[]{1,5,10}) {
                 prefs.edit().putInt("glass_theme",skin).commit();scenario.recreate();

@@ -28,7 +28,6 @@ final class PreviewUpdater {
         String metadata=http.read(selected.metadata.url,"application/octet-stream",65536);
         PreviewUpdateRules verified=selected.rules(metadata);
         JSONObject json=new JSONObject(metadata);
-        if(!json.optBoolean("available",true))throw new IOException("Подписанное обновление этого канала ещё не опубликовано. Попробуйте позже.");
         Release release=new Release(verified);
         release.receipt=new JSONObject().put("release",selected.source)
             .put("metadata",metadata).toString();

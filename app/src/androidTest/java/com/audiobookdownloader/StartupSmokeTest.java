@@ -199,7 +199,7 @@ public class StartupSmokeTest {
             android.graphics.Bitmap artwork=android.graphics.Bitmap.createBitmap(80,120,android.graphics.Bitmap.Config.ARGB_8888);
             artwork.eraseColor(0xffe3ad62);
             AudioBookWidget.Companion.saveCoverForWidget(context,"Проверка таймера",artwork);artwork.recycle();
-            PlaybackService.Companion.play(context,"Проверка таймера", "local",java.util.Collections.singletonList(new ServiceTrack("Глава 1",audio.getAbsolutePath(),120000)),0,0);
+            PlaybackService.Companion.play(context,"Проверка таймера", "local",java.util.Collections.singletonList(new ServiceTrack("Глава 1",audio.getAbsolutePath(),120000,"")),0,0);
             playback(ServicePlaybackState::isPlaying,"Local WAV did not start");
             android.app.NotificationManager notifications=context.getSystemService(android.app.NotificationManager.class);
             android.app.Notification media=null;
@@ -248,7 +248,7 @@ public class StartupSmokeTest {
             assertTrue("Shaking paused playback",restarted.isPlaying());
             renderWindow(scenario,"preview-player-software.png");
             device.executeShellCommand("screencap -p /sdcard/Download/preview-sleep-shake-success.png");
-            PlaybackService.Companion.play(context,"Ошибка главы","local",java.util.Collections.singletonList(new ServiceTrack("Глава 1",new File(context.getFilesDir(),"missing-audio.wav").getAbsolutePath(),0)),0,0);
+            PlaybackService.Companion.play(context,"Ошибка главы","local",java.util.Collections.singletonList(new ServiceTrack("Глава 1",new File(context.getFilesDir(),"missing-audio.wav").getAbsolutePath(),0,"")),0,0);
             playback(s->!s.isLoading()&&!s.getError().isEmpty(),"Unreadable chapter left an endless spinner");
             assertEquals(android.media.session.PlaybackState.STATE_ERROR,controller.getPlaybackState().getState());
             assertNotNull(controller.getPlaybackState().getErrorMessage());

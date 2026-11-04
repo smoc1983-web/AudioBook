@@ -41,9 +41,9 @@ public class GitHubReleaseCatalogTest {
  }
  @Test public void cachedApkIsRehashedAndTruncatedOrModifiedDataFails()throws Exception{
   File f=File.createTempFile("updater-test-",".apk");var expected=new PreviewUpdateRules(PreviewUpdateRulesTest.valid(),TAG);
-  Files.writeString(f.toPath(),"abc");UpdateApkPolicy.file(f,expected);
-  Files.writeString(f.toPath(),"abd");PreviewUpdateRulesTest.rejected(()->UpdateApkPolicy.file(f,expected));
-  Files.writeString(f.toPath(),"ab");PreviewUpdateRulesTest.rejected(()->UpdateApkPolicy.file(f,expected));
+  Files.write(f.toPath(),"abc".getBytes(java.nio.charset.StandardCharsets.UTF_8));UpdateApkPolicy.file(f,expected);
+  Files.write(f.toPath(),"abd".getBytes(java.nio.charset.StandardCharsets.UTF_8));PreviewUpdateRulesTest.rejected(()->UpdateApkPolicy.file(f,expected));
+  Files.write(f.toPath(),"ab".getBytes(java.nio.charset.StandardCharsets.UTF_8));PreviewUpdateRulesTest.rejected(()->UpdateApkPolicy.file(f,expected));
  }
  @Test public void rateLimitReadableAndMalformedLengthFailsAndCancelIsPermanent()throws Exception{
   var limit=new PreviewUpdateHttpTest.Reply(403,"").header("X-RateLimit-Remaining","0").header("Retry-After","60");
@@ -71,5 +71,25 @@ public class GitHubReleaseCatalogTest {
   assertEquals(TAG,GitHubReleaseCatalog.latest(PreviewUpdateHttpTest.http(first,second)).tag);
   JSONObject incomplete=release();incomplete.getJSONArray("assets").remove(1);
   PreviewUpdateRulesTest.rejected(()->GitHubReleaseCatalog.latest(PreviewUpdateHttpTest.http(new PreviewUpdateHttpTest.Reply(200,new JSONArray().put(old).put(incomplete).toString()))));
+ }
+ @Test public void oversizedCatalogAndNonIntegerAssetFieldsFailClosed()throws Exception{
+  for(Object value:new Object[]{"3",3.5,0,-1}){
+   JSONObject r=release();r.getJSONArray("assets").getJSONObject(1).put("size",value);
+   PreviewUpdateRulesTest.rejected(()->new GitHubReleaseCatalog.Release(r));
+  }
+  JSONArray page=new JSONArray();for(int i=0;i<100;i++)page.put(release());
+  PreviewUpdateHttpTest.Reply[] replies=new PreviewUpdateHttpTest.Reply[GitHubReleaseCatalog.MAX_PAGES];
+  for(int i=0;i<replies.length;i++)replies[i]=new PreviewUpdateHttpTest.Reply(200,page.toString());
+  PreviewUpdateRulesTest.rejected(()->GitHubReleaseCatalog.latest(PreviewUpdateHttpTest.http(replies)));
+ }
+ @Test public void activeCancellationDisconnectsAndNeverCompletesDownload()throws Exception{
+  final PreviewUpdateHttp[] active=new PreviewUpdateHttp[1];
+  var reply=new PreviewUpdateHttpTest.Reply(200,"abc"){
+   @Override public InputStream getInputStream(){active[0].cancel();return new ByteArrayInputStream(data);}
+  };
+  active[0]=PreviewUpdateHttpTest.http(reply);
+  var progress=new java.util.ArrayList<Integer>();
+  PreviewUpdateRulesTest.rejected(()->active[0].download(new PreviewUpdateRules(PreviewUpdateRulesTest.valid(),TAG),new ByteArrayOutputStream(),progress::add));
+  assertTrue(reply.disconnected);assertFalse(progress.contains(100));
  }
 }

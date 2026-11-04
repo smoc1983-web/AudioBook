@@ -11,11 +11,16 @@ final class GitHubReleaseCatalog {
         if(page<1||page>MAX_PAGES)throw new IOException("Слишком много выпусков. Повторите проверку позже.");
         return "https://api.github.com/repos"+BuildConfig.UPDATE_REPOSITORY+"/releases?per_page=100&page="+page;
     }
+    private static long positiveId(JSONObject value,String key)throws Exception {
+        Object raw=value.get(key);
+        if(!(raw instanceof Number)||!raw.toString().matches("[1-9][0-9]{0,18}"))throw new IOException("Некорректный идентификатор GitHub Release");
+        try{return Long.parseLong(raw.toString());}catch(NumberFormatException invalid){throw new IOException("Слишком большой идентификатор GitHub Release");}
+    }
     static final class Asset {
         final String url,hash; final long size;
         Asset(JSONObject value,String tag,String name)throws Exception {
-            if(value.getLong("id")<=0||!"uploaded".equals(value.getString("state"))||!name.equals(value.getString("name")))throw new IOException("Файл выпуска ещё не готов");
-            url=value.getString("browser_download_url");size=value.getLong("size");
+            if(positiveId(value,"id")<=0||!"uploaded".equals(value.getString("state"))||!name.equals(value.getString("name")))throw new IOException("Файл выпуска ещё не готов");
+            url=value.getString("browser_download_url");size=PreviewUpdateRules.positiveInteger(value,"size");
             if(!PreviewUpdateRules.assetUrl(tag,name).equals(url)||size<=0||size>PreviewUpdateRules.MAX_APK)throw new IOException("Некорректный файл выпуска GitHub");
             String digest=value.optString("digest","");
             if(!digest.matches("sha256:[0-9a-f]{64}"))throw new IOException("GitHub не предоставил SHA-256 файла выпуска. Обратитесь к разработчику.");
@@ -26,8 +31,8 @@ final class GitHubReleaseCatalog {
         final String tag;final long code,id;final Asset metadata,apk;final JSONObject source;
         Release(JSONObject value)throws Exception {
             source=new JSONObject(value.toString());
-            tag=value.getString("tag_name");code=PreviewUpdateRules.tagCode(tag);id=value.getLong("id");
-            if(id<=0||value.getBoolean("draft")||!value.getString("html_url").equals(BuildConfig.UPDATE_ORIGIN+BuildConfig.UPDATE_REPOSITORY+"/releases/tag/"+tag))throw new IOException("Некорректный выпуск GitHub");
+            tag=value.getString("tag_name");code=PreviewUpdateRules.tagCode(tag);id=positiveId(value,"id");
+            if(id<=0||!Boolean.FALSE.equals(value.get("draft"))||!value.getString("html_url").equals(BuildConfig.UPDATE_ORIGIN+BuildConfig.UPDATE_REPOSITORY+"/releases/tag/"+tag))throw new IOException("Некорректный выпуск GitHub");
             metadata=asset(value,tag,BuildConfig.UPDATE_METADATA);apk=asset(value,tag,BuildConfig.UPDATE_APK);
             if(metadata.size>65536)throw new IOException("Слишком большое описание выпуска");
         }
@@ -56,7 +61,7 @@ final class GitHubReleaseCatalog {
             // A malformed tag in our channel is a publishing error, not permission to fall back silently.
             long code=PreviewUpdateRules.tagCode(tag);
             if(code>highest){highest=code;best=value;}
-            else if(code==highest&&best!=null&&value.getLong("id")!=best.getLong("id"))throw new IOException("Неоднозначный выпуск канала");
+            else if(code==highest&&best!=null&&positiveId(value,"id")!=positiveId(best,"id"))throw new IOException("Неоднозначный выпуск канала");
         }
         return best;
     }
