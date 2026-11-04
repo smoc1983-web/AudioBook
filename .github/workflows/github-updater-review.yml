@@ -71,6 +71,42 @@ jobs:
           profile: pixel_6
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -memory 2048 -cores 2
           script: gradle :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.audiobookdownloader.UpdateScreenTest,com.audiobookdownloader.InstallerLaunchTest,com.audiobookdownloader.GitHubUpdateFlowTest --stacktrace
+      - name: Prepare signed 4.2.93 bridge candidate — never publish
+        if: success() && matrix.channel == 'preview'
+        env:
+          GITHUB_RUN_NUMBER: '93'
+        run: |
+          python3 scripts/test-update-bridge.py
+          python3 - <<'PY'
+          import subprocess,re
+          refs=subprocess.check_output(['git','ls-remote','--tags','https://github.com/smoc1983-web/AudioBook.git'],text=True)
+          codes=[int(m[1]) for m in re.finditer(r'refs/tags/preview-v([1-9][0-9]*)$',refs,re.M)]
+          if max(codes,default=0)>=100093: raise SystemExit('Candidate 100093 is no longer free; do not replace a tag or release')
+          PY
+          gradle :app:assembleRelease --stacktrace
+          python3 tools/prepare-update-bridge.py --apk app/build/outputs/apk/release/app-release.apk --output bridge-candidate --build-tools "$ANDROID_HOME/build-tools/35.0.0" --minimum-installed-code 100092
+          python3 - <<'PY'
+          import zipfile
+          text='Здесь можно проверить, скачать и установить обновление Audiobook. Удалять приложение перед обновлением не нужно.'.encode()
+          with zipfile.ZipFile('bridge-candidate/github/Audiobook-Preview.apk') as z:
+              dex=b''.join(z.read(n) for n in z.namelist() if n.endswith('.dex'))
+          assert text in dex,'Selected screen copy missing from shipped APK'
+          assert 'Это отдельное приложение.'.encode() not in dex,'Retired copy remains in shipped code'
+          PY
+      - name: Retain candidate APK for review only
+        if: success() && matrix.channel == 'preview'
+        uses: actions/upload-artifact@v4
+        with:
+          name: bridge-candidate-100093-github
+          path: |
+            bridge-candidate/github/
+            bridge-candidate/bridge-check.json
+      - name: Retain legacy feed and parts for review only
+        if: success() && matrix.channel == 'preview'
+        uses: actions/upload-artifact@v4
+        with:
+          name: bridge-candidate-100093-legacy-site
+          path: bridge-candidate/legacy-site/
       - name: Reports only — no APK publication
         if: always()
         uses: actions/upload-artifact@v4

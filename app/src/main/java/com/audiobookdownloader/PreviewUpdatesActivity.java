@@ -51,9 +51,7 @@ public final class PreviewUpdatesActivity extends Activity {
         scroll.addView(root);setContentView(scroll);
         text(root,"Обновления "+BuildConfig.PRODUCT_NAME,25).setTypeface(null,Typeface.BOLD);
         text(root,"Установлена "+BuildConfig.VERSION_NAME+" · "+BuildConfig.VERSION_CODE,14);
-        text(root,(BuildConfig.APPLICATION_ID.endsWith(".preview")?
-            "Это отдельное приложение. Стабильная Audiobook и её книги не изменяются.":
-            "Обновления сохраняют библиотеку и настройки. Не удаляйте приложение перед установкой.")+" Новая версия загрузится здесь; установку подтвердит Android.",15);
+        text(root,"Здесь можно проверить, скачать и установить обновление Audiobook. Удалять приложение перед обновлением не нужно.",15);
         status=text(root,"После обновления новый номер версии появится вверху этого экрана. Проверка и загрузка выполняются здесь, без браузера.",15);status.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);
         changes=text(root,"Список изменений появится после проверки нового выпуска.",14);
         primary=button(root,"Проверить обновления",this::primaryAction);
