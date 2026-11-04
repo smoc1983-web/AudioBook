@@ -35,7 +35,7 @@ public class ChapterRefreshParserTest {
     @Test public void observedBookPageRenewsItsSignedLink() throws Exception {
         java.nio.file.Path fixture=java.nio.file.Paths.get("current/tests/fixtures/nova-sources/biblus.org-book.html");
         if(!java.nio.file.Files.exists(fixture))fixture=java.nio.file.Paths.get("../").resolve(fixture);
-        String html=java.nio.file.Files.readString(fixture);
+        String html=new String(java.nio.file.Files.readAllBytes(fixture),java.nio.charset.StandardCharsets.UTF_8);
         String audio="https://r7.audioknigi.xyz/265a1335c5edc965/audio/02.mp3";
         assertEquals(audio+"?md5=fixture&expires=1900000000",ChapterRefreshParser.refresh(html,"02",audio+"?md5=old&expires=1"));
     }
