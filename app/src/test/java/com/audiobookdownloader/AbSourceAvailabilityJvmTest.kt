@@ -48,4 +48,22 @@ class AbSourceAvailabilityJvmTest {
         AbSourceAvailability.record(p,url,false,2000)
         assertEquals(AbChapterAvailability.UNKNOWN,AbSourceAvailability.get(p,url,1000))
     }
+    @Test fun confirmedDemoIsSpecificToSourceAndSuccessfulRecheckClearsIt() {
+        val p=preferences();val url="https://source.example/demo"
+        AbSourceAvailability.record(p,url,true,preview=true)
+        assertEquals(AbChapterAvailability.PREVIEW,AbSourceAvailability.get(p,url))
+        assertEquals(AbChapterAvailability.UNKNOWN,AbSourceAvailability.get(p,"https://other.example/book"))
+        AbSourceAvailability.record(p,url,true)
+        assertEquals(AbChapterAvailability.AVAILABLE,AbSourceAvailability.get(p,url))
+    }
+    @Test fun hidingDemoRetainsUnknownAndFullAlternativesWithoutLosingTheBook() {
+        val p=preferences();val demo="https://source.example/demo";val full="https://other.example/book"
+        AbSourceAvailability.record(p,demo,true,preview=true)
+        val book=BookLink("Книга",demo,sources=listOf(BookSource("one",demo),BookSource("two",full)))
+        val filtered=AbSourceAvailability.withoutPreviews(p,book)!!
+        assertEquals(full,filtered.url);assertEquals(listOf(full),filtered.sources.map{it.url})
+        assertEquals(2,book.sources.size)
+        assertNull(AbSourceAvailability.withoutPreviews(p,book.copy(sources=listOf(BookSource("one",demo)))))
+        assertNull(AbSourceAvailability.withoutPreviews(p,book.copy(title="Книга (демоверсия)")))
+    }
 }

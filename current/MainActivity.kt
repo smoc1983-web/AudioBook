@@ -2447,7 +2447,8 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                     if(request!=bookOpenId)return@launch
                     pageTitle=loaded.title;currentBookAuthor=loaded.author;currentCoverUrl=loaded.cover;player=loaded.data
                     bookPageLoading=false;bookOpening=null;bookPageError="";status="Глав: ${loaded.data.tracks.size}"
-                    AbSourceAvailability.record(prefs,sourceUrl,loaded.data.tracks.isNotEmpty())
+                    AbSourceAvailability.record(prefs,sourceUrl,loaded.data.tracks.isNotEmpty(),
+                        preview=EditionDownloadRules.isPreview(loaded.title,loaded.data.tracks.map{it.src}))
                     val title=cleanBookTitle(pageTitle)
                     abRememberCatalog(prefs,BookLink(title,sourceUrl,loaded.cover,loaded.author))
                     prefs.edit().putString(bookUrlKey(title),sourceUrl).putString(bookCoverKey(title),loaded.cover)
@@ -3337,7 +3338,8 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                                         if (
                                             parsed != null
                                         ) {
-                                            AbSourceAvailability.record(prefs,url,parsed.tracks.isNotEmpty())
+                                            AbSourceAvailability.record(prefs,url,parsed.tracks.isNotEmpty(),
+                                                preview=EditionDownloadRules.isPreview(root.optString("title"),parsed.tracks.map{it.src}))
 
                                             player =
                                                 parsed
@@ -10169,6 +10171,7 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
     }
     val history=remember(prefs,data.version) {getListeningHistory(prefs).map {bookRefFor(prefs,it)}}
     var showSources by remember {mutableStateOf(false)}
+    var hidePreviews by remember(prefs) {mutableStateOf(prefs.getBoolean("search_hide_previews",false))}
     var enabledSources by remember {mutableStateOf(AbBookSources.enabled(prefs).toSet())}
     val sourceContext=androidx.compose.ui.platform.LocalContext.current
     val listState=data.searchListState
@@ -10183,9 +10186,9 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
     // Playback ticks and lazy-list recycling must not reparse every book's reference metadata.
     val seriesRevision=remember(prefs,data.version) {prefs.getInt("book_series_revision",0)}
     val prepared by androidx.compose.runtime.produceState<List<AbSearchRow>?>(null,
-        data.results,books,seriesRevision,data.cycle,data.cycleBrowsing,data.query,data.genre) {
+        data.results,books,seriesRevision,data.cycle,data.cycleBrowsing,data.query,data.genre,hidePreviews) {
         value=AbSearchRows.prepare(data.results,books,prefs,data.cycle.takeIf{data.cycleBrowsing},
-            query=if(data.genre.isBlank()&&!data.cycleBrowsing)data.query else "")
+            query=if(data.genre.isBlank()&&!data.cycleBrowsing)data.query else "",hidePreviews=hidePreviews)
     }
     val resultBooks=prepared.orEmpty()
     val visibleResults=remember(resultBooks,visibleCount) {resultBooks.take(visibleCount)}
@@ -10215,6 +10218,17 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
             }
             Text(if(data.searchSource.isBlank())"Режим: включённые источники" else "Режим: только ${data.searchSource}",
                 color=theme.muted,fontSize=11.sp,modifier=Modifier.padding(top=5.dp))
+        }
+        if(data.searchActive) item(key="preview-filter") {
+            Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
+                Text("Скрывать демо",color=theme.text,fontSize=13.sp,modifier=Modifier.weight(1f))
+                androidx.compose.material3.Switch(checked=hidePreviews,onCheckedChange={value->
+                    hidePreviews=value;prefs.edit().putBoolean("search_hide_previews",value).apply()
+                },modifier=Modifier.semantics{contentDescription="Скрывать ознакомительные фрагменты"})
+            }
+            Text("Только подтверждённые фрагменты. Размер и число глав не доказывают полноту книги.",color=theme.muted,fontSize=11.sp)
+            if(hidePreviews&&data.results.isNotEmpty()&&resultBooks.isEmpty())
+                Text("Нет отображаемых книг. Проверьте запрос или отключите фильтр демо.",color=theme.muted,fontSize=12.sp)
         }
         if(seriesStatus.isNotBlank()) item {Text(seriesStatus,color=theme.muted,fontSize=11.sp)}
         if(data.searching) item { Row(verticalAlignment=Alignment.CenterVertically) {
@@ -10344,9 +10358,11 @@ internal fun AbSearchResultCard(row:AbSearchRow,theme:AbTheme,onOpen:(BookLink,S
     var chosen by androidx.compose.runtime.saveable.rememberSaveable(row.key) {mutableStateOf("")}
     val book=choices.firstOrNull{it.url==chosen} ?: choices.first()
     val ref=BookRef(book.title,book.url,book.coverUrl)
+    val sourcePrefs=androidx.compose.ui.platform.LocalContext.current.getSharedPreferences("audiobook_downloader",Context.MODE_PRIVATE)
     Column(verticalArrangement=Arrangement.spacedBy(5.dp)) {
         AbBookRow(ref,if(book.url==row.book.url)row.local else null,book.author.ifBlank{"Аудиокнига"},theme,
             onClick={onOpen(book,book.url)},onMenu={onMenu(ref)})
+        if(AbSourceAvailability.isPreview(sourcePrefs,book))Text("Демо · ознакомительный фрагмент",color=theme.error,fontSize=12.sp)
         if(book.genres.isNotEmpty()) Text(book.genres.joinToString(" · "),color=theme.muted,fontSize=11.sp)
         book.cycles.forEach {cycle ->
             Text("${if(cycle.referenceUrl.isNotBlank()) "Сверено" else "По источнику"}: ${cycle.title} · ${abVolumeLabel(cycle)}",
@@ -11750,13 +11766,16 @@ internal fun AbCollectionDownloads(refs:List<BookRef>,index:DownloadedChapterInd
 /** A separate browser session reads metadata only: no player state or navigation writes. */
 @Composable
 internal fun AbReadDownloadEdition(ref:BookRef,done:(AbDownloadEdition?,String)->Unit) {
+    val observationPrefs=androidx.compose.ui.platform.LocalContext.current.getSharedPreferences("audiobook_downloader",Context.MODE_PRIVATE)
     val report by androidx.compose.runtime.rememberUpdatedState(done)
     if(OpenAudioCatalog.fromPage(ref.url)!=null) {
         LaunchedEffect(ref.url) {
             try {
                 val loaded=withContext(Dispatchers.IO){VerifiedBooks.load(ref.url)}
-                report(AbDownloadEdition(ref.copy(cover=loaded.cover.ifBlank{ref.cover}),loaded.data.tracks,
-                    EditionDownloadRules.isPreview(loaded.title,loaded.data.tracks.map{it.src})),"")
+                val edition=AbDownloadEdition(ref.copy(cover=loaded.cover.ifBlank{ref.cover}),loaded.data.tracks,
+                    EditionDownloadRules.isPreview(loaded.title,loaded.data.tracks.map{it.src}))
+                AbSourceAvailability.record(observationPrefs,ref.url,edition.tracks.isNotEmpty(),preview=edition.preview)
+                report(edition,"")
             }catch(cancel:kotlinx.coroutines.CancellationException){throw cancel}
             catch(_:Exception){report(null,"Не удалось проверить издание. Повторите позже.")}
         }
@@ -11764,7 +11783,11 @@ internal fun AbReadDownloadEdition(ref:BookRef,done:(AbDownloadEdition?,String)-
         AbOpenPageTask(web,ref.url,{}) {root,url,error ->
             val parsed=root?.let{abDownloadEdition(ref,it,url)}
             if(error.isNotBlank()||parsed==null)report(null,error.ifBlank{"Источник не передал список глав. Скачивание не начато."})
-            else report(parsed,"")
+            else {
+                AbSourceAvailability.record(observationPrefs,url,parsed.tracks.isNotEmpty(),preview=parsed.preview)
+                if(url!=ref.url)AbSourceAvailability.record(observationPrefs,ref.url,parsed.tracks.isNotEmpty(),preview=parsed.preview)
+                report(parsed,"")
+            }
         }
     }
 }

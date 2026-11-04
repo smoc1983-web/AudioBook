@@ -6,6 +6,13 @@ import java.util.Collections;
 import static org.junit.Assert.*;
 
 public class EditionDownloadRulesTest {
+    @Test public void explicitDemoLabelsAreRecognizedWithoutGuessingFromTheStoryTitle() {
+        assertTrue(EditionDownloadRules.isPreview("Книга (демоверсия)", Collections.emptyList()));
+        assertTrue(EditionDownloadRules.isPreview("Книга [ДЕМО]", Collections.emptyList()));
+        assertTrue(EditionDownloadRules.isPreview("Книга — ознакомительная версия", Collections.emptyList()));
+        assertFalse(EditionDownloadRules.isPreview("Демон и его демография", Collections.emptyList()));
+        assertFalse(EditionDownloadRules.isPreview("Демо — название рассказа", Collections.emptyList()));
+    }
     @Test public void segmentedManifestMustNotBeSavedAsAnAudioFile() {
         assertTrue(EditionDownloadRules.isSegmented("https://cdn.example/book/index.m3u8?sign=123"));
         assertTrue(EditionDownloadRules.isSegmented("https://cdn.example/book/audio.MPD"));

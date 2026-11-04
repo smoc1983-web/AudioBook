@@ -61,4 +61,19 @@ class SearchEditionsTest {
             }
         } finally {p.edit().clear().commit()}
     }
+    @Test fun demoFilterIsOptionalAndDoesNotHideUnverifiedBooks()=runBlocking {
+        val p=ApplicationProvider.getApplicationContext<Context>().getSharedPreferences("search-demo",0)
+        try {
+            val demo=book("Иван","demo");val full=book("Пётр","full")
+            AbSourceAvailability.record(p,demo.url,true,preview=true)
+            assertEquals(2,AbSearchRows.prepare(listOf(demo,full),emptyList(),p,null).single().editions.size)
+            val filtered=AbSearchRows.prepare(listOf(demo,full),emptyList(),p,null,hidePreviews=true).single()
+            assertEquals(listOf(full.url),filtered.editions.map{it.url})
+            assertEquals(AbChapterAvailability.UNKNOWN,AbSourceAvailability.get(p,full.url))
+            val labelled=full.copy(title="Том (демоверсия)")
+            val row=AbSearchRow(labelled,BookRef(labelled.title,labelled.url,""),null,bookSources(labelled))
+            compose.setContent{AbSearchResultCard(row,abTheme(2),{_,_->},{},{})}
+            compose.onNodeWithText("Демо · ознакомительный фрагмент").assertIsDisplayed()
+        }finally{p.edit().clear().commit()}
+    }
 }
