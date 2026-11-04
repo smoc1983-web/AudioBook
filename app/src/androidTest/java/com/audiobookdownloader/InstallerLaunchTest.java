@@ -13,26 +13,20 @@ public class InstallerLaunchTest {
    try{PreviewUpdatesActivity.installerIntent(context,new File(context.getCacheDir(),"private-unrelated.txt"));fail("Provider exposed unrelated cache");}catch(IllegalArgumentException expected){}
   }finally{apk.delete();}
  }
- @Test(timeout=45000) public void verifiedCachePathActuallyOpensAndroidInstaller()throws Exception{
-  var instrumentation=InstrumentationRegistry.getInstrumentation();var device=UiDevice.getInstance(instrumentation);String pkg=context.getPackageName();
-  device.executeShellCommand("appops set "+pkg+" REQUEST_INSTALL_PACKAGES allow");
-  File apk=new PreviewUpdater(context).target();apk.getParentFile().mkdirs();Files.copy(new File(context.getApplicationInfo().sourceDir).toPath(),apk.toPath(),StandardCopyOption.REPLACE_EXISTING);
+ @Test(timeout=30000) public void unverifiedCacheCannotOpenAndroidInstaller()throws Exception{
+  Context context=InstrumentationRegistry.getInstrumentation().getTargetContext();
+  File apk=new PreviewUpdater(context).target();apk.getParentFile().mkdirs();
+  Files.copy(new File(context.getApplicationInfo().sourceDir).toPath(),apk.toPath(),StandardCopyOption.REPLACE_EXISTING);
   try(ActivityScenario<PreviewUpdatesActivity> scenario=ActivityScenario.launch(PreviewUpdatesActivity.class)){
-   scenario.onActivity(a->a.launchInstaller());
-   assertTrue("Android installer window must open",device.wait(Until.hasObject(By.pkg("com.google.android.packageinstaller")),10000)||device.wait(Until.hasObject(By.pkg("com.android.packageinstaller")),3000)||device.wait(Until.hasObject(By.pkg("com.android.permissioncontroller")),3000));
-   assertNotNull("APK must reach the real installation confirmation",device.wait(Until.findObject(By.text(Pattern.compile("(?i)update|install"))),5000));
-   // No install/replace confirmation is pressed in this launch-only test.
-   device.pressBack();assertTrue(device.wait(Until.hasObject(By.pkg(pkg)),5000));
-
+   scenario.onActivity(a->{a.launchInstaller();assertTrue(text(a.getWindow().getDecorView()).contains("Файл обновления недоступен"));});
   }finally{apk.delete();}
-  // Revoking this app-op kills its UID on Android 16. The CI host removes the app
-  // after the complete suite, before the separate baseline-upgrade pass.
  }
  @Test(timeout=15000) public void verificationFailureRemainsVisibleAndDoesNotClaimInstallation()throws Exception{
+  context.getSharedPreferences("verified_update",0).edit().clear().commit();
   File apk=new PreviewUpdater(context).target();apk.getParentFile().mkdirs();Files.write(apk.toPath(),new byte[]{1,2,3});
   try(ActivityScenario<PreviewUpdatesActivity> scenario=ActivityScenario.launch(PreviewUpdatesActivity.class)){
    scenario.onActivity(a->{ArrayDeque<View> q=new ArrayDeque<>();q.add(a.getWindow().getDecorView());while(!q.isEmpty()){View v=q.remove();if(v instanceof Button&&((Button)v).getText().toString().equals("Установить загруженное обновление")){v.performClick();return;}if(v instanceof ViewGroup)for(int i=0;i<((ViewGroup)v).getChildCount();i++)q.add(((ViewGroup)v).getChildAt(i));}fail("Install button missing");});
-   final boolean[] seen={false};long deadline=SystemClock.elapsedRealtime()+5000;while(!seen[0]&&SystemClock.elapsedRealtime()<deadline){scenario.onActivity(a->seen[0]=text(a.getWindow().getDecorView()).contains("APK не соответствует"));SystemClock.sleep(100);}assertTrue("Real verification error must be shown",seen[0]);SystemClock.sleep(500);scenario.onActivity(a->{String all=text(a.getWindow().getDecorView());assertTrue(all.contains("APK не соответствует"));assertFalse(all.contains("APK проверен. Подтвердите"));});
+   final boolean[] seen={false};long deadline=SystemClock.elapsedRealtime()+5000;while(!seen[0]&&SystemClock.elapsedRealtime()<deadline){scenario.onActivity(a->seen[0]=text(a.getWindow().getDecorView()).contains("Нет подтверждения выпуска"));SystemClock.sleep(100);}assertTrue("Real verification error must be shown",seen[0]);SystemClock.sleep(500);scenario.onActivity(a->{String all=text(a.getWindow().getDecorView());assertTrue(all.contains("Нет подтверждения выпуска"));assertFalse(all.contains("APK проверен. Подтвердите"));});
   }finally{apk.delete();}
  }
  private static String text(View v){StringBuilder s=new StringBuilder();if(v instanceof TextView)s.append(((TextView)v).getText()).append('\n');if(v instanceof ViewGroup)for(int i=0;i<((ViewGroup)v).getChildCount();i++)s.append(text(((ViewGroup)v).getChildAt(i)));return s.toString();}

@@ -51,4 +51,25 @@ public class GitHubReleaseCatalogTest {
   var length=new PreviewUpdateHttpTest.Reply(200,"abc").header("Content-Length","not-a-number");PreviewUpdateRulesTest.rejected(()->PreviewUpdateHttpTest.http(length).read(GitHubReleaseCatalog.pageUrl(1),"x",100));assertTrue(length.disconnected);
   var http=PreviewUpdateHttpTest.http();http.cancel();PreviewUpdateRulesTest.rejected(()->http.read(GitHubReleaseCatalog.pageUrl(1),"x",100));
  }
+ @Test public void connectionTimeoutAndNetworkFailureCloseAndHideSignedQueries()throws Exception{
+  for(boolean timeout:new boolean[]{true,false}){
+   var reply=new PreviewUpdateHttpTest.Reply(200,""){
+    @Override public int getResponseCode()throws IOException {
+     if(timeout)throw new SocketTimeoutException("https://cdn.test/?sig=secret");
+     throw new IOException("https://cdn.test/?sig=secret");
+    }
+   };
+   try{PreviewUpdateHttpTest.http(reply).read(GitHubReleaseCatalog.pageUrl(1),"x",100);fail();}
+   catch(IOException e){assertFalse(e.getMessage().contains("secret"));assertTrue(reply.disconnected);}
+  }
+ }
+ @Test public void paginatedDiscoveryDoesNotSelectFirstPageOrIncompleteHigherRelease()throws Exception{
+  JSONObject old=release().put("id",41).put("tag_name",BuildConfig.UPDATE_PREFIX+"100998");
+  JSONArray full=new JSONArray();for(int i=0;i<100;i++)full.put(old);
+  var first=new PreviewUpdateHttpTest.Reply(200,full.toString());
+  var second=new PreviewUpdateHttpTest.Reply(200,new JSONArray().put(release()).toString());
+  assertEquals(TAG,GitHubReleaseCatalog.latest(PreviewUpdateHttpTest.http(first,second)).tag);
+  JSONObject incomplete=release();incomplete.getJSONArray("assets").remove(1);
+  PreviewUpdateRulesTest.rejected(()->GitHubReleaseCatalog.latest(PreviewUpdateHttpTest.http(new PreviewUpdateHttpTest.Reply(200,new JSONArray().put(old).put(incomplete).toString()))));
+ }
 }

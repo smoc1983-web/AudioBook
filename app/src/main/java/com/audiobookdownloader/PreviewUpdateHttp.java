@@ -62,6 +62,9 @@ final class PreviewUpdateHttp {
     private InputStream input(HttpURLConnection c)throws IOException {
         try{
             return new FilterInputStream(c.getInputStream()){
+                @Override public void close()throws IOException {
+                    try{in.close();}catch(IOException failure){throw new IOException("Не удалось завершить загрузку обновления");}
+                }
                 @Override public int read(byte[] bytes,int offset,int length)throws IOException {
                     checkCancelled();
                     try{return in.read(bytes,offset,length);}

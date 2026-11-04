@@ -70,7 +70,7 @@ jobs:
           arch: x86_64
           profile: pixel_6
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -memory 2048 -cores 2
-          script: gradle :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.audiobookdownloader.UpdateScreenTest,com.audiobookdownloader.GitHubUpdateFlowTest --stacktrace
+          script: gradle :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.audiobookdownloader.UpdateScreenTest,com.audiobookdownloader.InstallerLaunchTest,com.audiobookdownloader.GitHubUpdateFlowTest --stacktrace
       - name: Reports only — no APK publication
         if: always()
         uses: actions/upload-artifact@v4

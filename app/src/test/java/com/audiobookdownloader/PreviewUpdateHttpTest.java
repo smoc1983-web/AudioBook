@@ -6,7 +6,7 @@ public class PreviewUpdateHttpTest {
   final byte[] data;final int status;final Map<String,String> headers=new HashMap<>();boolean disconnected;
   Reply(int status,String text)throws Exception{super(new URL(PreviewUpdateRules.FEED));this.status=status;data=text.getBytes(StandardCharsets.UTF_8);}
   Reply header(String k,String v){headers.put(k,v);return this;}
-  public int getResponseCode(){return status;}public String getHeaderField(String k){return headers.get(k);}public InputStream getInputStream(){return new ByteArrayInputStream(data);}
+  public int getResponseCode()throws IOException{return status;}public String getHeaderField(String k){return headers.get(k);}public InputStream getInputStream(){return new ByteArrayInputStream(data);}
   public void disconnect(){disconnected=true;}public boolean usingProxy(){return false;}public void connect(){}
  }
  static PreviewUpdateHttp http(Reply... replies){var queue=new ArrayDeque<>(Arrays.asList(replies));return new PreviewUpdateHttp(uri->{if(queue.isEmpty())throw new AssertionError("Unexpected connection");return queue.remove();});}
