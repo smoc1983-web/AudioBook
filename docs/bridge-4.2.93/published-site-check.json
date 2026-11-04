@@ -1,0 +1,12 @@
+{
+  "origin": "https://audiobook-smoc1983-updates.smoc1983.chatgpt.site/updates/",
+  "versionCode": 100093,
+  "size": 33085849,
+  "parts": 4,
+  "sha256": "249a1cc5173e7c454d08fe5647daaf93d2d784eeb6be46e95e717ebc712abf26",
+  "publicNoCredentials": true,
+  "oldOriginHttpStatus": 307,
+  "oldOriginRedirectHost": "audiobook-smoc1983-updates.smoc1983.chatgpt.site",
+  "oldStrictUpdaterCanFollowRedirect": false,
+  "phoneInstallationTested": false
+}

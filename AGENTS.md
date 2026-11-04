@@ -1,3 +1,17 @@
+# Published4.2.93; legacy hostname migration BLOCKED
+
+Owner approved publication2026-11-04. Public GitHub preview-v100093/source6b41836
+and Sites21/source736a98d are deployed. Read docs/BRIDGE-4.2.93.md and
+publication.json. Native Sites canonical URL changed workspace suffix to smoc1983;
+old amplecoot2048 host now HTTP307s to it. Known old updater forbids cross-host
+redirect, so never claim transparent migration for that origin. Sites rejected
+restoring its generated host as a custom domain. Phone100092 APK/origin remains
+unverified. GitHub-origin clients can discover93; old-origin clients require the
+platform to restore direct200 or a one-time same-package manual update.
+Full anonymous GitHub APK and Site parts hashes verified. No new signing key,
+no user-data deletion, no physical-phone installation, AudioBook main unchanged.
+Current work branch cloud/publish-bridge93-20261104. Status below is historical.
+
 # Current review status, 2026-11-04 — candidate93 NOT PUBLISHED
 
 Public latest is preview-v100091/main c8301db; owner reports installed100092,

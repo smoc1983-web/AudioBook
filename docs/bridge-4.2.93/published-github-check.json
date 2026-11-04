@@ -1,0 +1,15 @@
+{
+  "independentGithubAssetDigest": "249a1cc5173e7c454d08fe5647daaf93d2d784eeb6be46e95e717ebc712abf26",
+  "feedUrl": "https://api.github.com/repos/smoc1983-web/AudioBook/releases?per_page=100&page=1",
+  "sha256": "249a1cc5173e7c454d08fe5647daaf93d2d784eeb6be46e95e717ebc712abf26",
+  "productionJavaTransportAndRules": true,
+  "versionName": "4.2.93",
+  "versionCode": 100093,
+  "apkUrl": "https://github.com/smoc1983-web/AudioBook/releases/download/preview-v100093/Audiobook-Preview.apk",
+  "publicNoCredentials": true,
+  "metadataUrl": "https://github.com/smoc1983-web/AudioBook/releases/download/preview-v100093/preview-update.json",
+  "releaseId": 433502781,
+  "bytes": 33085849,
+  "tag": "preview-v100093",
+  "certificateSha256": "3a4cecd14bb3e983843871766909c3f07b3dc64379800f3e270e4a27d39affb7"
+}
