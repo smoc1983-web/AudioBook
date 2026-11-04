@@ -74,6 +74,7 @@ class SearchEditionsTest {
             val row=AbSearchRow(labelled,BookRef(labelled.title,labelled.url,""),null,bookSources(labelled))
             compose.setContent{AbSearchResultCard(row,abTheme(2),{_,_->},{},{})}
             compose.onNodeWithText("Демо · ознакомительный фрагмент").assertIsDisplayed()
+            Unit // JUnit4 requires a void test method, not SemanticsNodeInteraction.
         }finally{p.edit().clear().commit()}
     }
 }
