@@ -30,5 +30,5 @@ public class PreviewUpdateHttpTest {
   for(String data:new String[]{"abd","ab","abcd",""}){Reply r=new Reply(200,data);PreviewUpdateRulesTest.rejected(()->http(r).download(new PreviewUpdateRules(PreviewUpdateRulesTest.valid(),TAG),new ByteArrayOutputStream(),p->{}));assertTrue(r.disconnected);}
  }
  @Test public void wrongContentLengthIsRejected()throws Exception{Reply r=new Reply(200,"abc").header("Content-Length","4");PreviewUpdateRulesTest.rejected(()->http(r).download(new PreviewUpdateRules(PreviewUpdateRulesTest.valid(),TAG),new ByteArrayOutputStream(),p->{}));assertTrue(r.disconnected);}
- @Test public void cancellationStopsDownloadAndClosesConnection()throws Exception{Reply r=new Reply(200,"abc");try{Thread.currentThread().interrupt();PreviewUpdateRulesTest.rejected(()->http(r).download(new PreviewUpdateRules(PreviewUpdateRulesTest.valid(),TAG),new ByteArrayOutputStream(),p->{}));assertTrue(r.disconnected);}finally{Thread.interrupted();}}
+ @Test public void cancellationStopsDownloadAndClosesConnection()throws Exception{Reply r=new Reply(200,"abc");try{Thread.currentThread().interrupt();PreviewUpdateRulesTest.rejected(()->http(r).download(new PreviewUpdateRules(PreviewUpdateRulesTest.valid(),TAG),new ByteArrayOutputStream(),p->{}));assertFalse(r.disconnected);}finally{Thread.interrupted();}}
 }

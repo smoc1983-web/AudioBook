@@ -1,0 +1,82 @@
+name: GitHub updater review — no publication
+on:
+  push:
+    branches: ['cloud/recovery-github-updater-20261104']
+    paths-ignore: ['docs/**']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        channel: [preview, stable]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Android SDK
+        run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;35.0.0"'
+      - uses: actions/cache/restore@v4
+        with:
+          path: ${{ runner.temp }}/audiobook-preview-signing
+          key: audiobook-preview-signing-v1
+      - name: Restore existing Preview signer only, never create a key
+        env:
+          ORIGINAL_KEY: ${{ secrets.AUDIOBOOK_PREVIEW_KEYSTORE_BASE64 }}
+        run: |
+          python3 - <<'PY'
+          import os,base64,pathlib
+          path=pathlib.Path(os.environ['RUNNER_TEMP'])/'audiobook-preview-signing/preview.keystore'
+          if os.environ.get('ORIGINAL_KEY'):
+              path.parent.mkdir(parents=True,exist_ok=True)
+              path.write_bytes(base64.b64decode(os.environ['ORIGINAL_KEY'],validate=True))
+              path.chmod(0o600)
+          if not path.is_file(): raise SystemExit('Original signing key unavailable; refusing to generate a replacement')
+          with open(os.environ['GITHUB_ENV'],'a') as out: out.write('PREVIEW_KEYSTORE='+str(path)+'\n')
+          PY
+      - name: All unit tests, Debug and Release, Android lint
+        env:
+          GITHUB_RUN_NUMBER: '90'
+        run: gradle :app:testDebugUnitTest :app:testReleaseUnitTest :app:assembleDebug :app:assembleRelease :app:lintDebug :app:lintRelease -PaudiobookChannel=${{ matrix.channel }} --continue --stacktrace
+      - name: Compile Android tests
+        if: always() && matrix.channel == 'preview'
+        env:
+          GITHUB_RUN_NUMBER: '90'
+        run: gradle :app:assembleDebugAndroidTest --stacktrace
+      - name: Emulator access
+        if: success() && matrix.channel == 'preview'
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: reactivecircus/android-emulator-runner@v2
+        if: success() && matrix.channel == 'preview'
+        env:
+          GITHUB_RUN_NUMBER: '90'
+        with:
+          api-level: 36
+          target: aosp_atd
+          arch: x86_64
+          profile: pixel_6
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -memory 2048 -cores 2
+          script: gradle :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.audiobookdownloader.UpdateScreenTest,com.audiobookdownloader.GitHubUpdateFlowTest --stacktrace
+      - name: Reports only — no APK publication
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: updater-review-${{ matrix.channel }}
+          path: |
+            app/build/test-results/
+            app/build/reports/
+            app/build/outputs/androidTest-results/

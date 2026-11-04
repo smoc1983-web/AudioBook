@@ -23,6 +23,7 @@ public final class PreviewUpdatesActivity extends Activity {
     private Button primary;
     private TextView changes;
     private boolean waitingForPermission;
+    private volatile boolean rejectedCachedApk;
     private static final int INSTALL_REQUEST=72;
     private boolean flat(){return getSharedPreferences("audiobook_downloader",0).getInt("glass_theme",2)==10;}
     private float textScale(){return Math.max(.85f,Math.min(1.5f,getSharedPreferences("audiobook_downloader",0).getFloat("appearance_text_scale",1f)));}
@@ -73,14 +74,14 @@ public final class PreviewUpdatesActivity extends Activity {
         });
     }
     private void primaryAction(){
-        if(updater.target().isFile())install();
+        if(updater.target().isFile()&&!rejectedCachedApk)install();
         else if(release!=null&&release.info.isNewer(BuildConfig.VERSION_CODE))download();
         else check();
     }
     private void busy(boolean value){
         if(primary==null)return;
         primary.setEnabled(!value);
-        primary.setText(updater.target().isFile()?"Установить загруженное обновление":
+        primary.setText(updater.target().isFile()&&!rejectedCachedApk?"Установить загруженное обновление":
             release!=null&&release.info.isNewer(BuildConfig.VERSION_CODE)?"Загрузить обновление":"Проверить обновления");
     }
     private void check(){
@@ -93,24 +94,27 @@ public final class PreviewUpdatesActivity extends Activity {
         PreviewUpdater.Release selected=release;
         run(()->{
             updater.download(selected,percent->runOnUiThread(()->{if(!isDestroyed())status.setText("Загрузка обновления: "+percent+"%");}));
+            rejectedCachedApk=false;
             return "Обновление загружено. Размер, SHA-256, пакет, версия и подпись проверены. Нажмите «Установить».";
         });
     }
+    private File verifiedInstallerFile;
     private void install(){
         busy(true);status.setText("Проверяю APK перед установкой…");
         worker.submit(()->{
             String error=null;
-            try{updater.verifyApk(updater.target(),null);}catch(Exception e){error=e instanceof java.io.IOException?e.getMessage():"Не удалось проверить APK. Загрузите обновление заново.";}
+            try{verifiedInstallerFile=updater.prepareInstall();}catch(Exception e){error=e instanceof java.io.IOException?e.getMessage():"Не удалось проверить APK. Загрузите обновление заново.";}
             final String failure=error;
             runOnUiThread(()->{if(isDestroyed()||isFinishing())return;busy(false);
-                if(failure!=null){status.setText(failure);if(updater.target().delete())busy(false);}else launchInstaller();
+                if(failure!=null){status.setText(failure);rejectedCachedApk=true;release=null;busy(false);}else launchInstaller();
             });
         });
     }
     // Package-private so instrumentation exercises the real provider and system installer.
     void launchInstaller(){
         try{
-            File file=updater.target();
+            File file=verifiedInstallerFile;
+            if(file==null)throw new IllegalArgumentException("APK not verified");
             if(Build.VERSION.SDK_INT>=26&&!getPackageManager().canRequestPackageInstalls()){
                 waitingForPermission=true;
                 status.setText("Разрешите установку из Audiobook и вернитесь сюда. APK сохранён.");
@@ -142,7 +146,7 @@ public final class PreviewUpdatesActivity extends Activity {
             else status.setText("Установка не разрешена. APK сохранён; можно повторить установку позже.");
         }
     }
-    @Override protected void onDestroy(){worker.shutdownNow();super.onDestroy();}
+    @Override protected void onDestroy(){updater.cancel();worker.shutdownNow();super.onDestroy();}
     public static void checkInBackground(Activity activity){
         PreviewUpdater updater=new PreviewUpdater(activity);
         android.content.SharedPreferences prefs=activity.getSharedPreferences("preview_updates",0);

@@ -31,13 +31,13 @@ public final class PreviewUpdateRules {
         certificateSha256=json.getString("certificateSha256").toLowerCase(Locale.ROOT);
         if(versionCode!=tagCode||size>MAX_APK||!sha256.matches("[0-9a-f]{64}")||
             !certificateSha256.matches("[0-9a-f]{64}")||!BuildConfig.UPDATE_APK.equals(apk)||
-            !versionName.matches("[0-9]+\\.[0-9]+\\.[0-9]+")||versionName.length()>100)
+            !versionName.equals("4.2."+(versionCode-100000))||versionCode<=100000)
             throw new IOException("Некорректное описание обновления или версия не совпала с тегом GitHub");
         // GitHub stores the complete APK; never follow arbitrary metadata URLs or old site parts.
         if(json.has("parts"))throw new IOException("GitHub-обновление должно содержать целый APK");
         parts=Collections.singletonList(new Part(assetUrl(tag,apk),size,sha256));
     }
-    private static long positiveInteger(JSONObject json,String key)throws Exception {
+    static long positiveInteger(JSONObject json,String key)throws Exception {
         Object value=json.get(key);
         if(!(value instanceof Number)||!value.toString().matches("[1-9][0-9]{0,9}"))throw new IOException("Некорректное числовое поле обновления");
         long n=((Number)value).longValue();if(n>Integer.MAX_VALUE)throw new IOException("Слишком большое числовое поле обновления");return n;
@@ -73,6 +73,9 @@ public final class PreviewUpdateRules {
             (uri.getPort()==-1||uri.getPort()==443)&&uri.getRawFragment()==null;
     }
     public static boolean acceptsUrl(URI uri){
+        if(https(uri))for(int page=1;page<=GitHubReleaseCatalog.MAX_PAGES;page++){
+            try{if(GitHubReleaseCatalog.pageUrl(page).equals(uri.toASCIIString()))return true;}catch(IOException invalid){return false;}
+        }
         if(!https(uri)||!"github.com".equalsIgnoreCase(uri.getHost())||uri.getRawQuery()!=null||uri.getRawPath()==null||uri.getRawPath().contains("%"))return false;
         String address=uri.toASCIIString();if(FEED.equals(address))return true;
         String base=ROOT+"/releases/download/";if(!address.startsWith(base))return false;
@@ -82,10 +85,10 @@ public final class PreviewUpdateRules {
     }
     /** Signed, expiring CDN query strings are allowed only after a trusted GitHub asset redirect. */
     public static boolean acceptsRedirect(URI initial,URI next){
-        if(!acceptsUrl(initial)||FEED.equals(initial.toASCIIString()))return false;
+        if(!acceptsUrl(initial)||!"github.com".equals(initial.getHost())||FEED.equals(initial.toASCIIString()))return false;
         if(initial.equals(next))return true;
         return https(next)&&"release-assets.githubusercontent.com".equalsIgnoreCase(next.getHost())&&
-            next.getRawPath()!=null&&next.getRawPath().matches(CDN_PATH+"[0-9a-fA-F-]{36}");
+            next.getRawPath()!=null&&next.getRawPath().matches(CDN_PATH+"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}");
     }
     public static String hex(byte[] bytes){StringBuilder out=new StringBuilder();for(byte b:bytes)out.append(String.format(Locale.ROOT,"%02x",b&255));return out.toString();}
     public static String sha256(byte[] bytes)throws Exception{return hex(MessageDigest.getInstance("SHA-256").digest(bytes));}
