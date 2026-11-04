@@ -24,11 +24,11 @@ class SearchCollectionLayoutTest {
         assertTrue(bookSources(last).any{it.url==standalone.url})
         assertTrue(AbSearchPresentation.prepare(listOf(BookLink("Отделение 15-К","https://example.invalid/wrong")),"Отдел 15-К").isEmpty())
     }
-    @Test fun narratorVariantsBecomeOneWorkWithAllSources() {
+    @Test fun narratorVariantsRemainSeparateUntilGroupedForDisplay() {
         val a=book("Первая книга (в исполнении Ивана)",1.0)
         val b=book("Первая книга (в исполнении Петра)",1.0,"https://bookinfo.net/one")
         val rows=AbSearchPresentation.prepare(listOf(a,b),"Отдел 15-К")
-        assertEquals(1,rows.size);assertEquals(2,bookSources(rows.first()).size)
+        assertEquals(2,rows.size);assertEquals(1,bookSources(rows.first()).size)
         assertEquals(2,AbSearchPresentation.prepare(listOf(a,b.copy(author="Другой автор"))).size)
     }
     @Test fun ordinalPrefixesAndNarratorLabelsDeduplicateButDifferentVolumesStaySeparate() {
@@ -36,7 +36,7 @@ class SearchCollectionLayoutTest {
         val same=book("Одинаковое название",1.0,"https://bookinfo.net/same")
         val two=book("2. Одинаковое название",2.0)
         val result=AbSearchPresentation.prepare(listOf(two,one,same),"Отдел 15-К")
-        assertEquals(2,result.size);assertEquals(listOf(1.0,2.0),result.map{it.cycles.first().order})
+        assertEquals(3,result.size);assertEquals(listOf(1.0,1.0,2.0),result.map{it.cycles.first().order})
     }
     @Test fun cacheSeparatesSourcesAndResetDoesNotTouchLibraryPreferences() {
         val p=ApplicationProvider.getApplicationContext<Context>().getSharedPreferences("search-reset-test",0)

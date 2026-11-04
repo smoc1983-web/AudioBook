@@ -126,7 +126,8 @@ data class BookLink(
     val genres: List<String> = emptyList(),
     val cycles: List<BookCycle> = emptyList(),
     val genreOrigin: String = "",
-    val searchQuery: String = ""
+    val searchQuery: String = "",
+    val narrator: String = ""
 )
 
 data class AudioTrack(
@@ -7072,7 +7073,8 @@ fun parseBookLinks(
                 author = item.optString("author", ""),
                 genres = abReadGenres(item.optJSONArray("genres")),
                 cycles = abReadCycles(item.optJSONArray("cycles")),
-                genreOrigin = item.optString("genreOrigin","")
+                genreOrigin = item.optString("genreOrigin",""),
+                narrator = item.optString("narrator",item.optString("reader",""))
             )
         )
     }
@@ -8572,34 +8574,8 @@ private const val AB_GENRE_PAGE=20
 /** Title/author normalization uses reusable patterns; every record is indexed once per merge. */
 fun searchBookIdentity(book:BookLink):String = SearchBookIndex.keys(cleanBookTitle(book.title),book.author).title
 
-fun mergeSearchBooks(books:List<BookLink>,checkActive:()->Unit={}):List<BookLink> {
-    val lookup=SearchBookIndex()
-    val result=ArrayList<BookLink>()
-    for(book in books) {
-        checkActive()
-        val sources=bookSources(book).take(24)
-        val sites=sources.map{it.site}.toTypedArray()
-        val urls=sources.map{it.url.substringBefore('#').trimEnd('/')}.toTypedArray()
-        val keys=SearchBookIndex.keys(cleanBookTitle(book.title),book.author)
-        val found=lookup.find(keys,sites,urls)
-        val position=if(found<0)result.size else found
-        val combined=if(found<0)book.copy(sources=sources) else {
-            val existing=result[found]
-            existing.copy(
-                coverUrl=existing.coverUrl.ifBlank{book.coverUrl},author=existing.author.ifBlank{book.author},
-                genres=(existing.genres+book.genres).distinct().take(32),
-                cycles=abMergeCycles(existing.cycles,book.cycles).take(24),
-                genreOrigin=existing.genreOrigin.ifBlank{book.genreOrigin},
-                sources=(bookSources(existing)+sources).distinctBy{it.url.substringBefore('#').trimEnd('/')}.take(24))
-        }
-        if(found<0)result.add(combined) else result[found]=combined
-        val mergedSources=bookSources(combined)
-        lookup.put(position,if(found<0)keys else SearchBookIndex.keys(cleanBookTitle(combined.title),combined.author),
-            mergedSources.map{it.site}.toTypedArray(),
-            (mergedSources.map{it.url.substringBefore('#').trimEnd('/')}+urls).distinct().toTypedArray())
-    }
-    return result
-}
+fun mergeSearchBooks(books:List<BookLink>,checkActive:()->Unit={}):List<BookLink> =
+    AbSearchPresentation.merge(books,checkActive)
 
 fun unifiedSearchStatus(reports: Map<String, SiteSearchResult>, count: Int,
     sources:List<String> = AbBookSources.searchOrder): String {
@@ -10257,7 +10233,7 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
             Text("Тома с известными номерами идут по порядку. Книги без номера — после них, в порядке сайта.",
                 color=theme.muted,fontSize=11.sp)
         }
-        items(visibleResults,key={it.book.url},contentType={"search-book"}) { row ->
+        items(visibleResults,key={it.key},contentType={"search-book"}) { row ->
             AbSearchResultCard(row,theme,actions.openSite,onMenu,actions.cycle)
         }
         if(data.genre.isBlank() && visibleCount<resultBooks.size) item {
@@ -10352,29 +10328,43 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
 @Composable
 internal fun AbSearchResultCard(row:AbSearchRow,theme:AbTheme,onOpen:(BookLink,String)->Unit,
     onMenu:(BookRef)->Unit,onCycle:(BookCycle)->Unit) {
-            val book=row.book
-            val ref=row.ref
-            Column(verticalArrangement=Arrangement.spacedBy(5.dp)) {
-                AbBookRow(ref,row.local,book.author.ifBlank{"Аудиокнига"},theme,
-                    onClick={onOpen(book,book.url)},onMenu={onMenu(ref)})
-                if(book.genres.isNotEmpty()) Text(book.genres.joinToString(" · "),color=theme.muted,fontSize=11.sp)
-                if(book.genreOrigin.isNotBlank()) Text("Источник жанра: ${book.genreOrigin}",color=theme.muted,fontSize=10.sp)
-                book.cycles.forEach {cycle ->
-                    Text("${if(cycle.referenceUrl.isNotBlank()) "Сверено" else "По источнику"}: ${cycle.title} · ${abVolumeLabel(cycle)}",color=theme.accent,fontSize=12.sp,
-                        modifier=Modifier.fillMaxWidth().abGlass(theme,9,field=true)
-                            .clickable(enabled=cycle.url.isNotBlank()){onCycle(cycle)}.padding(10.dp))
-                }
-                Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(6.dp)) {
-                    row.sources.forEach { source ->
-                        Column(Modifier.abGlass(theme,9,field=true).clickable{onOpen(book,source.url)}
-                            .padding(horizontal=12.dp,vertical=7.dp)) {
-                            Text(source.site,color=theme.accent,fontSize=11.sp)
-                            Text(AbSourceAvailability.get(androidx.compose.ui.platform.LocalContext.current.getSharedPreferences("audiobook_downloader",Context.MODE_PRIVATE),source.url).label,
-                                color=theme.muted,fontSize=9.sp,maxLines=1)
-                        }
-                    }
+    val choices=row.editions.ifEmpty{listOf(row.book)}
+    var chosen by androidx.compose.runtime.saveable.rememberSaveable(row.key) {mutableStateOf("")}
+    val book=choices.firstOrNull{it.url==chosen} ?: choices.first()
+    val ref=BookRef(book.title,book.url,book.coverUrl)
+    Column(verticalArrangement=Arrangement.spacedBy(5.dp)) {
+        AbBookRow(ref,if(book.url==row.book.url)row.local else null,book.author.ifBlank{"Аудиокнига"},theme,
+            onClick={onOpen(book,book.url)},onMenu={onMenu(ref)})
+        if(book.genres.isNotEmpty()) Text(book.genres.joinToString(" · "),color=theme.muted,fontSize=11.sp)
+        book.cycles.forEach {cycle ->
+            Text("${if(cycle.referenceUrl.isNotBlank()) "Сверено" else "По источнику"}: ${cycle.title} · ${abVolumeLabel(cycle)}",
+                color=theme.accent,fontSize=12.sp,modifier=Modifier.fillMaxWidth().abGlass(theme,9,field=true)
+                    .clickable(enabled=cycle.url.isNotBlank()){onCycle(cycle)}.padding(10.dp))
+        }
+        if(choices.size>1) {
+            Text("Озвучки и издания · ${choices.size}",color=theme.muted,fontSize=12.sp)
+            Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(6.dp)) {
+                choices.forEach {edition ->
+                    val name=SearchEditionIdentity.narrator(edition.title,edition.narrator)
+                    AbButton(if(name.isBlank())"Чтец не указан · ${bookSiteName(edition.url)}" else "Читает: $name",
+                        theme,primary=book.url==edition.url){chosen=edition.url}
                 }
             }
+        } else {
+            val name=SearchEditionIdentity.narrator(book.title,book.narrator)
+            if(name.isNotBlank())Text("Читает: $name",color=theme.muted,fontSize=12.sp)
+        }
+        Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(6.dp)) {
+            bookSources(book).forEach { source ->
+                Column(Modifier.abGlass(theme,9,field=true).clickable{onOpen(book,source.url)}
+                    .padding(horizontal=12.dp,vertical=7.dp)) {
+                    Text(source.site,color=theme.accent,fontSize=11.sp)
+                    Text(AbSourceAvailability.get(androidx.compose.ui.platform.LocalContext.current.getSharedPreferences("audiobook_downloader",Context.MODE_PRIVATE),source.url).label,
+                        color=theme.muted,fontSize=9.sp,maxLines=1)
+                }
+            }
+        }
+    }
 }
 
 @Composable

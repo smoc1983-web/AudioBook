@@ -7,7 +7,8 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import java.util.Locale
 
-internal data class AbSearchRow(val book:BookLink,val ref:BookRef,val local:LibraryBook?,val sources:List<BookSource>)
+internal data class AbSearchRow(val book:BookLink,val ref:BookRef,val local:LibraryBook?,val sources:List<BookSource>,
+    val editions:List<BookLink> = emptyList(),val key:String=book.url)
 
 /** Build once per result/library/reference change, outside composition and off the UI thread. */
 internal object AbSearchRows {
@@ -29,7 +30,18 @@ internal object AbSearchRows {
         }
         val prepared=AbSearchPresentation.prepare(rows.map{it.book},query=query,cycle=cycle)
         val indexed=rows.associateBy{it.book.url}
-        prepared.mapNotNull{book->indexed[book.url]?.copy(book=book,sources=bookSources(book))}
-            .sortedWith(compareBy<AbSearchRow>{AbSourceAvailability.priority(prefs,it.sources)})
+        val groups=LinkedHashMap<String,MutableList<BookLink>>()
+        for(book in prepared) {
+            val work=AbSearchPresentation.work(book)
+            val order=book.cycles.filter{it.order!=null}.sortedBy{AbSearchPresentation.seriesKey(it.title)}
+                .joinToString("|"){AbSearchPresentation.seriesKey(it.title)+":"+it.order}
+            groups.getOrPut(work+"\u0000"+order){ArrayList()}.add(book)
+        }
+        // Availability never reorders numbered volumes. Lazy keys identify the work,
+        // not whichever server happened to finish first.
+        groups.mapNotNull{(key,editions)->
+            val book=editions.first()
+            indexed[book.url]?.copy(book=book,sources=bookSources(book),editions=editions,key=key)
+        }
     }
 }
