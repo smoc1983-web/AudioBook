@@ -25,3 +25,9 @@ for file in Path("app/build/reports").glob("lint-results-*.xml"):
     issues = ET.parse(file).getroot().findall("issue")
     counts = {severity: sum(i.get("severity") == severity for i in issues) for severity in ("Fatal", "Error", "Warning", "Information")}
     emit("notice", "Lint totals", f"{file.name}: {counts}")
+
+log = Path("review-build.log")
+if log.is_file():
+    for line in log.read_text(errors="replace").splitlines():
+        if re.match(r"(?:e: |.*\.(?:kt|java):[0-9]+:.*error:|> Task .* FAILED)", line):
+            emit("error", "Build diagnostic", line)

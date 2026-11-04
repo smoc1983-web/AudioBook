@@ -55,7 +55,9 @@ jobs:
       - name: All unit tests, Debug and Release, Android lint
         env:
           GITHUB_RUN_NUMBER: '90'
-        run: gradle :app:testDebugUnitTest :app:testReleaseUnitTest :app:assembleDebug :app:assembleRelease :app:lintDebug :app:lintRelease -PaudiobookChannel=${{ matrix.channel }} --continue --stacktrace
+        run: |
+          set -o pipefail
+          gradle :app:testDebugUnitTest :app:testReleaseUnitTest :app:assembleDebug :app:assembleRelease :app:lintDebug :app:lintRelease -PaudiobookChannel=${{ matrix.channel }} --continue --stacktrace 2>&1 | tee review-build.log
       - name: Compile Android tests
         if: always() && matrix.channel == 'preview'
         env:
