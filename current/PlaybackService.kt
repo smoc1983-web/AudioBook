@@ -29,6 +29,7 @@ import android.os.IBinder
 import android.os.Looper
 import android.os.SystemClock
 import android.widget.Toast
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -232,6 +233,9 @@ class PlaybackService : Service() {
     private lateinit var mediaSession: MediaSession
     private val handler = Handler(Looper.getMainLooper())
     private val queueWorker = Executors.newSingleThreadExecutor()
+    private val refreshScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private var refreshJob: Job? = null
+    private var refreshAttempted = false
     private val playbackPrefs by lazy {
         getSharedPreferences("audiobook_downloader", Context.MODE_PRIVATE)
     }
@@ -550,16 +554,17 @@ class PlaybackService : Service() {
         coverBitmap = null
     }
 
-    private fun startTrack(index: Int, startPosition: Int, autoPlay: Boolean = true) {
+    private fun startTrack(index: Int, startPosition: Int, autoPlay: Boolean = true, refreshed: Boolean = false) {
         val item = playlist.getOrNull(index) ?: return
         if (sleepChapterTarget.isNotEmpty() && sleepChapterTarget != "$sourceType|$bookTitle|$index") {
             sleepChapterTarget = ""
         }
         releasePlayer()
+        refreshAttempted = refreshed
         val token = ++generation
         handler.postDelayed({
             if (!stopped && token == generation && isLoading)
-                failPlayback("Глава не загрузилась за 30 секунд. Проверьте соединение и повторите воспроизведение.")
+                recoverOrFail("Глава не загрузилась за 30 секунд. Проверьте соединение и повторите воспроизведение.")
         }, 30_000L)
         resumeAfterFocus = false
         pausedAt = 0L
@@ -650,7 +655,7 @@ class PlaybackService : Service() {
             }
             player.setOnErrorListener { failed, what, extra ->
                 if (token == generation && failed === mediaPlayer && !stopped) {
-                    failPlayback(if(isNetworkAudio(item.src))
+                    recoverOrFail(if(isNetworkAudio(item.src))
                         "Не удалось прочитать онлайн-главу ($what / $extra). Для прослушивания без интернета скачайте эту главу."
                         else "Не удалось прочитать скачанную главу ($what / $extra). Проверьте файл и доступ к папке.")
                 }
@@ -660,7 +665,7 @@ class PlaybackService : Service() {
             publish()
             player.prepareAsync()
         } catch (error: Exception) {
-            failPlayback("Ошибка плеера: ${error.message ?: "неизвестная"}")
+            recoverOrFail("Не удалось подготовить главу. Повторите воспроизведение или откройте книгу заново.")
         }
     }
 
@@ -940,6 +945,8 @@ class PlaybackService : Service() {
     }
 
     private fun releasePlayer() {
+        refreshJob?.cancel()
+        refreshJob = null
         generation++
         pendingSeek = null
         try { mediaPlayer?.release() } catch (_: Exception) {}
@@ -948,6 +955,49 @@ class PlaybackService : Service() {
         isPlaying = false
         audioFx.release()
         appliedEq = null
+    }
+
+    /** Refresh only an existing edition and the same CDN file; never substitute another book. */
+    private fun recoverOrFail(message: String) {
+        val item = playlist.getOrNull(trackIndex)
+        val page = playbackPrefs.getString(bookUrlKey(bookTitle), "").orEmpty()
+        val policy = ContinuationPolicy(AB_EXTRA_SOURCE_JSON)
+        if (refreshAttempted || item == null || !isNetworkAudio(item.src) ||
+            item.editionId.isBlank() || item.editionId != ChapterIdentity.edition(bookTitle,page) ||
+            !policy.book(page)) {
+            failPlayback(message)
+            return
+        }
+        readPosition()
+        releasePlayer()
+        refreshAttempted = true
+        val token = generation
+        val selected = trackIndex
+        isLoading = true
+        playbackNote = "Обновление ссылки на главу…"
+        persistState(); publish()
+        refreshJob = refreshScope.launch {
+            val renewed = try {
+                withTimeoutOrNull(20_000L) {
+                    withContext(Dispatchers.IO) {
+                        val agent = "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/130.0 Mobile Safari/537.36"
+                        val html = ContinuationHttp(policy,agent).html(page)
+                        ChapterRefreshParser.refresh(html,item.title,item.src)
+                    }
+                }
+            } catch (cancelled: CancellationException) { throw cancelled }
+              catch (_: Exception) { null }
+            if (stopped || token != generation) return@launch
+            refreshJob = null
+            if (renewed == null) {
+                failPlayback(message + " Не удалось обновить ссылку автоматически. Откройте книгу заново.")
+            } else {
+                playlist = playlist.mapIndexed { index, track -> if(index == selected) track.copy(src=renewed) else track }
+                persistPlaylist()
+                // Read current intent here: pause/seek may have changed while the request was running.
+                startTrack(selected,positionMs,playWhenReady,refreshed=true)
+            }
+        }
     }
 
     private fun failPlayback(message: String) {
@@ -1197,6 +1247,7 @@ class PlaybackService : Service() {
         try { unregisterReceiver(screenReceiver) } catch (_: Exception) {}
         try { unregisterReceiver(ringerReceiver) } catch (_: Exception) {}
         sensorManager.unregisterListener(shakeListener)
+        refreshScope.cancel()
         queueWorker.shutdownNow()
         try { mediaSession.isActive = false; mediaSession.release() } catch (_: Exception) {}
         coverBitmap = null
