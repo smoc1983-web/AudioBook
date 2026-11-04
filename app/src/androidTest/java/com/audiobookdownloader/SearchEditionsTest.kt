@@ -29,6 +29,12 @@ class SearchEditionsTest {
         assertEquals(2,mergeSearchBooks(books).size)
         assertEquals(2,AbSearchPresentation.prepare(books).size)
     }
+    @Test fun titleMatchMustNotMoveLaterVolumeBeforeFirstVolume() {
+        val first=book("Иван","one").copy(title="Начало")
+        val second=book("Иван","two",2.0).copy(title="Приключения. Том 2")
+        val rows=AbSearchPresentation.prepare(listOf(second,first),"Приключения")
+        assertEquals(listOf(1.0,2.0),rows.map{it.cycles.single().order})
+    }
     @Test fun workGroupsKeepVolumeOrderAndStableKeysWhenAnotherSourceArrives()=runBlocking {
         val p=ApplicationProvider.getApplicationContext<Context>().getSharedPreferences("search-editions",0)
         try {

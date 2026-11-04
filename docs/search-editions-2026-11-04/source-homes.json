@@ -1,0 +1,204 @@
+[
+  {
+    "host": "pda.izib.uk",
+    "status": 200,
+    "url": "https://pda.izib.uk/",
+    "bytes": 19424,
+    "title": "ИзиБук - Топовые Аудиокниги Бесплатно!"
+  },
+  {
+    "host": "izib.uk",
+    "status": 200,
+    "url": "https://pda.izib.uk/",
+    "bytes": 19424,
+    "title": "ИзиБук - Топовые Аудиокниги Бесплатно!"
+  },
+  {
+    "host": "audioknigivse.ru",
+    "error": "HTTP Error 503: Service Unavailable"
+  },
+  {
+    "host": "audioknigi.pro",
+    "status": 200,
+    "url": "https://audioknigi.pro/",
+    "bytes": 111179,
+    "title": "Аудиокниги онлайн - слушать бесплатно на Audioknigi.Pro"
+  },
+  {
+    "host": "slushkinvsem.ru",
+    "error": "HTTP Error 503: Service Unavailable"
+  },
+  {
+    "host": "aume.ru",
+    "error": "HTTP Error 503: Service Unavailable"
+  },
+  {
+    "host": "www.knigoblud.club",
+    "status": 200,
+    "url": "https://mob.knigoblud.club/",
+    "bytes": 63370,
+    "title": "Книгоблуд - клуб литературного наслаждения!"
+  },
+  {
+    "host": "baza-knig.top",
+    "status": 200,
+    "url": "https://baza-knig.top/",
+    "bytes": 59479,
+    "title": "Аудиокниги слушать онлайн бесплатно скачать mp3 торрент - База Книг"
+  },
+  {
+    "host": "uknig.com",
+    "status": 200,
+    "url": "https://uknig.com/",
+    "bytes": 194888,
+    "title": "уКниг - лучшая библиотека аудиокниг"
+  },
+  {
+    "host": "poleknig.com",
+    "status": 200,
+    "url": "https://poleknig.com/",
+    "bytes": 104528,
+    "title": "ПолеКниг | Лучшие аудиокниги в одном месте"
+  },
+  {
+    "host": "otrub.in",
+    "status": 200,
+    "url": "https://m.otrub.in/",
+    "bytes": 24897,
+    "title": "Отрубин - натуральные аудиокниги для наслаждения"
+  },
+  {
+    "host": "biblus.org",
+    "status": 200,
+    "url": "https://biblus.org/",
+    "bytes": 24216,
+    "title": "Аудиокниги Бесплатно слушать онлайн - Библус!"
+  },
+  {
+    "host": "slushat-knigi.com",
+    "status": 200,
+    "url": "https://slushat-knigi.com/",
+    "bytes": 47225,
+    "title": "Слушать Любимую Книгу + Без Рекламы 📲 Slushat-Knigi.Com"
+  },
+  {
+    "host": "knigavuhe.org",
+    "status": 200,
+    "url": "https://m.knigavuhe.org/",
+    "bytes": 56713,
+    "title": "Аудиокниги слушай онлайн - адрес Книга в Ухе запоминай!"
+  },
+  {
+    "host": "audiokniga.one",
+    "status": 200,
+    "url": "https://audiokniga.one/",
+    "bytes": 97584,
+    "title": "Слушай аудиокниги онлайн - AudioKniga.one - бесплатный сайт"
+  },
+  {
+    "host": "audiopolka.club",
+    "status": 200,
+    "url": "https://audiopolka.club/",
+    "bytes": 93770,
+    "title": "Аудиополка - возьми с полки аудиопирожочек!"
+  },
+  {
+    "host": "lis10book.com",
+    "status": 200,
+    "url": "https://lis10book.com/",
+    "bytes": 6845,
+    "title": "Проверка соединения — lis10book.com"
+  },
+  {
+    "host": "audioboo.org",
+    "status": 200,
+    "url": "https://audioboo.org/",
+    "bytes": 129363,
+    "title": "Аудиокниги, скачать, слушать онлайн, бесплатно"
+  },
+  {
+    "host": "akniga.org",
+    "status": 200,
+    "url": "https://akniga.org/",
+    "bytes": 183875,
+    "title": "Аудиокниги слушать онлайн — Аудиокниги Клуб"
+  },
+  {
+    "host": "author.today",
+    "status": 200,
+    "url": "https://author.today/",
+    "bytes": 250366,
+    "title": "Книги читать онлайн бесплатно без регистрации, FB2 и EPUB, электронная библиотека"
+  },
+  {
+    "host": "a-kniga.com",
+    "status": 200,
+    "url": "https://a-kniga.com/",
+    "bytes": 59998,
+    "title": "Аудиокниги слушать онлайн бесплатно a-kniga.com"
+  },
+  {
+    "host": "aknigi24.com",
+    "status": 200,
+    "url": "https://aknigi24.com/",
+    "bytes": 99923,
+    "title": "Аудиокниги — скачать бесплатно в mp3 без регистрации или слушать онлайн | Aknigi24"
+  },
+  {
+    "host": "audio-lib.club",
+    "status": 200,
+    "url": "https://audio-lib.club/",
+    "bytes": 6417,
+    "title": "Секундная проверка — audio-lib.club"
+  },
+  {
+    "host": "audiokniga.life",
+    "status": 200,
+    "url": "https://audiokniga.life/",
+    "bytes": 67009,
+    "title": "Аудиокнига Life - бесплатные онлайн аудиокниги на любой вкус!"
+  },
+  {
+    "host": "audioknigi-onlain.com",
+    "status": 200,
+    "url": "https://audioknigi-onlain.com/",
+    "bytes": 36341,
+    "title": "Аудиокниги Онлайн 🎧-слушать аудиокниги онлайн бесплатно без сокращений ✔️ audioknigi-onlain.com"
+  },
+  {
+    "host": "audioknigi.top",
+    "error": "HTTP Error 503: Service Unavailable"
+  },
+  {
+    "host": "bookish.site",
+    "status": 200,
+    "url": "https://bookish.site/",
+    "bytes": 72006,
+    "title": "Слушать аудиокниги скачать бесплатно &raquo; Слушать аудиокниги скачать бесплатно"
+  },
+  {
+    "host": "book-zvuk.com",
+    "status": 200,
+    "url": "https://book-zvuk.com/",
+    "bytes": 100629,
+    "title": "Аудиокниги слушать онлайн бесплатно book-zvuk.com"
+  },
+  {
+    "host": "golosom.org",
+    "status": 200,
+    "url": "https://golosom.org/",
+    "bytes": 53565,
+    "title": "Голосом — бесплатные аудиокниги. Просто бесплатные."
+  },
+  {
+    "host": "knigiaudio.net",
+    "error": "<urlopen error Tunnel connection failed: 403 Forbidden>"
+  },
+  {
+    "host": "s2.aknig.xyz",
+    "status": 200,
+    "url": "https://s2.aknig.xyz/",
+    "bytes": 93842,
+    "title": "АудиоКниги! Слушать Онлайн на aknig.xyz"
+  }
+]

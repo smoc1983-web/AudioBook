@@ -1,0 +1,93 @@
+[
+  {
+    "host": "biblus.org",
+    "kind": "audio",
+    "status": 206,
+    "type": "audio/mpeg",
+    "bytes": 4096
+  },
+  {
+    "host": "slushat-knigi.com",
+    "kind": "playlist",
+    "status": 206,
+    "type": "text/plain; charset=UTF-8",
+    "bytes": 1903
+  },
+  {
+    "host": "audiokniga.one",
+    "kind": "audio",
+    "status": 206,
+    "type": "application/x-mpegURL",
+    "bytes": 791
+  },
+  {
+    "host": "audiopolka.club",
+    "kind": "audio",
+    "status": 206,
+    "type": "audio/mpeg",
+    "bytes": 4096
+  },
+  {
+    "host": "audioboo.org",
+    "kind": "audio",
+    "status": 206,
+    "type": "audio/mpeg",
+    "bytes": 4096
+  },
+  {
+    "host": "a-kniga.com",
+    "kind": "playlist",
+    "status": 206,
+    "type": "text/plain; charset=UTF-8",
+    "bytes": 2984
+  },
+  {
+    "host": "aknigi24.com",
+    "kind": "audio",
+    "status": 206,
+    "type": "audio/mpeg",
+    "bytes": 4096
+  },
+  {
+    "host": "audiokniga.life",
+    "kind": "audio",
+    "status": 206,
+    "type": "audio/mpeg",
+    "bytes": 4096
+  },
+  {
+    "host": "audioknigi-onlain.com",
+    "kind": "playlist",
+    "status": 206,
+    "type": "text/plain; charset=UTF-8",
+    "bytes": 3976
+  },
+  {
+    "host": "bookish.site",
+    "kind": "audio",
+    "status": 206,
+    "type": "audio/mpeg",
+    "bytes": 4096
+  },
+  {
+    "host": "book-zvuk.com",
+    "kind": "playlist",
+    "status": 206,
+    "type": "text/plain; charset=UTF-8",
+    "bytes": 120
+  },
+  {
+    "host": "golosom.org",
+    "kind": "audio",
+    "status": 206,
+    "type": "audio/mpeg",
+    "bytes": 4096
+  },
+  {
+    "host": "s2.aknig.xyz",
+    "kind": "playlist",
+    "status": 206,
+    "type": "text/plain",
+    "bytes": 1288
+  }
+]

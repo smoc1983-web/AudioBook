@@ -1,0 +1,84 @@
+[
+  {
+    "host": "baza-knig.top",
+    "status": 200,
+    "url": "https://baza-knig.top/",
+    "bytes": 179771
+  },
+  {
+    "host": "biblus.org",
+    "status": 200,
+    "url": "https://biblus.org/search.html?q=%D0%93%D0%BE%D0%B3%D0%BE%D0%BB%D1%8C",
+    "bytes": 24709
+  },
+  {
+    "host": "slushat-knigi.com",
+    "status": 200,
+    "url": "https://slushat-knigi.com/",
+    "bytes": 40043
+  },
+  {
+    "host": "audiokniga.one",
+    "status": 200,
+    "url": "https://audiokniga.one/?do=search&subaction=search&story=%D0%93%D0%BE%D0%B3%D0%BE%D0%BB%D1%8C",
+    "bytes": 85226
+  },
+  {
+    "host": "audiopolka.club",
+    "status": 200,
+    "url": "https://audiopolka.club/search/?q=%D0%93%D0%BE%D0%B3%D0%BE%D0%BB%D1%8C",
+    "bytes": 93619
+  },
+  {
+    "host": "audioboo.org",
+    "status": 200,
+    "url": "https://audioboo.org/",
+    "bytes": 174047
+  },
+  {
+    "host": "a-kniga.com",
+    "status": 200,
+    "url": "https://a-kniga.com/search?text=%D0%93%D0%BE%D0%B3%D0%BE%D0%BB%D1%8C",
+    "bytes": 25447
+  },
+  {
+    "host": "aknigi24.com",
+    "status": 200,
+    "url": "https://aknigi24.com/search?q=%D0%93%D0%BE%D0%B3%D0%BE%D0%BB%D1%8C",
+    "bytes": 88644
+  },
+  {
+    "host": "audiokniga.life",
+    "error": "HTTP Error 307: Temporary Redirect"
+  },
+  {
+    "host": "audioknigi-onlain.com",
+    "status": 200,
+    "url": "https://audioknigi-onlain.com/",
+    "bytes": 34413
+  },
+  {
+    "host": "bookish.site",
+    "status": 200,
+    "url": "https://bookish.site/",
+    "bytes": 64413
+  },
+  {
+    "host": "book-zvuk.com",
+    "status": 200,
+    "url": "https://book-zvuk.com/search?text=%D0%93%D0%BE%D0%B3%D0%BE%D0%BB%D1%8C",
+    "bytes": 64387
+  },
+  {
+    "host": "golosom.org",
+    "status": 200,
+    "url": "https://golosom.org/search?q=%D0%93%D0%BE%D0%B3%D0%BE%D0%BB%D1%8C",
+    "bytes": 48303
+  },
+  {
+    "host": "s2.aknig.xyz",
+    "status": 200,
+    "url": "https://s2.aknig.xyz/",
+    "bytes": 62112
+  }
+]

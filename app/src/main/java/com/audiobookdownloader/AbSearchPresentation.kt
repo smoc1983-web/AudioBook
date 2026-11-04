@@ -61,6 +61,8 @@ internal object AbSearchPresentation {
                 ?: "1:"+volume.replace(key,"").trim(),
                 selected?.order ?: volume.find(SearchBookIndex.titleKey(book.title))?.groupValues?.get(1)?.replace(',','.')?.toDoubleOrNull() ?: Double.MAX_VALUE,key)
         }
-        return ordered.sortedWith(compareBy<Ordered>{it.rank}.thenBy{it.group}.thenBy{it.order}.thenBy{it.title}.thenBy{it.book.url}).map{it.book}
+        val groupRanks=ordered.groupBy{it.group}.mapValues{(_,items)->items.minOf{it.rank}}
+        return ordered.sortedWith(compareBy<Ordered>{groupRanks[it.group]}.thenBy{it.group}
+            .thenBy{it.order}.thenBy{it.rank}.thenBy{it.title}.thenBy{it.book.url}).map{it.book}
     }
 }
