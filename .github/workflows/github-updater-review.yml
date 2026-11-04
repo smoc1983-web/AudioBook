@@ -83,7 +83,7 @@ jobs:
           codes=[int(m[1]) for m in re.finditer(r'refs/tags/preview-v([1-9][0-9]*)$',refs,re.M)]
           if max(codes,default=0)>=100093: raise SystemExit('Candidate 100093 is no longer free; do not replace a tag or release')
           PY
-          gradle :app:assembleRelease --stacktrace
+          GITHUB_RUN_NUMBER=93 gradle --no-daemon --no-configuration-cache :app:assembleRelease --stacktrace
           python3 tools/prepare-update-bridge.py --apk app/build/outputs/apk/release/app-release.apk --output bridge-candidate --build-tools "$ANDROID_HOME/build-tools/35.0.0" --minimum-installed-code 100092
           python3 - <<'PY'
           import zipfile
