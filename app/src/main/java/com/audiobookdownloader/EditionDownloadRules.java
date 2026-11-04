@@ -12,6 +12,10 @@ public final class EditionDownloadRules {
             "^https?://[^/?#]+/(?:[^?#]*/)?get_mp3_trial/", Pattern.CASE_INSENSITIVE);
     private EditionDownloadRules() {}
 
+    public static boolean isSegmented(String source) {
+        return source.split("[?#]", 2)[0].toLowerCase(java.util.Locale.ROOT).matches(".*\\.(?:m3u8|mpd)$");
+    }
+
     public static boolean isPreview(String title, List<String> sources) {
         return PREVIEW.matcher(title).find() || sources.stream().anyMatch(EditionDownloadRules::trialPath);
     }

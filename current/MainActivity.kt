@@ -3025,6 +3025,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
     suspend fun enqueueEditions(editions:List<AbDownloadEdition>,recordTotal:Boolean=true) {
         for(edition in editions) {
             require(!edition.preview&&!EditionDownloadRules.isPreview(edition.ref.title,edition.tracks.map{it.src})){"Источник передал ознакомительный фрагмент"}
+            require(edition.tracks.none{EditionDownloadRules.isSegmented(it.src)}){"Источник передал поток HLS/DASH. Скачивание этого формата пока не поддерживается; выберите другое издание."}
             val ref=edition.ref
             abRememberCatalog(prefs,BookLink(ref.title,ref.url,ref.cover))
             val edit=prefs.edit().putString(bookUrlKey(ref.title),ref.url).putString(bookCoverKey(ref.title),ref.cover)
@@ -7136,6 +7137,8 @@ fun downloadTrack(
     }
 
     return try {
+        require(!EditionDownloadRules.isSegmented(track.src)){"Скачивание потоков HLS/DASH пока не поддерживается"}
+
 
         val uri =
             Uri.parse(
@@ -10319,6 +10322,15 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
                     catch(_:android.content.ActivityNotFoundException){Toast.makeText(sourceContext,"Не найден браузер",Toast.LENGTH_SHORT).show()}
                 }.padding(4.dp))
             }
+        }
+        Text("Дополнительные сайты",color=theme.text,fontSize=16.sp)
+        Text("Эти сайты доступны по ссылке. Они пока не участвуют во встроенном поиске.",color=theme.muted,fontSize=12.sp)
+        AbExtraSources.browserOnly.forEach{(name,url,note)->
+            AbButton("$name ↗",theme){
+                try{sourceContext.startActivity(Intent(Intent.ACTION_VIEW,Uri.parse(url)))}
+                catch(_:android.content.ActivityNotFoundException){Toast.makeText(sourceContext,"Не найден браузер",Toast.LENGTH_SHORT).show()}
+            }
+            Text(note,color=theme.muted,fontSize=11.sp)
         }
         AbButton("Готово",theme){showSources=false;if(data.searchSource.isBlank()&&data.query.isNotBlank())actions.searchScope("")}
     }

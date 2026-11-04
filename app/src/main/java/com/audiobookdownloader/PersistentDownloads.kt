@@ -56,6 +56,7 @@ internal object AbPersistentDownloads {
         for(edition in editions) {
             val book=edition.ref.title;val tracks=edition.tracks
             require(!edition.preview&&!EditionDownloadRules.isPreview(book,tracks.map{it.src})){"Источник передал ознакомительный фрагмент"}
+            require(tracks.none{EditionDownloadRules.isSegmented(it.src)}){"Источник передал поток HLS/DASH. Скачивание этого формата пока не поддерживается; выберите другое издание."}
             require(book.isNotBlank()&&book.length<=512&&tracks.size<=3000&&edition.ref.url.length<=8192)
             for(t in tracks) {
                 require(isNetworkAudio(t.src)&&t.src.length<=8192&&t.title.isNotBlank()&&t.title.length<=512)

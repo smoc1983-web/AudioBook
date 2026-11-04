@@ -45,6 +45,13 @@ jobs:
           if not path.is_file(): raise SystemExit('Original signing key unavailable; refusing to generate a replacement')
           with open(os.environ['GITHUB_ENV'],'a') as out: out.write('PREVIEW_KEYSTORE='+str(path)+'\n')
           PY
+      - name: Source parser fixtures
+        run: |
+          python3 current/check.py
+          node current/tests/test-additional-sources.cjs
+          node current/tests/test-nova-sources.cjs
+          node current/test-catalog.cjs
+          node current/test-player-reader.cjs
       - name: All unit tests, Debug and Release, Android lint
         env:
           GITHUB_RUN_NUMBER: '90'

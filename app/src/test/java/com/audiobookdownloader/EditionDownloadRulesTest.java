@@ -6,6 +6,12 @@ import java.util.Collections;
 import static org.junit.Assert.*;
 
 public class EditionDownloadRulesTest {
+    @Test public void segmentedManifestMustNotBeSavedAsAnAudioFile() {
+        assertTrue(EditionDownloadRules.isSegmented("https://cdn.example/book/index.m3u8?sign=123"));
+        assertTrue(EditionDownloadRules.isSegmented("https://cdn.example/book/audio.MPD"));
+        assertFalse(EditionDownloadRules.isSegmented("https://cdn.example/book/1.mp3?next=index.m3u8"));
+        assertFalse(EditionDownloadRules.isSegmented("https://cdn.example/book/chapter/1"));
+    }
     @Test public void sourceLabelPreventsDownloadingAnExcerpt() {
         assertTrue(EditionDownloadRules.isPreview("Книга (ознакомительный фрагмент)", Collections.emptyList()));
         assertTrue(EditionDownloadRules.isPreview("Книга — ФРАГМЕНТ АУДИОКНИГИ", Collections.emptyList()));

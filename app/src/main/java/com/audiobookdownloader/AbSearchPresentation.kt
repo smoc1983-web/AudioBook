@@ -27,6 +27,7 @@ internal object AbSearchPresentation {
             val previous=existing?.let{unique[it]}
             val combined=if(previous==null)book.copy(sources=sources) else previous.copy(
                 coverUrl=previous.coverUrl.ifBlank{book.coverUrl},author=previous.author.ifBlank{book.author},
+                narrator=previous.narrator.ifBlank{book.narrator},
                 genres=(previous.genres+book.genres).distinct().take(32),
                 sources=(bookSources(previous)+sources).distinctBy{address(it.url)}.take(24),
                 cycles=abMergeCycles(previous.cycles,book.cycles).take(24))

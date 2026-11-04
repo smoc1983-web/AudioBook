@@ -14,7 +14,7 @@ class SearchEditionsTest {
     private fun book(voice:String,site:String,order:Double=1.0)=BookLink("Том (читает $voice)",
         "https://$site.invalid/book/$order",author="Автор",narrator=voice,
         sources=listOf(BookSource(site,"https://$site.invalid/book/$order")),
-        cycles=listOf(BookCycle("Цикл",order=order)))
+        cycles=listOf(BookCycle("Приключения",order=order)))
 
     @Test fun sameVoiceSharesSourcesButOtherVoiceAndVolumeSurviveEveryMerge() {
         val books=listOf(book("Иван","one"),book("Иван","two"),book("Пётр","three"),book("Иван","one",2.0))

@@ -126,9 +126,11 @@ internal const val AB_EXTRA_SOURCE_JSON = """[
     "home": "https://baza-knig.info/",
     "hosts": [
       "baza-knig.info",
-      "www.baza-knig.info"
+      "www.baza-knig.info",
+      "baza-knig.top",
+      "www.baza-knig.top"
     ],
-    "book": "^/audio-[0-9]+-[^/]+/?$",
+    "book": "^(?:/audio-[0-9]+-[^/]+/?|/[^/]+/[0-9]+-[^/]+\\.html)$",
     "genre": "^/genre-[0-9]+-[^/]+/?$",
     "author": "^/avtor-[0-9]+-[^/]+/?$",
     "status": "Каталог и поиск проверены",
@@ -138,16 +140,211 @@ internal const val AB_EXTRA_SOURCE_JSON = """[
     "id": "predanie",
     "name": "Предание.ру",
     "home": "https://predanie.ru/audio/",
-    "hosts": ["predanie.ru", "www.predanie.ru"],
+    "hosts": [
+      "predanie.ru",
+      "www.predanie.ru"
+    ],
     "book": "^/(?!rubric-page/|fond/|auth/|api/|uploads/|download/|js/|css/|images/|search/|login/|register/|about/)[a-z0-9-]+/[a-z0-9-]+/?$",
     "genre": "^/rubric-page/[a-z0-9-]+/?$",
     "author": "^/(?!audio/?$|video/?$|search/?$|login/?$|register/?$|about/?$|fond/?$|crew/?$|friends/?$)[a-z0-9]+(?:-[a-z0-9]+)+/?$",
     "status": "Аудиокаталог, поиск и открытые аудиозаписи",
     "enabled": true
+  },
+  {
+    "id": "biblus-org",
+    "name": "Библус",
+    "home": "https://biblus.org/",
+    "hosts": [
+      "biblus.org",
+      "www.biblus.org"
+    ],
+    "book": "^/(?!search|index|faves|history|genres|copyright-holders|rules|login|register)[a-z0-9]+(?:-[a-z0-9]+)+\\.html$",
+    "genre": "^/(?:genre|genres|section|category)/[^/]+/?$",
+    "author": "^/(?:author|authors|avtor|avtory)/[^/]+/?$",
+    "status": "Новый источник · проверка отдельных изданий",
+    "enabled": false
+  },
+  {
+    "id": "slushat-knigi-com",
+    "name": "Слушать книги",
+    "home": "https://slushat-knigi.com/",
+    "hosts": [
+      "slushat-knigi.com",
+      "www.slushat-knigi.com"
+    ],
+    "book": "^/\\d+-.+\\.html$",
+    "genre": "^/(?:genre|genres|section|category)/[^/]+/?$",
+    "author": "^/(?:author|authors|avtor|avtory)/[^/]+/?$",
+    "status": "Новый источник · проверка отдельных изданий",
+    "enabled": false
+  },
+  {
+    "id": "audiokniga-one",
+    "name": "AudioKniga.one",
+    "home": "https://audiokniga.one/",
+    "hosts": [
+      "audiokniga.one",
+      "www.audiokniga.one"
+    ],
+    "book": "^/\\d+-.+\\.html$",
+    "genre": "^/(?:genre|genres|section|category)/[^/]+/?$",
+    "author": "^/(?:author|authors|avtor|avtory)/[^/]+/?$",
+    "status": "Новый источник · проверка отдельных изданий",
+    "enabled": false
+  },
+  {
+    "id": "audiopolka-club",
+    "name": "Аудиополка",
+    "home": "https://audiopolka.club/",
+    "hosts": [
+      "audiopolka.club",
+      "www.audiopolka.club"
+    ],
+    "book": "^/\\d+/$",
+    "genre": "^/(?:genre|genres|section|category)/[^/]+/?$",
+    "author": "^/(?:author|authors|avtor|avtory)/[^/]+/?$",
+    "status": "Новый источник · проверка отдельных изданий",
+    "enabled": false
+  },
+  {
+    "id": "audioboo-org",
+    "card": "article.card",
+    "name": "AudioBoo",
+    "home": "https://audioboo.org/",
+    "hosts": [
+      "audioboo.org",
+      "www.audioboo.org"
+    ],
+    "book": "^/(?!anonsi/)[^/]+/\\d+-.+\\.html$",
+    "genre": "^/(?:genre|genres|section|category)/[^/]+/?$",
+    "author": "^/(?:author|authors|avtor|avtory)/[^/]+/?$",
+    "status": "Новый источник · проверка отдельных изданий",
+    "enabled": false
+  },
+  {
+    "id": "a-kniga-com",
+    "name": "A-kniga",
+    "home": "https://a-kniga.com/",
+    "hosts": [
+      "a-kniga.com",
+      "www.a-kniga.com"
+    ],
+    "book": "^/audio-\\d+-.+",
+    "genre": "^/(?:genre|genres|section|category)/[^/]+/?$",
+    "author": "^/(?:author|authors|avtor|avtory)/[^/]+/?$",
+    "status": "Новый источник · проверка отдельных изданий",
+    "enabled": false
+  },
+  {
+    "id": "aknigi24-com",
+    "name": "Aknigi24",
+    "home": "https://aknigi24.com/",
+    "hosts": [
+      "aknigi24.com",
+      "www.aknigi24.com"
+    ],
+    "book": "^/book/[^/]+/?$",
+    "genre": "^/(?:genre|genres|section|category)/[^/]+/?$",
+    "author": "^/(?:author|authors|avtor|avtory)/[^/]+/?$",
+    "status": "Новый источник · проверка отдельных изданий",
+    "enabled": false
+  },
+  {
+    "id": "audiokniga-life",
+    "name": "Audiokniga.life",
+    "home": "https://audiokniga.life/",
+    "hosts": [
+      "audiokniga.life",
+      "www.audiokniga.life"
+    ],
+    "book": "^/(?:[^/]+/)+\\d+-.+\\.html$",
+    "genre": "^/(?:genre|genres|section|category)/[^/]+/?$",
+    "author": "^/(?:author|authors|avtor|avtory)/[^/]+/?$",
+    "status": "Новый источник · проверка отдельных изданий",
+    "enabled": false
+  },
+  {
+    "id": "audioknigi-onlain-com",
+    "name": "Аудиокниги онлайн",
+    "home": "https://audioknigi-onlain.com/",
+    "hosts": [
+      "audioknigi-onlain.com",
+      "www.audioknigi-onlain.com"
+    ],
+    "book": "^/\\d+-.+\\.html$",
+    "genre": "^/(?:genre|genres|section|category)/[^/]+/?$",
+    "author": "^/(?:author|authors|avtor|avtory)/[^/]+/?$",
+    "status": "Новый источник · проверка отдельных изданий",
+    "enabled": false
+  },
+  {
+    "id": "bookish-site",
+    "name": "Bookish",
+    "home": "https://bookish.site/",
+    "hosts": [
+      "bookish.site",
+      "www.bookish.site"
+    ],
+    "book": "^/\\d+-.+\\.html$",
+    "genre": "^/(?:genre|genres|section|category)/[^/]+/?$",
+    "author": "^/(?:author|authors|avtor|avtory)/[^/]+/?$",
+    "status": "Новый источник · проверка отдельных изданий",
+    "enabled": false
+  },
+  {
+    "id": "book-zvuk-com",
+    "name": "Book-Zvuk",
+    "home": "https://book-zvuk.com/",
+    "hosts": [
+      "book-zvuk.com",
+      "www.book-zvuk.com"
+    ],
+    "book": "^/(?!search|author|genre|reader|series)[a-z0-9]+(?:-[a-z0-9]+){2,}/?$",
+    "genre": "^/(?:genre|genres|section|category)/[^/]+/?$",
+    "author": "^/(?:author|authors|avtor|avtory)/[^/]+/?$",
+    "status": "Новый источник · проверка отдельных изданий",
+    "enabled": false
+  },
+  {
+    "id": "golosom-org",
+    "name": "Голосом",
+    "home": "https://golosom.org/",
+    "hosts": [
+      "golosom.org",
+      "www.golosom.org"
+    ],
+    "book": "^/book/[^/]+/?$",
+    "genre": "^/(?:genre|genres|section|category)/[^/]+/?$",
+    "author": "^/(?:author|authors|avtor|avtory)/[^/]+/?$",
+    "status": "Новый источник · проверка отдельных изданий",
+    "enabled": false
+  },
+  {
+    "id": "s2-aknig-xyz",
+    "name": "Aknig",
+    "home": "https://s2.aknig.xyz/",
+    "hosts": [
+      "s2.aknig.xyz"
+    ],
+    "book": "^/\\d+-.+\\.html$",
+    "genre": "^/(?:genre|genres|section|category)/[^/]+/?$",
+    "author": "^/(?:author|authors|avtor|avtory)/[^/]+/?$",
+    "status": "Новый источник · проверка отдельных изданий",
+    "enabled": false
   }
 ]"""
 
 internal object AbExtraSources {
+    // Listed for access in a browser, not advertised as working search adapters.
+    val browserOnly=listOf(
+        Triple("СлушКинВсем","https://slushkinvsem.ru/","Сервер ответил ошибкой; встроенный поиск пока не подключён"),
+        Triple("Aume","https://aume.ru/","Сервер ответил ошибкой; встроенный поиск пока не подключён"),
+        Triple("Lis10book","https://lis10book.com/","Сайт требует проверки соединения"),
+        Triple("Audio-Lib","https://audio-lib.club/","Сайт требует проверки соединения"),
+        Triple("Audioknigi.top","https://audioknigi.top/","Сервер ответил ошибкой; встроенный поиск пока не подключён"),
+        Triple("КнигиAudio","https://knigiaudio.net/","Не удалось проверить доступ; встроенный поиск пока не подключён"),
+        Triple("Author.Today","https://author.today/","Используется для сверки серий; аудио открывается на сайте")
+    )
     private val rows=JSONArray(AB_EXTRA_SOURCE_JSON)
     val names:List<String> = (0 until rows.length()).map{rows.getJSONObject(it).getString("name")}
     val defaults:Set<String> = (0 until rows.length()).map{rows.getJSONObject(it)}.filter{it.optBoolean("enabled")}.map{it.getString("name")}.toSet()
@@ -176,7 +373,7 @@ internal fun abExtraSourceJs():String {
     function text(n){return String(n?(n.innerText||n.textContent||''):'').replace(/\s+/g,' ').trim();}
     function address(v,base){try{var u=new URL(v,base||location.href);return /^https?:${'$'}/.test(u.protocol)&&!u.username&&!u.password?u.href:'';}catch(e){return '';}}
     function matches(value,key){try{var s=source(value),u=new URL(value,location.href);return !!s&&!!current&&s.id===current.id&&new RegExp(s[key],'i').test(u.pathname);}catch(e){return false;}}
-    function excluded(node){return !!node.closest('nav,header,footer,aside,[class*="recommend"],[class*="related"],[class*="comment"],[class*="advert"],[class*="similar"]');}
+    function excluded(node){if(node.closest('header')&&!node.closest('article'))return true;return !!node.closest('nav,footer,aside,[class*="recommend"],[class*="related"],[class*="comment"],[class*="advert"],[class*="similar"]');}
     function blocked(){return /captcha|just a moment|checking your browser|access denied|проверка соединения|подтвердите.{0,30}(?:человек|робот)/i.test((document.title||'')+' '+text(document.body).slice(0,3000));}
     function unavailable(){
         if(document.querySelector('article.book--item--closed'))return 'Эта книга недоступна у источника.';
@@ -193,7 +390,8 @@ internal fun abExtraSourceJs():String {
         for(var i=0;i<nodes.length&&i<1000;i++){var a=nodes[i],u=address(a.getAttribute('href'));if(matches(u,'author')&&!author)author=text(a);if(matches(u,'genre')&&text(a)&&genres.indexOf(text(a))<0)genres.push(text(a));}
         if(current&&current.id==='predanie'){var p=root.querySelector('.work-author,.stroki-card-header__author,.search-result-card__author,.stroki-card-overlay-author');if(p)author=text(p);}
         var explicit=root.querySelector('[itemprop="author"]');if(!author&&explicit)author=text(explicit)||explicit.getAttribute('content')||'';
-        return {author:author,genres:genres,cycles:[]};
+        var reader=root.querySelector('[itemprop="readBy"],a[rel="performer"],a[href*="/reader/"],a[href*="/performer/"],a[href*="/readers/"]');
+        return {author:author,narrator:text(reader),genres:genres,cycles:[]};
     }
     function cover(root){var nodes=root.querySelectorAll('img');for(var i=0;i<nodes.length;i++){var n=nodes[i],src=address(n.getAttribute('data-src')||n.getAttribute('data-original')||n.getAttribute('src'));if(src&&!/placeholder|favicon|logo|poster\.png/i.test(src))return src;}return '';}
     function title(value,author){var s=String(value||'').replace(/^\s*(?:слушать\s+)?аудиокниг[ау]\s*/i,'').trim();if(author){var n=s.toLowerCase(),a=author.toLowerCase();if(n.indexOf(a)===0)s=s.slice(author.length).replace(/^\s*[-–—:,]\s*/,'');}return s;}
@@ -202,16 +400,18 @@ internal fun abExtraSourceJs():String {
         if(result.blocked)return JSON.stringify(result);
         var anchors=document.querySelectorAll('a[href]');
         for(var i=0;i<anchors.length&&i<12000;i++){
-            var a=anchors[i],url=address(a.getAttribute('href'));if(!matches(url,'book')||excluded(a))continue;
+            var a=anchors[i],url=address(a.getAttribute('href'));if(!matches(url,'book')||excluded(a)||(current.card&&!a.closest(current.card)))continue;
             var label=text(a);if(current.id==='predanie'){var titleNode=a.querySelector('.stroki-card-overlay-title,.search-result-card__title');if(titleNode)label=text(titleNode);}if(!label||label.length>400)continue;
-            var heading=a.querySelector('h2,h3,.short-title,.sres-title,.book-title');if(heading)label=text(heading);
-            var card=a.closest('.stroki-card,.search-result-card,article,.book-item,.book-card,.bookkitem,[id^="book"],.shortstory,.short,.sres-wrap,.content__main__book,.b-content__main__book');
+            var heading=a.querySelector('h2,h3,h5,.short-title,.sres-title,.book-title,.poster-item__title,.slider-item-title');if(heading)label=text(heading);
+            var card=a.closest('.stroki-card,.search-result-card,.card,.poster-item,article,.book-item,.book-card,.bookkitem,[id^="book"],.shortstory,.short,.sres-wrap,.content__main__book,.b-content__main__book');
             if(!card){var p=a.parentElement;for(var d=0;p&&d<5;d++,p=p.parentElement){var img=p.querySelector('img'),links=p.querySelectorAll('a[href]'),other=false;for(var k=0;k<links.length;k++)if(matches(address(links[k].getAttribute('href')),'book')&&address(links[k].getAttribute('href'))!==url)other=true;if(img&&!other){card=p;break;}}}
             card=card||a;
+            var cardHeading=card.querySelector('h2 a,h3 a,h5 a,.poster-item__title,.slider-item-title');
+            if(cardHeading)label=text(cardHeading);
             if(current.id==='predanie'){if(!card.querySelector('.fa-headphones,[title="Аудио"]'))continue;var pt=card.querySelector('.stroki-card-title,.search-result-card__title,.stroki-card-overlay-title');if(pt)label=text(pt);}
             if(/заблокировано|удалено правообладателем/i.test(text(card.querySelector('.sres-date,.alert-danger'))))continue;var info=metadata(card),image=cover(card),key=url.replace(/#.*${'$'}/,'').replace(/\/${'$'}/,'');
-            if(seen[key]){var old=seen[key];if(!old.cover&&image)old.cover=image;if(!old.author&&info.author)old.author=info.author;continue;}
-            var book={url:url,title:title(label,info.author),cover:image,author:info.author,genres:info.genres,cycles:[]};if(!book.title)continue;seen[key]=book;result.links.push(book);if(result.links.length>=600)break;
+            if(seen[key]){var old=seen[key];if(cardHeading)old.title=title(label,info.author);if(!old.cover&&image)old.cover=image;if(!old.author&&info.author)old.author=info.author;continue;}
+            var book={url:url,title:title(label,info.author),cover:image,author:info.author,narrator:info.narrator,genres:info.genres,cycles:[]};if(!book.title)continue;seen[key]=book;result.links.push(book);if(result.links.length>=600)break;
         }
         var next=document.querySelectorAll('a[rel="next"],.pagination a[href],.pages a[href],.paginator a[href],.navigation a[href],nav[aria-label="Страницы результатов поиска"] a[href]');
         for(var j=0;j<next.length&&j<80;j++){var u=address(next[j].getAttribute('href'));if(source(u)&&source(u).id===current.id&&!matches(u,'book')&&u!==location.href&&result.nextUrls.indexOf(u)<0)result.nextUrls.push(u);}
@@ -241,6 +441,17 @@ internal fun abExtraSourceJs():String {
     }
     function read(literal){
         if(!current||unavailable())return null;
+        if(current.id==='aknigi24-com') {
+            var player=document.querySelector('script#player-data[type="application/json"]');
+            if(player)try {
+                var raw=player.textContent||'';if(raw.length>1000000)return null;
+                var data=JSON.parse(raw),base=address(data.chapterBase);
+                if(!/^https:\/\/aknigi24\.com\/book\/[0-9]+\/chapter\/${'$'}/.test(base)||!Array.isArray(data.chapters))return null;
+                var tracks=data.chapters.slice(0,3000).filter(function(c){return c&&Number.isInteger(c.n)&&c.n>0;})
+                    .map(function(c){return {src:base+c.n,title:'Глава '+c.n,duration:Number(c.d)||0};});
+                if(tracks.length)return {bookId:String(data.bookId),playlist:tracks};
+            }catch(e){}
+        }
         if(current.id==='predanie') {
             var node=document.querySelector('#audioPlaylistRoot[data-playlist]');
             if(!node)return null;
@@ -274,7 +485,15 @@ internal fun abExtraSourceJs():String {
         var scripts=document.scripts||[];
         for(var i=0;i<scripts.length&&i<160;i++){
             var tag=scripts[i];if(excluded(tag))continue;var t=String(tag.text||tag.textContent||'');if(t.length>1000000)continue;
-            var re=/(?:new\s+XSPlayer|window\.XSPlayer|new\s+BookPlayer)\s*\(/g,m,n=0;
+            if(current.id==='audiokniga-one'||current.id==='audiokniga-life') {
+                var init=/\bplayerInit\s*\(/.exec(t);
+                if(init)try {
+                    var at=init.index+init[0].length,args=[];
+                    for(var ai=0;ai<4;ai++){args.push(literal(t,at));at=literal.lastEnd;if(ai<3){if(t[at]!==',')throw Error('argument');at++;}}
+                    if(Array.isArray(args[3]))return {bookId:String(args[0]),playlist:args[3]};
+                }catch(e){}
+            }
+            var re=/(?:new\s+XSPlayer|window\.XSPlayer|new\s+BookPlayer|App\.playerInit|KB\.playerInit)\s*\(/g,m,n=0;
             while((m=re.exec(t))&&n++<15)try{
                 var data=literal(t,re.lastIndex);
                 if(/BookPlayer/.test(m[0])&&typeof data==='number'){var end=literal.lastEnd;if(t[end]!==',')continue;data={bookId:String(data),playlist:literal(t,end+1)};}
@@ -291,6 +510,7 @@ internal fun abExtraSourceJs():String {
     }
     function search(query){
         if(blocked())return 'SEARCH_ERROR: Сайт требует проверки соединения';
+        if(current&&current.id==='biblus-org'){location.href='/search.html?q='+encodeURIComponent(String(query||''));return 'SEARCH_SUBMITTED';}
         var forms=document.querySelectorAll('form'),chosen=null,field=null,best=-1;
         for(var i=0;i<forms.length;i++){
             var f=forms[i],url=address(f.getAttribute('action')||location.href),target=source(url);
