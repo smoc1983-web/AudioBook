@@ -1,3 +1,16 @@
+# Review in progress, 2026-11-04 — GitHub updater, NOT PUBLISHED
+
+Owner declined ub-mode for this task. Work is isolated on
+`cloud/recovery-github-updater-20261104`, based on current public 4.2.91/main c8301db.
+Read [GITHUB-UPDATER-REVIEW-2026-11-04.md](GITHUB-UPDATER-REVIEW-2026-11-04.md) and
+[GITHUB-UPDATES.md](GITHUB-UPDATES.md) first. CI41759137706 / code01f7c25 passed both
+channels: Debug+Release JVM/build/lint and seven API36 updater tests. Real public
+release download and Android Installer confirmation tested; no package replacement
+or physical phone test. No release/tag/protected-branch/site changes, no new key.
+Publication requires separate owner permission. Existing public latest remains
+preview-v100091; older .88/.89 need a one-time same-signer manual bootstrap.
+Older release records below are historical, not the head of this audit branch.
+
 # Актуально: Audiobook 4.2.88 / 100088, плеер варианта2
 
 Задача завершена с одобреннымub-mode. [Описание](RELEASE-4.2.88.md),[поведение](PLAYER-DESIGN.md),

@@ -1,0 +1,89 @@
+{
+  "sourceCommit": "01f7c25b5e961a1a8c0c90b080765df639a7e577",
+  "baseCommit": "c8301dbf2fb558c8330d87baa67cacf307708529",
+  "workflowRun": 41759137706,
+  "workflowUrl": "https://github.com/smoc1983-web/AudioBook/actions/runs/41759137706",
+  "preview": {
+    "DebugUnitTest": {
+      "tests": 204,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1,
+      "skips": [
+        "com.audiobookdownloader.LiveCatalogTest"
+      ]
+    },
+    "ReleaseUnitTest": {
+      "tests": 204,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1,
+      "skips": [
+        "com.audiobookdownloader.LiveCatalogTest"
+      ]
+    },
+    "reports/lint-results-debug.xml": {
+      "Warning": 86,
+      "Information": 74
+    },
+    "reports/lint-results-release.xml": {
+      "Warning": 86,
+      "Information": 74
+    },
+    "Android": {
+      "tests": "7",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "cases": [
+        "com.audiobookdownloader.UpdateScreenTest.installedVersionCannotBeInstalledAgain",
+        "com.audiobookdownloader.UpdateScreenTest.oneContextualUpdateActionAndNoAccountFields",
+        "com.audiobookdownloader.InstallerLaunchTest.downloadedPathIsReadableAndOtherPrivateFilesStayHidden",
+        "com.audiobookdownloader.InstallerLaunchTest.verificationFailureRemainsVisibleAndDoesNotClaimInstallation",
+        "com.audiobookdownloader.InstallerLaunchTest.unverifiedCacheCannotOpenAndroidInstaller",
+        "com.audiobookdownloader.GitHubUpdateFlowTest.legacyCacheWithoutReceiptCannotBeInstalled",
+        "com.audiobookdownloader.GitHubUpdateFlowTest.publicReleaseToSystemInstallerWithoutReplacingApplication"
+      ]
+    }
+  },
+  "stable": {
+    "DebugUnitTest": {
+      "tests": 204,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1,
+      "skips": [
+        "com.audiobookdownloader.LiveCatalogTest"
+      ]
+    },
+    "ReleaseUnitTest": {
+      "tests": 204,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1,
+      "skips": [
+        "com.audiobookdownloader.LiveCatalogTest"
+      ]
+    },
+    "reports/lint-results-debug.xml": {
+      "Warning": 86,
+      "Information": 74
+    },
+    "reports/lint-results-release.xml": {
+      "Warning": 86,
+      "Information": 74
+    }
+  },
+  "compiled": [
+    "preview Debug",
+    "preview Release",
+    "stable Debug unsigned",
+    "stable Release unsigned"
+  ],
+  "androidEnvironment": "Android 16 / API 36 disposable emulator",
+  "installerConfirmationReached": true,
+  "actualPackageReplacement": false,
+  "physicalPhoneTested": false,
+  "releasePublished": false,
+  "protectedBranchesChanged": false
+}
