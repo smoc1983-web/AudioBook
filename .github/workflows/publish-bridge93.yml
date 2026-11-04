@@ -1,0 +1,24 @@
+name: Publish approved Audiobook 4.2.93 bridge
+on:
+  push:
+    branches: ['cloud/publish-bridge93-20261104']
+    paths: ['.github/workflows/publish-bridge93.yml', 'scripts/publish-approved-bridge93.py']
+permissions:
+  contents: write
+  actions: read
+jobs:
+  publish-prepared-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Download the exact approved artifact, never rebuild or re-sign
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run download 41765003310 --repo smoc1983-web/AudioBook --name bridge-candidate-100093-github --dir approved93
+      - name: Verify original signature and same-release digests, publish approved draft
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/publish-approved-bridge93.py approved93
