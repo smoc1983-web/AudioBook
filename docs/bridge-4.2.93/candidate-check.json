@@ -1,0 +1,17 @@
+{
+  "versionCode": 100093,
+  "versionName": "4.2.93",
+  "packageName": "com.audiobookdownloader.preview",
+  "sha256": "249a1cc5173e7c454d08fe5647daaf93d2d784eeb6be46e95e717ebc712abf26",
+  "certificateSha256": "3a4cecd14bb3e983843871766909c3f07b3dc64379800f3e270e4a27d39affb7",
+  "size": 33085849,
+  "legacyParts": 4,
+  "minimumInstalledCode": 100092,
+  "sameApkInBothChannels": true,
+  "published": false,
+  "installed4292ApkInspected": false,
+  "phoneDnsVerified": false,
+  "apksignerV1V2": true,
+  "siteReviewTarBytes": 264222720,
+  "oldSiteAssetsPreserved": true
+}

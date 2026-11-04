@@ -1,0 +1,56 @@
+{
+  "sourceCommit": "a30451b68ca2526fcf33f54305f043b925ff214c",
+  "run": 41763061062,
+  "previewAttempt": 2,
+  "stableAttempt": 1,
+  "preview": {
+    "Debug": {
+      "tests": 204,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    },
+    "Release": {
+      "tests": 204,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    },
+    "reports/lint-results-debug.xml": {
+      "Warning": 86,
+      "Information": 74
+    },
+    "reports/lint-results-release.xml": {
+      "Warning": 86,
+      "Information": 74
+    },
+    "Android": {
+      "tests": "7",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    }
+  },
+  "stable": {
+    "Debug": {
+      "tests": 204,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    },
+    "Release": {
+      "tests": 204,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    },
+    "reports/lint-results-debug.xml": {
+      "Warning": 86,
+      "Information": 74
+    },
+    "reports/lint-results-release.xml": {
+      "Warning": 86,
+      "Information": 74
+    }
+  }
+}

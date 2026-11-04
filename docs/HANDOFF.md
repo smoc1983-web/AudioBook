@@ -1,3 +1,17 @@
+# Bridge candidate 4.2.93 — not published
+
+Owner selected the third update-screen wording on 2026-11-04. Read
+[BRIDGE-4.2.93.md](BRIDGE-4.2.93.md). Code a30451b prepares one original-signer Preview
+APK for the old Site multipart feed and the GitHub complete-APK feed. Version100093
+is strictly above the owner's screenshot100092; there is no published100092/APK
+available for inspecting its actual origin or compatibility. Old Site20/source654f47c
+still serves100088 and is unchanged. Runtime checks41763061062 passed (after one quota retry); candidate-only41765003310
+passed with explicit version93. Final branch cloud/candidate-bridge93-20261104;
+signed SHA249a1cc5173e7c454d08fe5647daaf93d2d784eeb6be46e95e717ebc712abf26.
+Site review tar264222720 bytes preserves old files. No Release/Site
+publication or protected-branch writes. Separate publication permission still applies.
+Historical updater audit results below refer to the prior code01f7c25 stage.
+
 # Review in progress, 2026-11-04 — GitHub updater, NOT PUBLISHED
 
 Owner declined ub-mode for this task. Work is isolated on

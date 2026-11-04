@@ -1,3 +1,15 @@
+# Current review status, 2026-11-04 — candidate93 NOT PUBLISHED
+
+Public latest is preview-v100091/main c8301db; owner reports installed100092,
+whose APK/origin is not available for inspection. Read docs/HANDOFF.md and
+docs/BRIDGE-4.2.93.md before resuming. Branch cloud/candidate-bridge93-20261104 holds
+signed100093 and a legacy-Site-to-GitHub bridge prepared WITHOUT ub-mode by the
+owner's choice for this updater task. Runtime test/build/lint steps41763061062
+passed; its candidate step rejected a stale version. Isolated candidate
+CI41765003310 passed; publication requires separate owner permission.
+No protected branches, live feeds, tags, APK releases or keys were changed.
+Older status entries below are historical.
+
 # Current Audiobook release:4.2.88/100088,2026-10-31
 
 ## Execution host preference (owner instruction, 2026-11-01)
