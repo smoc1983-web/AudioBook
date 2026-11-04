@@ -78,6 +78,9 @@ jobs:
           profile: pixel_6
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -memory 2048 -cores 2
           script: gradle :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.audiobookdownloader.SearchEditionsTest,com.audiobookdownloader.SearchCollectionLayoutTest,com.audiobookdownloader.SearchScrollTest --stacktrace
+      - name: Test and lint summaries in GitHub annotations
+        if: always()
+        run: python3 scripts/summarize-review-checks.py
       - name: Reports only — no APK publication
         if: always()
         uses: actions/upload-artifact@v4

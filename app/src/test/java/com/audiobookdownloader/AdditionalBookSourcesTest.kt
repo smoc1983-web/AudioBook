@@ -4,12 +4,12 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class AdditionalBookSourcesTest {
-    @Test fun registryRetainsTenAdditionalSourcesAndExcludesRemovedHosts() {
-        assertEquals(10,AbExtraSources.names.size)
-        assertEquals(10,AbExtraSources.names.toSet().size)
+    @Test fun registryPreservesDefaultsAndAddsOptInSources() {
+        assertEquals(23,AbExtraSources.names.size)
+        assertEquals(23,AbExtraSources.names.toSet().size)
         assertEquals(10,AbExtraSources.defaults.size)
         for(name in AbExtraSources.names){assertEquals(name,AbExtraSources.name(AbExtraSources.home(name)));assertTrue(AbExtraSources.status(name).isNotBlank())}
-        for((name,url) in listOf("Lis10Book" to "https://lis10book.com/", "Слушкин Всем" to "https://slushkinvsem.ru/", "Audioboo" to "https://audioboo.org/")) {
+        for((name,url) in listOf("Lis10Book" to "https://lis10book.com/", "Слушкин Всем" to "https://slushkinvsem.ru/", "Audio-Lib" to "https://audio-lib.club/")) {
             assertFalse(name in AbExtraSources.names)
             assertEquals("",AbExtraSources.home(name))
             assertEquals("",AbExtraSources.name(url))
