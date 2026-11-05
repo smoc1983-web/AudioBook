@@ -1323,150 +1323,6 @@ fun saveQueue(
  * =============================================================
  */
 
-data class Bookmark(
-    val track: Int,
-    val trackTitle: String,
-    val position: Int,
-    val created: Long
-)
-
-fun bookmarksKey(
-    bookTitle: String
-): String {
-    return "bookmarks_" +
-        safeFileName(bookTitle)
-}
-
-fun loadBookmarks(
-    prefs: android.content.SharedPreferences,
-    bookTitle: String
-): List<Bookmark> {
-
-    if (bookTitle.isBlank()) return emptyList()
-
-    return try {
-
-        val array =
-            JSONArray(
-                prefs.getString(
-                    bookmarksKey(bookTitle),
-                    "[]"
-                ) ?: "[]"
-            )
-
-        val result =
-            mutableListOf<Bookmark>()
-
-        for (i in 0 until array.length()) {
-
-            val item =
-                array.optJSONObject(i)
-                    ?: continue
-
-            result.add(
-                Bookmark(
-                    track = item.optInt("t", 0),
-                    trackTitle = item.optString("n", ""),
-                    position = item.optInt("p", 0),
-                    created = item.optLong("c", 0L)
-                )
-            )
-        }
-
-        result.sortedWith(
-            compareBy<Bookmark> { it.track }
-                .thenBy { it.position }
-        )
-
-    } catch (_: Exception) {
-        emptyList()
-    }
-}
-
-fun saveBookmarks(
-    prefs: android.content.SharedPreferences,
-    bookTitle: String,
-    list: List<Bookmark>
-) {
-
-    val array = JSONArray()
-
-    list.forEach {
-        array.put(
-            JSONObject()
-                .put("t", it.track)
-                .put("n", it.trackTitle)
-                .put("p", it.position)
-                .put("c", it.created)
-        )
-    }
-
-    prefs.edit()
-        .putString(
-            bookmarksKey(bookTitle),
-            array.toString()
-        )
-        .apply()
-}
-
-/*
- * Возвращает false, если рядом (в пределах 3 секунд) уже есть
- * закладка в той же главе - чтобы случайные двойные нажатия
- * не плодили дубликаты.
- */
-fun addBookmark(
-    prefs: android.content.SharedPreferences,
-    bookTitle: String,
-    track: Int,
-    trackTitle: String,
-    positionMs: Int
-): Boolean {
-
-    if (bookTitle.isBlank() || track < 0) return false
-
-    val old =
-        loadBookmarks(prefs, bookTitle)
-
-    if (
-        old.any {
-            it.track == track &&
-                Math.abs(it.position - positionMs) < 3000
-        }
-    ) {
-        return false
-    }
-
-    saveBookmarks(
-        prefs,
-        bookTitle,
-        old + Bookmark(
-            track,
-            trackTitle,
-            positionMs.coerceAtLeast(0),
-            System.currentTimeMillis()
-        )
-    )
-
-    return true
-}
-
-fun removeBookmark(
-    prefs: android.content.SharedPreferences,
-    bookTitle: String,
-    bookmark: Bookmark
-) {
-
-    saveBookmarks(
-        prefs,
-        bookTitle,
-        loadBookmarks(prefs, bookTitle).filterNot {
-            it.track == bookmark.track &&
-                it.position == bookmark.position &&
-                it.created == bookmark.created
-        }
-    )
-}
-
 /*
  * Попадает ли час в окно расписания. Окно может переходить
  * через полночь (например, 22 -> 6).
@@ -9954,12 +9810,12 @@ internal fun AbBookDescriptionDialog(ref:BookRef,local:LibraryBook?,theme:AbThem
 
 @Composable
 private fun AbTextField(value: String, hint: String, theme: AbTheme, onChange: (String)->Unit,
-    submit: (() -> Unit)? = null) {
+    submit: (() -> Unit)? = null, multiline:Boolean=false) {
     Row(Modifier.fillMaxWidth().abGlass(theme,17,field=true)
         .padding(start=14.dp,end=if(submit==null)14.dp else 6.dp,
             top=if(submit==null)15.dp else 6.dp,bottom=if(submit==null)15.dp else 6.dp),
         verticalAlignment=Alignment.CenterVertically) {
-        BasicTextField(value,onChange,singleLine=true,textStyle=TextStyle(color=theme.text,fontSize=15.sp),
+        BasicTextField(value,onChange,singleLine=!multiline,maxLines=if(multiline)5 else 1,textStyle=TextStyle(color=theme.text,fontSize=15.sp),
             cursorBrush=androidx.compose.ui.graphics.SolidColor(theme.accent),
             keyboardOptions=androidx.compose.foundation.text.KeyboardOptions(imeAction=if(submit!=null)
                 androidx.compose.ui.text.input.ImeAction.Search else androidx.compose.ui.text.input.ImeAction.Done),
@@ -10622,6 +10478,8 @@ private fun AbLibraryScreen(data: AbScreenData,actions: AbActions,sync: LibraryS
     var grid by androidx.compose.runtime.saveable.rememberSaveable {mutableStateOf(prefs.getBoolean("experience_library_grid",false))}
     var filter by androidx.compose.runtime.saveable.rememberSaveable {mutableStateOf("")}
     var sort by androidx.compose.runtime.saveable.rememberSaveable {mutableStateOf(0)}
+    val context=androidx.compose.ui.platform.LocalContext.current
+    var editingBookmark by remember {mutableStateOf<Pair<String,Bookmark>?>(null)}
     val books=sync.books.value
     val favorites=remember(prefs,data.version) {loadBookRefs(prefs,FAVORITES_KEY)}
     val recent=remember(prefs,data.version) {getListeningHistory(prefs).map{bookRefFor(prefs,it)}}
@@ -10630,6 +10488,10 @@ private fun AbLibraryScreen(data: AbScreenData,actions: AbActions,sync: LibraryS
     val all=remember(localRefs,favorites,recent,prefs,data.version) {
         (localRefs+favorites+loadShelves(prefs).flatMap{it.books}+recent).distinctBy{it.title}
     }
+    val bookmarkRows by produceState(initialValue=emptyList<Pair<String,Bookmark>>(),tab,data.version,all) {
+        value=if(tab==6) kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO){allBookmarks(prefs,all.map{it.title})} else emptyList()
+    }
+    val visibleBookmarks=bookmarkRows.filter{(book,mark)->listOf(book,mark.label,mark.note,mark.trackTitle).any{it.contains(filter,true)}}
     val byTitle=remember(books) {books.associateBy{safeFileName(it.title).lowercase()}}
     val refs=remember(tab,filter,sort,all,localRefs,favorites,recent,queue,data.version,
         data.playback.bookTitle,data.playback.trackIndex) {
@@ -10651,17 +10513,18 @@ private fun AbLibraryScreen(data: AbScreenData,actions: AbActions,sync: LibraryS
         item {
             Row(verticalAlignment=Alignment.CenterVertically) {
                 Text("Моя библиотека",color=theme.text,fontSize=25.sp,fontWeight=FontWeight.Bold,modifier=Modifier.weight(1f))
-                AbIconButton(if(grid) AbIcon.BOOKS else AbIcon.COLLECTIONS,"Сменить вид библиотеки",theme,enabled=tab!=4 && tab!=5,onClick={grid=!grid;prefs.edit().putBoolean("experience_library_grid",grid).apply()})
+                AbIconButton(if(grid) AbIcon.BOOKS else AbIcon.COLLECTIONS,"Сменить вид библиотеки",theme,enabled=tab<4,onClick={grid=!grid;prefs.edit().putBoolean("experience_library_grid",grid).apply()})
                 AbIconButton(AbIcon.SYNC,"Синхронизация библиотеки",theme,onClick=onAccess)
             }
             Spacer(Modifier.height(12.dp))
-            AbChips(listOf("Все · ${all.size}","Скачанные · ${books.size}","Избранное","Недавние","Очередь","Серии"),tab,theme){tab=it}
+            AbChips(listOf("Все · ${all.size}","Скачанные · ${books.size}","Избранное","Недавние","Очередь","Серии","Закладки"),tab,theme){tab=it}
         }
         item {
             AbTextField(filter,"Найти в библиотеке",theme,{filter=it})
             Spacer(Modifier.height(12.dp))
-            if(tab!=4 && tab!=5) AbChips(listOf("По умолчанию","А–Я","Прогресс"),sort,theme){sort=it}
+            if(tab<4) AbChips(listOf("По умолчанию","А–Я","Прогресс"),sort,theme){sort=it}
             else if(tab==4) Text("Книги будут играть в этом порядке",color=theme.muted,fontSize=12.sp)
+            else if(tab==6) Text("Закладки всех книг. Для перехода к моменту откройте нужную книгу в плеере.",color=theme.muted,fontSize=12.sp)
             else Text("Группировка по данным сайтов. Откройте старые книги на сайте, чтобы получить сведения о серии.",color=theme.muted,fontSize=12.sp)
         }
         item {
@@ -10685,8 +10548,8 @@ private fun AbLibraryScreen(data: AbScreenData,actions: AbActions,sync: LibraryS
                 theme,local?.let{abProgress(prefs,it,data.playback)},true,
                 {actions.openRef(continueRef)},{onMenu(continueRef)})
         }
-        item {AbHeading(when(tab){1->"На устройстве";2->"Избранное";3->"История";4->"Очередь";5->"Серии в библиотеке";else->"Все книги"},theme,
-            if(tab==5) "${seriesGroups.size}" else "${refs.size}")}
+        item {AbHeading(when(tab){1->"На устройстве";2->"Избранное";3->"История";4->"Очередь";5->"Серии в библиотеке";6->"Все закладки";else->"Все книги"},theme,
+            if(tab==6) "${visibleBookmarks.size}" else if(tab==5) "${seriesGroups.size}" else "${refs.size}")}
         if(tab==5 && seriesGroups.isEmpty()) item {
             Text("Сведения о сериях ещё не получены. Они сохраняются при поиске и открытии книги на сайте.",color=theme.muted,fontSize=13.sp)
         }
@@ -10702,7 +10565,19 @@ private fun AbLibraryScreen(data: AbScreenData,actions: AbActions,sync: LibraryS
                     local?.let{abProgress(prefs,it,data.playback)},onClick={actions.openRef(entry.first)},onMenu={onMenu(entry.first)})
             }
         }
-        if(refs.isEmpty() && tab!=5) item {
+        if(tab==6) {
+            if(visibleBookmarks.isEmpty())item{Text("Закладок пока нет. Сохраните нужный момент в плеере.",color=theme.muted)}
+            items(visibleBookmarks,key={it.first+":"+it.second.id}) {(book,mark)->
+                AbBookmarkRow(book,mark,theme,{
+                    if(data.playback.bookTitle==book) {
+                        val at=resolveBookmark(mark,data.playback.tracks)
+                        if(at>=0){PlaybackService.selectChapter(context,at,mark.position);actions.navigate(AppPage.PLAYER)}
+                        else Toast.makeText(context,"Глава закладки не найдена. Обновите книгу.",Toast.LENGTH_SHORT).show()
+                    }else actions.openRef(bookRefFor(prefs,book))
+                },{editingBookmark=book to mark},{removeBookmark(prefs,book,mark)})
+            }
+        }
+        if(refs.isEmpty() && tab!=5 && tab!=6) item {
             Text(if(sync.isSyncing) "Ищем сохранённые главы…" else if(filter.isNotBlank()) "Книги не найдены"
                 else if(tab==2) "Добавляйте любимые книги через меню карточки."
                 else "Здесь появятся ваши книги. Найдите новую или подключите папку со скачанными главами.",
@@ -10710,7 +10585,7 @@ private fun AbLibraryScreen(data: AbScreenData,actions: AbActions,sync: LibraryS
             Spacer(Modifier.height(12.dp))
             AbButton("Подключить папку",theme,onClick=onAccess)
         }
-        if(grid && tab!=4 && tab!=5) items(gridRows,key={it.first().title}) {row ->
+        if(grid && tab<4) items(gridRows,key={it.first().title}) {row ->
             Row(horizontalArrangement=Arrangement.spacedBy(12.dp)) {
                 row.forEach {ref ->
                     val local=abFindLocal(books,ref.title)
@@ -10727,7 +10602,7 @@ private fun AbLibraryScreen(data: AbScreenData,actions: AbActions,sync: LibraryS
                 if(row.size==1) Spacer(Modifier.weight(1f))
             }
         }
-        else if(tab!=5) itemsIndexed(refs,key={_,ref->ref.title}) {_,ref ->
+        else if(tab!=5 && tab!=6) itemsIndexed(refs,key={_,ref->ref.title}) {_,ref ->
             val local=abFindLocal(books,ref.title)
             val author=prefs.getString(abAuthorKey(ref.title),"").orEmpty()
             AbBookRow(ref,local,if(author.isNotBlank()) author else if(local!=null) "${local.files.size} глав · На устройстве" else "Онлайн",
@@ -10746,6 +10621,8 @@ private fun AbLibraryScreen(data: AbScreenData,actions: AbActions,sync: LibraryS
             }
         }
     }
+    editingBookmark?.let{(book,mark)->AbBookmarkEditor(book,mark,prefs,theme){editingBookmark=null}}
+
 }
 
 internal fun abRemoveShelfBook(prefs:android.content.SharedPreferences,name:String,ref:BookRef) {
@@ -10951,6 +10828,7 @@ private fun AbPlayerScreen(data: AbScreenData,actions: AbActions,books: List<Lib
     prefs: android.content.SharedPreferences,theme: AbTheme,
     onSettings:(AbSettingsSection)->Unit,onMenu:(BookRef)->Unit,onShelf:(BookRef)->Unit) {
     val context=androidx.compose.ui.platform.LocalContext.current
+    var editingBookmark by remember {mutableStateOf<Bookmark?>(null)}
     val state=data.playback
     var tab by androidx.compose.runtime.saveable.rememberSaveable {mutableStateOf(0)}
     var shownDetails by remember(state.bookTitle,tab){mutableStateOf(20)}
@@ -11051,20 +10929,16 @@ private fun AbPlayerScreen(data: AbScreenData,actions: AbActions,books: List<Lib
                 1->{
                     AbButton("Добавить закладку",theme,primary=true) {
                         val ok=addBookmark(prefs,state.bookTitle,state.trackIndex,
-                            state.tracks.getOrNull(state.trackIndex)?.title.orEmpty(),state.positionMs)
+                            state.tracks.getOrNull(state.trackIndex)?.title.orEmpty(),state.positionMs,state.tracks.getOrNull(state.trackIndex)?.editionId.orEmpty())
                         Toast.makeText(context,if(ok)"Закладка сохранена" else "Рядом уже есть закладка",Toast.LENGTH_SHORT).show()
                     }
                     if(marks.isEmpty()) {Text("Сохраните текущий момент кнопкой выше.",color=theme.muted,fontSize=13.sp)}
                     marks.take(shownDetails).forEach {mark ->
-                        Row(Modifier.fillMaxWidth().abGlass(theme,13)
-                            .clickable{tab=0;PlaybackService.selectChapter(context,mark.track,mark.position)}.padding(start=12.dp),
-                            verticalAlignment=Alignment.CenterVertically) {
-                            Column(Modifier.weight(1f)) {
-                                Text(mark.trackTitle.ifBlank{"Глава ${mark.track+1}"},color=theme.text,fontSize=13.sp)
-                                Text(formatMillis(mark.position),color=theme.accent,fontSize=11.sp)
-                            }
-                            AbIconButton(AbIcon.CLOSE,"Удалить закладку",theme){removeBookmark(prefs,state.bookTitle,mark)}
-                        }
+                        AbBookmarkRow("",mark,theme,{
+                            val at=resolveBookmark(mark,state.tracks)
+                            if(at>=0){tab=0;PlaybackService.selectChapter(context,at,mark.position)}
+                            else Toast.makeText(context,"Глава закладки не найдена в этой озвучке.",Toast.LENGTH_SHORT).show()
+                        },{editingBookmark=mark},{removeBookmark(prefs,state.bookTitle,mark)})
                     }
                 }
                 else->{
@@ -11088,6 +10962,8 @@ private fun AbPlayerScreen(data: AbScreenData,actions: AbActions,books: List<Lib
         if((tab==1&&marks.size>shownDetails)||(tab==2&&queue.size>shownDetails)||(tab==4&&state.tracks.size>shownDetails))
             AbButton("Ещё записи",theme){shownDetails+=20}
     }
+
+    editingBookmark?.let{mark->AbBookmarkEditor(state.bookTitle,mark,prefs,theme){editingBookmark=null}}
 
 }
 
@@ -15658,4 +15534,28 @@ private fun abPlayerReaderJs():String {
     return normalize(tracks)||onlinePending;
 })
 """.trimIndent()
+}
+
+@Composable
+private fun AbBookmarkRow(book:String,mark:Bookmark,theme:AbTheme,onOpen:()->Unit,onEdit:()->Unit,onDelete:()->Unit) {
+    Row(Modifier.fillMaxWidth().abGlass(theme,13).padding(12.dp),verticalAlignment=Alignment.CenterVertically) {
+        Column(Modifier.weight(1f).clickable(onClick=onOpen)) {
+            if(book.isNotBlank())Text(book,color=theme.muted,fontSize=12.sp)
+            Text(mark.label.ifBlank{mark.trackTitle.ifBlank{"Глава ${mark.track+1}"}},color=theme.text,fontSize=14.sp)
+            Text("${mark.trackTitle} · ${formatMillis(mark.position)}",color=theme.accent,fontSize=12.sp)
+            if(mark.note.isNotBlank())Text(mark.note,color=theme.muted,fontSize=12.sp,maxLines=3,overflow=TextOverflow.Ellipsis)
+        }
+        AbIconButton(AbIcon.MORE,"Изменить закладку",theme,onClick=onEdit)
+        AbIconButton(AbIcon.CLOSE,"Удалить закладку",theme,onClick=onDelete)
+    }
+}
+@Composable
+internal fun AbBookmarkEditor(book:String,mark:Bookmark,prefs:android.content.SharedPreferences,theme:AbTheme,onClose:()->Unit) {
+    var label by androidx.compose.runtime.saveable.rememberSaveable(mark.id){mutableStateOf(mark.label)}
+    var note by androidx.compose.runtime.saveable.rememberSaveable(mark.id){mutableStateOf(mark.note)}
+    AbDialog("Закладка · ${formatMillis(mark.position)}",theme,onClose) {
+        AbTextField(label,"Название закладки",theme,{label=it.take(120)})
+        AbTextField(note,"Заметка",theme,{note=it.take(4000)},multiline=true)
+        AbButton("Сохранить",theme,primary=true){updateBookmark(prefs,book,mark,label,note);onClose()}
+    }
 }

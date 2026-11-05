@@ -918,7 +918,7 @@ class PlaybackService : Service() {
 
     private fun saveSleepBookmark() {
         if(playbackPrefs.getBoolean("sleep_auto_bookmark",true)&&trackIndex in playlist.indices)
-            addBookmark(playbackPrefs,bookTitle,trackIndex,trackTitle,positionMs)
+            addBookmark(playbackPrefs,bookTitle,trackIndex,trackTitle,positionMs,playlist.getOrNull(trackIndex)?.editionId.orEmpty())
     }
 
     private fun updateVolume() {
