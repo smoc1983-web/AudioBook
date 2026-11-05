@@ -1,4 +1,5 @@
 package com.audiobookdownloader
+import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
@@ -13,7 +14,8 @@ class PlaybackOptionsUiTest {
     @Test fun buttonsUseSelectedStepAndStopAtFourTimes() {
         var speed by mutableStateOf(1f)
         var fine by mutableStateOf(true)
-        compose.setContent{AbSpeedControls(speed,fine,abTheme(2),{speed=it},{fine=it})}
+        compose.setContent{Column{AbSpeedControls(speed,fine,abTheme(2),{speed=it},{fine=it})}}
+        compose.onNodeWithText("1.00×").assertIsDisplayed()
         compose.onNodeWithText("+").performClick()
         compose.runOnIdle{assertEquals(1.05f,speed,0f)}
         compose.onNodeWithText("Шаг 0,1×").performClick()
@@ -25,7 +27,7 @@ class PlaybackOptionsUiTest {
     }
     @Test fun pastedFractionDoesNotBecomeAnotherDuration() {
         var seconds=0
-        compose.setContent{AbTimerInput(true,abTheme(2)){seconds=it}}
+        compose.setContent{Column{AbTimerInput(true,abTheme(2)){seconds=it}}}
         compose.onNode(hasSetTextAction()).performTextReplacement("1.5")
         compose.onNodeWithText("Установить таймер").assertIsNotEnabled()
         compose.runOnIdle{assertEquals(0,seconds)}
