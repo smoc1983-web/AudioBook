@@ -1,12 +1,19 @@
 """Publish bounded test diagnostics as workflow annotations; never read credentials."""
 from pathlib import Path
 import re
+import json
 import xml.etree.ElementTree as ET
 
 def emit(kind, title, text):
     text = re.sub(r"https?://[^\s<>]+", "[URL]", text)[:1200]
     escaped = text.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
     print(f"::{kind} title={title}::{escaped}")
+
+metrics = Path("app/build/reports/search-scroll-metrics.json")
+if metrics.is_file():
+    saved = json.loads(metrics.read_text())
+    values = {key: saved.get(key) for key in ("books", "preparationMs", "peakComposed", "scrollReturnAppendVerified")}
+    emit("notice", "Search scroll metrics", json.dumps(values))
 
 for directory in ("app/build/test-results", "app/build/outputs/androidTest-results"):
     files = list(Path(directory).rglob("TEST-*.xml"))

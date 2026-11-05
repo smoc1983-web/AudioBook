@@ -12,18 +12,17 @@ import android.view.*;
 import android.widget.*;
 import androidx.core.content.FileProvider;
 import java.io.File;
-import java.util.concurrent.*;
 
 /** Native single-action updater; the package and original signer are verified before installation. */
 public final class PreviewUpdatesActivity extends Activity {
-    private final ExecutorService worker=Executors.newSingleThreadExecutor();
-    private PreviewUpdater updater;
-    private PreviewUpdater.Release release;
+    private UpdateSession session;
+    private boolean resumed;
+    private final UpdateSession.Listener listener=()->runOnUiThread(this::render);
     private TextView status;
     private Button primary;
+    private Button cancel;
     private TextView changes;
     private boolean waitingForPermission;
-    private volatile boolean rejectedCachedApk;
     private static final int INSTALL_REQUEST=72;
     private boolean flat(){return getSharedPreferences("audiobook_downloader",0).getInt("glass_theme",2)==10;}
     private float textScale(){return Math.max(.85f,Math.min(1.5f,getSharedPreferences("audiobook_downloader",0).getFloat("appearance_text_scale",1f)));}
@@ -40,7 +39,7 @@ public final class PreviewUpdatesActivity extends Activity {
         button.setOnClickListener(v->action.run());return button;
     }
     @Override public void onCreate(Bundle state){
-        super.onCreate(state);updater=new PreviewUpdater(this);
+        super.onCreate(state);session=UpdateSessions.shared(this);
         waitingForPermission=state!=null&&state.getBoolean("waitingForInstallPermission",false);
         int surface=flat()?0xff101214:0xff171228;getWindow().setStatusBarColor(surface);getWindow().setNavigationBarColor(surface);
         ScrollView scroll=new ScrollView(this);scroll.setBackgroundColor(surface);
@@ -55,59 +54,27 @@ public final class PreviewUpdatesActivity extends Activity {
         status=text(root,"После обновления новый номер версии появится вверху этого экрана. Проверка и загрузка выполняются здесь, без браузера.",15);status.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);
         changes=text(root,"Список изменений появится после проверки нового выпуска.",14);
         primary=button(root,"Проверить обновления",this::primaryAction);
-        busy(false);
-        text(root,"При первом обновлении Android попросит разрешить установку из приложения. Разрешение можно отозвать после установки. Во время загрузки оставьте это окно открытым.",13);
-    }
-    private interface Work {String perform() throws Exception;}
-    private void run(Work work){
-        busy(true);status.setText("Выполняется проверка…");
-        worker.submit(()->{
-            String message;
-            try{message=work.perform();}catch(Exception e){
-                message=e instanceof java.net.UnknownHostException?"Не удалось найти сервер обновлений. Проверьте интернет и повторите попытку.":e instanceof java.io.IOException?e.getMessage():"Не удалось выполнить операцию. Проверьте интернет и повторите попытку.";
-            }
-            String result=message;
-            final String notes=release==null?"":release.notes;
-            runOnUiThread(()->{if(isDestroyed()||isFinishing())return;busy(false);status.setText(result);if(!notes.isEmpty())changes.setText("Что нового\n"+notes);});
-        });
+        cancel=button(root,"Отменить",session::cancel);
+        render();
+        text(root,"При первом обновлении Android попросит разрешить установку из приложения. Разрешение можно отозвать после установки. Проверка и загрузка сохраняются при повороте экрана и выходе из этого окна.",13);
     }
     private void primaryAction(){
-        if(updater.target().isFile()&&!rejectedCachedApk)install();
-        else if(release!=null&&release.info.isNewer(BuildConfig.VERSION_CODE))download();
-        else check();
+        session.primary();
     }
-    private void busy(boolean value){
-        if(primary==null)return;
-        primary.setEnabled(!value);
-        primary.setText(updater.target().isFile()&&!rejectedCachedApk?"Установить загруженное обновление":
-            release!=null&&release.info.isNewer(BuildConfig.VERSION_CODE)?"Загрузить обновление":"Проверить обновления");
-    }
-    private void check(){
-        release=null;
-        run(()->{release=updater.latest();return release.info.isNewer(BuildConfig.VERSION_CODE)?
-            "Доступна "+release.info.versionName+" · "+(release.info.size/1024/1024)+" МБ":"Установлена последняя версия приложения";});
-    }
-    private void download(){
-        if(release==null)return;
-        PreviewUpdater.Release selected=release;
-        run(()->{
-            updater.download(selected,percent->runOnUiThread(()->{if(!isDestroyed())status.setText("Загрузка обновления: "+percent+"%");}));
-            rejectedCachedApk=false;
-            return "Обновление загружено. Размер, SHA-256, пакет, версия и подпись проверены. Нажмите «Установить».";
-        });
+    private void render(){
+        if(isDestroyed()||primary==null)return;
+        UpdateUiState state=session.snapshot();
+        primary.setEnabled(!state.busy);
+        primary.setText(session.primaryLabel());
+        if(cancel!=null)cancel.setVisibility(state.busy?View.VISIBLE:View.GONE);
+        status.setText(state.message);
+        changes.setText(session.notesText());
+        if(resumed){
+            File prepared=session.claimInstaller();
+            if(prepared!=null){verifiedInstallerFile=prepared;launchInstaller();}
+        }
     }
     private File verifiedInstallerFile;
-    private void install(){
-        busy(true);status.setText("Проверяю APK перед установкой…");
-        worker.submit(()->{
-            String error=null;
-            try{verifiedInstallerFile=updater.prepareInstall();}catch(Exception e){error=e instanceof java.io.IOException?e.getMessage():"Не удалось проверить APK. Загрузите обновление заново.";}
-            final String failure=error;
-            runOnUiThread(()->{if(isDestroyed()||isFinishing())return;busy(false);
-                if(failure!=null){status.setText(failure);rejectedCachedApk=true;release=null;busy(false);}else launchInstaller();
-            });
-        });
-    }
     // Package-private so instrumentation exercises the real provider and system installer.
     void launchInstaller(){
         try{
@@ -115,15 +82,15 @@ public final class PreviewUpdatesActivity extends Activity {
             if(file==null)throw new IllegalArgumentException("APK not verified");
             if(Build.VERSION.SDK_INT>=26&&!getPackageManager().canRequestPackageInstalls()){
                 waitingForPermission=true;
-                status.setText("Разрешите установку из Audiobook и вернитесь сюда. APK сохранён.");
+                session.message("Разрешите установку из Audiobook и вернитесь сюда. APK сохранён.");
                 startActivity(new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,Uri.parse("package:"+getPackageName())));return;
             }
             Intent intent=installerIntent(this,file);
             startActivityForResult(intent,INSTALL_REQUEST);
-            status.setText("Запрошено системное подтверждение установки. Подтвердите обновление в окне Android.");
-        }catch(IllegalArgumentException e){status.setText("Файл обновления недоступен установщику. Загрузите APK со страницы обновлений и откройте через «Мои файлы».");}
-        catch(SecurityException e){status.setText("Android заблокировал запуск установщика. Проверьте разрешение установки для Audiobook. Если Samsung показывает отдельное сообщение блокировки, следуйте его указаниям.");}
-        catch(Exception e){status.setText("Не удалось открыть установщик Android. Откройте APK со страницы обновлений через «Мои файлы».");}
+            session.message("Запрошено системное подтверждение установки. Подтвердите обновление в окне Android.");
+        }catch(IllegalArgumentException e){session.message("Файл обновления недоступен установщику. Загрузите APK со страницы обновлений и откройте через «Мои файлы».");}
+        catch(SecurityException e){session.message("Android заблокировал запуск установщика. Проверьте разрешение установки для Audiobook. Если Samsung показывает отдельное сообщение блокировки, следуйте его указаниям.");}
+        catch(Exception e){session.message("Не удалось открыть установщик Android. Откройте APK со страницы обновлений через «Мои файлы».");}
     }
     static Intent installerIntent(Context context,File file){
         Uri apk=FileProvider.getUriForFile(context,context.getPackageName()+".updates",file);
@@ -133,18 +100,21 @@ public final class PreviewUpdatesActivity extends Activity {
     }
     @Override protected void onActivityResult(int request,int result,Intent data){super.onActivityResult(request,result,data);
         if(request==INSTALL_REQUEST){
-            if(result==RESULT_OK)status.setText("Android подтвердил установку обновления.");
-            else status.setText("Установка не завершена. Если Android показал ошибку, сохраните её текст. APK остаётся доступен для повторной попытки.");
+            if(result==RESULT_OK)session.message("Android подтвердил установку обновления.");
+            else session.message("Установка не завершена. Если Android показал ошибку, сохраните её текст. APK остаётся доступен для повторной попытки.");
         }
     }
     @Override protected void onSaveInstanceState(Bundle state){state.putBoolean("waitingForInstallPermission",waitingForPermission);super.onSaveInstanceState(state);}
-    @Override protected void onResume(){super.onResume();
+    @Override protected void onStart(){super.onStart();session.addListener(listener);}
+    @Override protected void onPause(){resumed=false;super.onPause();}
+    @Override protected void onStop(){resumed=false;session.removeListener(listener);super.onStop();}
+    @Override protected void onResume(){super.onResume();resumed=true;
         if(waitingForPermission){waitingForPermission=false;
-            if(Build.VERSION.SDK_INT>=26&&getPackageManager().canRequestPackageInstalls())install();
-            else status.setText("Установка не разрешена. APK сохранён; можно повторить установку позже.");
+            if(Build.VERSION.SDK_INT>=26&&getPackageManager().canRequestPackageInstalls())session.install();
+            else session.message("Установка не разрешена. APK сохранён; можно повторить установку позже.");
         }
+        render();
     }
-    @Override protected void onDestroy(){updater.cancel();worker.shutdownNow();super.onDestroy();}
     public static void checkInBackground(Activity activity){
         PreviewUpdater updater=new PreviewUpdater(activity);
         android.content.SharedPreferences prefs=activity.getSharedPreferences("preview_updates",0);
