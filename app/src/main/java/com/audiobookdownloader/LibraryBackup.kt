@@ -17,7 +17,7 @@ internal object LibraryBackup {
     private const val MAX_MANIFEST=4*1024*1024
     private val strings=setOf(FAVORITES_KEY,SHELVES_KEY,QUEUE_KEY,"listening_history",EQ_GLOBAL_KEY)
     private val ints=setOf("glass_theme","rewind_after_pause_sec","sleep_sched_from","sleep_sched_to","sleep_sched_minutes","last_sleep_seconds","sleep_fade_seconds","experience_seek_short","experience_seek_long")
-    private val flags=setOf("search_hide_previews","sleep_shake","sleep_sched_enabled","sleep_auto_bookmark","experience_wifi_only","experience_collection_list","experience_library_grid")
+    private val flags=setOf("speed_fine_step","search_hide_previews","sleep_shake","sleep_sched_enabled","sleep_auto_bookmark","experience_wifi_only","experience_collection_list","experience_library_grid")
     private val floats=setOf("playback_speed","appearance_dim","appearance_card_opacity","appearance_text_scale")
     private fun type(key:String):String?=when {
         key.startsWith("book_cover_revision_")->"long"

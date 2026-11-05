@@ -31,8 +31,9 @@ for file in Path("app/build/reports").glob("lint-results-*.xml"):
             where = "" if location is None else f"{location.get('file', '')}:{location.get('line', '')} "
             emit("error", "Lint failure", where + issue.get("id", "") + ": " + issue.get("message", ""))
 
-log = Path("review-build.log")
-if log.is_file():
+for log in (Path("review-build.log"), Path("review-android-build.log")):
+    if not log.is_file():
+        continue
     for line in log.read_text(errors="replace").splitlines():
         if re.match(r"(?:e: |.*\.(?:kt|java):[0-9]+:.*error:|> Task .* FAILED)", line):
             emit("error", "Build diagnostic", line)

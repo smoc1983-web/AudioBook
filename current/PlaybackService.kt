@@ -865,7 +865,7 @@ class PlaybackService : Service() {
 
     private fun applySettings() {
         playbackSpeed = playbackPrefs.getFloat("book_speed_" + safeFileName(bookTitle),
-            playbackPrefs.getFloat("playback_speed", 1f)).let { if (it.isFinite()) it.coerceIn(0.5f, 3f) else 1f }
+            playbackPrefs.getFloat("playback_speed", 1f)).let { PlaybackOptions.rate(it) }
         val player = mediaPlayer
         if (player != null && !isLoading) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -873,7 +873,10 @@ class PlaybackService : Service() {
                     // setPlaybackParams может запустить приостановленный MediaPlayer.
                     player.playbackParams = player.playbackParams.setSpeed(playbackSpeed)
                     if (!isPlaying) player.pause()
-                } catch (_: Exception) {}
+                } catch (_: Exception) {
+                    playbackSpeed=try{PlaybackOptions.rate(player.playbackParams.speed)}catch(_:Exception){1f}
+                    playbackNote="Устройство не применило выбранную скорость. Текущая скорость: ${playbackSpeed}×."
+                }
             }
             val settings = loadEqSettings(playbackPrefs, bookTitle)
             if (settings != appliedEq || audioFx.sessionId != player.audioSessionId) {
@@ -902,7 +905,7 @@ class PlaybackService : Service() {
         sleepRestartSeconds = if (!chapter && seconds > 0) seconds else 0
         trace(if(chapter) "Таймер до конца главы" else "Таймер: "+seconds+" секунд")
         shakeDetector.resetMotion()
-        if (!chapter && seconds > 60) playbackPrefs.edit().putInt("last_sleep_seconds", seconds).apply()
+        if (!chapter && seconds > 0) playbackPrefs.edit().putInt("last_sleep_seconds", seconds).apply()
         updateVolume()
         updateShakeListener()
         publish()

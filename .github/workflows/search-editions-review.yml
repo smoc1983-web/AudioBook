@@ -62,7 +62,9 @@ jobs:
         if: always() && matrix.channel == 'preview'
         env:
           GITHUB_RUN_NUMBER: '90'
-        run: gradle :app:assembleDebugAndroidTest --stacktrace
+        run: |
+          set -o pipefail
+          gradle :app:assembleDebugAndroidTest --stacktrace 2>&1 | tee review-android-build.log
       - name: Emulator access
         if: success() && matrix.channel == 'preview'
         run: |
@@ -79,7 +81,7 @@ jobs:
           arch: x86_64
           profile: pixel_6
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -memory 2048 -cores 2
-          script: gradle :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.audiobookdownloader.SearchEditionsTest,com.audiobookdownloader.SearchCollectionLayoutTest,com.audiobookdownloader.SearchScrollTest,com.audiobookdownloader.BookmarkUiTest --stacktrace
+          script: gradle :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.audiobookdownloader.SearchEditionsTest,com.audiobookdownloader.SearchCollectionLayoutTest,com.audiobookdownloader.SearchScrollTest,com.audiobookdownloader.BookmarkUiTest,com.audiobookdownloader.PlaybackOptionsUiTest --stacktrace
       - name: Test and lint summaries in GitHub annotations
         if: always()
         run: python3 scripts/summarize-review-checks.py

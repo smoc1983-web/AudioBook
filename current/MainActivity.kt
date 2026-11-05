@@ -9810,14 +9810,15 @@ internal fun AbBookDescriptionDialog(ref:BookRef,local:LibraryBook?,theme:AbThem
 
 @Composable
 private fun AbTextField(value: String, hint: String, theme: AbTheme, onChange: (String)->Unit,
-    submit: (() -> Unit)? = null, multiline:Boolean=false) {
+    submit: (() -> Unit)? = null, multiline:Boolean=false, numeric:Boolean=false) {
     Row(Modifier.fillMaxWidth().abGlass(theme,17,field=true)
         .padding(start=14.dp,end=if(submit==null)14.dp else 6.dp,
             top=if(submit==null)15.dp else 6.dp,bottom=if(submit==null)15.dp else 6.dp),
         verticalAlignment=Alignment.CenterVertically) {
         BasicTextField(value,onChange,singleLine=!multiline,maxLines=if(multiline)5 else 1,textStyle=TextStyle(color=theme.text,fontSize=15.sp),
             cursorBrush=androidx.compose.ui.graphics.SolidColor(theme.accent),
-            keyboardOptions=androidx.compose.foundation.text.KeyboardOptions(imeAction=if(submit!=null)
+            keyboardOptions=androidx.compose.foundation.text.KeyboardOptions(keyboardType=if(numeric)
+                androidx.compose.ui.text.input.KeyboardType.Number else androidx.compose.ui.text.input.KeyboardType.Text,imeAction=if(submit!=null)
                 androidx.compose.ui.text.input.ImeAction.Search else androidx.compose.ui.text.input.ImeAction.Done),
             keyboardActions=androidx.compose.foundation.text.KeyboardActions(onSearch={submit?.invoke()}),
             modifier=Modifier.weight(1f),
@@ -11274,14 +11275,14 @@ private fun AbSettingsDialog(data: AbScreenData,prefs: android.content.SharedPre
         if(section==AbSettingsSection.UPDATES)AbButton("Проверить обновления",theme){context.startActivity(Intent(context,PreviewUpdatesActivity::class.java))}
         if(section==AbSettingsSection.SPEED) {
             AbHeading("Скорость воспроизведения",theme)
-            val speed=if(data.playback.hasPlayer) data.playback.speed else
-                prefs.getFloat("book_speed_"+safeFileName(title),prefs.getFloat("playback_speed",1f))
-            AbOptions(listOf("0.75×","1×","1.25×","1.5×","2×"),listOf(.75f,1f,1.25f,1.5f,2f).indexOf(speed),theme) {index ->
-                val value=listOf(.75f,1f,1.25f,1.5f,2f)[index]
+            val speed=PlaybackOptions.rate(if(data.playback.hasPlayer) data.playback.speed else
+                prefs.getFloat("book_speed_"+safeFileName(title),prefs.getFloat("playback_speed",1f)))
+            var fine by remember(prefs){mutableStateOf(prefs.getBoolean("speed_fine_step",true))}
+            AbSpeedControls(speed,fine,theme,{value->
                 val editor=prefs.edit().putFloat("playback_speed",value)
-                if(title.isNotBlank()) editor.putFloat("book_speed_"+safeFileName(title),value)
+                if(title.isNotBlank())editor.putFloat("book_speed_"+safeFileName(title),value)
                 editor.apply();PlaybackService.refreshSettings(context)
-            }
+            },{fine=it;updateFlag("speed_fine_step",it)})
         }
         if(section==AbSettingsSection.EQUALIZER) {
             AbHeading("Эквалайзер",theme)
@@ -11309,13 +11310,24 @@ private fun AbSettingsDialog(data: AbScreenData,prefs: android.content.SharedPre
                 else if(data.playback.sleepChapterTarget.isNotBlank()) "До конца текущей главы" else "Выключен",
                 color=theme.muted,fontSize=13.sp)
             if(!data.playback.hasPlayer) Text("Включите книгу, чтобы установить таймер.",color=theme.muted,fontSize=12.sp)
-            AbOptions(listOf("15 мин","30 мин","60 мин","Глава","Выкл"),-1,theme,
+            val presets=listOf(15,20,30,60)
+            AbOptions(presets.map{"$it мин"}+listOf("Глава","Выкл"),-1,theme,
                 enabled=data.playback.hasPlayer) {index ->
-                when(index) {
-                    0,1,2->PlaybackService.setSleepTimer(context,listOf(15,30,60)[index]*60)
-                    3->PlaybackService.setSleepTimer(context,0,true)
+                when {
+                    index<presets.size->PlaybackService.setSleepTimer(context,presets[index]*60)
+                    index==presets.size->PlaybackService.setSleepTimer(context,0,true)
                     else->PlaybackService.setSleepTimer(context,0)
                 }
+            }
+            var minutes by androidx.compose.runtime.saveable.rememberSaveable{mutableStateOf("20")}
+            AbTextField(minutes,"Минуты · от 1 до 1440",theme,{minutes=it.filter{c->c.isDigit()}.take(4)},numeric=true)
+            val customSeconds=PlaybackOptions.timerSeconds(minutes)
+            AbButton("Установить таймер",theme,primary=true,enabled=data.playback.hasPlayer&&customSeconds>0) {
+                PlaybackService.setSleepTimer(context,customSeconds)
+            }
+            val previous=prefs.getInt("last_sleep_seconds",1200).coerceIn(1,86400)
+            AbButton("Повторить: "+formatSleepTime(previous),theme,enabled=data.playback.hasPlayer) {
+                PlaybackService.setSleepTimer(context,previous)
             }
         }
         if(section==AbSettingsSection.REWIND) {
@@ -15567,4 +15579,21 @@ internal fun AbBookmarkEditor(book:String,mark:Bookmark,prefs:android.content.Sh
         AbTextField(note,"Заметка",theme,{note=it.take(4000)},multiline=true)
         AbButton("Сохранить",theme,primary=true){updateBookmark(prefs,book,mark,label,note);onClose()}
     }
+}
+
+@Composable
+internal fun AbSpeedControls(speed:Float,fine:Boolean,theme:AbTheme,onSpeed:(Float)->Unit,onFine:(Boolean)->Unit) {
+    var shown by remember(speed){mutableStateOf(speed)}
+    Text(java.lang.String.format(java.util.Locale.ROOT,"%.2f×",shown),color=theme.accent,fontSize=24.sp)
+    AbOptions(listOf("Шаг 0,05×","Шаг 0,1×"),if(fine)0 else 1,theme){onFine(it==0)}
+    Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(12.dp)) {
+        AbButton("−",theme,Modifier.weight(1f),enabled=shown>.5f){shown=PlaybackOptions.adjust(shown,-1,fine);onSpeed(shown)}
+        AbButton("+",theme,Modifier.weight(1f),enabled=shown<4f){shown=PlaybackOptions.adjust(shown,1,fine);onSpeed(shown)}
+    }
+    androidx.compose.material3.Slider(value=shown,onValueChange={shown=PlaybackOptions.rate(it)},
+        onValueChangeFinished={onSpeed(shown)},valueRange=.5f..4f,steps=if(fine)69 else 34,
+        modifier=Modifier.fillMaxWidth().semantics{contentDescription="Скорость от 0,5 до 4"},
+        colors=androidx.compose.material3.SliderDefaults.colors(thumbColor=theme.accent,activeTrackColor=theme.accent,inactiveTrackColor=theme.border))
+    val presets=listOf(.75f,1f,1.25f,1.5f,2f,4f)
+    AbOptions(presets.map{"$it×"},presets.indexOf(shown),theme){shown=presets[it];onSpeed(shown)}
 }
