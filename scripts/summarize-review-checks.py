@@ -25,6 +25,11 @@ for file in Path("app/build/reports").glob("lint-results-*.xml"):
     issues = ET.parse(file).getroot().findall("issue")
     counts = {severity: sum(i.get("severity") == severity for i in issues) for severity in ("Fatal", "Error", "Warning", "Information")}
     emit("notice", "Lint totals", f"{file.name}: {counts}")
+    for issue in issues:
+        if issue.get("severity") in ("Fatal", "Error"):
+            location = issue.find("location")
+            where = "" if location is None else f"{location.get('file', '')}:{location.get('line', '')} "
+            emit("error", "Lint failure", where + issue.get("id", "") + ": " + issue.get("message", ""))
 
 log = Path("review-build.log")
 if log.is_file():
