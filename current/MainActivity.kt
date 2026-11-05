@@ -1732,7 +1732,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
      * Эквалайзер: настройки текущей книги и признак того, что они
      * заданы отдельно от общего профиля.
      */
-    val playbackState by PlaybackService.state.collectAsState()
+    val playbackState = abVisiblePlayback(foreground,PlaybackService.state)
     val localControl = remember(context) { PlaybackControl(context, "local") }
     val onlineControl = remember(context) { PlaybackControl(context, "online") }
     val serviceOnlineBook = remember(playbackState.sourceType, playbackState.tracks) {
@@ -2065,7 +2065,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
             // Widget/last-position bookkeeping is written together with progress every five seconds.
             // Only user-visible data invalidates parsed collections and book lists.
             if (key == null || key == FAVORITES_KEY || key == SHELVES_KEY || key == QUEUE_KEY ||
-                key == "listening_history" || key.startsWith("book_") || key.startsWith("bookmarks_") ||
+                key == "listening_history" || key.startsWith("book_")&&!abIsPlaybackCheckpoint(key) || key.startsWith("bookmarks_") ||
                 key == "playback_speed" || key == EQ_GLOBAL_KEY || key.startsWith("eq_") ||
                 key.startsWith("sleep_") || key=="glass_theme" || key.startsWith("appearance_") || key.startsWith("experience_") || key == "rewind_after_pause_sec") {
                 userDataVersion++
@@ -9296,6 +9296,7 @@ fun bookCatalogJs(catalogUrl: String = "", cycle: BookCycle? = null): String {
 private const val AB_PRODUCT_NAME=BuildConfig.PRODUCT_NAME
 private val LocalAbCoverScrollState=androidx.compose.runtime.compositionLocalOf<androidx.compose.foundation.lazy.LazyListState?> {null}
 private val LocalAbCoverDataVersion=androidx.compose.runtime.compositionLocalOf {0}
+private val LocalAbVisible=androidx.compose.runtime.compositionLocalOf {true}
 internal data class AbTheme(
     val id: Int, val name: String, val light: Boolean,
     val background: Color, val panel: Color, val field: Color, val accent: Color,
@@ -9636,6 +9637,7 @@ private fun AbCover(title: String, local: LibraryBook?, remote: BookRef?, theme:
     val context=androidx.compose.ui.platform.LocalContext.current
     val prefs=remember(context) {context.getSharedPreferences("audiobook_downloader",Context.MODE_PRIVATE)}
     val dataRevision=LocalAbCoverDataVersion.current
+    val visible=LocalAbVisible.current
     val uri=local?.coverUri.orEmpty()
     val path=local?.let {it.coverFilePath.ifBlank {File(it.folder,"cover.jpg").absolutePath}}.orEmpty()
     val cover=remember(remote?.cover,title,prefs,dataRevision) {
@@ -9656,7 +9658,8 @@ private fun AbCover(title: String, local: LibraryBook?, remote: BookRef?, theme:
     }
     var bitmap by remember(request) {mutableStateOf(AbCoverStore.peek(request))}
     val scrollState=LocalAbCoverScrollState.current
-    LaunchedEffect(request) {
+    LaunchedEffect(request,visible) {
+        if(!visible)return@LaunchedEffect
         if(bitmap==null && scrollState!=null) {
             androidx.compose.runtime.snapshotFlow {scrollState.isScrollInProgress}.first{!it}
             delay(100L)
@@ -9664,9 +9667,9 @@ private fun AbCover(title: String, local: LibraryBook?, remote: BookRef?, theme:
         }
         bitmap=withContext(Dispatchers.IO) {AbCoverStore.load(context.applicationContext,request,uri,path,cover,page,edge,title,audio,local?.folder?.path.orEmpty())}
     }
-    LaunchedEffect(bitmap,widgetBook,title) {
+    LaunchedEffect(bitmap,widgetBook,title,visible) {
         val loaded=bitmap
-        if(widgetBook && loaded!=null) withContext(Dispatchers.IO) {
+        if(visible && widgetBook && loaded!=null) withContext(Dispatchers.IO) {
             if(PlaybackService.state.value.bookTitle==title) try {
                 AudioBookWidget.saveCoverForWidget(context.applicationContext,title,loaded)
                 AudioBookWidget.refreshAll(context.applicationContext)
@@ -9905,6 +9908,7 @@ private fun AbModernApp(data: AbScreenData, actions: AbActions, sync: LibrarySyn
     androidx.compose.runtime.CompositionLocalProvider(androidx.compose.ui.platform.LocalDensity provides readableDensity,
         LocalAbBookCardContext provides BookCardContext(actions.openRef,actions.downloadEdition,sync.books.value,data.downloadedIndex,data.downloads,data.version),
         LocalAbCoverDataVersion provides data.version,
+        LocalAbVisible provides foreground,
         androidx.compose.material3.LocalTextStyle provides readableTextStyle) {
     Box(Modifier.fillMaxSize().background(theme.background)) {
         AbThemeBackdrop(theme,data.backgroundUri,Modifier.fillMaxSize())

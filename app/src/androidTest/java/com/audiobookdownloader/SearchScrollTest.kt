@@ -70,6 +70,9 @@ class SearchScrollTest {
             compose.onNodeWithText("Тест прокрутки $index").assertIsDisplayed()
         }
         assertTrue("All results were eagerly composed: ${peak.get()}",peak.get()<40)
+        File(context.filesDir,"search-scroll-metrics.json").writeText(org.json.JSONObject()
+            .put("books",rows.size).put("preparationMs",preparedMs).put("peakComposed",peak.get())
+            .put("scrollReturnAppendVerified",true).toString())
         android.util.Log.i("SearchScrollTest","600 results; preparationMs=$preparedMs; peakComposed=${peak.get()}; open/return/append/end/back passed")
         prefs.edit().clear().commit()
         Unit
