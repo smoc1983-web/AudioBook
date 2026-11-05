@@ -11149,7 +11149,9 @@ private fun AbContinuationSettings(theme:AbTheme,onOpen:(BookRef)->Unit) {
     val permission=androidx.activity.compose.rememberLauncherForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.RequestPermission()) {AbContinuationAlerts.deliver(context);revision++}
     val enabled=remember(revision){AbContinuationAlerts.enabled(context)}
-    val notices=remember(revision){store.collectionNotices()}
+    val history=remember(revision){store.collectionNotices()}
+    var showHistory by remember{mutableStateOf(false)}
+    val notices=remember(history,showHistory){if(showHistory)history else abLatestContinuations(history)}
     Text("Уведомлять о новых продолжениях книг из моих коллекций",color=theme.text,fontSize=15.sp)
     AbOptions(listOf("Включено","Выключено"),if(enabled)0 else 1,theme){AbContinuationAlerts.setEnabled(context,it==0)}
     Text("Первая успешная проверка запоминает уже вышедшие книги без уведомлений. Затем приложение проверяет циклы примерно раз в 12 часов при наличии интернета. Android может отложить фоновую проверку.",color=theme.muted,fontSize=12.sp,lineHeight=18.sp)
@@ -11196,15 +11198,28 @@ private fun AbContinuationSettings(theme:AbTheme,onOpen:(BookRef)->Unit) {
         AbOfficialSeriesPanel(referenceTitle,abStoredCatalog(settings,referenceTitle).author,settings,theme)
     }
     AbHeading("Новые продолжения из моих коллекций",theme)
+    Text("По умолчанию показан последний найденный том каждой серии отдельно для текста и аудио.",color=theme.muted,fontSize=12.sp)
+    if(history.size>notices.size||showHistory)AbButton(if(showHistory)"Только последние тома" else "Все найденные тома · ${history.size}",theme){showHistory=!showHistory}
     if(notices.isEmpty())Text("Новых продолжений пока нет",color=theme.muted,fontSize=13.sp)
     notices.forEach {notice ->
         Column(Modifier.fillMaxWidth().abGlass(theme,16).padding(12.dp),verticalArrangement=Arrangement.spacedBy(6.dp)) {
             Text((if(notice.read)"" else "● ")+notice.title,color=theme.text,fontWeight=FontWeight.SemiBold)
-            Text(notice.series+if(notice.format=="text")" · текст" else " · аудио",color=theme.muted,fontSize=12.sp)
+            AbContinuationSummary(notice,theme)
             AbButton(if(SeriesAuthorityRules.work(notice.url))"Открыть на "+SeriesAuthorityRules.provider(notice.url) else "Открыть книгу",theme){AbContinuationAlerts.consume(context,notice.id);if(SeriesAuthorityRules.work(notice.url))context.startActivity(Intent(Intent.ACTION_VIEW,Uri.parse(notice.url))) else onOpen(BookRef(notice.title,notice.url,""))}
         }
     }
-    if(notices.isNotEmpty())AbButton("Очистить список",theme){notices.forEach{AbContinuationAlerts.consume(context,it.id)};store.clearNotices()}
+    if(history.isNotEmpty())AbButton("Очистить список",theme){history.forEach{AbContinuationAlerts.consume(context,it.id)};store.clearNotices()}
+}
+
+@Composable
+internal fun AbContinuationSummary(notice:ContinuationNotice,theme:AbTheme) {
+    val order=abContinuationOrder(notice)
+    val volume=if(order!=null)abVolumeLabel(BookCycle(notice.series,order=order)) else "Порядок томов не указан"
+    Text(notice.series+(if(notice.format=="text")" · текст" else " · аудио")+" · "+volume,color=theme.muted,fontSize=12.sp)
+    val provider=SeriesAuthorityRules.provider(notice.url).ifBlank{bookSiteName(notice.url).takeUnless{it=="Открыть"}.orEmpty()}
+    if(provider.isNotBlank())Text("Источник: "+provider,color=theme.muted,fontSize=11.sp)
+    if(notice.at>0)Text("Найдено: "+java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.SHORT,java.text.DateFormat.SHORT)
+        .format(java.util.Date(notice.at)),color=theme.muted,fontSize=11.sp)
 }
 
 private enum class AbSettingsSection(val label:String,val subtitle:String,val icon:AbIcon) {
@@ -13031,7 +13046,8 @@ internal fun AbOfficialSeriesPanel(title:String,author:String,prefs:android.cont
                 Text("Часть справочников недоступна. Сохранённые сведения доступны; подробности — ниже.",color=theme.muted,fontSize=11.sp)
             if(!compact||details)current.sources.forEach{s->
                 val checked=if(s.checked>0)java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.SHORT,java.text.DateFormat.SHORT).format(java.util.Date(s.checked)) else "успешной сверки ещё нет"
-                Text(s.provider+" · "+checked+if(s.error.isBlank())"" else "\n"+s.error,color=theme.muted,fontSize=11.sp)
+                val attempted=if(s.attempted>0)java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.SHORT,java.text.DateFormat.SHORT).format(java.util.Date(s.attempted)) else "ещё не выполнялась"
+                Text(s.provider+" · успешная сверка: "+checked+"\nПоследняя попытка: "+attempted+if(s.error.isBlank())"" else "\n"+s.error,color=theme.muted,fontSize=11.sp)
             }
             if(current.conflict)Text("Справочники указывают разные прямые серии. Они показаны раздельно; уведомления по противоречивым сведениям не создаются.",color=theme.accent,fontSize=12.sp)
             if(current.orderConflict)Text("Нумерация томов различается или неоднозначна. Книги доступны в каталоге; уведомления по их порядку приостановлены.",color=theme.accent,fontSize=12.sp)

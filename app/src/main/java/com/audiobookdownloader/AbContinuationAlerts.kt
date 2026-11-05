@@ -67,7 +67,7 @@ internal object AbContinuationAlerts {
             preferences.edit().putString("status",message).apply();message
         } catch(error:CancellationException){throw error}
         catch(error:Exception){
-            val message="Не удалось завершить проверку: "+(error.message ?: "ошибка источника").take(180)
+            val message="Не удалось завершить проверку: "+abContinuationFailure(error)
             preferences.edit().putString("status",message).apply();message
         }finally{preferences.edit().putBoolean("running",false).apply()}
     }
@@ -76,10 +76,10 @@ internal object AbContinuationAlerts {
     fun deliver(context:Context) {
         val store=ContinuationStore(context)
         store.retireGlobalLitresNotices()
-        val eligible=if(enabled(context))store.collectionNotices().filter {
+        val eligible=if(enabled(context))abLatestContinuations(store.collectionNotices().filter {
             (it.format!="text"||store.preferences.getBoolean("text_enabled",false)) &&
                 (it.format!="audio"||SeriesAuthorityRules.provider(it.url)!="Литрес"||store.preferences.getBoolean("litres_enabled",false))
-        } else emptyList()
+        }) else emptyList()
         val manager=context.getSystemService(NotificationManager::class.java)
         val currentIds=eligible.map{it.id}.toSet()
         // Tagged id=1 notifications belong to this feature, never to the media player.
@@ -95,7 +95,7 @@ internal object AbContinuationAlerts {
                 .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
             val pending=PendingIntent.getActivity(context,0,intent,PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
             val notification=NotificationCompat.Builder(context,CHANNEL).setSmallIcon(R.drawable.ab_notification_book)
-                .setContentTitle(if(notice.format=="text")"Новый текстовый том: "+notice.series else "Новое продолжение: "+notice.series).setContentText(notice.title)
+                .setContentTitle(if(notice.format=="text")"Новый текстовый том: "+notice.series else "Новое аудиопродолжение: "+notice.series).setContentText(notice.title)
                 .setStyle(NotificationCompat.BigTextStyle().bigText(notice.title+if(notice.author.isBlank())"" else "\n"+notice.author))
                 .setContentIntent(pending).setAutoCancel(true).setOnlyAlertOnce(true).build()
             try {manager.notify(notice.id,1,notification);store.updateNotice(notice.id,notified=true)}catch(_:SecurityException){}

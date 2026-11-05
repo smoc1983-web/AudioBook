@@ -130,18 +130,18 @@ internal class ContinuationScanner(private val context:Context,private val fetch
                         val identity=ContinuationRules.author(author)+"|"+SearchBookIndex.normal(ContinuationRules.seriesName(cycle.title))+"|"+
                             (book.order?.let{"volume:$it"} ?: SearchBookIndex.titleKey(book.title))
                         ContinuationNotice(ContinuationStore.hash(identity),seed.id,book.title,book.url,
-                            ContinuationRules.seriesName(cycle.title),book.author,now)
+                            ContinuationRules.seriesName(cycle.title),book.author,now,order=book.order)
                     }
                     // Persist deterministic inbox entries before the snapshot: a crash cannot lose a new volume.
                     if(notices.isNotEmpty())store.mergeNotices(notices)
                     store.saveAvailable(seed.id,(store.available(seed.id).filter{it.url.isBlank()}+collected.values.map{book->
-                        ContinuationNotice(ContinuationStore.hash(seed.id+"|"+book.url),seed.id,book.title,book.url,cycle.title,book.author,now)}).distinctBy{it.id})
+                        ContinuationNotice(ContinuationStore.hash(seed.id+"|"+book.url),seed.id,book.title,book.url,cycle.title,book.author,now,order=book.order)}).distinctBy{it.id})
                     store.writeState(key,update.state)
                     added+=notices.size;checked++
                 }
             }catch(error:CancellationException){throw error}
             catch(error:ContinuationBudget){errors.add(error.message.orEmpty());cursor=(index+1)%seeds.size;break}
-            catch(error:Exception){errors.add(seed.title+": "+(error.message ?: "Источник недоступен").take(180))}
+            catch(error:Exception){errors.add(seed.title+": "+abContinuationFailure(error))}
             cursor=(index+1)%seeds.size
         }
         store.preferences.edit().putInt("cursor",cursor).putLong("last_check",System.currentTimeMillis())

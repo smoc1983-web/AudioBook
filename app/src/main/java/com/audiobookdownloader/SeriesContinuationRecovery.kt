@@ -62,7 +62,7 @@ internal class SeriesContinuationRecovery(private val context:Context,private va
     val update=ContinuationRules.evaluate(store.readState(key) ?: store.readState(sourceKey),confirmed,expectedAuthor)
     val now=System.currentTimeMillis()
     fun notice(book:ContinuationRules.Book)=ContinuationNotice(ContinuationStore.hash(key+"|"+(book.order?.let{"volume:$it"} ?: SeriesAuthorityRules.title(book.title))),
-        seed.id,book.title,book.url,series,expectedAuthor,now)
+        seed.id,book.title,book.url,series,expectedAuthor,now,order=book.order)
     store.saveAvailable(seed.id,(store.available(seed.id).filter{it.url.isBlank()}+confirmed.map{notice(it)}).distinctBy{it.id})
     if(update.additions.isNotEmpty())store.mergeNotices(update.additions.map{notice(it)})
     store.writeState(key,update.state)

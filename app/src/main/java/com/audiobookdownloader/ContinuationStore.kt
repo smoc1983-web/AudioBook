@@ -8,9 +8,10 @@ import java.security.MessageDigest
 
 internal data class ContinuationSeed(val id:String,val title:String,val url:String)
 internal data class ContinuationNotice(val id:String,val seed:String,val title:String,val url:String,
-    val series:String,val author:String,val at:Long,val read:Boolean=false,val notified:Boolean=false,val format:String="audio") {
+    val series:String,val author:String,val at:Long,val read:Boolean=false,val notified:Boolean=false,val format:String="audio",val order:Double?=null) {
     fun json()=JSONObject().put("id",id).put("seed",seed).put("title",title).put("url",url).put("series",series)
         .put("author",author).put("at",at).put("read",read).put("notified",notified).put("format",format)
+        .apply {order?.takeIf{it.isFinite()&&it>0}?.let{put("order",it)}}
 }
 internal class ContinuationStore(private val context:Context) {
     val preferences=context.getSharedPreferences("continuations_v1",0)
@@ -19,7 +20,7 @@ internal class ContinuationStore(private val context:Context) {
         .flatMap{it.books}.filter{SeriesAuthorityRules.title(it.title) !in preferences.getStringSet("muted_titles",emptySet()).orEmpty()}.map{ContinuationSeed(hash(it.url.ifBlank{SearchBookIndex.normal(it.title)}),it.title,it.url)}.distinctBy{it.id}
     fun available(seed:String?=null):List<ContinuationNotice> = try {
         val a=JSONArray(preferences.getString("available","[]"));(0 until minOf(a.length(),300)).map{a.getJSONObject(it)}
-            .filter{seed==null||it.optString("seed")==seed}.map{j->ContinuationNotice(j.getString("id"),j.getString("seed"),j.getString("title"),j.optString("url"),j.optString("series"),j.optString("author"),j.optLong("at"),format=j.optString("format","audio"))}
+            .filter{seed==null||it.optString("seed")==seed}.map{j->ContinuationNotice(j.getString("id"),j.getString("seed"),j.getString("title"),j.optString("url"),j.optString("series"),j.optString("author"),j.optLong("at"),format=j.optString("format","audio"),order=j.optDouble("order").takeIf{it.isFinite()&&it>0})}
         }catch(_:Exception){emptyList()}
     fun saveAvailable(seed:String,books:List<ContinuationNotice>)=synchronized(inboxLock) {
         val all=(available().filter{it.seed!=seed}+books).takeLast(300)
@@ -46,7 +47,7 @@ internal class ContinuationStore(private val context:Context) {
         (0 until minOf(array.length(),100)).mapNotNull {i -> try {
             val n=array.getJSONObject(i)
             ContinuationNotice(n.getString("id"),n.getString("seed"),n.getString("title"),n.getString("url"),
-                n.getString("series"),n.optString("author"),n.getLong("at"),n.optBoolean("read"),n.optBoolean("notified"),n.optString("format","audio"))
+                n.getString("series"),n.optString("author"),n.getLong("at"),n.optBoolean("read"),n.optBoolean("notified"),n.optString("format","audio"),n.optDouble("order").takeIf{it.isFinite()&&it>0})
         }catch(_:Exception){null}}
     }catch(_:Exception){emptyList()}
     fun collectionNotices():List<ContinuationNotice> {

@@ -115,7 +115,7 @@ internal class OfficialSeriesCatalog(private val context:Context,private val fet
                     currentCoroutineContext().ensureActive()
                     sources[provider]=(sources[provider] ?: OfficialSource(provider)).copy(attempted=now,error="Время ответа справочника истекло; сохранён предыдущий список")
                 }catch(error:CancellationException){throw error}
-                catch(error:Exception){sources[provider]=(sources[provider] ?: OfficialSource(provider)).copy(attempted=now,error=(error.message ?: "Справочник недоступен").take(180))}
+                catch(error:Exception){sources[provider]=(sources[provider] ?: OfficialSource(provider)).copy(attempted=now,error=abContinuationFailure(error))}
                 snapshot=snapshot.copy(sources=listOf("Author.Today","Литрес").mapNotNull{sources[it]})
                 store.save(snapshot,author)
             }
@@ -148,7 +148,7 @@ internal class OfficialSeriesCatalog(private val context:Context,private val fet
             if(!AbContinuationAlerts.enabled(context)||continuations.seeds().none{it.id==seed.id})return
             val now=System.currentTimeMillis()
             continuations.mergeNotices(update.additions.map{b->ContinuationNotice(ContinuationStore.hash(key+"|"+SeriesAuthorityRules.title(b.title)),seed.id,
-                b.title,b.url,name,b.author,now,format=format)})
+                b.title,b.url,name,b.author,now,format=format,order=b.order)})
             continuations.writeState(key,update.state)
         }
     }
