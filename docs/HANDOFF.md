@@ -1,3 +1,15 @@
+# Этапы4–5 проверяются, 2026-11-05
+
+Текущий код58c2e44 в `cloud/recovery-search-editions-20261104`; CI41946517122.
+Читайте docs/BOOKMARKS-2026-11-05.md и docs/PLAYBACK-OPTIONS-2026-11-05.md.
+Этап4 unit448/без ошибок, оба канала Debug/Release/lint успешны41945750654;
+native остановился на Compile Android tests. Подробная диагностика этого шага
+добавлена в58c2e44. Исправления импорта/ProduceState уже учтены; новый индекс
+remember+LaunchedEffect. Этап5 добавлен после локального red/green Java3/3,
+CRAP2–4, Dryer0, mutations13 killed/1 equivalent. Полная проверка ещё идёт.
+Этапы6–10 пока не реализованы. Публикацию не выполнять, main/backup не менять.
+Одобренный ub-mode действует на всю задачу. Ниже — история, не актуальный итог.
+
 # Продолжение 2026-11-05: закладки проверяются, выпуск не опубликован
 
 Работа на `cloud/recovery-search-editions-20261104`, user-approved ub-mode для
