@@ -11319,12 +11319,7 @@ private fun AbSettingsDialog(data: AbScreenData,prefs: android.content.SharedPre
                     else->PlaybackService.setSleepTimer(context,0)
                 }
             }
-            var minutes by androidx.compose.runtime.saveable.rememberSaveable{mutableStateOf("20")}
-            AbTextField(minutes,"Минуты · от 1 до 1440",theme,{minutes=it.filter{c->c.isDigit()}.take(4)},numeric=true)
-            val customSeconds=PlaybackOptions.timerSeconds(minutes)
-            AbButton("Установить таймер",theme,primary=true,enabled=data.playback.hasPlayer&&customSeconds>0) {
-                PlaybackService.setSleepTimer(context,customSeconds)
-            }
+            AbTimerInput(data.playback.hasPlayer,theme){PlaybackService.setSleepTimer(context,it)}
             val previous=prefs.getInt("last_sleep_seconds",1200).coerceIn(1,86400)
             AbButton("Повторить: "+formatSleepTime(previous),theme,enabled=data.playback.hasPlayer) {
                 PlaybackService.setSleepTimer(context,previous)
@@ -15596,4 +15591,13 @@ internal fun AbSpeedControls(speed:Float,fine:Boolean,theme:AbTheme,onSpeed:(Flo
         colors=androidx.compose.material3.SliderDefaults.colors(thumbColor=theme.accent,activeTrackColor=theme.accent,inactiveTrackColor=theme.border))
     val presets=listOf(.75f,1f,1.25f,1.5f,2f,4f)
     AbOptions(presets.map{"$it×"},presets.indexOf(shown),theme){shown=presets[it];onSpeed(shown)}
+}
+
+@Composable
+internal fun AbTimerInput(enabled:Boolean,theme:AbTheme,onTimer:(Int)->Unit) {
+    var minutes by androidx.compose.runtime.saveable.rememberSaveable{mutableStateOf("20")}
+    AbTextField(minutes,"Минуты · от 1 до 1440",theme,{minutes=it.take(16)},numeric=true)
+    val seconds=PlaybackOptions.timerSeconds(minutes)
+    if(minutes.isNotBlank() && seconds==0)Text("Введите целое число от 1 до 1440",color=theme.error,fontSize=12.sp)
+    AbButton("Установить таймер",theme,primary=true,enabled=enabled&&seconds>0){onTimer(seconds)}
 }

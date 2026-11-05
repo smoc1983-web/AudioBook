@@ -23,4 +23,15 @@ class PlaybackOptionsUiTest {
         compose.onNodeWithText("+").assertIsNotEnabled()
         compose.runOnIdle{assertEquals(4f,speed,0f)}
     }
+    @Test fun pastedFractionDoesNotBecomeAnotherDuration() {
+        var seconds=0
+        compose.setContent{AbTimerInput(true,abTheme(2)){seconds=it}}
+        compose.onNode(hasSetTextAction()).performTextReplacement("1.5")
+        compose.onNodeWithText("Установить таймер").assertIsNotEnabled()
+        compose.runOnIdle{assertEquals(0,seconds)}
+        compose.onNode(hasSetTextAction()).performTextReplacement("20")
+        compose.onNodeWithText("Установить таймер").performClick()
+        compose.runOnIdle{assertEquals(1200,seconds)}
+    }
+
 }
