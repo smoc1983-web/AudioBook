@@ -30,3 +30,9 @@ CI41988776548/816974f прошёл оба канала Debug/Release/unit/build/
 480 JVM на канал,0 failures,2 skipped;34 native без отказов. Lint0 Fatal/Error,
 87 Warning,75 Information. Не считать физическим тестом. Kotlin не поддержан Crapper,
 Dryer и Mutator. Релиз и защищённые ветки не менялись.
+
+Дополнительный review5afee8e: generation очереди был ошибочно общим с
+MediaPlayer, поэтому предложение следующего тома делало старые callbacks
+неактуальными. Разделены queueRequest и generation; native сценарий теперь
+повторно запускает завершённую главу перед явным выбором следующего тома.
+Локальные unit/native compile/lint прошли; окончательный native ожидается.
