@@ -10828,7 +10828,7 @@ private fun AbPlayerScreen(data: AbScreenData,actions: AbActions,books: List<Lib
     prefs: android.content.SharedPreferences,theme: AbTheme,
     onSettings:(AbSettingsSection)->Unit,onMenu:(BookRef)->Unit,onShelf:(BookRef)->Unit) {
     val context=androidx.compose.ui.platform.LocalContext.current
-    var editingBookmark by remember {mutableStateOf<Bookmark?>(null)}
+    var editingBookmark by remember {mutableStateOf<Pair<String,Bookmark>?>(null)}
     val state=data.playback
     var tab by androidx.compose.runtime.saveable.rememberSaveable {mutableStateOf(0)}
     var shownDetails by remember(state.bookTitle,tab){mutableStateOf(20)}
@@ -10938,7 +10938,7 @@ private fun AbPlayerScreen(data: AbScreenData,actions: AbActions,books: List<Lib
                             val at=resolveBookmark(mark,state.tracks)
                             if(at>=0){tab=0;PlaybackService.selectChapter(context,at,mark.position)}
                             else Toast.makeText(context,"Глава закладки не найдена в этой озвучке.",Toast.LENGTH_SHORT).show()
-                        },{editingBookmark=mark},{removeBookmark(prefs,state.bookTitle,mark)})
+                        },{editingBookmark=state.bookTitle to mark},{removeBookmark(prefs,state.bookTitle,mark)})
                     }
                 }
                 else->{
@@ -10963,7 +10963,7 @@ private fun AbPlayerScreen(data: AbScreenData,actions: AbActions,books: List<Lib
             AbButton("Ещё записи",theme){shownDetails+=20}
     }
 
-    editingBookmark?.let{mark->AbBookmarkEditor(state.bookTitle,mark,prefs,theme){editingBookmark=null}}
+    editingBookmark?.let{(book,mark)->AbBookmarkEditor(book,mark,prefs,theme){editingBookmark=null}}
 
 }
 
