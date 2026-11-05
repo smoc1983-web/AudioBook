@@ -57,7 +57,8 @@ data class ServicePlaybackState(
     val error: String = "",
     val playbackNote: String = "",
     val shakeListening: Boolean = false,
-    val sleepRestartedAt: Long = 0L
+    val sleepRestartedAt: Long = 0L,
+    val nextBookTitle: String = ""
 ) {
     // A retained book is still selectable after the native player is released.
     val hasSelection:Boolean get()=bookTitle.isNotBlank()&&trackIndex in tracks.indices
@@ -88,6 +89,7 @@ class PlaybackService : Service() {
         const val ACTION_STOP = BuildConfig.APPLICATION_ID + ".STOP"
         const val ACTION_PLAY = BuildConfig.APPLICATION_ID + ".PLAY"
         const val ACTION_PAUSE = BuildConfig.APPLICATION_ID + ".PAUSE"
+        private const val ACTION_NEXT_BOOK = BuildConfig.APPLICATION_ID + ".NEXT_LOCAL_BOOK"
         private const val ACTION_START = BuildConfig.APPLICATION_ID + ".START_PLAYLIST"
         private const val ACTION_SEEK = BuildConfig.APPLICATION_ID + ".SEEK"
         private const val ACTION_SLEEP = BuildConfig.APPLICATION_ID + ".SLEEP"
@@ -192,6 +194,8 @@ class PlaybackService : Service() {
             play(context, current.bookTitle, current.sourceType, current.tracks, index, positionMs)
         }
 
+        fun playNextLocal(context:Context) = command(context,ACTION_NEXT_BOOK)
+
         fun setSleepTimer(context: Context, seconds: Int, chapter: Boolean = false) {
             send(context, Intent(context, PlaybackService::class.java).apply {
                 action = ACTION_SLEEP
@@ -260,6 +264,7 @@ class PlaybackService : Service() {
     private var wakeUnavailable=false
     private var errorMessage = ""
     private var playbackNote = ""
+    private var nextBookTitle = ""
     private var playbackSpeed = 1f
     private var eqAvailable = true
     private var appliedEq: EqSettings? = null
@@ -370,15 +375,7 @@ class PlaybackService : Service() {
             if (stopped) return
             readPosition()
             val now = SystemClock.elapsedRealtime()
-            if (sleepEndAt > 0L && now >= sleepEndAt) {
-                trace("Сработал минутный таймер сна")
-                saveSleepBookmark()
-                setTimer(0, false)
-                resumeAfterFocus = false
-                pausePlayback(reason = "Воспроизведение остановлено таймером сна.")
-                Toast.makeText(this@PlaybackService, "🌙 Таймер сна: воспроизведение остановлено",
-                    Toast.LENGTH_LONG).show()
-            }
+            stopForExpiredTimer(now)
             updateVolume()
             updateShakeListener()
             if (isPlaying && now - lastPersistAt >= 5000L) persistState()
@@ -477,6 +474,7 @@ class PlaybackService : Service() {
             ACTION_PAUSE -> { resumeAfterFocus = false; pausePlayback() }
             ACTION_PREVIOUS -> skip(-1)
             ACTION_NEXT -> skip(1)
+            ACTION_NEXT_BOOK -> if(nextBookTitle.isNotBlank())advanceQueue(preferredTitle=nextBookTitle)
             ACTION_REWIND -> { readPosition(); seekPlayback(positionMs.toLong() - 30_000L) }
             ACTION_FORWARD -> { readPosition(); seekPlayback(positionMs.toLong() + 30_000L) }
             ACTION_SEEK -> seekPlayback(intent.getLongExtra(EXTRA_POSITION, 0L))
@@ -556,6 +554,7 @@ class PlaybackService : Service() {
 
     private fun startTrack(index: Int, startPosition: Int, autoPlay: Boolean = true, refreshed: Boolean = false) {
         val item = playlist.getOrNull(index) ?: return
+        nextBookTitle = ""
         if (sleepChapterTarget.isNotEmpty() && sleepChapterTarget != "$sourceType|$bookTitle|$index") {
             sleepChapterTarget = ""
         }
@@ -765,7 +764,7 @@ class PlaybackService : Service() {
         val current = trackIndex.coerceIn(0, playlist.lastIndex)
         if (delta < 0) startTrack(if (positionMs > 3000 || current == 0) current else current - 1, 0)
         else if (current < playlist.lastIndex) startTrack(current + 1, 0)
-        else { setTimer(0, false); pausePlayback(); advanceQueue() }
+        else { setTimer(0, false); pausePlayback(); playWhenReady=true; advanceQueue() }
     }
 
     private fun completeTrack() {
@@ -776,6 +775,7 @@ class PlaybackService : Service() {
             playbackPrefs.getInt(bookTotalKey(bookTitle),0),EditionDownloadRules.isPreview(bookTitle,playlist.map{it.src})))
             StableProgress.completed(playbackPrefs,bookTitle,playlist)
         persistState()
+        if(stopForExpiredTimer(SystemClock.elapsedRealtime()))return
         if (sleepChapterTarget == chapterKey()) {
             trace("Сработал таймер до конца главы")
             saveSleepBookmark()
@@ -786,37 +786,66 @@ class PlaybackService : Service() {
             playbackNote="Таймер сна: конец главы."
             publish()
             Toast.makeText(this, "🌙 Таймер сна: глава завершена", Toast.LENGTH_LONG).show()
+        } else if (!playWhenReady) {
+            pausePlayback()
         } else if (trackIndex < playlist.lastIndex) {
             startTrack(trackIndex + 1, 0)
         } else {
-            pausePlayback(reason="Книга закончилась.")
+            playbackNote="Книга закончилась."
             advanceQueue()
         }
     }
 
-    private fun advanceQueue() {
+    private fun stopForExpiredTimer(now:Long):Boolean {
+        if(sleepEndAt<=0L||now<sleepEndAt)return false
+        trace("Сработал минутный таймер сна")
+        saveSleepBookmark()
+        setTimer(0,false)
+        resumeAfterFocus=false
+        pausePlayback(reason="Воспроизведение остановлено таймером сна.")
+        Toast.makeText(this,"🌙 Таймер сна: воспроизведение остановлено",Toast.LENGTH_LONG).show()
+        return true
+    }
+
+    private fun advanceQueue(preferredTitle:String?=null) {
         val completedBook = bookTitle
-        val token = generation
-        playWhenReady = true
+        val token = ++generation
+        if(preferredTitle!=null)playWhenReady=true
         isLoading = true
         publish()
         queueWorker.execute {
-            val books = scanLibrary(this)
+            val result=runCatching {
+                val books=scanLibrary(this)
+                val busy=AbPersistentDownloads.entries(this).filter{it.state=="queued"||it.state=="active"}
+                    .map{AbLibraryHousekeeping.bookKey(it.book)}.toSet()
+                val volumes=books.map {book ->
+                    val metadata=abStoredCatalog(playbackPrefs,book.title)
+                    LocalVolume(book,metadata,playbackPrefs.getInt(bookTotalKey(book.title),0),
+                        AbLibraryHousekeeping.bookKey(book.title) in busy,AbSourceAvailability.isPreview(playbackPrefs,metadata))
+                }
+                books to abNextLocalVolume(abStoredCatalog(playbackPrefs,completedBook),volumes)
+            }
             handler.post {
                 if (stopped || token != generation) return@post
-                val queue = loadQueue(playbackPrefs).filter { it != completedBook }
-                val nextBook = queue.asSequence().mapNotNull { title ->
-                    books.firstOrNull { it.title == title && it.files.isNotEmpty() }
-                }.firstOrNull()
-                saveQueue(playbackPrefs, queue.filter { it != nextBook?.title })
                 isLoading = false
-                if (nextBook == null) {
-                    playWhenReady=false
-                    persistState()
-                    setTimer(0, false)
-                    publish()
+                if(result.isFailure) {
+                    pausePlayback(reason="Не удалось проверить скачанные книги. Откройте библиотеку и повторите попытку.")
                     return@post
                 }
+                val (books,localNext)=result.getOrThrow()
+                nextBookTitle=localNext?.title.orEmpty()
+                if(stopForExpiredTimer(SystemClock.elapsedRealtime()))return@post
+                if(!abMayAdvance(playWhenReady,sleepEndAt,SystemClock.elapsedRealtime())) {publish();return@post}
+                val queue = loadQueue(playbackPrefs).filter { it != completedBook }
+                val nextBook = if(preferredTitle!=null)localNext?.takeIf{it.title==preferredTitle}
+                    else queue.asSequence().mapNotNull { title ->
+                    books.firstOrNull { it.title == title && it.files.isNotEmpty() }
+                }.firstOrNull()
+                if (nextBook == null) {
+                    pausePlayback(reason=if(localNext!=null)"Следующий том уже на устройстве. Нажмите кнопку ниже." else "Книга закончилась.")
+                    return@post
+                }
+                saveQueue(playbackPrefs, queue.filter { it != nextBook.title })
                 bookTitle = nextBook.title
                 sourceType = "local"
                 playlist = StableProgress.localTracks(playbackPrefs,bookTitle,nextBook.files)
@@ -1019,6 +1048,7 @@ class PlaybackService : Service() {
         trace("Остановка сервиса: "+reason)
         readPosition()
         playWhenReady=false
+        nextBookTitle=""
         persistState()
         playbackNote=reason
         resumeAfterFocus = false
@@ -1086,7 +1116,7 @@ class PlaybackService : Service() {
         mutableState.value = ServicePlaybackState(bookTitle, sourceType, playlist, trackIndex,
             positionMs, durationMs, isPlaying, isLoading, mediaPlayer != null || isLoading,
             playbackSpeed, eqAvailable, remainingSleepSeconds(), sleepChapterTarget, errorMessage, playbackNote,
-            shakeListening=shakeRegistered, sleepRestartedAt=sleepRestartedAt)
+            shakeListening=shakeRegistered, sleepRestartedAt=sleepRestartedAt,nextBookTitle=nextBookTitle)
         if(wasActive && !isPlaying && !isLoading)AbLibraryHousekeeping.request(applicationContext)
         AbGlassWidgets.publish(applicationContext,mutableState.value)
         if (refreshNotification && !stopped) {

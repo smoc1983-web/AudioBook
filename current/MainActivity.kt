@@ -10907,6 +10907,9 @@ private fun AbPlayerScreen(data: AbScreenData,actions: AbActions,books: List<Lib
                     }
                 }
                 if(state.error.isNotBlank())Text(state.error,color=theme.error,fontSize=12.sp,maxLines=2)
+                if(state.nextBookTitle.isNotBlank())AbButton("Следующий том · "+state.nextBookTitle,theme,primary=true) {
+                    PlaybackService.playNextLocal(context)
+                }
                 if(state.playbackNote.isNotBlank())Text(state.playbackNote,color=theme.accent,fontSize=11.sp,maxLines=2)
                 Spacer(Modifier.height(4.dp))
             }
@@ -12983,7 +12986,7 @@ private fun AbSeriesBlock(cycles: List<BookCycle>,theme: AbTheme,actions: AbActi
 }
 
 @Composable
-internal fun AbOfficialSeriesPanel(title:String,author:String,prefs:android.content.SharedPreferences,theme:AbTheme,compact:Boolean=false) {
+internal fun AbOfficialSeriesPanel(title:String,author:String,prefs:android.content.SharedPreferences,theme:AbTheme,compact:Boolean=false,autoRefresh:Boolean=true) {
     val context=androidx.compose.ui.platform.LocalContext.current.applicationContext
     val store=remember(context){OfficialSeriesStore(context)}
     var revision by remember{mutableStateOf(0)}
@@ -13005,7 +13008,8 @@ internal fun AbOfficialSeriesPanel(title:String,author:String,prefs:android.cont
     LaunchedEffect(title,author,revision) {
         snapshot=withContext(Dispatchers.IO){store.read(title,author)}
     }
-    LaunchedEffect(title,author,refresh) {
+    LaunchedEffect(title,author,refresh,autoRefresh) {
+        if(!autoRefresh&&refresh==0)return@LaunchedEffect
         running=true;failure=""
         try{OfficialSeriesCatalog(context).refresh(title,author,force=refresh>0)}
         catch(error:kotlinx.coroutines.CancellationException){throw error}
@@ -13086,12 +13090,6 @@ private fun AbPlayerSeries(metadata:BookLink,ref:BookRef,books:List<LibraryBook>
         continuationStore.preferences.registerOnSharedPreferenceChangeListener(listener)
         onDispose{continuationStore.preferences.unregisterOnSharedPreferenceChangeListener(listener)}}
     var retry by remember(metadata.title){mutableStateOf(0)}
-    val progress=SeriesAuthorityWatcher(listOf(metadata),prefs,retry)
-    if(progress.isNotBlank())Text(progress,color=theme.muted,fontSize=12.sp)
-    AbSeriesBlock(metadata.cycles,theme,actions)
-    if(metadata.cycles.isEmpty()&&progress.isBlank())Text("Серия пока не подтверждена. Выполните сверку справочников или посмотрите книги с похожим названием ниже.",color=theme.muted,fontSize=12.sp)
-    AbOfficialSeriesPanel(metadata.title,metadata.author,prefs,theme)
-    AbButton("Обновить сведения аудиоисточника",theme){retry++}
     val nameCandidates=LocalSeriesRules.siblings(metadata.title,books.map{it.title})
     val confirmed=metadata.cycles.firstOrNull{it.referenceUrl.isNotBlank()}
     val local=books.filter{book->val entry=abStoredCatalog(prefs,book.title)
@@ -13103,6 +13101,12 @@ private fun AbPlayerSeries(metadata:BookLink,ref:BookRef,books:List<LibraryBook>
         Text("Совпадения по названиям файлов показаны отдельно от подтверждённых сведений справочников.",color=theme.muted,fontSize=11.sp)
         local.forEach{book->AbButton(book.title+" · на устройстве",theme){actions.openRef(bookRefFor(prefs,book.title))}}
     }
+    val progress=if(local.any{it.title!=metadata.title}&&retry==0)"" else SeriesAuthorityWatcher(listOf(metadata),prefs,retry)
+    if(progress.isNotBlank())Text(progress,color=theme.muted,fontSize=12.sp)
+    AbSeriesBlock(metadata.cycles,theme,actions)
+    if(metadata.cycles.isEmpty()&&progress.isBlank())Text("Серия пока не подтверждена. Выполните сверку справочников или посмотрите книги с похожим названием выше.",color=theme.muted,fontSize=12.sp)
+    AbOfficialSeriesPanel(metadata.title,metadata.author,prefs,theme,autoRefresh=local.none{it.title!=metadata.title})
+    AbButton("Обновить сведения аудиоисточника",theme){retry++}
     val available=remember(continuationRevision,metadata.title){val seedIds=continuationStore.seeds().filter{SeriesAuthorityRules.title(it.title)==SeriesAuthorityRules.title(ref.title)}.map{it.id}.toSet()
         continuationStore.available().filter{it.seed in seedIds&&it.url.isNotBlank()}.distinctBy{it.url}}
     if(available.isNotEmpty()){AbHeading("Книги серии в источнике",theme);available.forEach{item->AbButton(item.title,theme){actions.openRef(BookRef(item.title,item.url,""))}}}
