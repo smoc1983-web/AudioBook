@@ -43,3 +43,7 @@ JSON и Jsoup; `bash docs/quality/chapter-refresh-tests.sh` под Java17.
     в958aa9d; локальные8 тестов проходят. Runtime Kotlin/Java и lint не потребовали
     изменения; lint по-прежнему0 Fatal/Error. Полная повторная проверка обоих
     каналов41885930067 запущена. Не считать её прошедшей без проверки результата.
+
+12. Повтор41885930067/958aa9d успешен: оба канала Debug/Release, unit/lint;
+    Preview14 Android-тестов, без отказов;440 JVM-запусков,0 отказов,2 пропуска.
+    Lint0 Fatal/Error,86 Warning и74 Information. Физического теста нет.
