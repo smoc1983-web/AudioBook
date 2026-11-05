@@ -1,0 +1,17 @@
+{
+  "versionName": "4.2.94",
+  "versionCode": 100094,
+  "tag": "preview-v100094",
+  "releaseId": 434996201,
+  "source": "608b36663b4f1c01232bb27acbdc72f3c4d237d7",
+  "packageName": "com.audiobookdownloader.preview",
+  "sha256": "610ec601573f63d5ee2fb037ecfe21a7a26efc2c28fc697cb14f37bf56fe3fa7",
+  "size": 33135759,
+  "certificateSha256": "3a4cecd14bb3e983843871766909c3f07b3dc64379800f3e270e4a27d39affb7",
+  "published": true,
+  "ownerAuthorized": true,
+  "anonymousProductionProbePassed": true,
+  "v1v2SignatureVerified": true,
+  "physicalDeviceInstalled": false,
+  "mainUnchanged": true
+}
