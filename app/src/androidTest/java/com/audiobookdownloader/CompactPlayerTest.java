@@ -96,7 +96,7 @@ public class CompactPlayerTest {
                 for(String label:new String[]{"Главы","Закладки","Очередь","Таймер","Скорость"})control(By.text(label));
                 control(By.desc("Позиция воспроизведения в главе"));control(By.textContains("До конца книги:"));
                 click(By.desc("Продолжения серии"));control(By.text("Серия книги"));click(By.desc("Закрыть"));
-                click(By.text("Закладки"));control(By.text("Закладки книги"));click(By.text("Добавить закладку"));assertFalse(MainActivityKt.loadBookmarks(prefs,"Проверка нового плеера").isEmpty());click(By.desc("Закрыть"));
+                click(By.text("Закладки"));control(By.text("Закладки книги"));click(By.text("Добавить закладку"));assertFalse(BookmarkStoreKt.loadBookmarks(prefs,"Проверка нового плеера").isEmpty());click(By.desc("Закрыть"));
                 if(!device.wait(Until.gone(By.text("Закладки книги")),5000))throw unavailable(By.text("Закладки книги"));
                 if(skin==1)light=color;else if(skin==10)dark=color;
             }
