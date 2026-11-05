@@ -10,8 +10,6 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     timeout-minutes: 35
-    env:
-      GITHUB_RUN_NUMBER: '94'
     steps:
       - uses: actions/checkout@v4
         with:
@@ -59,11 +57,11 @@ jobs:
           assert max(codes)==100093,'Version94 no longer available'
           PYCODE
       - name: Build signed Release94 and verify version-specific tests and lint
-        run: gradle :app:testReleaseUnitTest :app:assembleRelease :app:lintRelease --stacktrace
+        run: GITHUB_RUN_NUMBER=94 gradle :app:testReleaseUnitTest :app:assembleRelease :app:lintRelease --stacktrace
       - name: Prepare exact APK and manifest
         env:
           GH_TOKEN: ${{ github.token }}
-        run: python3 scripts/preview-release.py
+        run: GITHUB_RUN_NUMBER=94 python3 scripts/preview-release.py
       - name: Publish approved release after signature and asset digest verification
         env:
           GH_TOKEN: ${{ github.token }}
