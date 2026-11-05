@@ -76,7 +76,6 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -10497,8 +10496,9 @@ private fun AbLibraryScreen(data: AbScreenData,actions: AbActions,sync: LibraryS
     val all=remember(localRefs,favorites,recent,prefs,data.version) {
         (localRefs+favorites+loadShelves(prefs).flatMap{it.books}+recent).distinctBy{it.title}
     }
-    val bookmarkRows by produceState(initialValue=emptyList<Pair<String,Bookmark>>(),tab,bookmarkVersion,all) {
-        value=if(tab==6) kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO){allBookmarks(prefs,all.map{it.title})} else emptyList()
+    var bookmarkRows by remember(prefs){mutableStateOf(emptyList<Pair<String,Bookmark>>())}
+    LaunchedEffect(tab,bookmarkVersion,all) {
+        bookmarkRows=if(tab==6) kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO){allBookmarks(prefs,all.map{it.title})} else emptyList()
     }
     val visibleBookmarks=bookmarkRows.filter{(book,mark)->listOf(book,mark.label,mark.note,mark.trackTitle).any{it.contains(filter,true)}}
     val byTitle=remember(books) {books.associateBy{safeFileName(it.title).lowercase()}}

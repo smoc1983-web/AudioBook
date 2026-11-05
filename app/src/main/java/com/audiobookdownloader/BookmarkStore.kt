@@ -14,9 +14,9 @@ private fun legacyBookmarksKey(bookTitle:String)="bookmarks_"+safeFileName(bookT
 fun loadBookmarks(prefs:SharedPreferences,bookTitle:String):List<Bookmark> {
     if(bookTitle.isBlank())return emptyList()
     // An explicitly saved empty v2 list must never resurrect the legacy records.
-    val saved=prefs.getString(bookmarksKey(bookTitle),null)
-        ?: prefs.getString(legacyBookmarksKey(bookTitle),"[]") ?: "[]"
     return try {
+        val saved=prefs.getString(bookmarksKey(bookTitle),null)
+            ?: prefs.getString(legacyBookmarksKey(bookTitle),"[]") ?: "[]"
         val rows=JSONArray(saved)
         (0 until rows.length()).mapNotNull {index->
             val row=rows.optJSONObject(index) ?: return@mapNotNull null
