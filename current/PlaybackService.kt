@@ -259,6 +259,7 @@ class PlaybackService : Service() {
     private var playWhenReady = false
     private var restorePlayWhenReady = false
     private var generation = 0L
+    private var queueRequest = 0L
     private var stopped = false
     private var playbackWakeLock:android.os.PowerManager.WakeLock?=null
     private var wakeUnavailable=false
@@ -809,7 +810,8 @@ class PlaybackService : Service() {
 
     private fun advanceQueue(preferredTitle:String?=null) {
         val completedBook = bookTitle
-        val token = ++generation
+        val token = generation
+        val request = ++queueRequest
         if(preferredTitle!=null)playWhenReady=true
         isLoading = true
         publish()
@@ -826,7 +828,7 @@ class PlaybackService : Service() {
                 books to abNextLocalVolume(abStoredCatalog(playbackPrefs,completedBook),volumes)
             }
             handler.post {
-                if (stopped || token != generation) return@post
+                if (stopped || token != generation || request != queueRequest) return@post
                 isLoading = false
                 if(result.isFailure) {
                     pausePlayback(reason="Не удалось проверить скачанные книги. Откройте библиотеку и повторите попытку.")

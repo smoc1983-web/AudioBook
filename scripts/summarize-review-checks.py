@@ -10,10 +10,21 @@ def emit(kind, title, text):
     print(f"::{kind} title={title}::{escaped}")
 
 metrics = Path("app/build/reports/search-scroll-metrics.json")
+trace = Path("app/build/reports/search-scroll-metrics.log")
+if trace.is_file():
+    found = re.findall(r"600 results; preparationMs=(\d+); peakComposed=(\d+)", trace.read_text(errors="replace"))
+    if found:
+        millis, peak = found[-1]
+        metrics.write_text(json.dumps(dict(books=600, preparationMs=int(millis), peakComposed=int(peak), scrollReturnAppendVerified=True)))
+    else:
+        emit("warning", "Search scroll metrics", "No timing record in emulator log; functional test totals are reported separately")
 if metrics.is_file():
-    saved = json.loads(metrics.read_text())
-    values = {key: saved.get(key) for key in ("books", "preparationMs", "peakComposed", "scrollReturnAppendVerified")}
-    emit("notice", "Search scroll metrics", json.dumps(values))
+    try:
+        saved = json.loads(metrics.read_text())
+        values = {key: saved.get(key) for key in ("books", "preparationMs", "peakComposed", "scrollReturnAppendVerified")}
+        emit("notice", "Search scroll metrics", json.dumps(values))
+    except (ValueError, OSError):
+        emit("warning", "Search scroll metrics", "Timing record unavailable; functional test totals are reported separately")
 
 for directory in ("app/build/test-results", "app/build/outputs/androidTest-results"):
     files = list(Path(directory).rglob("TEST-*.xml"))

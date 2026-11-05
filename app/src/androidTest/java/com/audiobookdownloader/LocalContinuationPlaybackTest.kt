@@ -62,6 +62,11 @@ class LocalContinuationPlaybackTest {
         val offered=awaitState{it.bookTitle==first&&it.nextBookTitle==next&&!it.isLoading}
         assertFalse("An offer must not start sound",offered.isPlaying)
         assertTrue(loadQueue(prefs).isEmpty())
+        // Offering a next book must not invalidate the retained player's seek/completion callbacks.
+        PlaybackService.seek(context,0)
+        PlaybackService.command(context,PlaybackService.ACTION_PLAY)
+        awaitState{it.bookTitle==first&&it.isPlaying}
+        awaitState{it.bookTitle==first&&it.nextBookTitle==next&&!it.isPlaying&&!it.isLoading}
         PlaybackService.playNextLocal(context)
         val started=awaitState{it.bookTitle==next&&it.isPlaying}
         assertEquals("local",started.sourceType)
