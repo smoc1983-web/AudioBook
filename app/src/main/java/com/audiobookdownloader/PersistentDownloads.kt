@@ -12,9 +12,10 @@ import java.util.concurrent.TimeUnit
 /** Durable intent is separate from Android jobs: process death never loses pending chapters. */
 internal data class QueuedChapter(val key:String,val book:String,val title:String,val src:String,
     val duration:Int=0,val job:Long=0,val state:String="queued",val bytes:Long=0,val total:Long=-1,
-    val error:String="",val editionUrl:String="") {
+    val error:String="",val editionUrl:String="",val initialSrc:String=src,val refreshAttempts:Int=0) {
     fun json()=JSONObject().put("key",key).put("book",book).put("title",title).put("src",src)
         .put("duration",duration).put("job",job).put("state",state).put("bytes",bytes).put("total",total).put("error",error).put("editionUrl",editionUrl)
+        .apply {if(initialSrc!=src)put("initialSrc",initialSrc);if(refreshAttempts>0)put("refreshAttempts",refreshAttempts)}
 }
 internal object AbPersistentDownloads {
     private val lock=Any()
@@ -35,13 +36,13 @@ internal object AbPersistentDownloads {
     internal fun decode(raw:String):List<QueuedChapter> {
         val a=try{JSONArray(raw)}catch(_:Exception){JSONArray()}
         return (0 until minOf(a.length(),6000)).mapNotNull {i->try{a.optJSONObject(i)?.let {o->
-            val row=QueuedChapter(o.getString("key"),o.getString("book"),o.getString("title"),o.getString("src"),o.optInt("duration"),o.optLong("job"),o.optString("state","queued"),o.optLong("bytes"),o.optLong("total",-1),o.optString("error"),o.optString("editionUrl"))
-            row.takeIf{(it.key==legacyKey(it.book,it.title)||it.key==key(it.book,it.title,it.src,it.editionUrl))&&isNetworkAudio(it.src)&&it.state in listOf("queued","active","complete","error","cancelled")}
-                ?.let{it.copy(key=key(it.book,it.title,it.src,it.editionUrl))}
+            val row=QueuedChapter(o.getString("key"),o.getString("book"),o.getString("title"),o.getString("src"),o.optInt("duration"),o.optLong("job"),o.optString("state","queued"),o.optLong("bytes"),o.optLong("total",-1),o.optString("error"),o.optString("editionUrl"),o.optString("initialSrc",o.getString("src")),o.optInt("refreshAttempts"))
+            row.takeIf{(it.key==legacyKey(it.book,it.title)||it.key==key(it.book,it.title,it.initialSrc,it.editionUrl))&&isNetworkAudio(it.src)&&isNetworkAudio(it.initialSrc)&&it.refreshAttempts in 0..1&&(it.src==it.initialSrc||ChapterRefreshRules.sameResource(it.initialSrc,it.src))&&it.state in listOf("queued","active","complete","error","cancelled")}
+                ?.let{it.copy(key=key(it.book,it.title,it.initialSrc,it.editionUrl))}
         }}catch(_:Exception){null}}
     }
     private fun write(c:Context,rows:List<QueuedChapter>,maxBytes:Int=8*1024*1024) {
-        require(rows.sumOf{it.key.length.toLong()+it.book.length+it.title.length+it.src.length+it.error.length+it.editionUrl.length}<4L*1024*1024){"Очередь заполнена. Уберите завершённые загрузки из списка."}
+        require(rows.sumOf{it.key.length.toLong()+it.book.length+it.title.length+it.src.length+it.error.length+it.editionUrl.length+(if(it.initialSrc!=it.src)it.initialSrc.length else 0)}<4L*1024*1024){"Очередь заполнена. Уберите завершённые загрузки из списка."}
         val encoded=JSONArray().apply{rows.forEach{put(it.json())}}.toString()
         require(encoded.toByteArray(Charsets.UTF_8).size<=maxBytes){"Очередь заполнена. Уберите завершённые загрузки из списка."}
         val p=prefs(c);val previous=p.getString("entries","[]")
