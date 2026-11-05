@@ -1,0 +1,93 @@
+name: Publish owner-approved Audiobook 4.2.94
+on:
+  push:
+    branches: ['cloud/publish94-20261105']
+    paths: ['.github/workflows/publish-approved94.yml', 'scripts/publish-approved94.py', 'app/src/main/assets/release-notes.json']
+permissions:
+  contents: write
+  actions: read
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      GITHUB_RUN_NUMBER: '94'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Android SDK
+        run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;35.0.0"'
+      - uses: actions/cache/restore@v4
+        with:
+          path: ${{ runner.temp }}/audiobook-preview-signing
+          key: audiobook-preview-signing-v1
+      - name: Restore existing Preview signer only, never create a key
+        env:
+          ORIGINAL_KEY: ${{ secrets.AUDIOBOOK_PREVIEW_KEYSTORE_BASE64 }}
+        run: |
+          python3 - <<'PY'
+          import os,base64,pathlib
+          path=pathlib.Path(os.environ['RUNNER_TEMP'])/'audiobook-preview-signing/preview.keystore'
+          if os.environ.get('ORIGINAL_KEY'):
+              path.parent.mkdir(parents=True,exist_ok=True)
+              path.write_bytes(base64.b64decode(os.environ['ORIGINAL_KEY'],validate=True))
+              path.chmod(0o600)
+          if not path.is_file(): raise SystemExit('Original signing key unavailable; refusing to generate a replacement')
+          with open(os.environ['GITHUB_ENV'],'a') as out: out.write('PREVIEW_KEYSTORE='+str(path)+'\n')
+          PY
+      - name: Require verified source and an unused increasing tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PYCODE'
+          import json,subprocess,re
+          run=json.loads(subprocess.check_output(['gh','api','repos/smoc1983-web/AudioBook/actions/runs/41997033226'],text=True))
+          assert run['conclusion']=='success' and run['head_sha']=='5afee8e733d96e2fde36ed967588c553e225c46c'
+          subprocess.run(['git','fetch','--depth=1','origin',run['head_sha']],check=True)
+          changed=subprocess.check_output(['git','diff','--name-only',run['head_sha'],'HEAD','--','current','app','tools'],text=True).splitlines()
+          assert changed==['app/src/main/assets/release-notes.json'],changed
+          refs=subprocess.check_output(['git','ls-remote','--tags','origin'],text=True)
+          codes=[int(m[1]) for m in re.finditer(r'refs/tags/preview-v([1-9][0-9]*)$',refs,re.M)]
+          assert max(codes)==100093,'Version94 no longer available'
+          PYCODE
+      - name: Build signed Release94 and verify version-specific tests and lint
+        run: gradle :app:testReleaseUnitTest :app:assembleRelease :app:lintRelease --stacktrace
+      - name: Prepare exact APK and manifest
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/preview-release.py
+      - name: Publish approved release after signature and asset digest verification
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/publish-approved94.py
+      - name: Verify public anonymous discovery and full APK using production Java
+        run: |
+          python3 - <<'PYCODE'
+          import pathlib,subprocess,os
+          cache=pathlib.Path.home()/'.gradle/caches/modules-2/files-2.1'
+          jars=[next((cache/group).rglob(name)) for group,name in [('org.json/json/20240303','json-20240303.jar'),('org.jsoup/jsoup/1.23.2','jsoup-1.23.2.jar')]]
+          cp=os.pathsep.join(map(str,jars));classes=pathlib.Path('probe-classes');classes.mkdir()
+          config=next(pathlib.Path('app/build/generated/source/buildConfig/release').rglob('BuildConfig.java'))
+          sources=[config]+[pathlib.Path('app/src/main/java/com/audiobookdownloader')/name for name in ['PreviewUpdateRules.java','PreviewUpdateHttp.java','GitHubReleaseCatalog.java']]+[pathlib.Path('tools/github-update-probe/GithubUpdateProbe.java')]
+          subprocess.run(['javac','-cp',cp,'-d',str(classes)]+list(map(str,sources)),check=True)
+          subprocess.run(['java','-cp',str(classes)+os.pathsep+cp,'com.audiobookdownloader.GithubUpdateProbe','public94','preview-v100094'],check=True)
+          assert pathlib.Path('public94/Audiobook-Preview.apk').read_bytes()==pathlib.Path('dist/Audiobook-Preview.apk').read_bytes()
+          PYCODE
+      - name: Preserve installable APK and verification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: approved-4.2.94-apk-and-proof
+          path: |
+            dist/
+            public94/public-github-check.json
+            app/build/test-results/
+            app/build/reports/
