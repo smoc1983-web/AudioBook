@@ -22,7 +22,7 @@ notes=root/'release-notes.md'
 notes.write_text('Audiobook 4.2.94\n\n'+'\n'.join('• '+line for line in meta['changes'])+'\n\nОбновление поверх прежней Preview: пакет и подпись сохранены. Удалять приложение не нужно.\n')
 gh('release','create',TAG,'--repo',REPO,'--target',source,'--draft','--prerelease','--title','Audiobook 4.2.94 — поиск, загрузки и продолжения','--notes-file',str(notes))
 for file in (apk,metadata):gh('release','upload',TAG,str(file),'--repo',REPO)
-release=api(f'repos/{REPO}/releases/tags/{TAG}')
+release=next(r for r in api(f'repos/{REPO}/releases?per_page=100') if r['tag_name']==TAG)
 files={file.name:file for file in (apk,metadata)}
 assert release['draft'] and release['target_commitish']==source
 assert {a['name'] for a in release['assets']}==set(files)
