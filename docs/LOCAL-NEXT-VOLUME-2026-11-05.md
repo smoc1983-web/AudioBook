@@ -26,6 +26,7 @@ TDD: заглушки дали 4 ожидаемых отказа из 5 тест
 AndroidTest и lint прошли. Новые native тесты используют настоящий сервис,
 WAV и SAF-провайдер: предложение/явный запуск, очередь, таймер до конца главы.
 Первый compile нового harness исправлен: Kotlin use вместо синтаксиса Java try.
-CI41988776548/816974f ещё проверяется; Stable завершился успешно, Preview пока
-выполняет native. Не считать физическим тестом. Kotlin не поддержан Crapper,
+CI41988776548/816974f прошёл оба канала Debug/Release/unit/build/lint:
+480 JVM на канал,0 failures,2 skipped;34 native без отказов. Lint0 Fatal/Error,
+87 Warning,75 Information. Не считать физическим тестом. Kotlin не поддержан Crapper,
 Dryer и Mutator. Релиз и защищённые ветки не менялись.
