@@ -11536,10 +11536,9 @@ internal fun abDownloadEdition(ref:BookRef,root:JSONObject,url:String):AbDownloa
 internal fun AbEditionDownloadControls(edition:AbDownloadEdition,index:DownloadedChapterIndex,
     activeChapters:Set<String>,theme:AbTheme,onDownload:(BookRef,List<AudioTrack>)->Unit) {
     var chooseChapters by remember(edition.ref){mutableStateOf(false)}
-    var chapterLimit by remember(edition.ref){mutableStateOf(8)}
-    val editionPrefs=androidx.compose.ui.platform.LocalContext.current.getSharedPreferences("audiobook_downloader",0)
     val remaining=edition.tracks.count{!isTrackDownloaded(it,edition.ref.title,index)}
     val active=edition.tracks.any{it.title in activeChapters}
+    val segmented=edition.tracks.any{EditionDownloadRules.isSegmented(it.src)}
     Text("Доступно глав: ${edition.tracks.size}",color=theme.text,fontSize=13.sp)
     AbBookSize(edition.ref.title,edition.tracks,null,edition.ref.url,theme,"Размер доступного аудио")
     if(edition.preview)Text("Ознакомительный фрагмент. Скачивание отключено.",color=theme.error,fontSize=12.sp)
@@ -11547,28 +11546,43 @@ internal fun AbEditionDownloadControls(edition:AbDownloadEdition,index:Downloade
         color=theme.muted,fontSize=11.sp)
     AbButton(when {
         edition.preview->"Фрагмент · скачивание недоступно"
+        segmented->"Поток HLS/DASH · скачивание недоступно"
         active->"Загружается…"
         remaining==0->"Скачана"
         remaining<edition.tracks.size->"Дозагрузить глав: $remaining"
         else->"Скачать"
-    },theme,enabled=!edition.preview&&!active&&remaining>0) {
+    },theme,enabled=!edition.preview&&!segmented&&!active&&remaining>0) {
         onDownload(edition.ref,edition.tracks)
     }
     if(!edition.preview)AbButton(if(chooseChapters)"Скрыть выбор глав" else "Скачать отдельные главы",theme){chooseChapters=!chooseChapters}
-    if(chooseChapters&&!edition.preview) {
+    if(chooseChapters&&!edition.preview)AbEditionChapterControls(edition,index,activeChapters,theme,onDownload)
+}
+
+@Composable
+private fun AbEditionChapterControls(edition:AbDownloadEdition,index:DownloadedChapterIndex,
+    activeChapters:Set<String>,theme:AbTheme,onDownload:(BookRef,List<AudioTrack>)->Unit) {
+    var chapterLimit by remember(edition.ref){mutableStateOf(8)}
+    val editionPrefs=androidx.compose.ui.platform.LocalContext.current.getSharedPreferences("audiobook_downloader",0)
         edition.tracks.take(chapterLimit).forEachIndexed{i,track ->
             val saved=isTrackDownloaded(track,edition.ref.title,index)
             val working=track.title in activeChapters
-            AbButton("${i+1}. ${track.title} · "+if(saved)"На устройстве" else if(working)"В очереди" else "Скачать главу",theme,enabled=!saved&&!working) {
+            val segmented=EditionDownloadRules.isSegmented(track.src)
+            AbButton("${i+1}. ${track.title} · "+if(saved)"На устройстве" else if(working)"В очереди" else if(segmented)"Поток HLS/DASH" else "Скачать главу",theme,enabled=!saved&&!working&&!segmented) {
                 StableProgress.observe(editionPrefs,edition.ref.title,edition.tracks,true)
                 onDownload(edition.ref,listOf(track))
             }
         }
         if(chapterLimit<edition.tracks.size)AbButton("Ещё главы",theme){chapterLimit+=8}
-    }
 }
 
 private data class AbCollectionEdition(val ref:BookRef,val edition:AbDownloadEdition?=null,val error:String="")
+
+private fun abCollectionCanDownload(entry:AbCollectionEdition,index:DownloadedChapterIndex):Boolean {
+    val edition=entry.edition ?: return false
+    return !edition.preview && !AbBookDeletion.busy(edition.ref.title) &&
+        edition.tracks.none{EditionDownloadRules.isSegmented(it.src)} &&
+        edition.tracks.any{!isTrackDownloaded(it,edition.ref.title,index)}
+}
 
 /** One metadata reader and one book at a time; closing stops future submissions, not accepted downloads. */
 @Composable
@@ -11576,19 +11590,26 @@ internal fun AbCollectionDownloads(refs:List<BookRef>,index:DownloadedChapterInd
     theme:AbTheme,onDownload:(BookRef,List<AudioTrack>)->Unit,dismiss:()->Unit,
     reader:@Composable (BookRef,(AbDownloadEdition?,String)->Unit)->Unit={ref,done->AbReadDownloadEdition(ref,done)},
     onBatch:(suspend (List<AbDownloadEdition>)->Unit)?=null) {
+    val context=androidx.compose.ui.platform.LocalContext.current
+    val knownSizes by AbAudioSizes.state.collectAsState()
+    var freeBytes by remember{mutableStateOf<Long?>(null)}
+    LaunchedEffect(context) {
+        freeBytes=withContext(Dispatchers.IO){try{android.os.StatFs(libraryRoot().parentFile?.absolutePath ?: libraryRoot().absolutePath).availableBytes}catch(_:Exception){null}}
+    }
     val books=remember(refs){refs.distinctBy{AbLibraryHousekeeping.bookKey(it.title)}}
+    var selected by remember(books){mutableStateOf(emptySet<Int>())}
+    var selectionOnly by remember(books){mutableStateOf(false)}
+    var expandedBook by remember(books){mutableStateOf<Int?>(null)}
     var entries by remember(books){mutableStateOf(books.map{AbCollectionEdition(it)})}
     var readIndex by remember(books){mutableStateOf(0)}
     var started by remember(books){mutableStateOf(false)}
     var finished by remember(books){mutableStateOf(false)}
     var messages by remember(books){mutableStateOf(emptyMap<Int,String>())}
-    var activeIndex by remember(books){mutableStateOf(-1)}
     var detailsPage by remember(books){mutableStateOf(0)}
-    val currentDownloads by androidx.compose.runtime.rememberUpdatedState(downloads)
     val currentIndex by androidx.compose.runtime.rememberUpdatedState(index)
     val submit by androidx.compose.runtime.rememberUpdatedState(onDownload)
     val current=entries.getOrNull(readIndex)
-    if(current!=null) {
+    if(current!=null && !started) {
         if(supportedBookUrl(current.ref.url)==null && OpenAudioCatalog.fromPage(current.ref.url)==null) {
             LaunchedEffect(readIndex) {
                 entries=entries.toMutableList().also{it[readIndex]=current.copy(error="Нет ссылки на издание")};readIndex++
@@ -11605,13 +11626,14 @@ internal fun AbCollectionDownloads(refs:List<BookRef>,index:DownloadedChapterInd
     }
     LaunchedEffect(started) {
         if(!started)return@LaunchedEffect
-        val pending=entries.mapNotNull{it.edition}.filter{edition->!edition.preview&&
-            !AbBookDeletion.busy(edition.ref.title)&&edition.tracks.any{!isTrackDownloaded(it,edition.ref.title,currentIndex)}}
+        val pendingIndices=entries.indices.filter{(!selectionOnly||it in selected)&&abCollectionCanDownload(entries[it],currentIndex)}
+        val pending=pendingIndices.mapNotNull{entries[it].edition}
         try {
             if(onBatch!=null)onBatch(pending) else pending.forEach{submit(it.ref,it.tracks)}
             messages=entries.mapIndexed{i,entry->i to when {
+                selectionOnly && i !in selected->"Не выбрана"
                 entry.edition?.preview==true->"Фрагмент пропущен"
-                pending.any{it.ref.title==entry.ref.title}->"Добавлена в постоянную очередь"
+                i in pendingIndices->"Добавлена в постоянную очередь"
                 entry.edition!=null->"Уже на устройстве или недоступна для загрузки"
                 else->entry.error
             }}.toMap()
@@ -11624,8 +11646,16 @@ internal fun AbCollectionDownloads(refs:List<BookRef>,index:DownloadedChapterInd
             color=theme.muted,fontSize=13.sp)
         Text("Полнота изданий источниками не подтверждена. Перед загрузкой проверьте число глав и известный размер.",
             color=theme.muted,fontSize=12.sp)
-        if(readIndex<entries.size)Text("Проверяем издания: ${readIndex+1} из ${entries.size}",color=theme.accent,fontSize=13.sp)
+        if(!started&&readIndex<entries.size)Text("Проверяем издания: ${readIndex+1} из ${entries.size}",color=theme.accent,fontSize=13.sp)
         Text("Книг: ${entries.size}. Проверено изданий: $readIndex",color=theme.muted,fontSize=12.sp)
+        val estimateTracks=entries.withIndex().filter{(selected.isEmpty()||it.index in selected)&&abCollectionCanDownload(it.value,index)}
+            .flatMap{it.value.edition?.tracks.orEmpty().filter{track->!isTrackDownloaded(track,it.value.ref.title,index)}}
+        val sizes=estimateTracks.mapNotNull{knownSizes[it.src]?.takeIf{size->size>0}}
+        val minimum=sizes.fold(0L){sum,size->if(Long.MAX_VALUE-sum<size)Long.MAX_VALUE else sum+size}
+        Text(if(estimateTracks.isEmpty())if(readIndex<entries.size&&!started)"Объём пакета уточняется" else "Для пакетной загрузки новых файлов нет" else if(sizes.isEmpty())"Объём загрузки пока неизвестен" else
+            "Известный объём: ${formatFileSize(minimum)} · ${sizes.size} из ${estimateTracks.size} нескачанных глав",
+            color=theme.muted,fontSize=12.sp)
+        freeBytes?.let{Text("Свободно для загрузок: "+formatFileSize(it),color=theme.muted,fontSize=12.sp)}
         if(entries.size>5)Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
             Box(Modifier.weight(1f)){AbButton("Назад",theme,enabled=detailsPage>0){detailsPage--}}
             Box(Modifier.weight(1f)){AbButton("Далее",theme,enabled=(detailsPage+1)*5<entries.size){detailsPage++}}
@@ -11633,22 +11663,36 @@ internal fun AbCollectionDownloads(refs:List<BookRef>,index:DownloadedChapterInd
         entries.drop(detailsPage*5).take(5).forEachIndexed {offset,entry ->
             val i=detailsPage*5+offset
             Column(Modifier.fillMaxWidth().abGlass(theme,14).padding(12.dp),verticalArrangement=Arrangement.spacedBy(6.dp)) {
-                Text(entry.ref.title,color=theme.text,fontSize=15.sp,fontWeight=FontWeight.SemiBold)
+                val eligible=abCollectionCanDownload(entry,index)
+                Row(verticalAlignment=Alignment.CenterVertically) {
+                    androidx.compose.material3.Checkbox(checked=i in selected,onCheckedChange={checked->
+                        selected=if(checked)selected+i else selected-i
+                    },enabled=eligible&&!started,modifier=Modifier.semantics{contentDescription="Выбрать книгу: "+entry.ref.title},
+                        colors=androidx.compose.material3.CheckboxDefaults.colors(checkedColor=theme.accent,uncheckedColor=theme.border,checkmarkColor=theme.background))
+                    Text(entry.ref.title,color=theme.text,fontSize=15.sp,fontWeight=FontWeight.SemiBold,modifier=Modifier.weight(1f))
+                }
                 val edition=entry.edition
                 if(edition!=null) {
                     Text("Доступно глав: ${edition.tracks.size}",color=theme.muted,fontSize=12.sp)
                     // Metadata is sequential. Size probes retain the existing bounded three-request limit.
                     AbBookSize(entry.ref.title,edition.tracks,null,edition.ref.url,theme,"Размер доступного аудио")
-                    Text(if(edition.preview) "Ознакомительный фрагмент — пропущен" else messages[i] ?:
+                    Text(if(edition.preview) "Ознакомительный фрагмент — пропущен" else if(edition.tracks.any{EditionDownloadRules.isSegmented(it.src)}) "Поток HLS/DASH: доступно только онлайн" else messages[i] ?:
                         if(edition.tracks.all{isTrackDownloaded(it,entry.ref.title,index)}) "Уже скачана" else "Готова к скачиванию",
-                        color=if(edition.preview)theme.error else if(i==activeIndex)theme.accent else theme.muted,fontSize=12.sp)
-                } else Text(entry.error.ifBlank{"Ожидает проверки"},color=theme.muted,fontSize=12.sp)
+                        color=if(edition.preview)theme.error else theme.muted,fontSize=12.sp)
+                    if(!edition.preview&&!started) {
+                        AbButton(if(expandedBook==i)"Скрыть главы" else "Отдельные главы",theme){expandedBook=if(expandedBook==i)null else i}
+                        if(expandedBook==i)AbEditionChapterControls(edition,index,
+                            downloads.filter{it.book==edition.ref.title&&it.state==TrackState.DOWNLOADING}.map{it.track.title}.toSet(),theme,onDownload)
+                    }
+                } else Text(messages[i] ?: entry.error.ifBlank{if(started)"Не проверялась" else "Ожидает проверки"},color=theme.muted,fontSize=12.sp)
             }
         }
-        val available=entries.any{entry->entry.edition?.let{edition ->!edition.preview &&
-            edition.tracks.any{!isTrackDownloaded(it,entry.ref.title,index)}}==true}
+        val available=entries.any{abCollectionCanDownload(it,index)}
+        val selectedCount=entries.indices.count{it in selected && abCollectionCanDownload(entries[it],index)}
+        if(selected.isNotEmpty())AbButton("Скачать выбранные: $selectedCount",theme,
+            enabled=selectedCount>0&&!started){selectionOnly=true;started=true}
         AbButton(if(finished) "Книги добавлены в очередь" else if(started) "Загрузка по очереди…" else "Скачать доступные книги",theme,
-            primary=true,enabled=readIndex==entries.size && available && !started) {started=true}
+            primary=true,enabled=readIndex==entries.size && available && !started) {selectionOnly=false;started=true}
         AbButton("Закрыть",theme,onClick=dismiss)
         if(started)Text("Принятые задания сохраняются после закрытия. Пауза, отмена и повтор доступны в разделе загрузок.",
             color=theme.muted,fontSize=11.sp)

@@ -59,4 +59,31 @@ class CollectionDownloadTest {
             downloads=listOf(downloads.single().copy(state=TrackState.DOWNLOADED))}
         compose.waitForIdle();assertEquals(listOf(a.title,b.title),calls)
     }
+    @Test(timeout=30000) fun downloadsOnlySelectedBookAndKeepsWholeCollectionButton() {
+        val a=ref("ChooseFirst");val b=ref("ChooseSecond")
+        var read=0;val calls=mutableListOf<String>()
+        listOf(a,b).forEach{AbAudioSizes.remember(edition(it).tracks.single().src,1000)}
+        val before=PlaybackService.state.value
+        compose.setContent{AbCollectionDownloads(listOf(a,b),DownloadedChapterIndex.EMPTY,emptyList(),abTheme(2),
+            {book,_->calls.add(book.title)}, {}, reader={book,done->LaunchedEffect(book){read++;done(edition(book),"")}})}
+        compose.waitUntil(5000){read==2}
+        compose.onNodeWithText("Скачать доступные книги").performScrollTo().assertIsEnabled()
+        compose.onNodeWithContentDescription("Выбрать книгу: "+b.title).performScrollTo().performClick()
+        compose.onNodeWithText("Скачать выбранные: 1").performScrollTo().performClick()
+        compose.waitUntil(5000){calls.size==1}
+        compose.runOnIdle{assertEquals(listOf(b.title),calls);assertEquals(before,PlaybackService.state.value)}
+    }
+    @Test(timeout=30000) fun chapterButtonQueuesExactlyOneFileWithoutOpeningPlayer() {
+        val a=ref("OneChapter");var read=false;val calls=mutableListOf<List<AudioTrack>>()
+        val tracks=listOf(AudioTrack("Глава 1",60,"http://127.0.0.1:1/one.mp3"),AudioTrack("Глава 2",60,"http://127.0.0.1:1/two.mp3"))
+        tracks.forEach{AbAudioSizes.remember(it.src,1000)}
+        val before=PlaybackService.state.value
+        compose.setContent{AbCollectionDownloads(listOf(a),DownloadedChapterIndex.EMPTY,emptyList(),abTheme(2),
+            {_,selected->calls.add(selected)}, {}, reader={book,done->LaunchedEffect(book){read=true;done(AbDownloadEdition(book,tracks,false),"")}})}
+        compose.waitUntil(5000){read}
+        compose.onNodeWithText("Отдельные главы").performScrollTo().performClick()
+        compose.onNodeWithText("2. Глава 2 · Скачать главу").performScrollTo().performClick()
+        compose.runOnIdle{assertEquals(listOf(listOf(tracks[1])),calls);assertEquals(before,PlaybackService.state.value)}
+    }
+
 }
