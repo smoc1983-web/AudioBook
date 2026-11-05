@@ -14,6 +14,8 @@ public class ChapterRefreshRulesTest {
         assertTrue(ChapterRefreshRules.sameResource("https://cdn.example.org/a.mp3","https://CDN.EXAMPLE.ORG/a.mp3?md5=new&expires=123"));
         assertTrue(ChapterRefreshRules.sameResource("https://cdn.example.org/a.mp3?","https://cdn.example.org/a.mp3"));
         assertFalse(ChapterRefreshRules.sameResource("https://cdn.example.org/a.mp3?id=1&id=2&sig=old","https://cdn.example.org/a.mp3?id=2&id=1&sig=new"));
+        // Unknown query arguments stay opaque; renewal must not normalize them away.
+        assertFalse(ChapterRefreshRules.sameResource("https://cdn.example.org/a.mp3?id=2&","https://cdn.example.org/a.mp3?id=2"));
     }
     @Test public void reorderedChaptersDoNotTransferPositionToAnotherChapter() {
         assertEquals(-1,ChapterRefreshRules.match("",Arrays.asList("")));
