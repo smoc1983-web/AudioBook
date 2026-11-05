@@ -11563,16 +11563,16 @@ private fun AbEditionChapterControls(edition:AbDownloadEdition,index:DownloadedC
     activeChapters:Set<String>,theme:AbTheme,onDownload:(BookRef,List<AudioTrack>)->Unit) {
     var chapterLimit by remember(edition.ref){mutableStateOf(8)}
     val editionPrefs=androidx.compose.ui.platform.LocalContext.current.getSharedPreferences("audiobook_downloader",0)
-        edition.tracks.take(chapterLimit).forEachIndexed{i,track ->
-            val saved=isTrackDownloaded(track,edition.ref.title,index)
-            val working=track.title in activeChapters
-            val segmented=EditionDownloadRules.isSegmented(track.src)
-            AbButton("${i+1}. ${track.title} · "+if(saved)"На устройстве" else if(working)"В очереди" else if(segmented)"Поток HLS/DASH" else "Скачать главу",theme,enabled=!saved&&!working&&!segmented) {
-                StableProgress.observe(editionPrefs,edition.ref.title,edition.tracks,true)
-                onDownload(edition.ref,listOf(track))
-            }
+    edition.tracks.take(chapterLimit).forEachIndexed{i,track ->
+        val saved=isTrackDownloaded(track,edition.ref.title,index)
+        val working=track.title in activeChapters
+        val segmented=EditionDownloadRules.isSegmented(track.src)
+        AbButton("${i+1}. ${track.title} · "+if(saved)"На устройстве" else if(working)"В очереди" else if(segmented)"Поток HLS/DASH" else "Скачать главу",theme,enabled=!saved&&!working&&!segmented) {
+            StableProgress.observe(editionPrefs,edition.ref.title,edition.tracks,true)
+            onDownload(edition.ref,listOf(track))
         }
-        if(chapterLimit<edition.tracks.size)AbButton("Ещё главы",theme){chapterLimit+=8}
+    }
+    if(chapterLimit<edition.tracks.size)AbButton("Ещё главы",theme){chapterLimit+=8}
 }
 
 private data class AbCollectionEdition(val ref:BookRef,val edition:AbDownloadEdition?=null,val error:String="")
