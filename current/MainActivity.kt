@@ -10480,6 +10480,14 @@ private fun AbLibraryScreen(data: AbScreenData,actions: AbActions,sync: LibraryS
     var sort by androidx.compose.runtime.saveable.rememberSaveable {mutableStateOf(0)}
     val context=androidx.compose.ui.platform.LocalContext.current
     var editingBookmark by remember {mutableStateOf<Pair<String,Bookmark>?>(null)}
+    var bookmarkVersion by remember(prefs){mutableStateOf(0)}
+    DisposableEffect(prefs) {
+        val listener=android.content.SharedPreferences.OnSharedPreferenceChangeListener {_,key->
+            if(key==null || key.startsWith("bookmarks_"))bookmarkVersion++
+        }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        onDispose{prefs.unregisterOnSharedPreferenceChangeListener(listener)}
+    }
     val books=sync.books.value
     val favorites=remember(prefs,data.version) {loadBookRefs(prefs,FAVORITES_KEY)}
     val recent=remember(prefs,data.version) {getListeningHistory(prefs).map{bookRefFor(prefs,it)}}
@@ -10488,7 +10496,7 @@ private fun AbLibraryScreen(data: AbScreenData,actions: AbActions,sync: LibraryS
     val all=remember(localRefs,favorites,recent,prefs,data.version) {
         (localRefs+favorites+loadShelves(prefs).flatMap{it.books}+recent).distinctBy{it.title}
     }
-    val bookmarkRows by produceState(initialValue=emptyList<Pair<String,Bookmark>>(),tab,data.version,all) {
+    val bookmarkRows by produceState(initialValue=emptyList<Pair<String,Bookmark>>(),tab,bookmarkVersion,all) {
         value=if(tab==6) kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO){allBookmarks(prefs,all.map{it.title})} else emptyList()
     }
     val visibleBookmarks=bookmarkRows.filter{(book,mark)->listOf(book,mark.label,mark.note,mark.trackTitle).any{it.contains(filter,true)}}
