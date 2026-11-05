@@ -11689,10 +11689,10 @@ internal fun AbCollectionDownloads(refs:List<BookRef>,index:DownloadedChapterInd
         }
         val available=entries.any{abCollectionCanDownload(it,index)}
         val selectedCount=entries.indices.count{it in selected && abCollectionCanDownload(entries[it],index)}
-        if(selected.isNotEmpty())AbButton("Скачать выбранные: $selectedCount",theme,
+        if(selected.isNotEmpty())AbButton("Скачать выбранные: $selectedCount",theme,primary=true,
             enabled=selectedCount>0&&!started){selectionOnly=true;started=true}
-        AbButton(if(finished) "Книги добавлены в очередь" else if(started) "Загрузка по очереди…" else "Скачать доступные книги",theme,
-            primary=true,enabled=readIndex==entries.size && available && !started) {selectionOnly=false;started=true}
+        AbButton(if(finished) "Книги добавлены в очередь" else if(started) "Загрузка по очереди…" else "Скачать всю коллекцию",theme,
+            primary=selected.isEmpty(),enabled=readIndex==entries.size && available && !started) {selectionOnly=false;started=true}
         AbButton("Закрыть",theme,onClick=dismiss)
         if(started)Text("Принятые задания сохраняются после закрытия. Пауза, отмена и повтор доступны в разделе загрузок.",
             color=theme.muted,fontSize=11.sp)

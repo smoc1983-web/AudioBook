@@ -2,6 +2,7 @@ __pycache__/
 *.py[cod]
 java-build/
 .gradle/
+.kotlin/
 build/
 node_modules/
 local.properties

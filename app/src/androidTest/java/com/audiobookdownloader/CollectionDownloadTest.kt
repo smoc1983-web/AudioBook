@@ -37,7 +37,7 @@ class CollectionDownloadTest {
             }})
         }
         compose.waitUntil(5000){readers.size==4}
-        compose.onNodeWithText("Скачать доступные книги").performScrollTo().performClick()
+        compose.onNodeWithText("Скачать всю коллекцию").performScrollTo().performClick()
         compose.waitUntil(10000){calls.size==2 && downloads.singleOrNull()?.state==TrackState.DOWNLOADED}
         compose.onNodeWithText("Книги добавлены в очередь").performScrollTo().assertIsNotEnabled()
         assertEquals(listOf(a.title,b.title),calls)
@@ -52,7 +52,7 @@ class CollectionDownloadTest {
             calls.add(book.title);downloads=listOf(AbDownloadItem(tracks.single(),book.title,TrackState.DOWNLOADING,""))
         },{show=false},reader={book,done -> LaunchedEffect(book){read++;done(edition(book),"")}})}
         compose.waitUntil(5000){read==2}
-        compose.onNodeWithText("Скачать доступные книги").performScrollTo().performClick()
+        compose.onNodeWithText("Скачать всю коллекцию").performScrollTo().performClick()
         compose.waitUntil(5000){calls.size==2}
         compose.onNodeWithText("Закрыть").performScrollTo().performClick()
         compose.runOnIdle {assertFalse(show);assertEquals(TrackState.DOWNLOADING,downloads.single().state)
@@ -67,7 +67,7 @@ class CollectionDownloadTest {
         compose.setContent{AbCollectionDownloads(listOf(a,b),DownloadedChapterIndex.EMPTY,emptyList(),abTheme(2),
             {book,_->calls.add(book.title)}, {}, reader={book,done->LaunchedEffect(book){read++;done(edition(book),"")}})}
         compose.waitUntil(5000){read==2}
-        compose.onNodeWithText("Скачать доступные книги").performScrollTo().assertIsEnabled()
+        compose.onNodeWithText("Скачать всю коллекцию").performScrollTo().assertIsEnabled()
         compose.onNodeWithContentDescription("Выбрать книгу: "+b.title).performScrollTo().performClick()
         compose.onNodeWithText("Скачать выбранные: 1").performScrollTo().performClick()
         compose.waitUntil(5000){calls.size==1}

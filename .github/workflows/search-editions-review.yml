@@ -81,7 +81,7 @@ jobs:
           arch: x86_64
           profile: pixel_6
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -memory 2048 -cores 2
-          script: gradle :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.audiobookdownloader.SearchEditionsTest,com.audiobookdownloader.SearchCollectionLayoutTest,com.audiobookdownloader.SearchScrollTest,com.audiobookdownloader.BookmarkUiTest,com.audiobookdownloader.PlaybackOptionsUiTest,com.audiobookdownloader.CompactPlayerTest,com.audiobookdownloader.CollectionDownloadTest,com.audiobookdownloader.EditionDownloadTest --stacktrace
+          script: gradle :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.audiobookdownloader.SearchEditionsTest,com.audiobookdownloader.SearchCollectionLayoutTest,com.audiobookdownloader.SearchScrollTest,com.audiobookdownloader.BookmarkUiTest,com.audiobookdownloader.PlaybackOptionsUiTest,com.audiobookdownloader.CompactPlayerTest,com.audiobookdownloader.CollectionDownloadTest,com.audiobookdownloader.EditionDownloadTest,com.audiobookdownloader.DownloadRetryTest,com.audiobookdownloader.LibraryExperienceTest#realAndroidDownloadSurvivesQueueReloadAndCancelPreservesFinishedFile,com.audiobookdownloader.BookDeletionTest#cancelsOnlyTheDownloadWhoseSavedIdentityMatches --stacktrace
       - name: Test and lint summaries in GitHub annotations
         if: always()
         run: python3 scripts/summarize-review-checks.py

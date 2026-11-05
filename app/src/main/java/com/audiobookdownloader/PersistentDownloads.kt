@@ -19,6 +19,7 @@ internal data class QueuedChapter(val key:String,val book:String,val title:Strin
 }
 internal object AbPersistentDownloads {
     private val lock=Any()
+    private val pumpLock=kotlinx.coroutines.sync.Mutex()
     private var cachedRaw:String?=null
     private var cachedRows:List<QueuedChapter> = emptyList()
     private fun prefs(c:Context)=c.getSharedPreferences("audiobook_download_queue_v1",0)
@@ -61,8 +62,12 @@ internal object AbPersistentDownloads {
             require(book.isNotBlank()&&book.length<=512&&tracks.size<=3000&&edition.ref.url.length<=8192)
             for(t in tracks) {
                 require(isNetworkAudio(t.src)&&t.src.length<=8192&&t.title.isNotBlank()&&t.title.length<=512)
-                val id=key(book,t.title,t.src,edition.ref.url);val at=rows.indexOfFirst{it.key==id};val row=QueuedChapter(id,book,t.title,t.src,t.duration,editionUrl=edition.ref.url)
-                if(at<0)rows.add(row) else if(rows[at].state in listOf("error","cancelled","complete"))rows[at]=row
+                val id=key(book,t.title,t.src,edition.ref.url)
+                val at=rows.indexOfFirst{it.key==id || it.book==book&&it.title==t.title&&it.src==t.src&&it.editionUrl==edition.ref.url}
+                val previous=rows.getOrNull(at)
+                val row=previous?.copy(duration=t.duration,state="queued",error="",refreshAttempts=0)
+                    ?: QueuedChapter(id,book,t.title,t.src,t.duration,editionUrl=edition.ref.url)
+                if(at<0)rows.add(row) else if(rows[at].state in listOf("queued","error","cancelled","complete"))rows[at]=row
             }
         }
         require(rows.size<=6000){"Очередь заполнена. Очистите завершённые загрузки."}
@@ -77,7 +82,7 @@ internal object AbPersistentDownloads {
     }
     fun clearCompleted(c:Context)=synchronized(lock){write(c,entries(c).filter{it.state !in listOf("complete","cancelled")})}
     fun retry(c:Context,book:String)=synchronized(lock) {
-        write(c,entries(c).map{if(it.book==book&&it.state=="error")it.copy(job=0,state="queued",error="") else it});schedule(c)
+        write(c,entries(c).map{if(it.book==book&&it.state=="error")it.copy(state="queued",error="",refreshAttempts=0) else it});schedule(c)
     }
     fun cancelBook(c:Context,book:String)=cancel(c,book,null)
     fun cancelChapter(c:Context,book:String,title:String)=synchronized(lock){
@@ -128,15 +133,66 @@ internal object AbPersistentDownloads {
             found
         }
     }
-    suspend fun pump(c:Context):Boolean {
+    private fun removeOwnedFailedJob(c:Context,dm:DownloadManager,row:QueuedChapter):Boolean {
+        if(row.job<=0 || prefs(c).getString("destination_owner_"+ChapterIdentity.hash(destination(row)),null)!=row.key)return false
+        val failed=dm.query(DownloadManager.Query().setFilterById(row.job))?.use{q->
+            q.moveToFirst() && q.getInt(q.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS))==DownloadManager.STATUS_FAILED &&
+                q.getInt(q.getColumnIndexOrThrow(DownloadManager.COLUMN_REASON)) in 400..599 &&
+                q.getString(q.getColumnIndexOrThrow(DownloadManager.COLUMN_URI))==row.src &&
+                q.getString(q.getColumnIndexOrThrow(DownloadManager.COLUMN_TITLE))==row.book+" - "+row.title
+        }==true
+        if(!failed)return false
+        // DownloadManager removes only its own failed job/partial file, never a successful job.
+        if(dm.remove(row.job)<=0)return false
+        main(c).edit().remove("download_job_"+row.job).apply()
+        return true
+    }
+    private suspend fun refreshExpired(c:Context,dm:DownloadManager,row:QueuedChapter,reason:Int):Boolean {
+        val policy=ContinuationPolicy(AB_EXTRA_SOURCE_JSON)
+        if(!abCanRefreshDownload(row,reason,policy))return false
+        if(prefs(c).getString("destination_owner_"+ChapterIdentity.hash(destination(row)),null)!=row.key)return false
+        val epoch=AbBookDeletion.generation(row.book)
+        var accepted=false
+        update(c,row.key){current->
+            if(current.job==row.job&&current.src==row.src&&current.state=="active"&&current.refreshAttempts==0) {
+                accepted=true;current.copy(refreshAttempts=1,error="Обновляем ссылку на главу…")
+            } else current
+        }
+        if(!accepted)return true
+        val renewed=abRefreshDownloadLink(row,reason,policy,ContinuationHttp(policy,
+            "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/130.0 Mobile Safari/537.36"))
+        currentCoroutineContext().ensureActive()
+        AbBookDeletion.storageLock(row.book).withLock {
+            synchronized(lock) {
+                val current=entries(c).firstOrNull{it.key==row.key}
+                if(current?.state!="active"||current.job!=row.job||current.src!=row.src||
+                    AbBookDeletion.busy(row.book)||AbBookDeletion.generation(row.book)!=epoch)return@synchronized
+                if(renewed==null)update(c,row.key){it.copy(state="error",error="Не удалось обновить ссылку на главу. Откройте книгу на источнике и повторите загрузку.")}
+                else if(removeOwnedFailedJob(c,dm,current))update(c,row.key){it.copy(src=renewed,job=0,state="queued",bytes=0,total=-1,error="")}
+                // If Android changed the job meanwhile, the next poll handles its actual status.
+            }
+        }
+        return true
+    }
+    suspend fun pump(c:Context):Boolean=pumpLock.withLock{pumpOnce(c)}
+    private suspend fun pumpOnce(c:Context):Boolean {
         val dm=c.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
         val active=entries(c).filter{it.state=="active"&&it.job>0}
         var finished=false
         for(row in active) {
-            val sample=dm.query(DownloadManager.Query().setFilterById(row.job))?.use {q->if(!q.moveToFirst())null else Triple(
-                q.getInt(q.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS)),
-                q.getLong(q.getColumnIndexOrThrow(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR)),
-                q.getLong(q.getColumnIndexOrThrow(DownloadManager.COLUMN_TOTAL_SIZE_BYTES)))}
+            var reason=0
+            var source:String?=null
+            var title:String?=null
+            val sample=dm.query(DownloadManager.Query().setFilterById(row.job))?.use {q->if(!q.moveToFirst())null else {
+                reason=q.getInt(q.getColumnIndexOrThrow(DownloadManager.COLUMN_REASON))
+                source=q.getString(q.getColumnIndexOrThrow(DownloadManager.COLUMN_URI))
+                title=q.getString(q.getColumnIndexOrThrow(DownloadManager.COLUMN_TITLE))
+                Triple(q.getInt(q.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS)),
+                    q.getLong(q.getColumnIndexOrThrow(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR)),
+                    q.getLong(q.getColumnIndexOrThrow(DownloadManager.COLUMN_TOTAL_SIZE_BYTES)))
+            }}
+            if(sample?.first==DownloadManager.STATUS_FAILED && source==row.src && title==row.book+" - "+row.title &&
+                refreshExpired(c,dm,row,reason))continue
             update(c,row.key){current->if(current.job!=row.job||current.state!="active")current else when(sample?.first) {
                 DownloadManager.STATUS_SUCCESSFUL->{finished=true;current.copy(state="complete",bytes=sample.second,total=sample.third,error="")}
                 DownloadManager.STATUS_FAILED,null->current.copy(state="error",error="Android не завершил загрузку. Можно повторить.")
@@ -148,6 +204,14 @@ internal object AbPersistentDownloads {
         val available=(3-entries(c).count{it.state=="active"}).coerceAtLeast(0)
         val pending=entries(c).filter{it.state=="queued"&&!paused(c,it.book)}.take(available)
         if(pending.isNotEmpty()) {
+            // Explicit retry retains the old job until its own HTTP-failed partial can be cleaned on IO.
+            for(row in pending.filter{it.job>0})AbBookDeletion.storageLock(row.book).withLock {
+                synchronized(lock) {
+                    val current=entries(c).firstOrNull{it.key==row.key}
+                    if(current?.state=="queued"&&current.job==row.job&&!AbBookDeletion.busy(row.book)&&removeOwnedFailedJob(c,dm,current))
+                        update(c,row.key){it.copy(job=0,bytes=0,total=-1)}
+                }
+            }
             val library=scanLibrary(c)
             val index=DownloadedChapterIndex.fromLibrary(library)
             for(row in pending)AbBookDeletion.storageLock(row.book).withLock {
@@ -158,9 +222,15 @@ internal object AbPersistentDownloads {
                     val ownership="destination_owner_"+ChapterIdentity.hash(destination(row))
                     val owner=prefs(c).getString(ownership,null)
                     val exists=index.contains(row.book,row.title)
+                    val adopted=pendingAndroidJob(dm,row)
+                    val jobClaimed=adopted!=null && entries(c).any{it.key!=row.key&&it.job==adopted}
                     val colliding=entries(c).any{it.key!=row.key && destination(it)==destination(row) && (it.state=="active" || it.state=="complete" && exists)}
-                    if(colliding || owner!=null && owner!=row.key && exists) {
+                    if(colliding || jobClaimed || owner!=null && owner!=row.key && (exists||adopted!=null)) {
                         update(c,row.key){it.copy(state="error",error="Другое издание использует тот же файл. Прежняя глава сохранена; выберите отдельную папку или удалите прежнее издание.")}
+                    } else if(adopted!=null) {
+                        check(prefs(c).edit().putString(ownership,row.key).putString("destination_source_"+ChapterIdentity.hash(destination(row)),row.src).commit())
+                        main(c).edit().putString("download_job_"+adopted,row.title+"|||"+row.book+"|||"+row.src).commit()
+                        update(c,row.key){it.copy(job=adopted,state="active",error="")}
                     } else if(exists) {
                         // Legacy files have no provable source: do not label another edition complete.
                         if(owner==row.key)update(c,row.key){it.copy(state="complete")}
@@ -176,10 +246,10 @@ internal object AbPersistentDownloads {
                             }
                             main(c).edit().putString(localKey,row.editionUrl).commit()
                         }
-                        val id=pendingAndroidJob(dm,row)?:downloadTrack(c,track,row.book,index)
+                        val id=downloadTrack(c,track,row.book,index)
                         if(id!=null) {
                             main(c).edit().putString("download_job_"+id,row.title+"|||"+row.book+"|||"+row.src).commit()
-                            update(c,row.key){it.copy(job=id,state="active",error="")}
+                            update(c,row.key){it.copy(job=id,state="active",bytes=0,total=-1,error="")}
                         } else update(c,row.key){it.copy(state="error",error="Не удалось начать загрузку. Проверьте разрешения и свободное место.")}
                     }
                 }
