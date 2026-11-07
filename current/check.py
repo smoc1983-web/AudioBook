@@ -1,11 +1,9 @@
-from workspace_paths import WORKSPACE
 from pathlib import Path
 import re,json
 root=Path(__file__).parent
 s=(root/'MainActivity.kt').read_text()
-checker=(WORKSPACE / 'audiobook-update/check_sources.py').read_text()
-ns={'__file__':str(root/'check_sources.py')}
-exec(checker[:checker.index('main = (ROOT')],ns)
+from tests.kotlin_delimiters import check_delimiters
+ns={'check_delimiters':check_delimiters}
 ns['check_delimiters'](s)
 print('Kotlin delimiter/string check passed (not compilation)')
 ns['check_delimiters']((root/'PlaybackService.kt').read_text())

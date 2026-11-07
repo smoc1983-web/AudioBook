@@ -1,1 +1,0 @@
-Historical source only, retired after the 4.2.62 Play Protect report. These files are outside all app source sets. The installed application no longer contains this screen-reading service, Shizuku integration, AIDL interface or associated permissions. CollectionTransferActivity in app/src/main now supports only user-selected backup files.

@@ -1,6 +1,6 @@
 // Execute the actual JavaScript extracted from MainActivity.kt against synthetic DOM fixtures.
 const fs=require('fs'),assert=require('assert/strict');
-const {makeDocument}=require(require('path').join(__dirname, '../history/audiobook-search/fixture-dom.cjs'));
+const {makeDocument}=require(require('path').join(__dirname, 'tests/fixtures/fixture-dom.cjs'));
 const load=name=>fs.readFileSync(__dirname+'/js-check/'+name,'utf8');
 const adapters=JSON.parse(load('genre-adapters.json'));
 const discovery=load('genre-link-template.js'),classifier=load('classifier.js'),catalog=load('genre-template.js');

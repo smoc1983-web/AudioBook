@@ -1,5 +1,5 @@
 const fs=require('fs'),assert=require('assert/strict');
-const {makeDocument}=require(require('path').join(__dirname, '../history/audiobook-search/fixture-dom.cjs'));
+const {makeDocument}=require(require('path').join(__dirname, 'tests/fixtures/fixture-dom.cjs'));
 const load=name=>fs.readFileSync(__dirname+'/js-check/'+name,'utf8');
 const script=load('native-directory.js'),template=load('native-genre-template.js');
 const root='https://bookinfo.net/genres';let passed=0;

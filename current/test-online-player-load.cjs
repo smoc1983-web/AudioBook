@@ -1,5 +1,5 @@
 const fs=require('fs'),assert=require('assert/strict');
-const {makeDocument}=require(require('path').join(__dirname, '../history/audiobook-search/fixture-dom.cjs'));
+const {makeDocument}=require(require('path').join(__dirname, 'tests/fixtures/fixture-dom.cjs'));
 const load=name=>fs.readFileSync(__dirname+'/js-check/'+name,'utf8');
 const page='https://audiokniga-online.ru/fjentezi/1487-moja-kosmicheskaja-stancija-kniga-1.html';
 const reader=load('player-reader.js'),analyzer=load('analyzer.js'),pool=load('online-scripts.js'),prepare=load('online-prepare.js');

@@ -1,5 +1,5 @@
 const fs=require('fs'),assert=require('assert/strict');
-const {makeDocument}=require(require('path').join(__dirname, '../history/audiobook-search/fixture-dom.cjs'));
+const {makeDocument}=require(require('path').join(__dirname, 'tests/fixtures/fixture-dom.cjs'));
 const load=name=>fs.readFileSync(__dirname+'/js-check/'+name,'utf8');
 const home='https://audiokniga-online.ru/',page=home+'fantastika/12345-otel.html';
 const site=load('online-site.js'),reader=load('player-reader.js'),analyzer=load('analyzer.js'),catalog=load('catalog.js');

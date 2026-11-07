@@ -1,5 +1,5 @@
 const fs=require('fs'),assert=require('assert/strict');
-const {makeDocument}=require(require('path').join(__dirname, '../history/audiobook-search/fixture-dom.cjs'));
+const {makeDocument}=require(require('path').join(__dirname, 'tests/fixtures/fixture-dom.cjs'));
 const script=fs.readFileSync(__dirname+'/js-check/player-reader.js','utf8');
 const analyzer=fs.readFileSync(__dirname+'/js-check/analyzer.js','utf8');
 const catalog=fs.readFileSync(__dirname+'/js-check/catalog.js','utf8');

@@ -1,5 +1,5 @@
 const fs=require('fs'),assert=require('assert/strict');
-const {makeDocument}=require(require('path').join(__dirname, '../history/audiobook-search/fixture-dom.cjs'));
+const {makeDocument}=require(require('path').join(__dirname, 'tests/fixtures/fixture-dom.cjs'));
 const load=file=>fs.readFileSync(__dirname+'/js-check/'+file,'utf8');
 const catalog=load('catalog-template.js'),genre=load('genre-template.js'),classifier=load('classifier.js');
 function script(template,root='',cycle=null,name='Фэнтези') {

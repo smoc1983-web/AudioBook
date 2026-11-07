@@ -1,5 +1,5 @@
 const fs=require('fs'),path=require('path'),assert=require('assert/strict');
-const {makeDocument}=require('../../history/audiobook-search/fixture-dom.cjs');
+const {makeDocument}=require('./fixtures/fixture-dom.cjs');
 const fixtures=path.join(__dirname,'fixtures/nova-sources');
 const js=name=>fs.readFileSync(path.join(__dirname,'../js-check',name),'utf8');
 const extra=js('extra-source.js'),reader=js('player-reader.js');

@@ -1,5 +1,5 @@
 const fs=require('fs'),assert=require('assert');
-const {makeDocument}=require(require('path').join(__dirname, '../../history/audiobook-search/fixture-dom.cjs'));
+const {makeDocument}=require(require('path').join(__dirname, 'fixtures/fixture-dom.cjs'));
 const main=fs.readFileSync(require('path').join(__dirname,'../MainActivity.kt'),'utf8');
 const start=main.indexOf('private fun abSourceDirectoryJs('),a=main.indexOf('"""',start)+3,b=main.indexOf('""".trimIndent()',a);
 const template=main.slice(a,b).replaceAll("${'$'}",'$').replace('$extraAdapter',fs.readFileSync(require('path').join(__dirname,'../js-check/extra-source.js'),'utf8'));

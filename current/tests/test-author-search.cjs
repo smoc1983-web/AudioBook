@@ -1,5 +1,5 @@
 const fs=require('fs'),assert=require('assert');
-const {makeDocument}=require(require('path').join(__dirname, '../../history/audiobook-search/fixture-dom.cjs'));
+const {makeDocument}=require(require('path').join(__dirname, 'fixtures/fixture-dom.cjs'));
 const main=fs.readFileSync(process.env.AB_SEARCH_MAIN||require('path').join(__dirname,'../MainActivity.kt'),'utf8');
 function script(query,saved='/api/search?q={q}') {
   const start=main.indexOf('fun bookinfoSearchJs('),a=main.indexOf('"""',start)+3,b=main.indexOf('""".trimIndent()',a);

@@ -1,5 +1,5 @@
 const fs=require('fs'),assert=require('assert/strict');
-const {makeDocument}=require(require('path').join(__dirname, '../history/audiobook-search/fixture-dom.cjs'));
+const {makeDocument}=require(require('path').join(__dirname, 'tests/fixtures/fixture-dom.cjs'));
 const load=name=>fs.readFileSync(__dirname+'/js-check/'+name,'utf8');
 const page='https://audiokniga-online.ru/fjentezi/1487-moja-kosmicheskaja-stancija-kniga-1.html';
 const route='/f/audiobooks362094/Butkevich-Moya_Kosmicheskaya_Stancziya_Kniga_1/playlist.txt.php';
@@ -13,7 +13,7 @@ test('Exact constructor from user report exposes the real PHP playlist address',
  const result=read(observed);assert.equal(result.playlistUrl,address);assert.equal(result.playlist.length,0);
 });
 test('Previous shipped parser returns null for the exact same observed initializer',()=>{
- const previous=fs.readFileSync(require('path').join(__dirname, '../history/audiobook-online-player-load/js-check/player-reader.js'),'utf8');
+ const previous=fs.readFileSync(require('path').join(__dirname, 'tests/fixtures/previous-player-reader.js'),'utf8');
  assert.equal(read(observed,previous),null);
 });
 test('Compound PHP extensions are recognized independently of case, query and hash',()=>{

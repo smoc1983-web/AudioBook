@@ -1,5 +1,5 @@
 const fs=require('fs'),assert=require('assert/strict');
-const {makeDocument}=require(require('path').join(__dirname, '../history/audiobook-search/fixture-dom.cjs'));
+const {makeDocument}=require(require('path').join(__dirname, 'tests/fixtures/fixture-dom.cjs'));
 const load=name=>fs.readFileSync(__dirname+'/js-check/'+name,'utf8');
 const host='https://audiokniga-online.ru/',page=host+'fjentezi/1621-bitva-preemnikov-1.html';
 const reader=load('player-reader.js'),site=load('online-site.js'),catalog=load('catalog.js'),analyzer=load('analyzer.js');
