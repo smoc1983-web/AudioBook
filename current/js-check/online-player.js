@@ -56,7 +56,7 @@
         return tracks.length?{bookId:location.pathname,duration:tracks.reduce(function(n,t){return n+t.duration;},0),playlist:tracks}:
             (reference?{bookId:location.pathname,duration:0,playlist:[],playlistUrl:reference}:null);
     }
-    function read(doc,win,depth){doc=doc||document;win=win||window;depth=depth||0;
+    function read(doc,win,depth,requirePlaylist){doc=doc||document;win=win||window;depth=depth||0;
         var pending=null,scripts=pool.collect(doc,false),bindings=Object.create(null),instances=[],dataNames=[];
         function candidate(value){var found=normalize(value,doc.baseURI||location.href);if(found&&found.playlist.length)return found;if(found&&!pending)pending=found;return null;}
         // Read only literal variable declarations. Calls, member access and arbitrary code are rejected.
@@ -109,7 +109,7 @@
         }
         var domReady=candidate(domTracks);if(domReady)return domReady;
         // Same-origin frames can be read directly. Cross-origin frames may answer read-only API requests.
-        var media=doc.querySelectorAll('audio'),audioRows=[];
+        var media=requirePlaylist?[]:doc.querySelectorAll('audio'),audioRows=[];
         for(var mi=0;mi<media.length&&mi<500;mi++) {
             var audio=media[mi];if(audio.closest('nav,header,footer,aside,[class*="advert"],[class*="recommend"],[class*="related"]'))continue;
             var src=audio.currentSrc||audio.getAttribute('src'),child=audio.querySelector('source[src]');
@@ -121,7 +121,7 @@
         for(var f=0;f<frames.length&&f<8&&depth<2;f++){
             var frame=frames[f];if(frame.closest('nav,header,footer,aside,[class*="advert"],[class*="recommend"],[class*="related"],[class*="similar"]'))continue;
             if(!/player|audio|playlist|embed/i.test((frame.getAttribute('id')||'')+' '+(frame.className||'')+' '+frame.getAttribute('src')))continue;
-            try{var inner=frame.contentDocument;if(inner){var nested=read(inner,frame.contentWindow,depth+1);if(nested&&nested.playlist.length)return nested;if(nested&&!pending)pending=nested;}}catch(e){}
+            try{var inner=frame.contentDocument;if(inner){var nested=read(inner,frame.contentWindow,depth+1,requirePlaylist);if(nested&&nested.playlist.length)return nested;if(nested&&!pending)pending=nested;}}catch(e){}
             try{
                 var address=absolute(frame.getAttribute('src'),doc.baseURI||location.href);if(!address)continue;
                 if(!win.__abAudioFrames) {

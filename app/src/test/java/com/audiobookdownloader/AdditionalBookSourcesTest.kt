@@ -5,8 +5,8 @@ import org.junit.Test
 
 class AdditionalBookSourcesTest {
     @Test fun registryPreservesDefaultsAndAddsOptInSources() {
-        assertEquals(23,AbExtraSources.names.size)
-        assertEquals(23,AbExtraSources.names.toSet().size)
+        assertEquals(24,AbExtraSources.names.size)
+        assertEquals(24,AbExtraSources.names.toSet().size)
         assertEquals(10,AbExtraSources.defaults.size)
         for(name in AbExtraSources.names){assertEquals(name,AbExtraSources.name(AbExtraSources.home(name)));assertTrue(AbExtraSources.status(name).isNotBlank())}
         for((name,url) in listOf("Lis10Book" to "https://lis10book.com/", "Слушкин Всем" to "https://slushkinvsem.ru/", "Audio-Lib" to "https://audio-lib.club/")) {
@@ -22,6 +22,15 @@ class AdditionalBookSourcesTest {
         }
         assertEquals("",AbExtraSources.name("https://127.0.0.1/"))
         assertEquals("",AbExtraSources.name("not a URL"))
+    }
+    @Test fun manualSitesHaveExactHttpsIdentityAndStayOutOfAutomaticSearch() {
+        for((name,home,_) in AbExtraSources.browserOnly) {
+            assertEquals(name,AbExtraSources.manualName(home+"book/example"))
+            assertFalse(name in AbExtraSources.names)
+            val host=java.net.URI(home).host
+            for(url in listOf("http://$host/","https://$host.evil.invalid/","https://user@$host/","https://$host:9000/","file://$host/"))
+                assertEquals(url,"",AbExtraSources.manualName(url))
+        }
     }
     @Test fun mobileAliasesRemainTheSameSource() {
         assertEquals("Книга в Ухе",AbExtraSources.name("https://knigavuhe.org/book/a/"))

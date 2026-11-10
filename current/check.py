@@ -78,7 +78,7 @@ print('Extracted Azbyka catalogue, page and M3U parser scripts')
 (out/'online-player.js').write_text(online_player)
 (out/'online-search-template.js').write_text(body('abOnlineSearchJs').replace('$siteScript',online_site).replace('$safeQuery','__QUERY__'))
 (out/'online-results-template.js').write_text(body('abOnlineSearchResultsJs').replace('$onlineDiagnostics',online_site).replace('$catalog',catalog.replace('__ROOT__','\"\"').replace('__CYCLE__','null').rstrip(';')).replace('$safeQuery','__QUERY__'))
-(out/'online-playlist-template.js').write_text(body('abOnlinePlaylistJs').replace('$player',online_player).replace('$content','__CONTENT__').replace('$address','__BASE__'))
+(out/'online-playlist-template.js').write_text(body('abOnlinePlaylistJs').replace('$player',online_player).replace('$extra',extra).replace('$content','__CONTENT__').replace('$address','__BASE__'))
 for path in out.glob('*.js'):
  assert not re.search(r'\$[a-zA-Z_]',path.read_text()),path.name
 print('Extracted fourth-source route, search-form, player and external-playlist adapters')

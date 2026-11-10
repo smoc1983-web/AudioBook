@@ -8401,6 +8401,7 @@ data class BookCycle(val title: String, val url: String = "", val order: Double?
 data class SiteSearchResult(val books: List<BookLink>, val error: String = "")
 
 fun bookSiteName(url: String): String = when {
+    AbExtraSources.manualName(url).isNotBlank() -> AbExtraSources.manualName(url)
     AbExtraSources.name(url).isNotBlank() -> AbExtraSources.name(url)
     AbBookSources.isAzbyka(url) -> AbBookSources.AZBYKA
     AbBookSources.isAudioOnline(url) -> AbBookSources.AUDIO_ONLINE
@@ -8411,7 +8412,7 @@ fun bookSiteName(url: String): String = when {
 
 fun supportedBookUrl(value: String): String? {
     val extra=if(value.startsWith("http",true))value else "https://$value"
-    if(AbExtraSources.name(extra).isNotBlank())return extra
+    if(AbExtraSources.name(extra).isNotBlank()||AbExtraSources.manualName(extra).isNotBlank())return extra
     val candidate = if (value.startsWith("http://", true) || value.startsWith("https://", true)) value
         else if (Regex("(?i)^(?:www\\.|mob\\.)?(?:bookinfo\\.net|knigoblud\\.club|azbyka\\.ru|audiokniga-online\\.ru)(?:/|$)").containsMatchIn(value))
             "https://$value" else return null
@@ -8517,6 +8518,7 @@ private fun abSameBookSource(requested:String,actual:String):Boolean = try {
         val host=uri.host.orEmpty().lowercase(java.util.Locale.ROOT)
         return when {
             AbExtraSources.name(value).isNotBlank() -> AbExtraSources.name(value)
+            AbExtraSources.manualName(value).isNotBlank() -> AbExtraSources.manualName(value)
             AbBookSources.isAudioOnline(value) -> AbBookSources.AUDIO_ONLINE
             AbBookSources.isAzbyka(value) -> AbBookSources.AZBYKA
             host=="bookinfo.net"||host.endsWith(".bookinfo.net") -> "Bookinfo"
@@ -10032,6 +10034,7 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
     }
     val history=remember(prefs,data.version) {getListeningHistory(prefs).map {bookRefFor(prefs,it)}}
     var showSources by remember {mutableStateOf(false)}
+    var manualSource by remember {mutableStateOf<Pair<String,String>?>(null)}
     var hidePreviews by remember(prefs) {mutableStateOf(prefs.getBoolean("search_hide_previews",false))}
     var enabledSources by remember {mutableStateOf(AbBookSources.enabled(prefs).toSet())}
     val sourceContext=androidx.compose.ui.platform.LocalContext.current
@@ -10173,8 +10176,9 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
         }
     }
     } // Cover requests wait for this list to stop scrolling.
+    manualSource?.let { (name,url) -> AbManualSourceBrowser(name,url,data,actions,theme){manualSource=null} }
     if(showSources) AbDialog("Источники поиска",theme,{showSources=false}) {
-        Text("Нажмите название для поиска на одном сайте. Переключатели задают состав общего поиска. Проверка каталога не гарантирует доступность каждой книги.",color=theme.muted,fontSize=12.sp)
+        Text("Нажмите название для поиска на одном сайте. В результатах откройте меню книги → «Скачать». Переключатели задают состав общего поиска. Проверка каталога не гарантирует доступность каждой книги.",color=theme.muted,fontSize=12.sp)
         AbButton("Общий поиск · ${enabledSources.size} из ${AbBookSources.searchOrder.size}",theme,primary=data.searchSource.isBlank()) {
             showSources=false;actions.searchScope("")
         }
@@ -10192,22 +10196,126 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
                 },modifier=Modifier.semantics{contentDescription="Общий поиск: $site"})
             }
             if(site in AbExtraSources.names && site !in AbExtraSources.defaults) {
-                Text("Открыть сайт · $site ↗",color=theme.accent,fontSize=11.sp,modifier=Modifier.clickable{
-                    try{sourceContext.startActivity(Intent(Intent.ACTION_VIEW,Uri.parse(AbBookSources.home(site))))}
-                    catch(_:android.content.ActivityNotFoundException){Toast.makeText(sourceContext,"Не найден браузер",Toast.LENGTH_SHORT).show()}
-                }.padding(4.dp))
+                AbButton("Найти и скачать · $site",theme) {
+                    showSources=false;actions.searchScope(site)
+                }
             }
         }
         Text("Дополнительные сайты",color=theme.text,fontSize=16.sp)
-        Text("Эти сайты доступны по ссылке. Они пока не участвуют во встроенном поиске.",color=theme.muted,fontSize=12.sp)
+        Text("Откройте сайт внутри приложения, выберите книгу и нажмите «Проверить главы». Общий поиск для этих сайтов пока недоступен.",color=theme.muted,fontSize=12.sp)
         AbExtraSources.browserOnly.forEach{(name,url,note)->
-            AbButton("$name ↗",theme){
-                try{sourceContext.startActivity(Intent(Intent.ACTION_VIEW,Uri.parse(url)))}
-                catch(_:android.content.ActivityNotFoundException){Toast.makeText(sourceContext,"Не найден браузер",Toast.LENGTH_SHORT).show()}
+            AbButton("Открыть в приложении · $name",theme){
+                showSources=false;manualSource=name to url
             }
             Text(note,color=theme.muted,fontSize=11.sp)
         }
         AbButton("Готово",theme){showSources=false;if(data.searchSource.isBlank()&&data.query.isNotBlank())actions.searchScope("")}
+    }
+}
+
+/** Explicit user browsing, without a JS bridge or access to device files. */
+@Composable
+private fun AbManualSourceBrowser(name:String,home:String,data:AbScreenData,actions:AbActions,
+    theme:AbTheme,dismiss:()->Unit) {
+    val context=androidx.compose.ui.platform.LocalContext.current
+    val scope=androidx.compose.runtime.rememberCoroutineScope()
+    var browser by remember {mutableStateOf<WebView?>(null)}
+    var address by remember {mutableStateOf(home)}
+    var message by remember {mutableStateOf("Откройте страницу книги, затем проверьте доступные главы.")}
+    var busy by remember {mutableStateOf(false)}
+    var edition by remember {mutableStateOf<AbDownloadEdition?>(null)}
+    var generation by remember {mutableStateOf(0)}
+    var checking by remember {mutableStateOf<kotlinx.coroutines.Job?>(null)}
+    DisposableEffect(home) {onDispose{checking?.cancel();browser?.let{AbWebViews.release(it)}}}
+    fun inspect() {
+        val web=browser ?: return
+        val selected=web.url.orEmpty()
+        if(busy||AbExtraSources.manualName(selected)!=name)return
+        val token=generation
+        busy=true;message="Проверяем список глав…";edition=null
+        checking=scope.launch {
+            try {
+                val raw=kotlinx.coroutines.withTimeout(8000L) {
+                    kotlinx.coroutines.suspendCancellableCoroutine<String?> {reply ->
+                        web.evaluateJavascript(pageAnalyzerJs()){value->if(reply.isActive)reply.resumeWith(Result.success(value))}
+                    }
+                }
+                if(token!=generation||web.url!=selected)return@launch
+                val root=JSONObject(decodeJsString(raw))
+                abEnrichAudioOnline(web,root,selected)
+                if(token!=generation||web.url!=selected)return@launch
+                val title=cleanBookTitle(root.optString("title").ifBlank{web.title.orEmpty()})
+                val found=abDownloadEdition(BookRef(title,selected,root.optString("cover")),root,selected)
+                if(found==null||title.isBlank())message=root.optString("sourceError").ifBlank{
+                    "Сайт не передал полный читаемый список глав. Откройте плеер самой книги и повторите проверку. Доступность скачивания зависит от источника."}
+                else {
+                    context.applicationContext.getSharedPreferences("audiobook_downloader",Context.MODE_PRIVATE)
+                        .edit().putString("source_http_agent",web.settings.userAgentString).apply()
+                    edition=found;message="Доступное издание: $title"
+                }
+            }catch(_:kotlinx.coroutines.TimeoutCancellationException){if(token==generation)message="Страница не ответила на проверку глав. Повторите попытку."}
+            catch(cancel:kotlinx.coroutines.CancellationException){throw cancel}
+            catch(_:Exception){if(token==generation)message="Не удалось проверить главы. Повторите попытку."}
+            finally{if(token==generation)busy=false}
+        }
+    }
+    androidx.compose.ui.window.Dialog(onDismissRequest=dismiss,
+        properties=androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth=false)) {
+        Column(Modifier.fillMaxSize().padding(12.dp).background(theme.background).padding(8.dp),
+            verticalArrangement=Arrangement.spacedBy(8.dp)) {
+            Row(verticalAlignment=Alignment.CenterVertically) {
+                AbIconButton(AbIcon.BACK,"Назад на сайте",theme){browser?.let{if(it.canGoBack())it.goBack()}}
+                Text(name,color=theme.text,modifier=Modifier.weight(1f))
+                AbIconButton(AbIcon.CLOSE,"Закрыть сайт",theme,onClick=dismiss)
+            }
+            Text(Uri.parse(address).host.orEmpty(),color=theme.muted,fontSize=12.sp)
+            androidx.compose.ui.viewinterop.AndroidView(modifier=Modifier.weight(1f).fillMaxWidth(),factory={ctx ->
+                try {WebView(ctx).apply {
+                    AbWebViews.register(this);browser=this
+                    settings.javaScriptEnabled=true;settings.domStorageEnabled=true
+                    settings.allowFileAccess=false;settings.allowContentAccess=false
+                    settings.allowFileAccessFromFileURLs=false;settings.allowUniversalAccessFromFileURLs=false
+                    settings.mixedContentMode=android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW
+                    settings.mediaPlaybackRequiresUserGesture=true
+                    webViewClient=object:AbBookWebViewClient({message="Веб-страница закрыта системой. Закройте окно и откройте сайт снова.";browser=null}) {
+                        override fun shouldOverrideUrlLoading(view:WebView?,request:android.webkit.WebResourceRequest?):Boolean {
+                            if(request?.isForMainFrame!=true)return false
+                            val blocked=AbExtraSources.manualName(request.url.toString())!=name
+                            if(blocked)message="Переход на другой сайт остановлен. Выберите книгу в текущем источнике."
+                            return blocked
+                        }
+                        override fun onPageStarted(view:WebView?,url:String?,favicon:android.graphics.Bitmap?) {
+                            generation++;checking?.cancel();busy=false;edition=null;address=url.orEmpty()
+                            if(AbExtraSources.manualName(address)!=name){view?.stopLoading();message="Недопустимый адрес сайта."}
+                        }
+                        override fun onReceivedHttpError(view:WebView?,request:android.webkit.WebResourceRequest?,response:android.webkit.WebResourceResponse?) {
+                            if(request?.isForMainFrame==true)message="Сайт вернул HTTP ${response?.statusCode}. Повторите позже."
+                        }
+                        override fun onReceivedError(view:WebView?,request:android.webkit.WebResourceRequest?,error:android.webkit.WebResourceError?) {
+                            if(request?.isForMainFrame==true)message="Не удалось открыть сайт. Проверьте соединение или повторите позже."
+                        }
+                        override fun onReceivedSslError(view:WebView?,handler:android.webkit.SslErrorHandler?,error:android.net.http.SslError?) {
+                            handler?.cancel();message="Не удалось подтвердить защищённое соединение с сайтом."
+                        }
+                    }
+                    loadUrl(home)
+                }}catch(_:RuntimeException){
+                    message="Не удалось запустить Android System WebView.";android.widget.TextView(ctx).apply{text=message}
+                }catch(_:LinkageError){
+                    message="Android System WebView недоступен на устройстве.";android.widget.TextView(ctx).apply{text=message}
+                }
+            })
+            Text(message,color=theme.muted,fontSize=12.sp,maxLines=4)
+            AbButton(if(busy)"Проверяем…" else "Проверить главы",theme,enabled=!busy&&browser!=null){inspect()}
+
+        }
+    }
+    edition?.let {loaded ->
+        AbDialog(loaded.ref.title,theme,{edition=null}) {
+            AbEditionDownloadControls(loaded,data.downloadedIndex,
+                data.downloads.filter{it.book==loaded.ref.title&&it.state==TrackState.DOWNLOADING}.map{it.track.title}.toSet(),
+                theme,actions.downloadEdition)
+        }
     }
 }
 
@@ -14827,7 +14935,7 @@ private fun abOnlinePlayerJs():String {
         return tracks.length?{bookId:location.pathname,duration:tracks.reduce(function(n,t){return n+t.duration;},0),playlist:tracks}:
             (reference?{bookId:location.pathname,duration:0,playlist:[],playlistUrl:reference}:null);
     }
-    function read(doc,win,depth){doc=doc||document;win=win||window;depth=depth||0;
+    function read(doc,win,depth,requirePlaylist){doc=doc||document;win=win||window;depth=depth||0;
         var pending=null,scripts=pool.collect(doc,false),bindings=Object.create(null),instances=[],dataNames=[];
         function candidate(value){var found=normalize(value,doc.baseURI||location.href);if(found&&found.playlist.length)return found;if(found&&!pending)pending=found;return null;}
         // Read only literal variable declarations. Calls, member access and arbitrary code are rejected.
@@ -14880,7 +14988,7 @@ private fun abOnlinePlayerJs():String {
         }
         var domReady=candidate(domTracks);if(domReady)return domReady;
         // Same-origin frames can be read directly. Cross-origin frames may answer read-only API requests.
-        var media=doc.querySelectorAll('audio'),audioRows=[];
+        var media=requirePlaylist?[]:doc.querySelectorAll('audio'),audioRows=[];
         for(var mi=0;mi<media.length&&mi<500;mi++) {
             var audio=media[mi];if(audio.closest('nav,header,footer,aside,[class*="advert"],[class*="recommend"],[class*="related"]'))continue;
             var src=audio.currentSrc||audio.getAttribute('src'),child=audio.querySelector('source[src]');
@@ -14892,7 +15000,7 @@ private fun abOnlinePlayerJs():String {
         for(var f=0;f<frames.length&&f<8&&depth<2;f++){
             var frame=frames[f];if(frame.closest('nav,header,footer,aside,[class*="advert"],[class*="recommend"],[class*="related"],[class*="similar"]'))continue;
             if(!/player|audio|playlist|embed/i.test((frame.getAttribute('id')||'')+' '+(frame.className||'')+' '+frame.getAttribute('src')))continue;
-            try{var inner=frame.contentDocument;if(inner){var nested=read(inner,frame.contentWindow,depth+1);if(nested&&nested.playlist.length)return nested;if(nested&&!pending)pending=nested;}}catch(e){}
+            try{var inner=frame.contentDocument;if(inner){var nested=read(inner,frame.contentWindow,depth+1,requirePlaylist);if(nested&&nested.playlist.length)return nested;if(nested&&!pending)pending=nested;}}catch(e){}
             try{
                 var address=absolute(frame.getAttribute('src'),doc.baseURI||location.href);if(!address)continue;
                 if(!win.__abAudioFrames) {
@@ -14925,6 +15033,7 @@ private fun abOnlinePlaylistJs(text:String,base:String):String {
     val content=JSONObject.quote(text)
     val address=JSONObject.quote(base)
     val player=abOnlinePlayerJs()
+    val extra=abExtraSourceJs()
     return """
 (function(){var content=$content,base=$address,reader=($player)(null),data=null;content=content.replace(/^\uFEFF/,'');
     try{data=JSON.parse(content);}catch(e){
@@ -14936,13 +15045,15 @@ private fun abOnlinePlaylistJs(text:String,base:String):String {
             });data=rows;
         }
     }
+    var extra=$extra,source=extra.host(base);
+    if(source&&source.id==='audioknigi-top')return JSON.stringify(extra.playlistResponse(data,base));
     return JSON.stringify(reader.normalize(data,base));
 })();
 """.trimIndent()
 }
 
 private suspend fun abEnrichAudioOnline(web:WebView,root:JSONObject,page:String) {
-    if(!AbBookSources.isAudioOnline(page)&&AbExtraSources.name(page).isBlank())return
+    if(!AbBookSources.isAudioOnline(page)&&AbExtraSources.name(page).isBlank()&&AbExtraSources.manualName(page).isBlank())return
     val player=root.optJSONObject("player") ?: return
     if((player.optJSONArray("playlist")?.length() ?: 0)>0)return
     val address=player.optString("playlistUrl")
@@ -14973,14 +15084,18 @@ private suspend fun abEnrichAudioOnline(web:WebView,root:JSONObject,page:String)
                 connection.instanceFollowRedirects=false;connection.connectTimeout=4000;connection.readTimeout=4000
                 connection.setRequestProperty("User-Agent",agent);connection.setRequestProperty("Referer",page)
                 connection.setRequestProperty("Accept","application/json,text/plain,application/x-mpegurl,*/*;q=0.5")
+                if(AbExtraSources.name(page)=="Audioknigi.top" && abSameBookSource(page,current))
+                    connection.setRequestProperty("X-Requested-With","XMLHttpRequest")
                 if(abSameBookSource(page,current)) {
                     val cookies=android.webkit.CookieManager.getInstance().getCookie(current)
                     if(!cookies.isNullOrBlank())connection.setRequestProperty("Cookie",cookies)
                 }
                 val code=connection.responseCode
                 loadDebug.put("httpStatus",code).put("contentType",connection.contentType.orEmpty().take(100))
-                if(code in listOf(301,302,303,307,308))current=URL(URL(current),connection.getHeaderField("Location") ?: error("Нет адреса перенаправления")).toString()
-                else {
+                if(code in listOf(301,302,303,307,308)) {
+                    require(AbExtraSources.name(page)!="Audioknigi.top"){"Источник перенаправил API списка глав. Обновите страницу книги."}
+                    current=URL(URL(current),connection.getHeaderField("Location") ?: error("Нет адреса перенаправления")).toString()
+                } else {
                     require(code in 200..299){"HTTP $code"}
                     val bytes=java.io.ByteArrayOutputStream()
                     connection.inputStream.use {input ->
@@ -15582,6 +15697,9 @@ private fun abPlayerReaderJs():String {
         return {bookId:String(data.bookId||data.id||location.pathname),
             duration:seconds(data.duration)||chapter.reduce(function(n,t){return n+t.duration;},0),playlist:chapter};
     }
+    var extra=$extraAdapter;
+    if(extra.blocked())return null;
+    var manual=/^(?:www\.)?(?:slushkinvsem\.ru|aume\.ru|lis10book\.com|audio-lib\.club|knigiaudio\.net|author\.today)${'$'}/i.test(location.hostname);
     var scripts=document.scripts||[];
     for(var i=0;i<scripts.length&&i<160;i++) {
         var script=String(scripts[i].text||scripts[i].textContent||'');
@@ -15591,10 +15709,10 @@ private fun abPlayerReaderJs():String {
             try {var found=normalize(literal(script,pattern.lastIndex));if(found)return found;}catch(e){}
         }
     }
-    var onlinePending=null,extra=$extraAdapter;
-    if(extra.host(location.href)){if(extra.unavailable())return null;var additional=normalize(extra.read(literal));if(additional)return additional;if(['akniga','predanie'].indexOf(extra.host(location.href).id)>=0)return null;}
-    if(extra.host(location.href)||/^(?:www\.)?audiokniga-online\.ru${'$'}/i.test(location.hostname)) {
-        var sourcePlayer=($onlineReader)(literal).read();
+    var onlinePending=null;
+    if(extra.host(location.href)){if(extra.unavailable())return null;var payload=extra.read(literal),additional=normalize(payload);if(additional)return additional;if(payload&&payload.playlistUrl)return payload;if(['akniga','predanie','audioknigi-top'].indexOf(extra.host(location.href).id)>=0)return null;}
+    if(manual||extra.host(location.href)||/^(?:www\.)?audiokniga-online\.ru${'$'}/i.test(location.hostname)) {
+        var sourcePlayer=($onlineReader)(literal).read(null,null,0,manual);
         if(sourcePlayer&&sourcePlayer.playlist.length)return sourcePlayer;
         onlinePending=sourcePlayer;
     }
@@ -15607,6 +15725,7 @@ private fun abPlayerReaderJs():String {
         payload=payload||node.textContent||'';if(payload.length>1000000)continue;
         try {var parsed=normalize(literal(payload,0));if(parsed)return parsed;}catch(e){}
     }
+    if(manual)return onlinePending; // Never mistake the currently playing fragment for the whole book.
     var audio=document.querySelectorAll('audio'),tracks=[];
     for(var a=0;a<audio.length&&a<500;a++) {
         var element=audio[a];

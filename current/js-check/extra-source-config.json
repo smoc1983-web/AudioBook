@@ -325,5 +325,19 @@
     "author": "^/(?:author|authors|avtor|avtory)/[^/]+/?$",
     "status": "Новый источник · проверка отдельных изданий",
     "enabled": false
+  },
+  {
+    "id": "audioknigi-top",
+    "name": "Audioknigi.top",
+    "home": "https://audioknigi.top/",
+    "hosts": [
+      "audioknigi.top",
+      "www.audioknigi.top"
+    ],
+    "book": "^/(?!genres/?$|search/?$|login/?$|register/?$|dmca)[a-z0-9]+(?:-[a-z0-9]+)*/?$",
+    "genre": "^/genres/[^/]+/?$",
+    "author": "^/author/[^/]+/?$",
+    "status": "Поиск и скачивание · список глав плеера",
+    "enabled": false
   }
 ]
