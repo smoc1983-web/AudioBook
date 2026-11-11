@@ -1,3 +1,13 @@
+# Source resilience fixes, 2026-11-11 — unpublished
+
+Owner chose NO ub-mode. Branch cloud/fix-source-resilience-20261111.
+Final CI43061821679 SUCCESS/source8ee96ae: parser suite, Stable Debug/Release
+compile/unit/lint, AndroidTest Kotlin compile. GET bounded retries/deadline,
+DownloadManager transient observations, explicit HLS/DASH errors. Updater security
+unchanged; extra hash/version/signer assertions passed. No device installation,
+no release; public95 remains. See docs/SOURCE-RESILIENCE-2026-11-11.md and patch.
+Earlier CI43060865604 lint BOM error fixed, no baseline/suppression. Main/backup unchanged.
+
 # Опубликована Audiobook 4.2.95, проверено 2026-11-11
 
 Владелец разрешил публикацию: «Выложи обновление». Публичный preview-v100095,
