@@ -1,0 +1,15 @@
+{
+  "releaseId": 440653507,
+  "tag": "preview-v100095",
+  "url": "https://github.com/smoc1983-web/AudioBook/releases/tag/preview-v100095",
+  "source": "aade1a88688219571eaef0cef93557e8230739f6",
+  "versionCode": 100095,
+  "bytes": 33151692,
+  "sha256": "e066db5023a096076b61f6a0c1340772023641ce83a051a13749c0d1509e5e96",
+  "certificateSha256": "3a4cecd14bb3e983843871766909c3f07b3dc64379800f3e270e4a27d39affb7",
+  "workflowRun": 42860160270,
+  "workflowConclusion": "success",
+  "anonymousMetadataChecked": true,
+  "anonymousFullApkProductionProbePassedInCI": true,
+  "physicalInstallationTested": false
+}

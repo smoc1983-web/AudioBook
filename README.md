@@ -2,12 +2,12 @@
 
 Android-приложение для поиска, загрузки и прослушивания аудиокниг.
 
-Текущий опубликованный выпуск: **4.2.94 / 100094**, канал Preview,
+Текущий опубликованный выпуск: **4.2.95 / 100095**, канал Preview,
 пакет `com.audiobookdownloader.preview`. Прежняя подпись сохранена.
 
-[Скачать APK](https://github.com/smoc1983-web/AudioBook/releases/download/preview-v100094/Audiobook-Preview.apk)
-· [Релиз](https://github.com/smoc1983-web/AudioBook/releases/tag/preview-v100094)
-· [Проверки и ограничения выпуска](docs/RELEASE-4.2.94.md)
+[Скачать APK](https://github.com/smoc1983-web/AudioBook/releases/download/preview-v100095/Audiobook-Preview.apk)
+· [Релиз](https://github.com/smoc1983-web/AudioBook/releases/tag/preview-v100095)
+· [Проверки и ограничения выпуска](docs/RELEASE-4.2.95.md)
 
 Обновление устанавливается поверх прежней Preview. Удалять приложение не нужно.
 В версиях с GitHub updater доступно меню обновления. Старый адрес сайта может
