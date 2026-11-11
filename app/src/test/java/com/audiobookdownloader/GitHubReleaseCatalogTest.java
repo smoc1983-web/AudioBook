@@ -34,6 +34,8 @@ public class GitHubReleaseCatalogTest {
  @Test public void androidReturnedIdentityRequiresPackageVersionAndOriginalSigner()throws Exception{
   var expected=new PreviewUpdateRules(PreviewUpdateRulesTest.valid(),TAG);String signer="ab".repeat(32);
   UpdateApkPolicy.identity(BuildConfig.APPLICATION_ID,100999,"4.2.999",signer,signer,100998,expected);
+  PreviewUpdateRulesTest.rejected(()->UpdateApkPolicy.identity(BuildConfig.APPLICATION_ID,100999,"4.2.999","cd".repeat(32),"cd".repeat(32),100998,expected));
+  PreviewUpdateRulesTest.rejected(()->UpdateApkPolicy.identity(BuildConfig.APPLICATION_ID,100999,"4.2.998",signer,signer,100998,expected));
   PreviewUpdateRulesTest.rejected(()->UpdateApkPolicy.identity("other",100999,"4.2.999",signer,signer,100998,expected));
   PreviewUpdateRulesTest.rejected(()->UpdateApkPolicy.identity(BuildConfig.APPLICATION_ID,100998,"4.2.999",signer,signer,100998,expected));
   PreviewUpdateRulesTest.rejected(()->UpdateApkPolicy.identity(BuildConfig.APPLICATION_ID,100999,"4.2.999","cd".repeat(32),signer,100998,expected));

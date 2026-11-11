@@ -1,0 +1,258 @@
+diff --git a/app/src/main/java/com/audiobookdownloader/PersistentDownloads.kt b/app/src/main/java/com/audiobookdownloader/PersistentDownloads.kt
+index 42b254b..b873d3e 100644
+--- a/app/src/main/java/com/audiobookdownloader/PersistentDownloads.kt
++++ b/app/src/main/java/com/audiobookdownloader/PersistentDownloads.kt
+@@ -18,4 +18,15 @@ internal data class QueuedChapter(val key:String,val book:String,val title:Strin
+         .apply {if(initialSrc!=src)put("initialSrc",initialSrc);if(refreshAttempts>0)put("refreshAttempts",refreshAttempts)}
+ }
++internal fun abDownloadObservation(row:QueuedChapter,status:Int?,downloaded:Long,total:Long,
++    providerAvailable:Boolean=true):QueuedChapter {
++    if(!providerAvailable)return row
++    return when(status) {
++        DownloadManager.STATUS_SUCCESSFUL->row.copy(state="complete",bytes=downloaded,total=total,error="")
++        DownloadManager.STATUS_FAILED,null->row.copy(state="error",error="Android не завершил загрузку. Можно повторить.")
++        else->row.copy(bytes=if(downloaded>=0)downloaded else row.bytes,total=if(total>=0)total else row.total,
++            error=if(status==DownloadManager.STATUS_PAUSED)"Ожидание сети или Wi-Fi" else "")
++    }
++}
++
+ internal object AbPersistentDownloads {
+     private val lock=Any()
+@@ -184,5 +195,6 @@ internal object AbPersistentDownloads {
+             var source:String?=null
+             var title:String?=null
+-            val sample=dm.query(DownloadManager.Query().setFilterById(row.job))?.use {q->if(!q.moveToFirst())null else {
++            val cursor=dm.query(DownloadManager.Query().setFilterById(row.job))
++            val sample=cursor?.use {q->if(!q.moveToFirst())null else {
+                 reason=q.getInt(q.getColumnIndexOrThrow(DownloadManager.COLUMN_REASON))
+                 source=q.getString(q.getColumnIndexOrThrow(DownloadManager.COLUMN_URI))
+@@ -194,9 +206,10 @@ internal object AbPersistentDownloads {
+             if(sample?.first==DownloadManager.STATUS_FAILED && source==row.src && title==row.book+" - "+row.title &&
+                 refreshExpired(c,dm,row,reason))continue
+-            update(c,row.key){current->if(current.job!=row.job||current.state!="active")current else when(sample?.first) {
+-                DownloadManager.STATUS_SUCCESSFUL->{finished=true;current.copy(state="complete",bytes=sample.second,total=sample.third,error="")}
+-                DownloadManager.STATUS_FAILED,null->current.copy(state="error",error="Android не завершил загрузку. Можно повторить.")
+-                else->current.copy(bytes=sample.second,total=sample.third,error=if(sample.first==DownloadManager.STATUS_PAUSED)"Ожидание сети или Wi-Fi" else "")
+-            }}
++            update(c,row.key){current->
++                if(current.job!=row.job||current.state!="active")current else {
++                    if(sample?.first==DownloadManager.STATUS_SUCCESSFUL)finished=true
++                    abDownloadObservation(current,sample?.first,sample?.second ?: -1,sample?.third ?: -1,cursor!=null)
++                }
++            }
+         }
+         for(row in entries(c).filter{it.job>0&&it.state in listOf("complete","error")})main(c).edit().remove("download_job_"+row.job).apply()
+diff --git a/app/src/main/java/com/audiobookdownloader/SourceRequestRetry.kt b/app/src/main/java/com/audiobookdownloader/SourceRequestRetry.kt
+new file mode 100644
+index 0000000..de71e9c
+--- /dev/null
++++ b/app/src/main/java/com/audiobookdownloader/SourceRequestRetry.kt
+@@ -0,0 +1,32 @@
++package com.audiobookdownloader
++
++import java.io.IOException
++import java.net.SocketTimeoutException
++import java.net.ConnectException
++import kotlinx.coroutines.delay
++import kotlinx.coroutines.withTimeout
++
++internal class SourceHttpFailure(val status:Int,val retryAfter:String?):IOException("Источник вернул HTTP $status")
++internal object SourceRequestRetry {
++    fun waitMillis(error:Exception,attempt:Int):Long? {
++        if(attempt !in 0..1)return null
++        if(error is SourceHttpFailure) {
++            if(error.status !in setOf(408,429,502,503,504))return null
++            if(!error.retryAfter.isNullOrBlank()) {
++                val seconds=error.retryAfter.trim().toLongOrNull() ?: return null
++                if(seconds !in 0..5)return null
++                return maxOf(seconds*1000,500L shl attempt)
++            }
++        } else if(error !is SocketTimeoutException && error !is ConnectException)return null
++        return 500L shl attempt
++    }
++    suspend fun <T> get(pause:suspend (Long)->Unit={delay(it)},request:suspend ()->T):T = withTimeout(20_000L) {
++        var attempt=0
++        while(true) {
++            try {return@withTimeout request()}
++            catch(cancel:kotlinx.coroutines.CancellationException){throw cancel}
++            catch(error:Exception){val wait=waitMillis(error,attempt++) ?: throw error;pause(wait)}
++        }
++        @Suppress("UNREACHABLE_CODE") error("Unreachable")
++    }
++}
+diff --git a/current/MainActivity.kt b/current/MainActivity.kt
+index 6b4f99b..aa484c0 100644
+--- a/current/MainActivity.kt
++++ b/current/MainActivity.kt
+@@ -6336,4 +6336,5 @@ fun pageAnalyzerJs(): String {
+                 // Current-page player payloads may use JSON or JavaScript data literals.
+                 result.player = ($readerScript)();
++                if(result.player&&result.player.unsupportedStream)result.sourceError='Источник передал HLS/DASH. Скачивание этого формата пока не поддерживается.';
+                 if(result.sourceDebug) {
+                     result.sourceDebug.chapters=result.player&&result.player.playlist?result.player.playlist.length:0;
+@@ -10227,5 +10228,19 @@ private fun AbManualSourceBrowser(name:String,home:String,data:AbScreenData,acti
+     var generation by remember {mutableStateOf(0)}
+     var checking by remember {mutableStateOf<kotlinx.coroutines.Job?>(null)}
+-    DisposableEffect(home) {onDispose{checking?.cancel();browser?.let{AbWebViews.release(it)}}}
++    var reconnect by remember {mutableStateOf<kotlinx.coroutines.Job?>(null)}
++    val retryCounts=remember(home){mutableMapOf<String,Int>()}
++    var alive by remember {mutableStateOf(true)}
++    DisposableEffect(home) {onDispose{alive=false;reconnect?.cancel();checking?.cancel();browser?.let{AbWebViews.release(it)}}}
++    fun retryPage(view:WebView?,url:String,error:Exception) {
++        if(!alive||view==null||AbExtraSources.manualName(url)!=name)return
++        val count=retryCounts[url] ?: 0
++        val wait=SourceRequestRetry.waitMillis(error,count) ?: return
++        retryCounts[url]=count+1;reconnect?.cancel()
++        val token=generation
++        reconnect=scope.launch {
++            kotlinx.coroutines.delay(wait)
++            if(alive&&token==generation&&view===browser&&view.url==url)view.loadUrl(url)
++        }
++    }
+     fun inspect() {
+         val web=browser ?: return
+@@ -10241,8 +10256,8 @@ private fun AbManualSourceBrowser(name:String,home:String,data:AbScreenData,acti
+                     }
+                 }
+-                if(token!=generation||web.url!=selected)return@launch
++                if(!alive||token!=generation||web.url!=selected)return@launch
+                 val root=JSONObject(decodeJsString(raw))
+                 abEnrichAudioOnline(web,root,selected)
+-                if(token!=generation||web.url!=selected)return@launch
++                if(!alive||token!=generation||web.url!=selected)return@launch
+                 val title=cleanBookTitle(root.optString("title").ifBlank{web.title.orEmpty()})
+                 val found=abDownloadEdition(BookRef(title,selected,root.optString("cover")),root,selected)
+@@ -10286,12 +10301,20 @@ private fun AbManualSourceBrowser(name:String,home:String,data:AbScreenData,acti
+                         }
+                         override fun onPageStarted(view:WebView?,url:String?,favicon:android.graphics.Bitmap?) {
+-                            generation++;checking?.cancel();busy=false;edition=null;address=url.orEmpty()
++                            generation++;reconnect?.cancel();checking?.cancel();busy=false;edition=null;address=url.orEmpty()
+                             if(AbExtraSources.manualName(address)!=name){view?.stopLoading();message="Недопустимый адрес сайта."}
+                         }
+                         override fun onReceivedHttpError(view:WebView?,request:android.webkit.WebResourceRequest?,response:android.webkit.WebResourceResponse?) {
+-                            if(request?.isForMainFrame==true)message="Сайт вернул HTTP ${response?.statusCode}. Повторите позже."
++                            if(request?.isForMainFrame==true) {
++                                message="Сайт вернул HTTP ${response?.statusCode}. Повторите позже."
++                                if(request.method=="GET")retryPage(view,request.url.toString(),SourceHttpFailure(response?.statusCode ?: 0,
++                                    response?.responseHeaders?.entries?.firstOrNull{it.key.equals("Retry-After",true)}?.value))
++                            }
+                         }
+                         override fun onReceivedError(view:WebView?,request:android.webkit.WebResourceRequest?,error:android.webkit.WebResourceError?) {
+-                            if(request?.isForMainFrame==true)message="Не удалось открыть сайт. Проверьте соединение или повторите позже."
++                            if(request?.isForMainFrame==true) {
++                                message="Не удалось открыть сайт. Проверьте соединение или повторите позже."
++                                if(request.method=="GET"&&error?.errorCode in listOf(WebViewClient.ERROR_TIMEOUT,WebViewClient.ERROR_CONNECT))
++                                    retryPage(view,request.url.toString(),java.net.SocketTimeoutException())
++                            }
+                         }
+                         override fun onReceivedSslError(view:WebView?,handler:android.webkit.SslErrorHandler?,error:android.net.http.SslError?) {
+@@ -10307,4 +10330,7 @@ private fun AbManualSourceBrowser(name:String,home:String,data:AbScreenData,acti
+             })
+             Text(message,color=theme.muted,fontSize=12.sp,maxLines=4)
++            AbButton("Обновить страницу",theme,enabled=browser!=null&&!busy) {
++                reconnect?.cancel();browser?.url?.let{retryCounts.remove(it)};browser?.reload()
++            }
+             AbButton(if(busy)"Проверяем…" else "Проверить главы",theme,enabled=!busy&&browser!=null){inspect()}
+ 
+@@ -14911,5 +14937,5 @@ private fun abOnlinePlayerJs():String {
+     function seconds(v){if(typeof v==='string'&&/^\d+:\d{2}(?::\d{2})?${'$'}/.test(v))return v.split(':').reduce(function(n,x){return n*60+Number(x);},0);var n=Number(v);return isFinite(n)&&n>0?Math.round(n):0;}
+     function normalize(data,base) {
+-        var tracks=[],seen=Object.create(null),reference='',steps=0;
++        var tracks=[],seen=Object.create(null),reference='',steps=0,unsupported=false;
+         function add(value,title,duration,type){
+             if(typeof value==='string'&&value.length<=1000000&&/^[\s]*[\[{]/.test(value)) {
+@@ -14918,6 +14944,7 @@ private fun abOnlinePlayerJs():String {
+             var url=absolute(value,base);if(!url)return;
+             var path=new URL(url).pathname;
++            if(/^(?:application\/(?:dash\+xml|(?:vnd\.apple\.)?mpegurl|x-mpegurl)|audio\/(?:x-)?mpegurl)(?:;|${'$'})/i.test(String(type||''))){unsupported=true;return;}
+             if(/\.(?:json|txt|m3u)(?:\.php)?${'$'}/i.test(path)){if(!reference)reference=url;return;}
+-            if(!/\.(?:mp3|m4a|m4b|aac|ogg|opus|wav|flac)${'$'}/i.test(path)&&!/^audio\//i.test(String(type||'')))return;
++            if(!/\.(?:mp3|m4a|m4b|aac|ogg|opus|wav|flac|m3u8|mpd)${'$'}/i.test(path)&&!/^audio\//i.test(String(type||'')))return;
+             if(seen[url]||tracks.length>=3000)return;seen[url]=true;
+             tracks.push({src:url,title:String(title||'').trim()||('Глава '+(tracks.length+1)),duration:seconds(duration)});
+@@ -14933,4 +14960,5 @@ private fun abOnlinePlayerJs():String {
+         }
+         walk(data,0);
++        if(unsupported)return {unsupportedStream:true,playlist:[]};
+         return tracks.length?{bookId:location.pathname,duration:tracks.reduce(function(n,t){return n+t.duration;},0),playlist:tracks}:
+             (reference?{bookId:location.pathname,duration:0,playlist:[],playlistUrl:reference}:null);
+@@ -14938,5 +14966,5 @@ private fun abOnlinePlayerJs():String {
+     function read(doc,win,depth,requirePlaylist){doc=doc||document;win=win||window;depth=depth||0;
+         var pending=null,scripts=pool.collect(doc,false),bindings=Object.create(null),instances=[],dataNames=[];
+-        function candidate(value){var found=normalize(value,doc.baseURI||location.href);if(found&&found.playlist.length)return found;if(found&&!pending)pending=found;return null;}
++        function candidate(value){var found=normalize(value,doc.baseURI||location.href);if(found&&(found.unsupportedStream||found.playlist.length))return found;if(found&&!pending)pending=found;return null;}
+         // Read only literal variable declarations. Calls, member access and arbitrary code are rejected.
+         for(var scan=0;scan<scripts.length&&scan<160;scan++) {
+@@ -14959,5 +14987,5 @@ private fun abOnlinePlayerJs():String {
+             var pattern=/\bnew\s+(?:window\.)?(?:Playerjs|PlayerJS)\s*\(|\.\s*(?:setup|setPlaylist|setMedia)\s*\(/g,match,count=0;
+             while((match=pattern.exec(content))&&count++<16) {
+-                try {var found=normalize(literal(content,pattern.lastIndex,bindings),doc.baseURI||location.href);if(found&&found.playlist.length)return found;if(found&&!pending)pending=found;}catch(e){}
++                try {var found=normalize(literal(content,pattern.lastIndex,bindings),doc.baseURI||location.href);if(found&&(found.unsupportedStream||found.playlist.length))return found;if(found&&!pending)pending=found;}catch(e){}
+             }
+         }
+@@ -14968,5 +14996,5 @@ private fun abOnlinePlayerJs():String {
+             var value=el.getAttribute('data-playlist');if(!value&&!/player|playlist/i.test(el.getAttribute('id')||''))continue;
+             value=value||el.textContent||'';if(value.length>1000000)continue;
+-            try{var result=normalize(literal(value,0,bindings),doc.baseURI||location.href);if(result&&result.playlist.length)return result;if(result&&!pending)pending=result;}catch(e){}
++            try{var result=normalize(literal(value,0,bindings),doc.baseURI||location.href);if(result&&(result.unsupportedStream||result.playlist.length))return result;if(result&&!pending)pending=result;}catch(e){}
+         }
+         // Named playlist data may be consumed by a custom player after document load.
+@@ -15001,5 +15029,5 @@ private fun abOnlinePlayerJs():String {
+             var frame=frames[f];if(frame.closest('nav,header,footer,aside,[class*="advert"],[class*="recommend"],[class*="related"],[class*="similar"]'))continue;
+             if(!/player|audio|playlist|embed/i.test((frame.getAttribute('id')||'')+' '+(frame.className||'')+' '+frame.getAttribute('src')))continue;
+-            try{var inner=frame.contentDocument;if(inner){var nested=read(inner,frame.contentWindow,depth+1,requirePlaylist);if(nested&&nested.playlist.length)return nested;if(nested&&!pending)pending=nested;}}catch(e){}
++            try{var inner=frame.contentDocument;if(inner){var nested=read(inner,frame.contentWindow,depth+1,requirePlaylist);if(nested&&(nested.unsupportedStream||nested.playlist.length))return nested;if(nested&&!pending)pending=nested;}}catch(e){}
+             try{
+                 var address=absolute(frame.getAttribute('src'),doc.baseURI||location.href);if(!address)continue;
+@@ -15046,4 +15074,6 @@ private fun abOnlinePlaylistJs(text:String,base:String):String {
+         }
+     }
++    if(/^#EXT-X-/m.test(content)||/^\s*(?:<\?xml[^>]*>\s*)?<MPD\b/i.test(content))
++        return JSON.stringify({unsupportedStream:true,playlist:[]});
+     var extra=$extra,source=extra.host(base);
+     if(source&&source.id==='audioknigi-top')return JSON.stringify(extra.playlistResponse(data,base));
+@@ -15074,5 +15104,5 @@ private suspend fun abEnrichAudioOnline(web:WebView,root:JSONObject,page:String)
+     root.optJSONObject("sourceDebug")?.put("playlistLoad",loadDebug)
+     val agent=web.settings.userAgentString
+-    val loaded=try {withContext(Dispatchers.IO) {
++    val loaded=try {SourceRequestRetry.get {withContext(Dispatchers.IO) {
+         var current=address
+         var answer:Pair<String,String>?=null
+@@ -15097,5 +15127,5 @@ private suspend fun abEnrichAudioOnline(web:WebView,root:JSONObject,page:String)
+                     current=URL(URL(current),connection.getHeaderField("Location") ?: error("Нет адреса перенаправления")).toString()
+                 } else {
+-                    require(code in 200..299){"HTTP $code"}
++                    if(code !in 200..299)throw SourceHttpFailure(code,connection.getHeaderField("Retry-After"))
+                     val bytes=java.io.ByteArrayOutputStream()
+                     connection.inputStream.use {input ->
+@@ -15105,5 +15135,5 @@ private suspend fun abEnrichAudioOnline(web:WebView,root:JSONObject,page:String)
+                     }
+                     val text=bytes.toString("UTF-8")
+-                    require(!text.trimStart('\uFEFF',' ','\t','\r','\n').startsWith("<")){"Сайт вернул HTML вместо списка глав"}
++                    require(!Regex("""(?is)^\s*(?:<!doctype\s+html|<html|<head|<body)""").containsMatchIn(text.trimStart('﻿'))){"Сайт вернул HTML вместо списка глав"}
+                     loadDebug.put("bytes",bytes.size()).put("stage","received")
+                     answer=text to current;break
+@@ -15112,5 +15142,6 @@ private suspend fun abEnrichAudioOnline(web:WebView,root:JSONObject,page:String)
+         }
+         answer ?: error("Слишком много перенаправлений списка глав")
+-    }}catch(cancelled:kotlinx.coroutines.CancellationException){throw cancelled}
++    }}}catch(_:kotlinx.coroutines.TimeoutCancellationException){root.put("sourceError","Источник не ответил вовремя. Повторите проверку глав позже.");return}
++    catch(cancelled:kotlinx.coroutines.CancellationException){throw cancelled}
+     catch(error:Exception){loadDebug.put("stage","request-error");root.put("sourceError","Не удалось прочитать список глав: "+(error.message ?: error.javaClass.simpleName));return}
+     if(!AbWebViews.available(web))return
+@@ -15121,4 +15152,8 @@ private suspend fun abEnrichAudioOnline(web:WebView,root:JSONObject,page:String)
+     }
+     val parsed=try{JSONObject(decodeJsString(raw))}catch(_:Exception){null}
++    if(parsed?.optBoolean("unsupportedStream")==true) {
++        root.put("sourceError","Источник передал поток HLS/DASH. Скачивание пока не поддерживается; выберите другое издание.")
++        return
++    }
+     if(parsed!=null&&(parsed.optJSONArray("playlist")?.length() ?: 0)>0) {
+         root.put("player",parsed)
+@@ -15714,5 +15749,5 @@ private fun abPlayerReaderJs():String {
+     if(manual||extra.host(location.href)||/^(?:www\.)?audiokniga-online\.ru${'$'}/i.test(location.hostname)) {
+         var sourcePlayer=($onlineReader)(literal).read(null,null,0,manual);
+-        if(sourcePlayer&&sourcePlayer.playlist.length)return sourcePlayer;
++        if(sourcePlayer&&(sourcePlayer.unsupportedStream||sourcePlayer.playlist.length))return sourcePlayer;
+         onlinePending=sourcePlayer;
+     }

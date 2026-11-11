@@ -6335,6 +6335,7 @@ fun pageAnalyzerJs(): String {
 
                 // Current-page player payloads may use JSON or JavaScript data literals.
                 result.player = ($readerScript)();
+                if(result.player&&result.player.unsupportedStream)result.sourceError='Источник передал HLS/DASH. Скачивание этого формата пока не поддерживается.';
                 if(result.sourceDebug) {
                     result.sourceDebug.chapters=result.player&&result.player.playlist?result.player.playlist.length:0;
                     result.sourceDebug.externalList=!!(result.player&&result.player.playlistUrl);
@@ -10226,7 +10227,21 @@ private fun AbManualSourceBrowser(name:String,home:String,data:AbScreenData,acti
     var edition by remember {mutableStateOf<AbDownloadEdition?>(null)}
     var generation by remember {mutableStateOf(0)}
     var checking by remember {mutableStateOf<kotlinx.coroutines.Job?>(null)}
-    DisposableEffect(home) {onDispose{checking?.cancel();browser?.let{AbWebViews.release(it)}}}
+    var reconnect by remember {mutableStateOf<kotlinx.coroutines.Job?>(null)}
+    val retryCounts=remember(home){mutableMapOf<String,Int>()}
+    var alive by remember {mutableStateOf(true)}
+    DisposableEffect(home) {onDispose{alive=false;reconnect?.cancel();checking?.cancel();browser?.let{AbWebViews.release(it)}}}
+    fun retryPage(view:WebView?,url:String,error:Exception) {
+        if(!alive||view==null||AbExtraSources.manualName(url)!=name)return
+        val count=retryCounts[url] ?: 0
+        val wait=SourceRequestRetry.waitMillis(error,count) ?: return
+        retryCounts[url]=count+1;reconnect?.cancel()
+        val token=generation
+        reconnect=scope.launch {
+            kotlinx.coroutines.delay(wait)
+            if(alive&&token==generation&&view===browser&&view.url==url)view.loadUrl(url)
+        }
+    }
     fun inspect() {
         val web=browser ?: return
         val selected=web.url.orEmpty()
@@ -10240,10 +10255,10 @@ private fun AbManualSourceBrowser(name:String,home:String,data:AbScreenData,acti
                         web.evaluateJavascript(pageAnalyzerJs()){value->if(reply.isActive)reply.resumeWith(Result.success(value))}
                     }
                 }
-                if(token!=generation||web.url!=selected)return@launch
+                if(!alive||token!=generation||web.url!=selected)return@launch
                 val root=JSONObject(decodeJsString(raw))
                 abEnrichAudioOnline(web,root,selected)
-                if(token!=generation||web.url!=selected)return@launch
+                if(!alive||token!=generation||web.url!=selected)return@launch
                 val title=cleanBookTitle(root.optString("title").ifBlank{web.title.orEmpty()})
                 val found=abDownloadEdition(BookRef(title,selected,root.optString("cover")),root,selected)
                 if(found==null||title.isBlank())message=root.optString("sourceError").ifBlank{
@@ -10285,14 +10300,22 @@ private fun AbManualSourceBrowser(name:String,home:String,data:AbScreenData,acti
                             return blocked
                         }
                         override fun onPageStarted(view:WebView?,url:String?,favicon:android.graphics.Bitmap?) {
-                            generation++;checking?.cancel();busy=false;edition=null;address=url.orEmpty()
+                            generation++;reconnect?.cancel();checking?.cancel();busy=false;edition=null;address=url.orEmpty()
                             if(AbExtraSources.manualName(address)!=name){view?.stopLoading();message="Недопустимый адрес сайта."}
                         }
                         override fun onReceivedHttpError(view:WebView?,request:android.webkit.WebResourceRequest?,response:android.webkit.WebResourceResponse?) {
-                            if(request?.isForMainFrame==true)message="Сайт вернул HTTP ${response?.statusCode}. Повторите позже."
+                            if(request?.isForMainFrame==true) {
+                                message="Сайт вернул HTTP ${response?.statusCode}. Повторите позже."
+                                if(request.method=="GET")retryPage(view,request.url.toString(),SourceHttpFailure(response?.statusCode ?: 0,
+                                    response?.responseHeaders?.entries?.firstOrNull{it.key.equals("Retry-After",true)}?.value))
+                            }
                         }
                         override fun onReceivedError(view:WebView?,request:android.webkit.WebResourceRequest?,error:android.webkit.WebResourceError?) {
-                            if(request?.isForMainFrame==true)message="Не удалось открыть сайт. Проверьте соединение или повторите позже."
+                            if(request?.isForMainFrame==true) {
+                                message="Не удалось открыть сайт. Проверьте соединение или повторите позже."
+                                if(request.method=="GET"&&error?.errorCode in listOf(WebViewClient.ERROR_TIMEOUT,WebViewClient.ERROR_CONNECT))
+                                    retryPage(view,request.url.toString(),java.net.SocketTimeoutException())
+                            }
                         }
                         override fun onReceivedSslError(view:WebView?,handler:android.webkit.SslErrorHandler?,error:android.net.http.SslError?) {
                             handler?.cancel();message="Не удалось подтвердить защищённое соединение с сайтом."
@@ -10306,6 +10329,9 @@ private fun AbManualSourceBrowser(name:String,home:String,data:AbScreenData,acti
                 }
             })
             Text(message,color=theme.muted,fontSize=12.sp,maxLines=4)
+            AbButton("Обновить страницу",theme,enabled=browser!=null&&!busy) {
+                reconnect?.cancel();browser?.url?.let{retryCounts.remove(it)};browser?.reload()
+            }
             AbButton(if(busy)"Проверяем…" else "Проверить главы",theme,enabled=!busy&&browser!=null){inspect()}
 
         }
@@ -14910,15 +14936,16 @@ private fun abOnlinePlayerJs():String {
     function absolute(value,base){try{var u=new URL(value,base||location.href);return /^https?:${'$'}/.test(u.protocol)&&!u.username&&!u.password?u.href:'';}catch(e){return '';}}
     function seconds(v){if(typeof v==='string'&&/^\d+:\d{2}(?::\d{2})?${'$'}/.test(v))return v.split(':').reduce(function(n,x){return n*60+Number(x);},0);var n=Number(v);return isFinite(n)&&n>0?Math.round(n):0;}
     function normalize(data,base) {
-        var tracks=[],seen=Object.create(null),reference='',steps=0;
+        var tracks=[],seen=Object.create(null),reference='',steps=0,unsupported=false;
         function add(value,title,duration,type){
             if(typeof value==='string'&&value.length<=1000000&&/^[\s]*[\[{]/.test(value)) {
                 try{var nested=JSON.parse(value);walk(nested,1);return;}catch(e){}
             }
             var url=absolute(value,base);if(!url)return;
             var path=new URL(url).pathname;
+            if(/^(?:application\/(?:dash\+xml|(?:vnd\.apple\.)?mpegurl|x-mpegurl)|audio\/(?:x-)?mpegurl)(?:;|${'$'})/i.test(String(type||''))){unsupported=true;return;}
             if(/\.(?:json|txt|m3u)(?:\.php)?${'$'}/i.test(path)){if(!reference)reference=url;return;}
-            if(!/\.(?:mp3|m4a|m4b|aac|ogg|opus|wav|flac)${'$'}/i.test(path)&&!/^audio\//i.test(String(type||'')))return;
+            if(!/\.(?:mp3|m4a|m4b|aac|ogg|opus|wav|flac|m3u8|mpd)${'$'}/i.test(path)&&!/^audio\//i.test(String(type||'')))return;
             if(seen[url]||tracks.length>=3000)return;seen[url]=true;
             tracks.push({src:url,title:String(title||'').trim()||('Глава '+(tracks.length+1)),duration:seconds(duration)});
         }
@@ -14932,12 +14959,13 @@ private fun abOnlinePlayerJs():String {
             ['playlist','tracks','chapters','folder','sources','audio','associatedMedia'].forEach(function(key){if(node[key])walk(node[key],depth+1);});
         }
         walk(data,0);
+        if(unsupported)return {unsupportedStream:true,playlist:[]};
         return tracks.length?{bookId:location.pathname,duration:tracks.reduce(function(n,t){return n+t.duration;},0),playlist:tracks}:
             (reference?{bookId:location.pathname,duration:0,playlist:[],playlistUrl:reference}:null);
     }
     function read(doc,win,depth,requirePlaylist){doc=doc||document;win=win||window;depth=depth||0;
         var pending=null,scripts=pool.collect(doc,false),bindings=Object.create(null),instances=[],dataNames=[];
-        function candidate(value){var found=normalize(value,doc.baseURI||location.href);if(found&&found.playlist.length)return found;if(found&&!pending)pending=found;return null;}
+        function candidate(value){var found=normalize(value,doc.baseURI||location.href);if(found&&(found.unsupportedStream||found.playlist.length))return found;if(found&&!pending)pending=found;return null;}
         // Read only literal variable declarations. Calls, member access and arbitrary code are rejected.
         for(var scan=0;scan<scripts.length&&scan<160;scan++) {
             var tag=scripts[scan];if(tag.closest('nav,header,footer,aside,[class*="advert"],[class*="recommend"],[class*="related"],[class*="similar"]'))continue;
@@ -14958,7 +14986,7 @@ private fun abOnlinePlayerJs():String {
             var content=String(node.text||node.textContent||'');if(content.length>1000000)continue;
             var pattern=/\bnew\s+(?:window\.)?(?:Playerjs|PlayerJS)\s*\(|\.\s*(?:setup|setPlaylist|setMedia)\s*\(/g,match,count=0;
             while((match=pattern.exec(content))&&count++<16) {
-                try {var found=normalize(literal(content,pattern.lastIndex,bindings),doc.baseURI||location.href);if(found&&found.playlist.length)return found;if(found&&!pending)pending=found;}catch(e){}
+                try {var found=normalize(literal(content,pattern.lastIndex,bindings),doc.baseURI||location.href);if(found&&(found.unsupportedStream||found.playlist.length))return found;if(found&&!pending)pending=found;}catch(e){}
             }
         }
         // Explicit book-player containers may provide plain JSON without a constructor.
@@ -14967,7 +14995,7 @@ private fun abOnlinePlayerJs():String {
             var el=nodes[j];if(el.closest('nav,header,footer,[class*="advert"],[class*="recommend"],[class*="related"]'))continue;
             var value=el.getAttribute('data-playlist');if(!value&&!/player|playlist/i.test(el.getAttribute('id')||''))continue;
             value=value||el.textContent||'';if(value.length>1000000)continue;
-            try{var result=normalize(literal(value,0,bindings),doc.baseURI||location.href);if(result&&result.playlist.length)return result;if(result&&!pending)pending=result;}catch(e){}
+            try{var result=normalize(literal(value,0,bindings),doc.baseURI||location.href);if(result&&(result.unsupportedStream||result.playlist.length))return result;if(result&&!pending)pending=result;}catch(e){}
         }
         // Named playlist data may be consumed by a custom player after document load.
         for(var n=0;n<dataNames.length&&n<40;n++){var ready=candidate(bindings[dataNames[n]]);if(ready)return ready;}
@@ -15000,7 +15028,7 @@ private fun abOnlinePlayerJs():String {
         for(var f=0;f<frames.length&&f<8&&depth<2;f++){
             var frame=frames[f];if(frame.closest('nav,header,footer,aside,[class*="advert"],[class*="recommend"],[class*="related"],[class*="similar"]'))continue;
             if(!/player|audio|playlist|embed/i.test((frame.getAttribute('id')||'')+' '+(frame.className||'')+' '+frame.getAttribute('src')))continue;
-            try{var inner=frame.contentDocument;if(inner){var nested=read(inner,frame.contentWindow,depth+1,requirePlaylist);if(nested&&nested.playlist.length)return nested;if(nested&&!pending)pending=nested;}}catch(e){}
+            try{var inner=frame.contentDocument;if(inner){var nested=read(inner,frame.contentWindow,depth+1,requirePlaylist);if(nested&&(nested.unsupportedStream||nested.playlist.length))return nested;if(nested&&!pending)pending=nested;}}catch(e){}
             try{
                 var address=absolute(frame.getAttribute('src'),doc.baseURI||location.href);if(!address)continue;
                 if(!win.__abAudioFrames) {
@@ -15045,6 +15073,8 @@ private fun abOnlinePlaylistJs(text:String,base:String):String {
             });data=rows;
         }
     }
+    if(/^#EXT-X-/m.test(content)||/^\s*(?:<\?xml[^>]*>\s*)?<MPD\b/i.test(content))
+        return JSON.stringify({unsupportedStream:true,playlist:[]});
     var extra=$extra,source=extra.host(base);
     if(source&&source.id==='audioknigi-top')return JSON.stringify(extra.playlistResponse(data,base));
     return JSON.stringify(reader.normalize(data,base));
@@ -15073,7 +15103,7 @@ private suspend fun abEnrichAudioOnline(web:WebView,root:JSONObject,page:String)
     loadDebug.put("address",publicAddress)
     root.optJSONObject("sourceDebug")?.put("playlistLoad",loadDebug)
     val agent=web.settings.userAgentString
-    val loaded=try {withContext(Dispatchers.IO) {
+    val loaded=try {SourceRequestRetry.get {withContext(Dispatchers.IO) {
         var current=address
         var answer:Pair<String,String>?=null
         for(attempt in 0 until 4) {
@@ -15096,7 +15126,7 @@ private suspend fun abEnrichAudioOnline(web:WebView,root:JSONObject,page:String)
                     require(AbExtraSources.name(page)!="Audioknigi.top"){"Источник перенаправил API списка глав. Обновите страницу книги."}
                     current=URL(URL(current),connection.getHeaderField("Location") ?: error("Нет адреса перенаправления")).toString()
                 } else {
-                    require(code in 200..299){"HTTP $code"}
+                    if(code !in 200..299)throw SourceHttpFailure(code,connection.getHeaderField("Retry-After"))
                     val bytes=java.io.ByteArrayOutputStream()
                     connection.inputStream.use {input ->
                         val buffer=ByteArray(8192)
@@ -15104,14 +15134,15 @@ private suspend fun abEnrichAudioOnline(web:WebView,root:JSONObject,page:String)
                             require(bytes.size()+count<=1024*1024){"Список глав превышает допустимый размер"};bytes.write(buffer,0,count)}
                     }
                     val text=bytes.toString("UTF-8")
-                    require(!text.trimStart('\uFEFF',' ','\t','\r','\n').startsWith("<")){"Сайт вернул HTML вместо списка глав"}
+                    require(!Regex("""(?is)^\s*(?:<!doctype\s+html|<html|<head|<body)""").containsMatchIn(text.trimStart('﻿'))){"Сайт вернул HTML вместо списка глав"}
                     loadDebug.put("bytes",bytes.size()).put("stage","received")
                     answer=text to current;break
                 }
             }finally{connection.disconnect()}
         }
         answer ?: error("Слишком много перенаправлений списка глав")
-    }}catch(cancelled:kotlinx.coroutines.CancellationException){throw cancelled}
+    }}}catch(_:kotlinx.coroutines.TimeoutCancellationException){root.put("sourceError","Источник не ответил вовремя. Повторите проверку глав позже.");return}
+    catch(cancelled:kotlinx.coroutines.CancellationException){throw cancelled}
     catch(error:Exception){loadDebug.put("stage","request-error");root.put("sourceError","Не удалось прочитать список глав: "+(error.message ?: error.javaClass.simpleName));return}
     if(!AbWebViews.available(web))return
     val raw=kotlinx.coroutines.withTimeoutOrNull(5000L) {
@@ -15120,6 +15151,10 @@ private suspend fun abEnrichAudioOnline(web:WebView,root:JSONObject,page:String)
         }
     }
     val parsed=try{JSONObject(decodeJsString(raw))}catch(_:Exception){null}
+    if(parsed?.optBoolean("unsupportedStream")==true) {
+        root.put("sourceError","Источник передал поток HLS/DASH. Скачивание пока не поддерживается; выберите другое издание.")
+        return
+    }
     if(parsed!=null&&(parsed.optJSONArray("playlist")?.length() ?: 0)>0) {
         root.put("player",parsed)
         loadDebug.put("stage","resolved").put("chapters",parsed.optJSONArray("playlist")?.length() ?: 0)
@@ -15713,7 +15748,7 @@ private fun abPlayerReaderJs():String {
     if(extra.host(location.href)){if(extra.unavailable())return null;var payload=extra.read(literal),additional=normalize(payload);if(additional)return additional;if(payload&&payload.playlistUrl)return payload;if(['akniga','predanie','audioknigi-top'].indexOf(extra.host(location.href).id)>=0)return null;}
     if(manual||extra.host(location.href)||/^(?:www\.)?audiokniga-online\.ru${'$'}/i.test(location.hostname)) {
         var sourcePlayer=($onlineReader)(literal).read(null,null,0,manual);
-        if(sourcePlayer&&sourcePlayer.playlist.length)return sourcePlayer;
+        if(sourcePlayer&&(sourcePlayer.unsupportedStream||sourcePlayer.playlist.length))return sourcePlayer;
         onlinePending=sourcePlayer;
     }
     var nodes=document.querySelectorAll('script[type="application/json"], [data-playlist]');

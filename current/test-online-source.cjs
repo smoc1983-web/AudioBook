@@ -98,7 +98,7 @@ test('Extended constructor reader is scoped to the new source',()=>{
 });
 test('Plain JSON player data, deduplication and invalid media handling',()=>{
  const result=read('<div data-playlist=\'[{"file":"/1.mp3","title":"Один"},{"file":"/1.mp3"},{"file":"javascript:alert(1)"},{"file":"/cover.jpg"},{"file":"/stream.m3u8"}]\'></div>');
- assert.equal(result.playlist.length,1);assert.equal(result.playlist[0].title,'Один');
+ assert.equal(result.playlist.length,2);assert.equal(result.playlist[0].title,'Один');assert.equal(result.playlist[1].src,home+'stream.m3u8');
 });
 test('External list remains a descriptor and is never treated as an MP3 chapter',()=>{
  const result=read(`<script>new Playerjs({file:'/playlist/book.json'});</script>`);
@@ -117,7 +117,7 @@ test('External JSON supports BOM and M3U supports titles and durations',()=>{
  assert.equal(result.playlist[0].duration,123);assert.equal(result.playlist[1].title,'Продолжение');
 });
 test('HLS manifests, malformed lists and images do not become playable MP3 lists',()=>{
- assert.equal(playlist('#EXTM3U\n#EXT-X-VERSION:3\nsegment1.ts'),null);
+ assert.equal(playlist('#EXTM3U\n#EXT-X-VERSION:3\nsegment1.ts').unsupportedStream,true);
  assert.equal(playlist('not json'),null);assert.equal(playlist([{file:'/cover.png'}]),null);
 });
 test('Large explicit playlist is bounded',()=>{

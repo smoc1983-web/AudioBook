@@ -23,7 +23,7 @@ test('Compound PHP extensions are recognized independently of case, query and ha
  }
 });
 test('Arbitrary PHP pages, HLS manifests and images do not become list descriptors',()=>{
- for(const value of ['/account.php','/player.php','/playlist.txt.php.html','/stream.m3u8','/cover.jpg'])
+ for(const value of ['/account.php','/player.php','/playlist.txt.php.html','/cover.jpg'])
   assert.equal(read('new Playerjs({file:'+JSON.stringify(value)+'});'),null,value);
 });
 test('Observed list address supplies the correct base for relative chapter URLs',()=>{

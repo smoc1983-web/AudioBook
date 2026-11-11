@@ -31,15 +31,16 @@
     function absolute(value,base){try{var u=new URL(value,base||location.href);return /^https?:$/.test(u.protocol)&&!u.username&&!u.password?u.href:'';}catch(e){return '';}}
     function seconds(v){if(typeof v==='string'&&/^\d+:\d{2}(?::\d{2})?$/.test(v))return v.split(':').reduce(function(n,x){return n*60+Number(x);},0);var n=Number(v);return isFinite(n)&&n>0?Math.round(n):0;}
     function normalize(data,base) {
-        var tracks=[],seen=Object.create(null),reference='',steps=0;
+        var tracks=[],seen=Object.create(null),reference='',steps=0,unsupported=false;
         function add(value,title,duration,type){
             if(typeof value==='string'&&value.length<=1000000&&/^[\s]*[\[{]/.test(value)) {
                 try{var nested=JSON.parse(value);walk(nested,1);return;}catch(e){}
             }
             var url=absolute(value,base);if(!url)return;
             var path=new URL(url).pathname;
+            if(/^(?:application\/(?:dash\+xml|(?:vnd\.apple\.)?mpegurl|x-mpegurl)|audio\/(?:x-)?mpegurl)(?:;|$)/i.test(String(type||''))){unsupported=true;return;}
             if(/\.(?:json|txt|m3u)(?:\.php)?$/i.test(path)){if(!reference)reference=url;return;}
-            if(!/\.(?:mp3|m4a|m4b|aac|ogg|opus|wav|flac)$/i.test(path)&&!/^audio\//i.test(String(type||'')))return;
+            if(!/\.(?:mp3|m4a|m4b|aac|ogg|opus|wav|flac|m3u8|mpd)$/i.test(path)&&!/^audio\//i.test(String(type||'')))return;
             if(seen[url]||tracks.length>=3000)return;seen[url]=true;
             tracks.push({src:url,title:String(title||'').trim()||('Глава '+(tracks.length+1)),duration:seconds(duration)});
         }
@@ -53,12 +54,13 @@
             ['playlist','tracks','chapters','folder','sources','audio','associatedMedia'].forEach(function(key){if(node[key])walk(node[key],depth+1);});
         }
         walk(data,0);
+        if(unsupported)return {unsupportedStream:true,playlist:[]};
         return tracks.length?{bookId:location.pathname,duration:tracks.reduce(function(n,t){return n+t.duration;},0),playlist:tracks}:
             (reference?{bookId:location.pathname,duration:0,playlist:[],playlistUrl:reference}:null);
     }
     function read(doc,win,depth,requirePlaylist){doc=doc||document;win=win||window;depth=depth||0;
         var pending=null,scripts=pool.collect(doc,false),bindings=Object.create(null),instances=[],dataNames=[];
-        function candidate(value){var found=normalize(value,doc.baseURI||location.href);if(found&&found.playlist.length)return found;if(found&&!pending)pending=found;return null;}
+        function candidate(value){var found=normalize(value,doc.baseURI||location.href);if(found&&(found.unsupportedStream||found.playlist.length))return found;if(found&&!pending)pending=found;return null;}
         // Read only literal variable declarations. Calls, member access and arbitrary code are rejected.
         for(var scan=0;scan<scripts.length&&scan<160;scan++) {
             var tag=scripts[scan];if(tag.closest('nav,header,footer,aside,[class*="advert"],[class*="recommend"],[class*="related"],[class*="similar"]'))continue;
@@ -79,7 +81,7 @@
             var content=String(node.text||node.textContent||'');if(content.length>1000000)continue;
             var pattern=/\bnew\s+(?:window\.)?(?:Playerjs|PlayerJS)\s*\(|\.\s*(?:setup|setPlaylist|setMedia)\s*\(/g,match,count=0;
             while((match=pattern.exec(content))&&count++<16) {
-                try {var found=normalize(literal(content,pattern.lastIndex,bindings),doc.baseURI||location.href);if(found&&found.playlist.length)return found;if(found&&!pending)pending=found;}catch(e){}
+                try {var found=normalize(literal(content,pattern.lastIndex,bindings),doc.baseURI||location.href);if(found&&(found.unsupportedStream||found.playlist.length))return found;if(found&&!pending)pending=found;}catch(e){}
             }
         }
         // Explicit book-player containers may provide plain JSON without a constructor.
@@ -88,7 +90,7 @@
             var el=nodes[j];if(el.closest('nav,header,footer,[class*="advert"],[class*="recommend"],[class*="related"]'))continue;
             var value=el.getAttribute('data-playlist');if(!value&&!/player|playlist/i.test(el.getAttribute('id')||''))continue;
             value=value||el.textContent||'';if(value.length>1000000)continue;
-            try{var result=normalize(literal(value,0,bindings),doc.baseURI||location.href);if(result&&result.playlist.length)return result;if(result&&!pending)pending=result;}catch(e){}
+            try{var result=normalize(literal(value,0,bindings),doc.baseURI||location.href);if(result&&(result.unsupportedStream||result.playlist.length))return result;if(result&&!pending)pending=result;}catch(e){}
         }
         // Named playlist data may be consumed by a custom player after document load.
         for(var n=0;n<dataNames.length&&n<40;n++){var ready=candidate(bindings[dataNames[n]]);if(ready)return ready;}
@@ -121,7 +123,7 @@
         for(var f=0;f<frames.length&&f<8&&depth<2;f++){
             var frame=frames[f];if(frame.closest('nav,header,footer,aside,[class*="advert"],[class*="recommend"],[class*="related"],[class*="similar"]'))continue;
             if(!/player|audio|playlist|embed/i.test((frame.getAttribute('id')||'')+' '+(frame.className||'')+' '+frame.getAttribute('src')))continue;
-            try{var inner=frame.contentDocument;if(inner){var nested=read(inner,frame.contentWindow,depth+1,requirePlaylist);if(nested&&nested.playlist.length)return nested;if(nested&&!pending)pending=nested;}}catch(e){}
+            try{var inner=frame.contentDocument;if(inner){var nested=read(inner,frame.contentWindow,depth+1,requirePlaylist);if(nested&&(nested.unsupportedStream||nested.playlist.length))return nested;if(nested&&!pending)pending=nested;}}catch(e){}
             try{
                 var address=absolute(frame.getAttribute('src'),doc.baseURI||location.href);if(!address)continue;
                 if(!win.__abAudioFrames) {

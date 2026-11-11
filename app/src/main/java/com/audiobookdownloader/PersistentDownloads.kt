@@ -17,6 +17,17 @@ internal data class QueuedChapter(val key:String,val book:String,val title:Strin
         .put("duration",duration).put("job",job).put("state",state).put("bytes",bytes).put("total",total).put("error",error).put("editionUrl",editionUrl)
         .apply {if(initialSrc!=src)put("initialSrc",initialSrc);if(refreshAttempts>0)put("refreshAttempts",refreshAttempts)}
 }
+internal fun abDownloadObservation(row:QueuedChapter,status:Int?,downloaded:Long,total:Long,
+    providerAvailable:Boolean=true):QueuedChapter {
+    if(!providerAvailable)return row
+    return when(status) {
+        DownloadManager.STATUS_SUCCESSFUL->row.copy(state="complete",bytes=downloaded,total=total,error="")
+        DownloadManager.STATUS_FAILED,null->row.copy(state="error",error="Android не завершил загрузку. Можно повторить.")
+        else->row.copy(bytes=if(downloaded>=0)downloaded else row.bytes,total=if(total>=0)total else row.total,
+            error=if(status==DownloadManager.STATUS_PAUSED)"Ожидание сети или Wi-Fi" else "")
+    }
+}
+
 internal object AbPersistentDownloads {
     private val lock=Any()
     private val pumpLock=kotlinx.coroutines.sync.Mutex()
@@ -183,7 +194,8 @@ internal object AbPersistentDownloads {
             var reason=0
             var source:String?=null
             var title:String?=null
-            val sample=dm.query(DownloadManager.Query().setFilterById(row.job))?.use {q->if(!q.moveToFirst())null else {
+            val cursor=dm.query(DownloadManager.Query().setFilterById(row.job))
+            val sample=cursor?.use {q->if(!q.moveToFirst())null else {
                 reason=q.getInt(q.getColumnIndexOrThrow(DownloadManager.COLUMN_REASON))
                 source=q.getString(q.getColumnIndexOrThrow(DownloadManager.COLUMN_URI))
                 title=q.getString(q.getColumnIndexOrThrow(DownloadManager.COLUMN_TITLE))
@@ -193,11 +205,12 @@ internal object AbPersistentDownloads {
             }}
             if(sample?.first==DownloadManager.STATUS_FAILED && source==row.src && title==row.book+" - "+row.title &&
                 refreshExpired(c,dm,row,reason))continue
-            update(c,row.key){current->if(current.job!=row.job||current.state!="active")current else when(sample?.first) {
-                DownloadManager.STATUS_SUCCESSFUL->{finished=true;current.copy(state="complete",bytes=sample.second,total=sample.third,error="")}
-                DownloadManager.STATUS_FAILED,null->current.copy(state="error",error="Android не завершил загрузку. Можно повторить.")
-                else->current.copy(bytes=sample.second,total=sample.third,error=if(sample.first==DownloadManager.STATUS_PAUSED)"Ожидание сети или Wi-Fi" else "")
-            }}
+            update(c,row.key){current->
+                if(current.job!=row.job||current.state!="active")current else {
+                    if(sample?.first==DownloadManager.STATUS_SUCCESSFUL)finished=true
+                    abDownloadObservation(current,sample?.first,sample?.second ?: -1,sample?.third ?: -1,cursor!=null)
+                }
+            }
         }
         for(row in entries(c).filter{it.job>0&&it.state in listOf("complete","error")})main(c).edit().remove("download_job_"+row.job).apply()
         if(finished){main(c).edit().putLong("experience_library_revision",System.currentTimeMillis()).apply();AbLibraryHousekeeping.request(c)}
