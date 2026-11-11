@@ -81,7 +81,7 @@ index 0000000..de71e9c
 +    }
 +}
 diff --git a/current/MainActivity.kt b/current/MainActivity.kt
-index 6b4f99b..aa484c0 100644
+index 6b4f99b..beaca1b 100644
 --- a/current/MainActivity.kt
 +++ b/current/MainActivity.kt
 @@ -6336,4 +6336,5 @@ fun pageAnalyzerJs(): String {
@@ -229,7 +229,7 @@ index 6b4f99b..aa484c0 100644
                      }
                      val text=bytes.toString("UTF-8")
 -                    require(!text.trimStart('\uFEFF',' ','\t','\r','\n').startsWith("<")){"Сайт вернул HTML вместо списка глав"}
-+                    require(!Regex("""(?is)^\s*(?:<!doctype\s+html|<html|<head|<body)""").containsMatchIn(text.trimStart('﻿'))){"Сайт вернул HTML вместо списка глав"}
++                    require(!Regex("""(?is)^\s*(?:<!doctype\s+html|<html|<head|<body)""").containsMatchIn(text.trimStart('\uFEFF'))){"Сайт вернул HTML вместо списка глав"}
                      loadDebug.put("bytes",bytes.size()).put("stage","received")
                      answer=text to current;break
 @@ -15112,5 +15142,6 @@ private suspend fun abEnrichAudioOnline(web:WebView,root:JSONObject,page:String)

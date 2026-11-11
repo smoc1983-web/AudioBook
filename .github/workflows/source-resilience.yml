@@ -2,7 +2,7 @@ name: Verify source resilience patch
 on:
   push:
     branches: ['cloud/fix-source-resilience-20261111']
-    paths: ['.github/workflows/source-resilience.yml']
+    paths: ['.github/workflows/source-resilience.yml', 'current/**', 'app/**']
 permissions:
   contents: read
 jobs:

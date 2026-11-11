@@ -15134,7 +15134,7 @@ private suspend fun abEnrichAudioOnline(web:WebView,root:JSONObject,page:String)
                             require(bytes.size()+count<=1024*1024){"Список глав превышает допустимый размер"};bytes.write(buffer,0,count)}
                     }
                     val text=bytes.toString("UTF-8")
-                    require(!Regex("""(?is)^\s*(?:<!doctype\s+html|<html|<head|<body)""").containsMatchIn(text.trimStart('﻿'))){"Сайт вернул HTML вместо списка глав"}
+                    require(!Regex("""(?is)^\s*(?:<!doctype\s+html|<html|<head|<body)""").containsMatchIn(text.trimStart('\uFEFF'))){"Сайт вернул HTML вместо списка глав"}
                     loadDebug.put("bytes",bytes.size()).put("stage","received")
                     answer=text to current;break
                 }
