@@ -56,4 +56,21 @@ class EditionMetadataRegressionTest {
   assertEquals(raw,p.getString("book_chapter_titles_"+safeFileName(title),null))
   assertTrue(p.getBoolean("book_completed_"+safeFileName(title),false))
  }
+ @Test fun favoritesAndCollectionMembershipDoNotRemoveAnotherSameTitleEdition() {
+  val p=BookProgressRegressionTest().preferences();val first=BookRef(title,a,"");val second=BookRef(title,b,"")
+  assertTrue(toggleFavorite(p,first));assertTrue(toggleFavorite(p,second))
+  assertEquals(setOf(a,b),loadBookRefs(p,FAVORITES_KEY).map{it.url}.toSet())
+  assertFalse(toggleFavorite(p,first));assertEquals(listOf(second),loadBookRefs(p,FAVORITES_KEY))
+  saveShelves(p,listOf(Shelf("Collection",listOf(first))))
+  toggleShelfBook(p,"Collection",second)
+  assertEquals(setOf(a,b),loadShelves(p).single().books.map{it.url}.toSet())
+  toggleShelfBook(p,"Collection",first)
+  assertEquals(listOf(second),loadShelves(p).single().books)
+ }
+ @Test fun sameEditionUnderRenamedReferenceHasOneMembershipIdentity() {
+  val p=BookProgressRegressionTest().preferences();val first=BookRef(title,a,"");val renamed=BookRef("Renamed",a,"")
+  assertTrue(toggleFavorite(p,first));assertFalse(toggleFavorite(p,renamed));assertTrue(loadBookRefs(p,FAVORITES_KEY).isEmpty())
+  saveShelves(p,listOf(Shelf("Collection",listOf(first))))
+  toggleShelfBook(p,"Collection",renamed);assertTrue(loadShelves(p).single().books.isEmpty())
+ }
 }
