@@ -92,13 +92,13 @@ class AudioValidationTest {
             assertTrue(AbDownloadedAudio.rejected(context,bad.job))
             val index=DownloadedChapterIndex.fromLibrary(scanLibrary(context))
             assertTrue(index.contains(book,"01"));assertFalse(index.contains(book,"02"))
-            val checksum=dm.openDownloadedFile(valid.job).use{descriptor->java.io.FileInputStream(descriptor.fileDescriptor).use{ChapterIdentity.checksum(it)}}
+            val checksum=dm.openDownloadedFile(valid.job).use{descriptor->ParcelFileDescriptor.AutoCloseInputStream(ParcelFileDescriptor.dup(descriptor.fileDescriptor)).use{ChapterIdentity.checksum(it)}}
             repaired.set(true);AbPersistentDownloads.retry(context,book)
             val finished=await{it.size==2&&it.all{r->r.state=="complete"}}
             assertEquals(valid.job,finished.single{it.title=="01"}.job)
             assertEquals(1,requests["/01.mp3"])
             assertEquals(1234,prefs.getInt(bookProgressPositionKey(book),0))
-            val after=dm.openDownloadedFile(valid.job).use{descriptor->java.io.FileInputStream(descriptor.fileDescriptor).use{ChapterIdentity.checksum(it)}}
+            val after=dm.openDownloadedFile(valid.job).use{descriptor->ParcelFileDescriptor.AutoCloseInputStream(ParcelFileDescriptor.dup(descriptor.fileDescriptor)).use{ChapterIdentity.checksum(it)}}
             assertEquals(checksum,after)
             val repairedRow=finished.single{it.title=="02"}
             AbPersistentDownloads.update(context,repairedRow.key){it.copy(state="verifying")}

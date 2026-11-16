@@ -21,7 +21,7 @@ internal fun abDownloadObservation(row:QueuedChapter,status:Int?,downloaded:Long
     providerAvailable:Boolean=true):QueuedChapter {
     if(!providerAvailable)return row
     return when(status) {
-        DownloadManager.STATUS_SUCCESSFUL->row.copy(state="verifying",bytes=downloaded,total=total,error="")
+        DownloadManager.STATUS_SUCCESSFUL->row.copy(state="verifying",bytes=if(downloaded>=0)downloaded else row.bytes,total=if(total>0)total else row.total,error="")
         DownloadManager.STATUS_FAILED,null->row.copy(state="error",error="Android не завершил загрузку. Можно повторить.")
         else->row.copy(bytes=if(downloaded>=0)downloaded else row.bytes,total=if(total>=0)total else row.total,
             error=if(status==DownloadManager.STATUS_PAUSED)"Ожидание сети или Wi-Fi" else "")

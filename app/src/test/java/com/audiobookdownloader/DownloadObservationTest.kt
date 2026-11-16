@@ -14,4 +14,9 @@ class DownloadObservationTest {
   for(status in listOf(null,DownloadManager.STATUS_FAILED)){val result=abDownloadObservation(row,status,-1,-1);assertEquals("error",result.state);assertEquals(row.job,result.job);assertEquals(row.bytes,result.bytes)}
   assertEquals("verifying",abDownloadObservation(row,DownloadManager.STATUS_SUCCESSFUL,1024,1024).state)
  }
+
+ @Test fun validationRetainsKnownTransferSizeWhenAndroidOmitsIt(){
+  val verifying=abDownloadObservation(row,DownloadManager.STATUS_SUCCESSFUL,-1,-1)
+  assertEquals("verifying",verifying.state);assertEquals(row.bytes,verifying.bytes);assertEquals(row.total,verifying.total)
+ }
 }

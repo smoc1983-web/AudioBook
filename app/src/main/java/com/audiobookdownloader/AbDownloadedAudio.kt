@@ -38,8 +38,7 @@ internal object AbDownloadedAudio {
                 dm.openDownloadedFile(id).use {descriptor->
                     val fd=descriptor.fileDescriptor
                     val signature=stamp(fd)
-                    val result=inspectDescriptor(fd,expected,prefs(c).getString("ok_$id",null),
-                        prefs(c).getString("format_$id","").orEmpty())
+                    val result=inspectDescriptor(fd,expected)
                     val edit=prefs(c).edit()
                     if(result.valid)edit.putString("ok_$id",signature).putString("format_$id",result.format).remove("bad_$id")
                     else edit.remove("ok_$id").putString("bad_$id",signature)
@@ -50,7 +49,7 @@ internal object AbDownloadedAudio {
             }catch(_:Exception){recordBlock(c,id,book,title,false);Result(false,"Не удалось открыть или проверить аудиофайл. Проверьте доступ к хранилищу и повторите загрузку главы.")}
         }
     }
-    fun inspectDescriptor(fd:java.io.FileDescriptor,expected:Long,knownStamp:String?=null,knownFormat:String=""):Result {
+    fun inspectDescriptor(fd:java.io.FileDescriptor,expected:Long):Result {
         val signature=stamp(fd)
         val size=Os.fstat(fd).st_size
         val sizeError=AudioValidationRules.sizeError(size,expected)
@@ -59,7 +58,6 @@ internal object AbDownloadedAudio {
         val n=Os.pread(fd,bytes,0,bytes.size,0)
         val error=AudioValidationRules.contentError(bytes.copyOf(n.coerceAtLeast(0)),size)
         if(error.isNotBlank())return Result(false,error,stamp=signature)
-        if(knownStamp==signature)return Result(true,format=knownFormat,stamp=signature)
         return probe(fd,signature)
     }
     private fun probe(fd:java.io.FileDescriptor,signature:String):Result {
