@@ -52,9 +52,14 @@ internal object EditionMetadata {
             p.getString(bookUrlKey(book),"").orEmpty(),p.getString("book_local_edition_"+suffix,"").orEmpty())
     }
     // Cold migration only: never scan the preference map on every progress render.
-    private fun legacyAlias(p:SharedPreferences,id:String):Record? {
+    private fun legacyAlias(p:SharedPreferences,id:String,proofRevision:String?):Record? {
         val records=p.all.keys.filter{it.startsWith("book_edition_revision_")}.mapNotNull {key->
+            if(proofRevision!=null && p.getString(key,null)!=proofRevision)return@mapNotNull null
             val alias=key.removePrefix("book_edition_revision_")
+            if(proofRevision==null) {
+                val sources=listOf(p.getString(bookUrlKey(alias),"").orEmpty(),p.getString("book_local_edition_"+alias,"").orEmpty())
+                if(sources.none{it.isNotBlank()&&ChapterIdentity.edition(alias,it)==id})return@mapNotNull null
+            }
             val value=try{legacy(alias,id,legacyFields(p,alias))}catch(_:Exception){return@mapNotNull null}
             value.takeIf{it.titles.isNotEmpty()&&LibraryRecordRules.provesCatalogue(id,it.titles,it.revision)}
         }
@@ -85,9 +90,9 @@ internal object EditionMetadata {
         return Record(id,sourceUrl=source,total=maxOf(total,if(proven)titles.size else 0),
             titles=if(proven)titles else emptyList(),revision=if(proven)revision else "",completed=completed,finished=finished)
     }
-    @Synchronized fun change(p:SharedPreferences,book:String,id:String,update:(Record)->Record):Boolean {
+    @Synchronized fun change(p:SharedPreferences,book:String,id:String,proofRevision:String?=null,update:(Record)->Record):Boolean {
         val current=read(p,book,id)
-        val old=if(current.valid&&current.titles.isEmpty()&&p.getString(PREFIX+id,null)==null)legacyAlias(p,id) ?: current else current
+        val old=if(current.valid&&current.titles.isEmpty()&&p.getString(PREFIX+id,null)==null)legacyAlias(p,id,proofRevision) ?: current else current
         if(!old.valid) {
             p.edit().putString(NOTICE,"Метаданные издания повреждены или неоднозначны. Исходные записи сохранены; восстановите её из резервной копии. Файлы и позиция не удалены.").apply()
             return false
