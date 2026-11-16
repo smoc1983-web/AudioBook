@@ -58,10 +58,10 @@ internal object AbBookProgress {
     private val locals=linkedMapOf<String,LocalTracks>()
     @Synchronized private fun localTracks(p:SharedPreferences,book:LibraryBook):List<ServiceTrack> {
         val titles=JSONArray(EditionMetadata.read(p,book.title,EditionMetadata.local(p,book)).titles).toString()
-        val edition=p.getString("book_local_edition_"+safeFileName(book.title),null)
-        locals[book.title]?.takeIf{it.files==book.files && it.titles==titles && it.edition==edition}?.let{return it.tracks}
-        val tracks=StableProgress.localTracks(p,book.title,book.files)
-        locals.remove(book.title);locals[book.title]=LocalTracks(book.files.toList(),titles,edition,tracks)
+        val edition=EditionMetadata.local(p,book)
+        locals[book.bookId]?.takeIf{it.files==book.files && it.titles==titles && it.edition==edition}?.let{return it.tracks}
+        val tracks=StableProgress.localTracks(p,book.title,book.files,edition)
+        locals.remove(book.bookId);locals[book.bookId]=LocalTracks(book.files.toList(),titles,edition,tracks)
         while(locals.size>64)locals.remove(locals.keys.first())
         return tracks
     }
@@ -76,7 +76,7 @@ internal object AbBookProgress {
         val full=chapters(p,book.title,tracks)
         val resume=StableProgress.resume(p,book.title,full)
         val checkpoint=p.contains("book_progress_identity_"+id)
-        val stable=checkpoint || sameEdition
+        val stable=checkpoint || sameEdition || book.editionId.isNotBlank()
         val index=if(stable)resume.index else p.getInt(bookProgressTrackKey(book.title),0)
         val position=if(stable)resume.position else p.getInt(bookProgressPositionKey(book.title),0)
         // A legacy numeric index alone is not proof of a chapter in a downloaded subset.

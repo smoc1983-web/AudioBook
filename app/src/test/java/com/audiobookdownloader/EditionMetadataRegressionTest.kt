@@ -27,4 +27,12 @@ class EditionMetadataRegressionTest {
   val two=LibraryBook(title,File("/two"),listOf(File("/two/01.mp3")),editionId=ChapterIdentity.edition(title,b))
   assertNull(findDownloadedBook(listOf(one,two),title))
  }
+ @Test fun explicitLocalEditionNeverUsesAnotherEditionsCheckpointOrCompletion() {
+  val p=BookProgressRegressionTest().preferences();observe(p,a);StableProgress.completed(p,title,tracks(a));observe(p,b)
+  p.edit().putString("book_local_edition_"+safeFileName(title),a).putInt(bookProgressPositionKey(title),99999).apply()
+  val local=LibraryBook(title,File("/two"),listOf(File("/two/01.mp3")),editionId=ChapterIdentity.edition(title,b))
+  val result=AbBookProgress.library(p,local,ServicePlaybackState())
+  assertEquals(0f,result.progress,0f);assertFalse(StableProgress.isCompleted(p,local))
+  assertEquals(ChapterIdentity.edition(title,b),StableProgress.localTracks(p,title,local.files,local.editionId).single().editionId)
+ }
 }

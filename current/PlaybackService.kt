@@ -885,7 +885,7 @@ class PlaybackService : Service() {
                 saveQueue(playbackPrefs, queue.filter { it != nextBook.title })
                 bookTitle = nextBook.title
                 sourceType = "local"
-                playlist = StableProgress.localTracks(playbackPrefs,bookTitle,nextBook.files)
+                playlist = StableProgress.localTracks(playbackPrefs,bookTitle,nextBook.files,nextBook.editionId)
                 val resume=StableProgress.resume(playbackPrefs,bookTitle,playlist)
                 val index=resume.index
                 val position=resume.position

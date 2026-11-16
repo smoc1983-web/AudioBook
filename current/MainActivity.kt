@@ -1057,6 +1057,8 @@ fun bookRefFor(
     title: String,editionId:String=""
 ): BookRef {
     if(editionId.isNotBlank()) {
+        val local=prefs.getString("book_local_edition_"+safeFileName(title),"").orEmpty()
+        if(local.isNotBlank()&&ChapterIdentity.edition(title,local)==editionId)return BookRef(title,local,prefs.getString(bookCoverKey(title),"").orEmpty())
         val source=EditionMetadata.read(prefs,title,editionId).sourceUrl
         if(source.isNotBlank())return BookRef(title,source,prefs.getString(bookCoverKey(title),"").orEmpty())
         val current=prefs.getString(bookUrlKey(title),"").orEmpty()
@@ -1944,10 +1946,10 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
     }
 
     fun startLibraryTrack(
-        bookTitle: String, files: List<File>, index: Int, restorePosition: Boolean
+        bookTitle: String, files: List<File>, index: Int, restorePosition: Boolean,editionId:String=""
     ) {
         if (index !in files.indices) return
-        val tracks=StableProgress.localTracks(prefs,bookTitle,files)
+        val tracks=StableProgress.localTracks(prefs,bookTitle,files,editionId)
         val resume=StableProgress.resume(prefs,bookTitle,tracks)
         val position=if(restorePosition && resume.index==index)resume.position else 0
         try {
@@ -2277,13 +2279,13 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
         genrePending=emptySet();genreExternalLoading=false;genreRequestId++;genreExternalId++
             if(libraryBook.files.isEmpty())return
             val savedTrack=StableProgress.resume(prefs,libraryBook.title,
-                StableProgress.localTracks(prefs,libraryBook.title,libraryBook.files)).index
+                StableProgress.localTracks(prefs,libraryBook.title,libraryBook.files,libraryBook.editionId)).index
 
             startLibraryTrack(
                 libraryBook.title,
                 libraryBook.files,
                 savedTrack,
-                autoPlay
+                autoPlay,libraryBook.editionId
             )
 
             appPage =
@@ -7055,6 +7057,8 @@ fun preferDownloadedTracks(title:String,tracks:List<ServiceTrack>,books:List<Lib
     }
 }
 
+internal fun bookRefIdentity(ref:BookRef)=if(ref.bookId.isBlank())"legacy:"+ChapterIdentity.hash(ref.title) else "entry:"+ref.bookId
+
 fun findDownloadedBook(books:List<LibraryBook>,title:String,editionId:String=""):LibraryBook? {
     if(editionId.isNotBlank())return books.filter{it.files.isNotEmpty()&&it.editionId==editionId}.singleOrNull()
     if(title.isBlank())return null
@@ -9385,8 +9389,8 @@ private fun AbThemeBackdrop(theme: AbTheme, uri: String?, modifier: Modifier = M
 
 private fun abAuthorKey(title: String) = "book_author_" + safeFileName(title)
 
-private fun abFindLocal(books: List<LibraryBook>, title: String): LibraryBook? =
-    findDownloadedBook(books,title)
+private fun abFindLocal(books: List<LibraryBook>, title: String,editionId:String=""): LibraryBook? =
+    findDownloadedBook(books,title,editionId)
 
 private fun abHasDownloadedChapter(index: DownloadedChapterIndex, title: String, track: AudioTrack): Boolean =
     isTrackDownloaded(track,title,index)
@@ -10583,9 +10587,9 @@ private fun AbLibraryScreen(data: AbScreenData,actions: AbActions,sync: LibraryS
     val favorites=remember(prefs,data.version) {loadBookRefs(prefs,FAVORITES_KEY)}
     val recent=remember(prefs,data.version) {getListeningHistory(prefs).map{bookRefFor(prefs,it)}}
     val queue=remember(prefs,data.version) {loadQueue(prefs)}
-    val localRefs=remember(books,prefs,data.version) {books.map{bookRefFor(prefs,it.title)}}
+    val localRefs=remember(books,prefs,data.version) {books.map{bookRefFor(prefs,it.title,it.editionId)}}
     val all=remember(localRefs,favorites,recent,prefs,data.version) {
-        (localRefs+favorites+loadShelves(prefs).flatMap{it.books}+recent).distinctBy{it.title}
+        (localRefs+favorites+loadShelves(prefs).flatMap{it.books}+recent).distinctBy{bookRefIdentity(it)}
     }
     var bookmarkRows by remember(prefs){mutableStateOf(emptyList<Pair<String,Bookmark>>())}
     LaunchedEffect(tab,bookmarkVersion,all) {
@@ -10596,7 +10600,7 @@ private fun AbLibraryScreen(data: AbScreenData,actions: AbActions,sync: LibraryS
     val refs=remember(tab,filter,sort,all,localRefs,favorites,recent,queue,data.version,
         data.playback.bookTitle,data.playback.trackIndex) {
         val selected=when(tab){1->localRefs;2->favorites;3->recent;4->queue.map{bookRefFor(prefs,it)};else->all}
-            .distinctBy{it.title}
+            .distinctBy{bookRefIdentity(it)}
             .filter {it.title.contains(filter,true) || abStoredCatalog(prefs,it.title).author.contains(filter,true)}
         when {
             sort==1 && tab!=4 -> selected.sortedBy{it.title.lowercase()}
@@ -10642,7 +10646,7 @@ private fun AbLibraryScreen(data: AbScreenData,actions: AbActions,sync: LibraryS
         val continueRef=recent.firstOrNull{ref->books.any{it.title==ref.title} || ref.url.isNotBlank()}
         if(tab==0 && filter.isBlank() && continueRef!=null) item {
             AbHeading("Продолжить слушать",theme)
-            val local=abFindLocal(books,continueRef.title)
+            val local=abFindLocal(books,continueRef.title,continueRef.editionId)
             val chapter=prefs.getInt(bookProgressTrackKey(continueRef.title),0)+1
             AbBookRow(continueRef,local,if(local!=null) "Глава $chapter из ${local.files.size}" else "Онлайн",
                 theme,local?.let{AbBookProgress.library(prefs,it,data.playback,durationCache)},true,
@@ -10685,10 +10689,10 @@ private fun AbLibraryScreen(data: AbScreenData,actions: AbActions,sync: LibraryS
             Spacer(Modifier.height(12.dp))
             AbButton("Подключить папку",theme,onClick=onAccess)
         }
-        if(grid && tab<4) items(gridRows,key={it.first().title}) {row ->
+        if(grid && tab<4) items(gridRows,key={bookRefIdentity(it.first())}) {row ->
             Row(horizontalArrangement=Arrangement.spacedBy(12.dp)) {
                 row.forEach {ref ->
-                    val local=abFindLocal(books,ref.title)
+                    val local=abFindLocal(books,ref.title,ref.editionId)
                     Column(Modifier.weight(1f)) {
                         AbPoster(ref,local,theme,local?.let{AbBookProgress.library(prefs,it,data.playback,durationCache)},
                             Modifier.fillMaxWidth()){actions.openRef(ref)}
@@ -10702,8 +10706,8 @@ private fun AbLibraryScreen(data: AbScreenData,actions: AbActions,sync: LibraryS
                 if(row.size==1) Spacer(Modifier.weight(1f))
             }
         }
-        else if(tab!=5 && tab!=6) itemsIndexed(refs,key={_,ref->ref.title}) {_,ref ->
-            val local=abFindLocal(books,ref.title)
+        else if(tab!=5 && tab!=6) itemsIndexed(refs,key={_,ref->bookRefIdentity(ref)}) {_,ref ->
+            val local=abFindLocal(books,ref.title,ref.editionId)
             val author=prefs.getString(abAuthorKey(ref.title),"").orEmpty()
             AbBookRow(ref,local,if(author.isNotBlank()) author else if(local!=null) "${local.files.size} глав · На устройстве" else "Онлайн",
                 theme,local?.let{AbBookProgress.library(prefs,it,data.playback,durationCache)},onClick={actions.openRef(ref)},onMenu={onMenu(ref)})
@@ -10766,7 +10770,7 @@ internal fun AbCollectionShelf(shelf:Shelf,books:List<LibraryBook>,prefs:android
             AbButton("Скачать книги",theme,onClick=onDownload)
             if(listMode) {
                 shelf.books.take(3).forEach {ref ->
-                    AbBookRow(ref,abFindLocal(books,ref.title),"В коллекции",theme,onClick={onOpen(ref)},onMenu={onMenu(ref)})
+                    AbBookRow(ref,abFindLocal(books,ref.title,ref.editionId),"В коллекции",theme,onClick={onOpen(ref)},onMenu={onMenu(ref)})
                     AbButton("Скачать книгу или главы",theme){onMenu(ref)}
                     AbButton("Убрать из коллекции",theme){abRemoveShelfBook(prefs,shelf.name,ref)}
                     AbButton(if(expanded==ref.title)"Скрыть продолжения" else "Продолжения",theme){expanded=if(expanded==ref.title)null else ref.title}
@@ -10774,7 +10778,7 @@ internal fun AbCollectionShelf(shelf:Shelf,books:List<LibraryBook>,prefs:android
                 if(shelf.books.size>3)AbButton("Все книги · ${shelf.books.size}",theme,onClick=onSelect)
             } else androidx.compose.foundation.lazy.LazyRow(Modifier.semantics{contentDescription="Книги коллекции: ${shelf.name}"},horizontalArrangement=Arrangement.spacedBy(9.dp)) {
                 itemsIndexed(shelf.books,key={i,ref->"$i:${ref.title}"}) {_,ref ->
-                    AbCollectionBookCard(ref,abFindLocal(books,ref.title),theme,chosen?.title==ref.title,
+                    AbCollectionBookCard(ref,abFindLocal(books,ref.title,ref.editionId),theme,chosen?.title==ref.title,
                         {onOpen(ref)},{onMenu(ref)},{expanded=if(expanded==ref.title)null else ref.title})
                 }
             }
