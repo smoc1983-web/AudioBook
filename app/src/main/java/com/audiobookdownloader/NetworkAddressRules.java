@@ -34,17 +34,13 @@ public final class NetworkAddressRules {
         return next;
     }
     static boolean localHost(String host) {
-        String h=host.toLowerCase(Locale.ROOT).replace("[","").replace("]","");
-        if(h.endsWith("."))h=h.substring(0,h.length()-1);
+        String h=host.toLowerCase(Locale.ROOT).replace("[","").replace("]","").replaceFirst("\\.$","");
         if(h.contains(":"))return privateLiteral(h);
         if(h.matches("[0-9.]+"))return unusualIpv4(h)||privateLiteral(h);
         return namedLocal(h);
     }
     private static boolean namedLocal(String h) {
-        return h.equals("localhost")||h.endsWith(".localhost")||h.endsWith(".local")||h.endsWith(".internal")||!h.contains(".")||numericAlias(h);
-    }
-    private static boolean numericAlias(String h) {
-        return h.matches("(?i)(?:0x[0-9a-f]+|[0-9]+)(?:\\.(?:0x[0-9a-f]+|[0-9]+))*");
+        return h.equals("localhost")||h.endsWith(".localhost")||h.endsWith(".local")||h.endsWith(".internal")||!h.contains(".");
     }
     private static boolean unusualIpv4(String h) {
         if(!h.matches("(?:[0-9]{1,3}\\.){3}[0-9]{1,3}"))return true;
