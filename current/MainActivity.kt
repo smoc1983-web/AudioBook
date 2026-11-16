@@ -1052,6 +1052,7 @@ fun saveBookRefs(
  * Адрес и обложка берутся из того, что приложение уже запомнило
  * для книги при открытии её страницы.
  */
+@JvmOverloads
 fun bookRefFor(
     prefs: android.content.SharedPreferences,
     title: String,editionId:String=""
@@ -7059,6 +7060,7 @@ fun preferDownloadedTracks(title:String,tracks:List<ServiceTrack>,books:List<Lib
 
 internal fun bookRefIdentity(ref:BookRef)=if(ref.bookId.isBlank())"legacy:"+ChapterIdentity.hash(ref.title) else "entry:"+ref.bookId
 
+@JvmOverloads
 fun findDownloadedBook(books:List<LibraryBook>,title:String,editionId:String=""):LibraryBook? {
     if(editionId.isNotBlank())return books.filter{it.files.isNotEmpty()&&it.editionId==editionId}.singleOrNull()
     if(title.isBlank())return null

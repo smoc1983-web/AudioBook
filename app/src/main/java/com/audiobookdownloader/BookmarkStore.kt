@@ -30,6 +30,7 @@ private fun bookmarkJson(book:String,list:List<Bookmark>)=JSONArray().apply {
 private fun bookmarkProblem(p:SharedPreferences) {
     p.edit().putString(EditionMetadata.NOTICE,"Запись закладок не удалось безопасно изменить. Исходные данные сохранены; проверьте резервную копию и свободное место.").apply()
 }
+@JvmOverloads
 fun loadBookmarks(prefs:SharedPreferences,bookTitle:String,editionId:String=""):List<Bookmark> {
     if(bookTitle.isBlank())return emptyList()
     val own=try {
