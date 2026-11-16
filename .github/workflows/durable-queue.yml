@@ -2,7 +2,7 @@ name: Verify durable download queue
 on:
   push:
     branches: ['cloud/durable-queue-20261116']
-    paths: ['.github/workflows/durable-queue.yml', 'current/**', 'app/**']
+    paths: ['.github/workflows/durable-queue.yml', 'current/**', 'app/**', 'tools/tests/queue*']
 permissions:
   contents: read
   actions: read
@@ -90,6 +90,9 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -memory 2048 -cores 2
           script: |
             gradle :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.audiobookdownloader.DownloadQueueStoreTest,com.audiobookdownloader.DurableQueueTest,com.audiobookdownloader.AudioValidationTest,com.audiobookdownloader.DownloadRetryTest,com.audiobookdownloader.LibraryExperienceTest#realAndroidDownloadSurvivesQueueReloadAndCancelPreservesFinishedFile --max-workers=2 --console=plain
+            mkdir -p app/build/reports/stage3-native
+            cp -R app/build/outputs/androidTest-results app/build/reports/stage3-native/normal
+            bash tools/tests/queue-process-check.sh
       - uses: actions/upload-artifact@v4
         if: always()
         with:
