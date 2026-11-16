@@ -970,6 +970,7 @@ const val FAVORITES_KEY = "favorites_v1"
 const val SHELVES_KEY = "shelves_v1"
 const val QUEUE_KEY = "listening_queue_v1"
 
+@androidx.compose.runtime.Immutable
 data class BookRef(
     val title: String,
     val url: String,

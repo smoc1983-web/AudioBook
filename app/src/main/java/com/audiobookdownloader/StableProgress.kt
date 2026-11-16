@@ -61,7 +61,7 @@ internal object StableProgress {
     fun completed(p:SharedPreferences,book:String,tracks:List<ServiceTrack>) {
         if(tracks.isEmpty())return
         val id=edition(p,book,tracks)
-        EditionMetadata.change(p,book,id,ChapterIdentity.revision(tracks.map{ChapterIdentity.chapter(id,it.title)})){it.copy(total=maxOf(it.total,tracks.size),completed=true,finished=tracks.map{t->safeFileName(t.title)})}
+        EditionMetadata.change(p,book,id){it.copy(total=maxOf(it.total,tracks.size),completed=true,finished=tracks.map{t->safeFileName(t.title)})}
     }
     fun isCompleted(p:SharedPreferences,book:LibraryBook)=EditionMetadata.read(p,book.title,EditionMetadata.local(p,book)).completed
     fun expected(p:SharedPreferences,book:LibraryBook)=EditionMetadata.read(p,book.title,EditionMetadata.local(p,book)).total
@@ -77,11 +77,11 @@ internal object StableProgress {
     }
     fun observe(p:SharedPreferences,book:String,tracks:List<AudioTrack>,full:Boolean,editionId:String="",sourceUrl:String="") {
         val id=editionId.ifBlank{EditionMetadata.current(p,book)}
-        val revision=ChapterIdentity.revision(tracks.map{ChapterIdentity.chapter(id,it.title)})
-        EditionMetadata.change(p,book,id,revision){old->
+        EditionMetadata.change(p,book,id){old->
             val size=maxOf(old.total,tracks.size)
             val requested=full&&tracks.isNotEmpty()&&tracks.size>=old.total
             val added=old.titles.isNotEmpty()&&tracks.any{it.title !in old.titles}
+            val revision=ChapterIdentity.revision(tracks.map{ChapterIdentity.chapter(id,it.title)})
             val authoritative=requested&&LibraryRecordRules.provesCatalogue(id,tracks.map{it.title},revision)
             val source=sourceUrl.ifBlank{p.getString(bookUrlKey(book),"").orEmpty()}.takeIf{it.isNotBlank()&&ChapterIdentity.edition(book,it)==id} ?: old.sourceUrl
             old.copy(sourceUrl=source,total=size,completed=old.completed&&!(size>old.total||added||authoritative&&old.revision!=revision),
