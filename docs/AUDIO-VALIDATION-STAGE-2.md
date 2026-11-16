@@ -104,6 +104,23 @@ Android job скрывала успешно проверенную замену 
 parent`, повтор системой через минуту. Добавлена предварительная подготовка папки
 перед enqueue; тайм-аут теста не увеличивался.
 
+## Окончательная проверка
+
+CI **43861250296**, исходники `300a94841afefdf505e1a59e9dd115a3052c730b`, SUCCESS:
+
+* Stable Debug и Release APK: сборки прошли; APK не публиковались.
+* JVM Debug и Release: по289 тестов, 0 failures/errors, по1 прежнему пропуску
+  `LiveCatalogTest.liveSourcesSearchResolveDownloadAndDecode`.
+* Preview Debug и AndroidTest: сборки с прежним подписантом прошли.
+* Android16/API36, эмулятор:7 тестов,0 failures/errors/skips. Подтверждены все
+  7 fixtures, ошибочные ответы, усечённый WAV, неверный размер, сохранность готовой
+  главы/позиции, повтор, отмена, старое задание, восстановление verifying и
+  запоздалая ошибка уже удалённого job. Новые папки создавались для двух глав.
+* Lint Debug/Release: по0 Fatal/Error,77 Warning/76 Information. Список сообщений
+  совпадает с этапом1 (CI43842485672); новых предупреждений нет.
+* Проверены реальные JUnit XML и lint XML из Actions artifacts.
+  Машиночитаемый итог: `docs/quality/audio-validation/results.json`.
+
 ## Ограничения
 
 Это проверка пригодности полученного аудиофайла, а не полное декодирование всех

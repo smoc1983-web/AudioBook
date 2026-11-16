@@ -1,0 +1,62 @@
+{
+  "Debug": {
+    "tests": 289,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1
+  },
+  "Release": {
+    "tests": 289,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1
+  },
+  "lint-debug": {
+    "counts": {
+      "Fatal": 0,
+      "Error": 0,
+      "Warning": 77,
+      "Information": 76
+    },
+    "newMessages": []
+  },
+  "lint-release": {
+    "counts": {
+      "Fatal": 0,
+      "Error": 0,
+      "Warning": 77,
+      "Information": 76
+    },
+    "newMessages": []
+  },
+  "date": "2026-11-16",
+  "stage": 2,
+  "branch": "cloud/audio-validation-20261116",
+  "source": "300a94841afefdf505e1a59e9dd115a3052c730b",
+  "ci": 43861250296,
+  "ciConclusion": "success",
+  "baselineCi": 43842485672,
+  "native": {
+    "tests": 7,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "nativeApi": 36,
+  "localJavaTests": 6,
+  "previousProgressJavaTests": 13,
+  "quality": {
+    "maxMeasuredCrap": 8,
+    "scoredMethodsInstructionCoverage": 100,
+    "dryerCandidatesInChangedJavaFile": 0,
+    "mutationSites": 34,
+    "killed": 34,
+    "survived": 0,
+    "mutationExitCode": 0,
+    "kotlinStaticAnalysisSupported": false
+  },
+  "physicalDeviceTested": false,
+  "fullBookDecoding": false,
+  "published": false,
+  "publicRelease": "preview-v100095"
+}
