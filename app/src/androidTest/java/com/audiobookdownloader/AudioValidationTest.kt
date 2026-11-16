@@ -113,11 +113,13 @@ class AudioValidationTest {
             val after=dm.openDownloadedFile(valid.job).use{descriptor->ParcelFileDescriptor.AutoCloseInputStream(ParcelFileDescriptor.dup(descriptor.fileDescriptor)).use{ChapterIdentity.checksum(it)}}
             assertEquals(checksum,after)
             val repairedRow=finished.single{it.title=="02"}
+            val beforeRestore=requests["/02.mp3"]
             AbPersistentDownloads.update(context,repairedRow.key){it.copy(state="verifying")}
             assertEquals("verifying",AbPersistentDownloads.decode(repairedRow.copy(state="verifying").let{org.json.JSONArray().put(it.json()).toString()}).single().state)
             AbPersistentDownloads.restore(context)
-            await{it.all{r->r.state=="complete"}}
-            assertEquals(2,requests["/02.mp3"])
+            val restored=await{it.all{r->r.state=="complete"}}
+            assertEquals(repairedRow.job,restored.single{it.title=="02"}.job)
+            assertEquals("Recovery must not start another transfer",beforeRestore,requests["/02.mp3"])
             assertTrue(DownloadedChapterIndex.fromLibrary(scanLibrary(context)).contains(book,"02"))
             // Upgrade case: a direct Android job exists, but the old release had no durable owner entry.
             repaired.set(false)
