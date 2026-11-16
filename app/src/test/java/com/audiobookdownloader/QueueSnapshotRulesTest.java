@@ -4,7 +4,7 @@ import static org.junit.Assert.*;
 import java.nio.ByteBuffer;
 public class QueueSnapshotRulesTest {
  @Test public void roundTripPreservesUnicodeAndEmptyQueue(){
-  for(String json:new String[]{"[]","[{\"title\":\"Глава ①\"}]"})assertEquals(json,QueueSnapshotRules.decode(QueueSnapshotRules.encode(json)));
+  for(String json:new String[]{"","x","[]","[{\"title\":\"Глава ①\"}]"})assertEquals(json,QueueSnapshotRules.decode(QueueSnapshotRules.encode(json)));
  }
  @Test public void truncationExtraBytesAndBitFlipsAreRejected(){
   byte[] good=QueueSnapshotRules.encode("[123]");
@@ -21,6 +21,12 @@ public class QueueSnapshotRulesTest {
   char[] chars=new char[QueueSnapshotRules.MAX_BYTES];java.util.Arrays.fill(chars,' ');
   String max=new String(chars);assertEquals(max,QueueSnapshotRules.decode(QueueSnapshotRules.encode(max)));
   try{QueueSnapshotRules.encode(max+"x");fail("oversized snapshot accepted");}catch(IllegalArgumentException expected){}
+  byte[] tooLarge=java.util.Arrays.copyOf(QueueSnapshotRules.encode(max),44+QueueSnapshotRules.MAX_BYTES+1);
+  tooLarge[tooLarge.length-1]=' ';
+  ByteBuffer.wrap(tooLarge).putInt(8,QueueSnapshotRules.MAX_BYTES+1);
+  byte[] payload=java.util.Arrays.copyOfRange(tooLarge,44,tooLarge.length);
+  System.arraycopy(ChapterIdentity.digest().digest(payload),0,tooLarge,12,32);
+  reject(tooLarge);
  }
 
  @Test public void invalidUtf8IsRejectedEvenWithAConsistentEnvelope() throws Exception {
