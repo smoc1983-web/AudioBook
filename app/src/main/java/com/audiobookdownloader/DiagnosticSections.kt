@@ -7,7 +7,7 @@ import org.json.JSONObject
 internal object AbDiagnosticSections {
     private val metrics=setOf("count","withAuthor","httpStatus","status","attempt","attempts","bytes","total","duration",
         "audioPermission","treeConfigured","folderUnavailable","booksBeforeDownloadFilter","books","chapters","unfinishedKeys",
-        "blocked","blockedAdvertising","hasPlaylist","tracks","trackCount","rows","found","parsed","loaded","cached","elapsedMs")
+        "hasError","blocked","blockedAdvertising","hasPlaylist","tracks","trackCount","rows","found","parsed","loaded","cached","elapsedMs")
     private val containers=setOf("sites","playlistLoad","sourceDebug","parser","result","response","summary")
     fun summary(raw:String,knownSources:Set<String>):String = try {
         val start=raw.indexOf('{')
@@ -22,6 +22,7 @@ internal object AbDiagnosticSections {
             when {
                 key in metrics && (item is Number || item is Boolean) -> result.put(key,item)
                 key=="site" && item is String && item in knownSources -> result.put(key,item)
+                key=="state" && item in setOf("pending","finished","active","queued","error","complete") -> result.put(key,item)
                 key=="error" -> result.put("hasError",item!=null && item!=JSONObject.NULL && item.toString().isNotBlank())
                 key in containers && item is JSONObject -> result.put(key,clean(item,knownSources,depth+1))
                 key in containers && item is JSONArray -> result.put(key,JSONArray().apply {

@@ -24,9 +24,21 @@ public final class DiagnosticPrivacy {
         safe=PATH.matcher(safe).replaceAll(HIDDEN);
         return IP.matcher(safe).replaceAll(HIDDEN);
     }
+    private static final Pattern EXCEPTION=Pattern.compile("(?:Caused by: |Suppressed: )?[\\w.$]+(?:Exception|Error|Throwable)\\b");
     public static String stack(String value) {
         if(value==null)return "";
-        return redact(value.replaceAll("(\\b[\\w.$]+(?:Exception|Error|Throwable)):[^\\r\\n]*", "$1: [сообщение скрыто]"));
+        StringBuilder safe=new StringBuilder();
+        for(String line:value.split("\\r?\\n")) {
+            String selected=stackLine(line);
+            if(!selected.isEmpty())safe.append(selected).append('\n');
+        }
+        return redact(safe.toString().trim());
+    }
+    private static String stackLine(String line) {
+        Matcher type=EXCEPTION.matcher(line);
+        if(type.find())return type.group()+": [сообщение скрыто]";
+        if(line.matches("\\s*at [\\w.$/]+\\([^()]*\\)\\s*")||line.matches("\\s*\\.\\.\\. [0-9]+ more\\s*"))return line;
+        return "";
     }
     private static String urls(String value) {
         Matcher m=URLS.matcher(value);StringBuffer out=new StringBuffer();

@@ -8457,6 +8457,7 @@ private fun abIsBookDetailAddress(address:String):Boolean {
 }
 
 private fun abSameBookSource(requested:String,actual:String):Boolean = try {
+    NetworkAddressRules.redirect(NetworkAddressRules.checked(requested),actual)
     fun source(value:String):String {
         val uri=Uri.parse(value)
         if(uri.scheme !in listOf("http","https")||uri.userInfo!=null)return ""
@@ -13520,12 +13521,12 @@ internal object AbCrashReport {
         if(local==null && system==null && !includeHealth)return null
         val stamp=maxOf(local?.first ?: 0L,system?.stamp ?: 0L).takeIf{it>0L}
             ?: context.getSharedPreferences("audiobook_diagnostics",Context.MODE_PRIVATE).getLong(FIRST_RUN,0L)
-        val text=StringBuilder("Версия диагностики: "+REVISION+"\nОтчёт собран: "+java.util.Date()+"\n")
+        val text=StringBuilder("Версия диагностики: "+REVISION+"\nОтчёт собран: "+java.util.Date()+"\nAndroid ${Build.VERSION.SDK_INT}, ${Build.MANUFACTURER} ${Build.MODEL}\n")
         text.append("\n=== Установленная сборка ===\n"+installedBuild(context)+"\n")
         val source=AbSourceTrace.read(context)
-        if(source.isNotBlank())text.append("\n=== Последняя проверка источника ===\n"+AbDiagnosticSections.summary(source,AbBookSources.all.toSet())+"\n")
+        if(source.isNotBlank())text.append("\n=== Последняя проверка источника ===\n"+AbDiagnosticSections.summary(source,(AbBookSources.all+AbExtraSources.browserOnly.map{it.first}).toSet())+"\n")
         val search=AbSourceTrace.readSearch(context)
-        if(search.isNotBlank())text.append("\n=== Последний общий поиск (без запроса) ===\n"+AbDiagnosticSections.summary(search,AbBookSources.all.toSet())+"\n")
+        if(search.isNotBlank())text.append("\n=== Последний общий поиск (без запроса) ===\n"+AbDiagnosticSections.summary(search,(AbBookSources.all+AbExtraSources.browserOnly.map{it.first}).toSet())+"\n")
         val library=context.getSharedPreferences("audiobook_diagnostics",Context.MODE_PRIVATE).getString("last_library","").orEmpty()
         if(library.isNotBlank())text.append("\n=== Последняя синхронизация библиотеки ===\n"+AbDiagnosticSections.summary(library,emptySet())+"\n")
         val playback=AbPlaybackTrace.read(context)
@@ -13537,7 +13538,7 @@ internal object AbCrashReport {
             if(system!=null && kotlin.math.abs(system.stamp-local.first)>10_000L)
                 text.append("\nВремя этого сохранённого стека отличается от системного события. Он не подтверждает причину последнего завершения.\n")
         }
-        if(system!=null)text.append("\n=== Сведения Android ===\n"+DiagnosticPrivacy.stack(system.text))
+        if(system!=null)text.append("\n=== Сведения Android ===\n"+system.text)
         if(local==null && system==null)text.append("\nСохранённых сведений о сбое пока нет.\n")
         val target=system?.stamp ?: local?.first
         if(target!=null && (local==null || (system!=null && kotlin.math.abs(system.stamp-local.first)>10_000L))) {
@@ -13706,16 +13707,18 @@ internal object AbCrashReport {
             }
             val text=StringBuilder("Audiobook · системный отчёт\n${java.util.Date(exit.timestamp)}\n"+
                 "Android ${Build.VERSION.SDK_INT}, ${Build.MANUFACTURER} ${Build.MODEL}\n"+
-                "Причина: $reason\n${exit.description.orEmpty()}\nPSS: ${exit.pss} KB; RSS: ${exit.rss} KB\n")
+                "Причина: $reason\nPSS: ${exit.pss} KB; RSS: ${exit.rss} KB\n")
             text.append("PID завершённого процесса: "+exit.pid+"\nПроцесс: "+exit.processName+"\n")
             if(exit.reason==android.app.ApplicationExitInfo.REASON_ANR) {
                 exit.traceInputStream?.bufferedReader(Charsets.UTF_8)?.use {reader ->
+                    val trace=StringBuilder()
                     val buffer=CharArray(4096)
-                    while(text.length<64_000) {
-                        val count=reader.read(buffer,0,minOf(buffer.size,64_000-text.length))
+                    while(trace.length<64_000) {
+                        val count=reader.read(buffer,0,minOf(buffer.size,64_000-trace.length))
                         if(count<=0) break
-                        text.append(buffer,0,count)
+                        trace.append(buffer,0,count)
                     }
+                    text.append(DiagnosticPrivacy.stack(trace.toString()))
                 }
             }
             SystemSnapshot(exit.timestamp,exit.pid,text.toString())
@@ -15112,7 +15115,7 @@ private object AbSourceTrace {
         .getString("last_search","").orEmpty()
     fun record(context:Context,stage:String,json:JSONObject?) {
         if(json==null)return
-        val text=java.util.Date().toString()+" · "+stage+"\n"+AbDiagnosticSections.summary(json.toString(),AbBookSources.all.toSet()).take(16000)
+        val text=java.util.Date().toString()+" · "+stage+"\n"+AbDiagnosticSections.summary(json.toString(),(AbBookSources.all+AbExtraSources.browserOnly.map{it.first}).toSet()).take(16000)
         context.applicationContext.getSharedPreferences("audiobook_diagnostics",Context.MODE_PRIVATE)
             .edit().putString("last_source",text).apply()
     }

@@ -11,8 +11,8 @@ public class DiagnosticPrivacyTest {
   for(String secret:new String[]{"fixture token","fixture-pass","private search","fixture-signature"})assertFalse(secret,s.contains(secret));
  }
  @Test public void hidesUnlabelledExceptionMessagesButKeepsStackFrames() {
-  String s=DiagnosticPrivacy.stack("java.io.IOException: private book text arbitrarySecret\n at com.audiobookdownloader.Source.read(Source.kt:42)");
-  assertFalse(s.contains("arbitrarySecret"));assertFalse(s.contains("private book"));assertTrue(s.contains("java.io.IOException"));assertTrue(s.contains("Source.kt:42"));assertEquals("",DiagnosticPrivacy.stack(null));
+  String s=DiagnosticPrivacy.stack("java.io.IOException: private book text arbitrarySecret\n continuation-private-secret\n at com.audiobookdownloader.Source.read(Source.kt:42)");
+  assertFalse(s.contains("arbitrarySecret"));assertFalse(s.contains("private book"));assertFalse(s.contains("continuation-private-secret"));assertTrue(s.contains("java.io.IOException"));assertTrue(s.contains("Source.kt:42"));assertEquals("",DiagnosticPrivacy.stack(null));
  }
  @Test public void keepsTechnicalEvidenceAndIsIdempotent() {
   String s="java.net.SocketTimeoutException: timeout HTTP 503\n at com.audiobookdownloader.Source.load(Source.kt:42)\nAndroid 36; source=Aume; count=2";
