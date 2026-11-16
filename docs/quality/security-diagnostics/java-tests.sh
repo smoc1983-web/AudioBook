@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+set -euo pipefail
+: "${QUALITY_JUNIT_CLASSPATH:?Set JUnit 4 and Hamcrest classpath}"
+classes=$(mktemp -d)
+trap 'rm -rf "$classes"' EXIT
+java -m jdk.compiler/com.sun.tools.javac.Main -source 17 -target 17 -cp "$QUALITY_JUNIT_CLASSPATH" -d "$classes" \
+ app/src/main/java/com/audiobookdownloader/DiagnosticPrivacy.java \
+ app/src/main/java/com/audiobookdownloader/NetworkAddressRules.java \
+ app/src/test/java/com/audiobookdownloader/DiagnosticPrivacyTest.java \
+ app/src/test/java/com/audiobookdownloader/NetworkAddressRulesTest.java
+java_args=()
+if [[ -n "${QUALITY_JACOCO_AGENT:-}" ]]; then
+ mkdir -p target/site/jacoco
+ java_args+=("-javaagent:$QUALITY_JACOCO_AGENT=destfile=target/site/jacoco/security.exec,append=false")
+fi
+java "${java_args[@]}" -cp "$classes:$QUALITY_JUNIT_CLASSPATH" org.junit.runner.JUnitCore com.audiobookdownloader.DiagnosticPrivacyTest com.audiobookdownloader.NetworkAddressRulesTest
+if [[ -n "${QUALITY_JACOCO_CLI:-}" ]]; then
+ java -jar "$QUALITY_JACOCO_CLI" report target/site/jacoco/security.exec \
+  --classfiles "$classes/com/audiobookdownloader/DiagnosticPrivacy.class" \
+  --classfiles "$classes/com/audiobookdownloader/NetworkAddressRules.class" \
+  --sourcefiles app/src/main/java --xml target/site/jacoco/jacoco.xml
+fi
