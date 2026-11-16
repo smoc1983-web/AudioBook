@@ -13422,7 +13422,7 @@ internal object AbPlaybackTrace {
         try {
             val prefs=context.applicationContext.getSharedPreferences("audiobook_downloader",Context.MODE_PRIVATE)
             val stamp=java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss Z",java.util.Locale.ROOT).format(java.util.Date())
-            val row=stamp+" | "+AbDiagnosticSections.playback(message).replace('\n',' ').take(600)
+            val row=stamp+" | "+AbDiagnosticSections.playback(message.replace('\n',' ')).take(600)
             val previous=prefs.getString(KEY,"").orEmpty().lineSequence().filter{it.isNotBlank()}.toList().takeLast(79)
             prefs.edit().putString(KEY,(previous+row).joinToString("\n")).apply()
         }catch(_:Exception){}

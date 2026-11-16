@@ -32,11 +32,18 @@ internal object AbDiagnosticSections {
         }
         return result
     }
-    fun playback(raw:String):String = DiagnosticPrivacy.redact(raw.lineSequence().joinToString("\n") {line->
+    fun playback(raw:String):String = DiagnosticPrivacy.redact(raw.lineSequence().joinToString("\n") {rawLine->
+        val line=withoutBook(rawLine)
         if(line.contains("Удаление",true)||line.contains("Главы книги удалены",true))
             "Событие удаления (сведения о книге скрыты)"
         else if(Regex("""\b[\w.$]+(?:Exception|Error|Throwable)\b""").containsMatchIn(line))
             "Ошибка плеера: "+DiagnosticPrivacy.stack(line)
         else line
     })
+    private fun withoutBook(line:String):String {
+        val book=line.indexOf("| книга=")
+        if(book<0)return line
+        val chapter=line.lastIndexOf("| глава=")
+        return line.substring(0,book)+"| книга=[скрыто] "+if(chapter>book)line.substring(chapter) else ""
+    }
 }

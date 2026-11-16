@@ -20,4 +20,9 @@ class DiagnosticSectionsTest {
   assertFalse(AbDiagnosticSections.playback("Ошибка перемотки: IOException; private message without labels").contains("private"))
   assertFalse(AbDiagnosticSections.playback("Удаление главы private.mp3: IOException\nplay | книга=private | глава=2").contains("private"))
  }
+ @Test fun delimiterInsideBookTitleCannotExposeTheRemainingTitle() {
+  val s=AbDiagnosticSections.playback("play | книга=private first | private second | глава=7; позиция=42; играет=true")
+  assertFalse(s.contains("private"));assertTrue(s.contains("глава=7"));assertTrue(s.contains("позиция=42"))
+  assertFalse(AbDiagnosticSections.playback("play | книга=private first | private second").contains("private"))
+ }
 }
