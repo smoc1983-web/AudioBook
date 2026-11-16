@@ -1,0 +1,10 @@
+{
+  "date": "2026-11-16",
+  "branch": "cloud/progress-unification-20261116",
+  "base": "cac497cf95afa114eea38478bccdc93fe3ca99ed",
+  "workingTreeWasClean": true,
+  "publishedRelease": "preview-v100095",
+  "stage": 1,
+  "ubMode": true,
+  "publicationAuthorized": false
+}
