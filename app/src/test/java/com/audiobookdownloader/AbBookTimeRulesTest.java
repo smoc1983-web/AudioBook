@@ -64,6 +64,7 @@ public class AbBookTimeRulesTest {
   assertEquals(0,AbBookTimeRules.calculate(new long[]{0},0,-123,1).elapsedMs);
   assertEquals(0,AbBookTimeRules.calculate(new long[]{1000},0,0,1).elapsedMs);
   assertEquals(0,AbBookTimeRules.calculate(new long[]{1},0,1,1).chapterRemainingMs);
+  assertEquals(1,AbBookTimeRules.calculate(new long[]{1},0,2,1).elapsedMs);
   assertEquals(.5f,AbBookTimeRules.calculate(new long[]{1,0},0,1,1).progress,0f);
  }
  @Test public void slowerThanNormalSpeedIsValid(){

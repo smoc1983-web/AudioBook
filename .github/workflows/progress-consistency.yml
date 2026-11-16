@@ -89,7 +89,7 @@ jobs:
           profile: pixel_6
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -memory 2048 -cores 2
           script: |
-            gradle :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.audiobookdownloader.BookProgressWidgetTest,com.audiobookdownloader.WidgetPreviewTest,com.audiobookdownloader.VisiblePlaybackTest --max-workers=2 --console=plain
+            gradle :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.audiobookdownloader.BookProgressWidgetTest,com.audiobookdownloader.WidgetPreviewTest,com.audiobookdownloader.VisiblePlaybackTest,com.audiobookdownloader.CompactPlayerTest --max-workers=2 --console=plain
       - uses: actions/upload-artifact@v4
         if: always()
         with:

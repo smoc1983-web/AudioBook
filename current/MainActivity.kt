@@ -11230,9 +11230,10 @@ private fun AbBookPlaybackProgress(data: AbScreenData,theme: AbTheme,compact:Boo
                 if(checking)"Уточняем время книги: ${timing.knownRemaining} из ${timing.totalRemaining} оставшихся глав"
                 else "Время до конца книги пока не определено"
         }
-        Text(text,color=theme.muted,fontSize=11.sp,maxLines=if(compact)2 else 3,modifier=Modifier.fillMaxWidth()
-            .semantics{contentDescription=text},textAlign=androidx.compose.ui.text.style.TextAlign.Center)
-        Text(AbBookProgress.description(timing),
+        val visibleText=if(compact)AbBookProgress.description(timing)+" · "+text else text
+        Text(visibleText,color=theme.muted,fontSize=11.sp,maxLines=if(compact)2 else 3,modifier=Modifier.fillMaxWidth()
+            .semantics{contentDescription=visibleText},textAlign=androidx.compose.ui.text.style.TextAlign.Center)
+        if(!compact)Text(AbBookProgress.description(timing),
             color=theme.muted,fontSize=10.sp,modifier=Modifier.fillMaxWidth(),
             textAlign=androidx.compose.ui.text.style.TextAlign.Center)
         if(timing.remainingMs<0 && !checking && state.tracks.any{isNetworkAudio(it.src)})
