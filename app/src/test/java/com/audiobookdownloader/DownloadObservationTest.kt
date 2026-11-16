@@ -12,6 +12,6 @@ class DownloadObservationTest {
  }
  @Test fun genuineTerminalStatesRemainVisible(){
   for(status in listOf(null,DownloadManager.STATUS_FAILED)){val result=abDownloadObservation(row,status,-1,-1);assertEquals("error",result.state);assertEquals(row.job,result.job);assertEquals(row.bytes,result.bytes)}
-  assertEquals("complete",abDownloadObservation(row,DownloadManager.STATUS_SUCCESSFUL,1024,1024).state)
+  assertEquals("verifying",abDownloadObservation(row,DownloadManager.STATUS_SUCCESSFUL,1024,1024).state)
  }
 }
