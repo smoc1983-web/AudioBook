@@ -113,6 +113,9 @@ class AudioValidationTest {
             assertEquals(1234,prefs.getInt(bookProgressPositionKey(book),0))
             val after=dm.openDownloadedFile(valid.job).use{descriptor->ParcelFileDescriptor.AutoCloseInputStream(ParcelFileDescriptor.dup(descriptor.fileDescriptor)).use{ChapterIdentity.checksum(it)}}
             assertEquals(checksum,after)
+            val obsolete=AbDownloadedAudio.inspect(context,bad.job,-1,book,"02")
+            assertFalse(obsolete.valid)
+            assertTrue("An obsolete job must not hide the verified replacement",DownloadedChapterIndex.fromLibrary(scanLibrary(context)).contains(book,"02"))
             val repairedRow=finished.single{it.title=="02"}
             val beforeRestore=requests["/02.mp3"]
             AbPersistentDownloads.update(context,repairedRow.key){it.copy(state="verifying")}
