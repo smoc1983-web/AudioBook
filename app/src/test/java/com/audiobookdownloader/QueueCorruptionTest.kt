@@ -17,4 +17,16 @@ class QueueCorruptionTest {
         val rows=AbPersistentDownloads.decode(JSONArray().put(row.json()).put(row.json()).toString())
         assertEquals(listOf(row),rows)
     }
+
+    @Test(expected=IllegalArgumentException::class)
+    fun conflictingJobsForOneIntentArePreservedForRecoveryRatherThanMerged() {
+        val src="https://example.org/01.mp3"
+        val row=QueuedChapter(AbPersistentDownloads.key("Book","01",src),"Book","01",src,job=42,state="active")
+        AbPersistentDownloads.decode(JSONArray().put(row.json()).put(row.copy(job=43).json()).toString())
+    }
+    @Test fun pendingRetryRoundTripsWithoutChangingIdentityOrJob() {
+        val src="https://example.org/01.mp3"
+        val row=QueuedChapter(AbPersistentDownloads.key("Book","01",src),"Book","01",src,transientAttempts=2,retryAt=123456789L)
+        assertEquals(row,AbPersistentDownloads.decode(JSONArray().put(row.json()).toString()).single())
+    }
 }

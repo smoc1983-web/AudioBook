@@ -57,10 +57,11 @@ internal val LocalAbBookCardContext=staticCompositionLocalOf<BookCardContext?>{n
     var revision by remember{mutableStateOf(0)}
     var notice by remember{mutableStateOf("")}
     var recoveryNotice by remember{mutableStateOf("")}
+    var recoveryBlocked by remember{mutableStateOf(false)}
     var rows by remember{mutableStateOf<List<QueuedChapter>>(emptyList())}
     LaunchedEffect(revision,foreground){
         if(!foreground)return@LaunchedEffect
-        while(true){val snapshot=withContext(Dispatchers.IO){AbPersistentDownloads.entries(context) to AbPersistentDownloads.problem(context)};rows=snapshot.first;recoveryNotice=snapshot.second;delay(1200)}
+        while(true){val snapshot=withContext(Dispatchers.IO){Triple(AbPersistentDownloads.entries(context),AbPersistentDownloads.problem(context),AbPersistentDownloads.recoveryBlocked(context))};rows=snapshot.first;recoveryNotice=snapshot.second;recoveryBlocked=snapshot.third;delay(1200)}
     }
     fun work(block:()->Unit){scope.launch{try{withContext(Dispatchers.IO){block()};revision++}catch(e:Exception){notice=e.message?:"Не удалось изменить очередь"}}}
     var shown by remember{mutableStateOf(10)}
@@ -70,6 +71,7 @@ internal val LocalAbBookCardContext=staticCompositionLocalOf<BookCardContext?>{n
         Text("Настройка сети применяется к новым главам. Пауза очереди не прерывает уже начатые главы.",color=theme.muted,fontSize=12.sp)
         if(notice.isNotBlank())Text(notice,color=theme.error,fontSize=13.sp)
         if(recoveryNotice.isNotBlank()&&recoveryNotice!=notice)Text(recoveryNotice,color=theme.error,fontSize=13.sp)
+        if(recoveryBlocked)AbButton("Повторить восстановление",theme){work{AbPersistentDownloads.retryRecovery(context)}}
         val groups=rows.groupBy{it.book}.entries.toList()
         if(groups.isEmpty()&&recoveryNotice.isBlank())Text("Очередь пуста",color=theme.text,fontSize=14.sp)
         groups.take(shown).forEach{(book,chapters)->

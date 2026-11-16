@@ -50,6 +50,11 @@ internal object AbPersistentDownloads {
         return storage!!
     }
     fun problem(c:Context):String=synchronized(lock){entries(c);store(c).notice}
+    fun recoveryBlocked(c:Context):Boolean=synchronized(lock){entries(c);store(c).blocked}
+    fun retryRecovery(c:Context) {
+        synchronized(lock){store(c).reload();cacheLoaded=false;dirty=false;entries(c);store(c).requireWritable()}
+        restore(c)
+    }
     private fun main(c:Context)=c.getSharedPreferences("audiobook_downloader",0)
     private fun legacyKey(book:String,title:String)=AbLibraryHousekeeping.bookKey(book)+"\u0000"+safeFileName(title).lowercase(java.util.Locale.ROOT)
     fun key(book:String,title:String,src:String,editionUrl:String="")=ChapterIdentity.download(book,title,src,editionUrl)

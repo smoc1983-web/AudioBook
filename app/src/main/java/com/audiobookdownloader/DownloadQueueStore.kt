@@ -67,6 +67,7 @@ internal open class DownloadQueueStore(
         }
         return committed
     }
+    fun reload():String {loaded=false;blocked=false;committed="[]";return load()}
     fun requireWritable(){load();check(!blocked){notice}}
     fun save(raw:String) {
         requireWritable();validate(raw)
