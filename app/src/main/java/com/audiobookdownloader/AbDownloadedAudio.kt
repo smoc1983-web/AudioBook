@@ -47,7 +47,11 @@ internal object AbDownloadedAudio {
                     result
                 }
             }catch(_:Exception){
-                try{recordBlock(c,id,book,title,false)}catch(_:Exception){}
+                // An absent old job is not evidence that its replacement file is invalid.
+                val missing=try {
+                    dm.query(DownloadManager.Query().setFilterById(id))?.use{!it.moveToFirst()}==true
+                }catch(_:Exception){false}
+                if(!missing)try{recordBlock(c,id,book,title,false)}catch(_:Exception){}
                 Result(false,"Не удалось открыть файл или сохранить результат проверки. Проверьте доступ к хранилищу и свободное место, затем повторите загрузку главы.")
             }
         }
