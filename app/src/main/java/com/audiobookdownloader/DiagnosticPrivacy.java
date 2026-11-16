@@ -7,7 +7,7 @@ import java.util.regex.*;
 public final class DiagnosticPrivacy {
     private DiagnosticPrivacy() {}
     private static final String HIDDEN="[скрыто]";
-    private static final Pattern URLS=Pattern.compile("(?i)\\b[a-z][a-z0-9+.-]*://[^\\s\\\"'<>\\\\]+");
+    private static final Pattern URLS=Pattern.compile("(?i)\\b[a-z][a-z0-9+.-]*://[^\\r\\n\\\"'<>\\\\]+");
     private static final String KEYS="authorization|proxy[-_ ]?authorization|cookies?|set[-_ ]?cookie|(?:access[-_ ]?|refresh[-_ ]?|id[-_ ]?)?token|password|passwd|(?:client[-_ ]?)?secret|api[-_ ]?key|signature|sig|credential|sessions?(?:id)?|query|search(?:Text)?|книга|запрос|пароль|title|author|reader|note|serial|android[-_ ]?id|ssid";
     private static final Pattern FIELDS=Pattern.compile("(?i)([\\\"']?(?:"+KEYS+")[\\\"']?\\s*[:=]\\s*)(?:\\\"(?:\\\\.|[^\\\"\\\\])*\\\"|'(?:\\\\.|[^'\\\\])*'|[^\\r\\n|;,}]+)");
     private static final Pattern EMAIL=Pattern.compile("(?i)[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9.-]+\\.[a-z]{2,}");

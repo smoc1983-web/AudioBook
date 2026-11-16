@@ -38,4 +38,20 @@ public class SourceHttpTest {
  @Test public void rejectsHeaderInjection()throws Exception {
   for(Map<String,String> h:List.of(Map.of("Cookie","safe\r\nX:secret"),Map.of("Bad:Header","secret")))NetworkAddressRulesTest.rejected(()->SourceHttp.open("https://books.example/a",h,1,2,"GET",u->new Reply(u,200,null)));
  }
+ @Test public void realHttpConnectionFollowsRelativeHopWithBoundedTimeouts()throws Exception {
+  try(ServerSocket server=new ServerSocket(0,10,InetAddress.getByName("127.0.0.1"))) {
+   java.util.concurrent.FutureTask<Void> task=new java.util.concurrent.FutureTask<>(()->{
+    for(int i=0;i<2;i++)try(Socket peer=server.accept()) {
+     peer.setSoTimeout(2000);BufferedReader in=new BufferedReader(new InputStreamReader(peer.getInputStream(),java.nio.charset.StandardCharsets.US_ASCII));
+     String line;while((line=in.readLine())!=null&&!line.isEmpty()){}
+     String reply=i==0?"HTTP/1.1 302 Found\r\nLocation: /audio\r\nContent-Length: 0\r\nConnection: close\r\n\r\n":"HTTP/1.1 200 OK\r\nContent-Length: 7\r\nConnection: close\r\n\r\nfixture";
+     peer.getOutputStream().write(reply.getBytes(java.nio.charset.StandardCharsets.US_ASCII));
+    }
+    return null;
+   });Thread thread=new Thread(task);thread.setDaemon(true);thread.start();
+   HttpURLConnection c=SourceHttp.open("http://127.0.0.1:"+server.getLocalPort()+"/start",Map.of(),2000,2000);
+   try{assertEquals("/audio",c.getURL().getPath());assertEquals("fixture",new String(c.getInputStream().readAllBytes(),java.nio.charset.StandardCharsets.US_ASCII));}finally{c.disconnect();}
+   task.get(3,java.util.concurrent.TimeUnit.SECONDS);
+  }
+ }
 }

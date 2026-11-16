@@ -19,4 +19,10 @@ public class DiagnosticPrivacyTest {
   assertEquals(s,DiagnosticPrivacy.redact(s));assertEquals("",DiagnosticPrivacy.redact(null));
   String once=DiagnosticPrivacy.redact("https://cdn.example/private?token=fixture");assertEquals(once,DiagnosticPrivacy.redact(once));
  }
+ @Test public void malformedAndLocalUrlsAreHiddenAndNeverExpandSecrets() {
+  for(String url:new String[]{"http://127.0.0.1/private?key=fixture","http://router.local/private","https://[::1]/private","smb://user:fixture@nas/share/private","https://bad host/private","file:///private"}) {
+   String s=DiagnosticPrivacy.redact(url);assertFalse(s.contains("fixture"));assertFalse(s.contains("/private"));
+  }
+  assertFalse(DiagnosticPrivacy.redact("Bearer fixture-only-token").contains("fixture"));
+ }
 }
