@@ -37,7 +37,7 @@ public final class DiagnosticPrivacy {
     private static String stackLine(String line) {
         Matcher type=EXCEPTION.matcher(line);
         if(type.find())return type.group()+": [сообщение скрыто]";
-        if(line.matches("\\s*at [\\w.$/]+\\([^()]*\\)\\s*")||line.matches("\\s*\\.\\.\\. [0-9]+ more\\s*"))return line;
+        if(line.matches("\\s*at [-\\w.$/@]+\\([^()]*\\)\\s*")||line.matches("\\s*\\.\\.\\. [0-9]+ more\\s*"))return line;
         return "";
     }
     private static String urls(String value) {

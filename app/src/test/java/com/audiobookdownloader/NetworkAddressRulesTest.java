@@ -27,13 +27,14 @@ public class NetworkAddressRulesTest {
  }
  @Test public void boundaryPortsAndPublicLiteralAddressesRemainSupported()throws Exception {
   assertTrue(NetworkAddressRules.accepts("https://cdn.example:65535/audio"));
+  assertTrue(NetworkAddressRules.publicAddress("https://0xcdn.example/audio"));
   for(String ip:new String[]{"8.8.8.8","8.0.0.8","88.88.88.88"}) {
    assertTrue(ip,NetworkAddressRules.publicAddress("https://"+ip+"/audio"));
    assertEquals("https://"+ip+"/audio",NetworkAddressRules.redirect(new URL("https://books.example/a"),"https://"+ip+"/audio").toString());
   }
  }
  @Test public void nonCanonicalLocalNamesAndNumericAliasesAreNotRedirectTargets()throws Exception {
-  for(String host:new String[]{"app.localhost","router.internal","0x7f.0.0.1","127.0.0.1.","008.0.0.8","8.8","999.999.999.999"})rejected(()->NetworkAddressRules.redirect(new URL("https://books.example/a"),"https://"+host+"/audio"));
+  for(String host:new String[]{"app.localhost","router.internal","0x7f.0.0.1","127.0.0.1.","008.0.0.8","8.8","999.999.999.999","134744072","intranet","0x7f.0x0.0x0.0x1.","[fe80::1%fixture-no-interface]"})rejected(()->NetworkAddressRules.redirect(new URL("https://books.example/a"),"https://"+host+"/audio"));
   for(String location:new String[]{"","   ","\nhttps://cdn.example/a","https://cdn.example/\rhidden"})rejected(()->NetworkAddressRules.redirect(new URL("https://books.example/a"),location));
  }
 }

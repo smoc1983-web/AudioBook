@@ -41,7 +41,10 @@ public final class NetworkAddressRules {
         return namedLocal(h);
     }
     private static boolean namedLocal(String h) {
-        return h.equals("localhost")||h.endsWith(".localhost")||h.endsWith(".local")||h.endsWith(".internal")||!h.contains(".")||h.startsWith("0x");
+        return h.equals("localhost")||h.endsWith(".localhost")||h.endsWith(".local")||h.endsWith(".internal")||!h.contains(".")||numericAlias(h);
+    }
+    private static boolean numericAlias(String h) {
+        return h.matches("(?i)(?:0x[0-9a-f]+|[0-9]+)(?:\\.(?:0x[0-9a-f]+|[0-9]+))*");
     }
     private static boolean unusualIpv4(String h) {
         if(!h.matches("(?:[0-9]{1,3}\\.){3}[0-9]{1,3}"))return true;
