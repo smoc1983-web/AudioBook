@@ -58,6 +58,10 @@ class IdlePlaybackTest {
   prefs.edit().putFloat("playback_speed",1f).putBoolean("sleep_sched_enabled",false).putBoolean("sleep_shake",false)
    .putInt("rewind_after_pause_sec",0).putInt("release_notes_seen_code",BuildConfig.VERSION_CODE).commit()
   context.getSharedPreferences("preview_updates",0).edit().putBoolean("auto",false).commit()
+  if(android.os.Build.VERSION.SDK_INT>=33) {
+   android.os.ParcelFileDescriptor.AutoCloseInputStream(instrumentation.uiAutomation.executeShellCommand(
+    "pm grant ${context.packageName} android.permission.POST_NOTIFICATIONS")).use{it.readBytes()}
+  }
   try{ActivityScenario.launch(MainActivity::class.java).use{
    PlaybackService.play(context,title,"local",listOf(ServiceTrack("01",file.path,60000)),0)
    waitState{it.bookTitle==title&&it.isPlaying&&!it.isLoading}
@@ -80,6 +84,8 @@ class IdlePlaybackTest {
   val position=prefs.getInt(bookProgressPositionKey(title),-1);assertTrue(position>=2900)
   prefs.edit().putFloat("playback_speed",1.25f).commit();waitState{it.bookTitle==title&&it.speed==1.25f}
   scheduled(false)
+  AbBookProgress.remember(prefs,title,PlaybackService.state.value.tracks.single(),60001)
+  Thread.sleep(250);scheduled(false)
   val cover=Bitmap.createBitmap(64,64,Bitmap.Config.ARGB_8888).apply{eraseColor(Color.RED)}
   AudioBookWidget.saveCoverForWidget(context,title,cover)
   runBlocking {withTimeout(10000){while(true){

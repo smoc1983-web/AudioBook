@@ -360,10 +360,18 @@ class PlaybackService : Service() {
         }
     }
 
+    private val widgetMetadataRefresh=Runnable {
+        if(!stopped)AbGlassWidgets.metadataChanged(applicationContext)
+    }
+
     private val preferenceListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
         if (key == "playback_speed" || key == "book_speed_" + safeFileName(bookTitle) ||
             key == EQ_GLOBAL_KEY || key == eqBookKey(bookTitle) || key == "sleep_shake") {
             handler.post { if (!stopped) { applySettings(); publish() } }
+        }
+        if(key?.startsWith("book_chapter_duration_")==true && !isPlaying && !stopped) {
+            handler.removeCallbacks(widgetMetadataRefresh)
+            handler.postDelayed(widgetMetadataRefresh,100L)
         }
     }
 

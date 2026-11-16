@@ -148,6 +148,11 @@ internal object AbGlassWidgets {
         update(context)
     }
 
+    fun metadataChanged(context:Context) {
+        synchronized(lock) {if(SystemClock.elapsedRealtime()<nextEmptyScan)return}
+        update(context)
+    }
+
     fun refreshAll(context: Context) { synchronized(lock) { nextEmptyScan=0L }; update(context) }
 
     fun update(context: Context, ids: IntArray? = null, done: ((Boolean)->Unit)? = null) {
