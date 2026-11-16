@@ -10,7 +10,8 @@ gradle :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArgumen
 cp -R app/build/outputs/androidTest-results "$report_dir/before-stop"
 adb shell am force-stop com.audiobookdownloader.preview
 adb reboot
-adb wait-for-device
+timeout 180 adb wait-for-disconnect
+timeout 180 adb wait-for-device
 boot_deadline=$((SECONDS + 180))
 until [[ "$(adb shell getprop sys.boot_completed | tr -d '\r')" == 1 ]]; do
     if ((SECONDS > boot_deadline)); then echo 'Emulator reboot timed out' >&2; exit 1; fi

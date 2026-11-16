@@ -22,5 +22,12 @@ public class QueueSnapshotRulesTest {
   String max=new String(chars);assertEquals(max,QueueSnapshotRules.decode(QueueSnapshotRules.encode(max)));
   try{QueueSnapshotRules.encode(max+"x");fail("oversized snapshot accepted");}catch(IllegalArgumentException expected){}
  }
+
+ @Test public void invalidUtf8IsRejectedEvenWithAConsistentEnvelope() throws Exception {
+  byte[] data=QueueSnapshotRules.encode("xx");byte[] invalid={(byte)0xc3,0x28};
+  System.arraycopy(invalid,0,data,44,2);
+  System.arraycopy(java.security.MessageDigest.getInstance("SHA-256").digest(invalid),0,data,12,32);
+  reject(data);
+ }
  private void reject(byte[] value){try{QueueSnapshotRules.decode(value);fail("corrupt snapshot accepted");}catch(IllegalArgumentException expected){}}
 }

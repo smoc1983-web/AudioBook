@@ -118,10 +118,14 @@ class DownloadQueueStoreTest {
             val row=AbPersistentDownloads.entries(context).single{it.book==book}
             val field=AbPersistentDownloads.javaClass.getDeclaredField("storage").apply{isAccessible=true}
             val storage=field.get(AbPersistentDownloads) as DownloadQueueStore
-            val before=storage.writes
-            repeat(20){AbPersistentDownloads.update(context,row.key){it.copy(bytes=it.bytes+1)}}
-            assertEquals(before,storage.writes)
-            AbPersistentDownloads.flush(context,true);assertEquals(before+1,storage.writes)
+            val mutex=AbPersistentDownloads.javaClass.getDeclaredField("lock").apply{isAccessible=true}.get(AbPersistentDownloads)
+            synchronized(mutex) {
+                AbPersistentDownloads.update(context,row.key){it.copy(error="coalescing checkpoint")}
+                val before=storage.writes
+                repeat(20){AbPersistentDownloads.update(context,row.key){it.copy(bytes=it.bytes+1)}}
+                assertEquals(before,storage.writes)
+                AbPersistentDownloads.flush(context,true);assertEquals(before+1,storage.writes)
+            }
             val restored=AbPersistentDownloads.decode(QueueSnapshotRules.decode(File(context.filesDir,"download-queue/current.snapshot").readBytes()))
             assertEquals(20L,restored.single{it.book==book}.bytes)
         }finally{AbPersistentDownloads.cancelBook(context,book);AbPersistentDownloads.clearCompleted(context)}

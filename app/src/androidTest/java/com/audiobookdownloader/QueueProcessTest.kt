@@ -38,13 +38,15 @@ class QueueProcessTest {
             @Suppress("UNREACHABLE_CODE") error("unreachable")
         }
         AbPersistentDownloads.flush(context,true)
-        prefs.edit().putString("stage3_expected_queue_key",active.key).putLong("stage3_original_job",active.job).commit()
+        prefs.edit().putString("stage3_expected_queue_key",active.key).putLong("stage3_original_job",active.job)
+            .putInt("stage3_boot_count",android.provider.Settings.Global.getInt(context.contentResolver,"boot_count",-1)).commit()
         assertEquals("active",active.state)
     }
     @Test(timeout=240000) fun restoredQueueCompletesAfterProcessStopAndReboot()=runBlocking {
         permission()
         val key=prefs.getString("stage3_expected_queue_key",null)
         assertNotNull("Preparation data lost across reboot",key)
+        assertTrue("Emulator did not actually reboot",android.provider.Settings.Global.getInt(context.contentResolver,"boot_count",-1)>prefs.getInt("stage3_boot_count",Int.MAX_VALUE))
         AbPersistentDownloads.restore(context)
         assertEquals(key,AbPersistentDownloads.entries(context).single{it.book==book}.key)
         val row=withTimeout(210000) {
@@ -72,7 +74,7 @@ class QueueProcessTest {
         }finally {
             val dm=context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
             dm.remove(row.job);AbPersistentDownloads.clearCompleted(context)
-            prefs.edit().remove("stage3_expected_queue_key").remove("stage3_original_job").remove(bookProgressPositionKey(book)).remove(bookmarksKey(book)).commit()
+            prefs.edit().remove("stage3_expected_queue_key").remove("stage3_original_job").remove("stage3_boot_count").remove(bookProgressPositionKey(book)).remove(bookmarksKey(book)).commit()
         }
     }
 }

@@ -4,7 +4,6 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.charset.CharacterCodingException;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 
 /** Integrity envelope for local queue snapshots; checksum is not an authenticity signature. */
@@ -36,7 +35,6 @@ public final class QueueSnapshotRules {
         catch(CharacterCodingException e){throw new IllegalArgumentException("Invalid queue encoding",e);}
     }
     private static byte[] hash(byte[] bytes) {
-        try {return MessageDigest.getInstance("SHA-256").digest(bytes);}
-        catch(NoSuchAlgorithmException e){throw new AssertionError(e);}
+        return ChapterIdentity.digest().digest(bytes);
     }
 }
