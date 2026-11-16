@@ -17,6 +17,7 @@ class DiagnosticSectionsTest {
  @Test fun nestedPayloadBudgetAndDeletionTraceDoNotLeakTitles() {
   val s=AbDiagnosticSections.summary("{\"playlistLoad\":{\"httpStatus\":503,\"title\":\"private\"}}",emptySet())
   assertTrue(s.contains("503"));assertFalse(s.contains("private"))
+  assertFalse(AbDiagnosticSections.playback("Ошибка перемотки: IOException; private message without labels").contains("private"))
   assertFalse(AbDiagnosticSections.playback("Удаление главы private.mp3: IOException\nplay | книга=private | глава=2").contains("private"))
  }
 }

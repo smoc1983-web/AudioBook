@@ -16,6 +16,9 @@ class DiagnosticPrivacyAndroidTest {
  @Test fun preparedReportIsPreviewedAndExportedWithoutSecrets() {
   val p=context.getSharedPreferences("audiobook_diagnostics",0)
   p.edit().putString("last_search","date\n{\"query\":\"stage4-private-search\",\"sites\":[{\"site\":\"Aume\",\"count\":2,\"error\":\"Cookie: stage4-private-cookie\"}]}").commit()
+  val playback=context.getSharedPreferences("audiobook_downloader",0)
+  val oldPlayback=playback.getString("playback_trace",null)
+  playback.edit().putString("playback_trace","Ошибка перемотки: IOException; stage4-private-message").commit()
   try {
    val report=AbCrashReport.read(context,true)!!.second
    assertFalse(report.contains("stage4-private"));assertTrue(report.contains("Aume"))
@@ -28,7 +31,7 @@ class DiagnosticPrivacyAndroidTest {
    val uri=AbDiagnosticReportFiles.create(context,report)
    val exported=context.contentResolver.openInputStream(uri)!!.bufferedReader().use{it.readText()}
    assertEquals(report,exported)
-  }finally{p.edit().remove("last_search").commit()}
+  }finally{p.edit().remove("last_search").commit();playback.edit().apply{if(oldPlayback==null)remove("playback_trace") else putString("playback_trace",oldPlayback)}.commit()}
  }
  @Test fun fileBoundaryAlsoSanitizesExternalDiagnosticText() {
   val uri=AbDiagnosticReportFiles.create(context,"Cookie: a=stage4-secret; b=stage4-other\nhttps://user:stage4-pass@cdn.example/private?token=stage4-token")

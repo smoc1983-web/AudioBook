@@ -34,6 +34,9 @@ internal object AbDiagnosticSections {
     }
     fun playback(raw:String):String = DiagnosticPrivacy.redact(raw.lineSequence().joinToString("\n") {line->
         if(line.contains("Удаление",true)||line.contains("Главы книги удалены",true))
-            "Событие удаления (сведения о книге скрыты)" else line
+            "Событие удаления (сведения о книге скрыты)"
+        else if(Regex("""\b[\w.$]+(?:Exception|Error|Throwable)\b""").containsMatchIn(line))
+            "Ошибка плеера: "+DiagnosticPrivacy.stack(line)
+        else line
     })
 }
