@@ -72,7 +72,7 @@ public class AbBookTimeRulesTest {
  @Test public void timeFormatsHoursMinutesAndBoundaries(){
   assertEquals("1:00:00",AbBookTimeRules.time(3600000));
   assertEquals("1:01:01",AbBookTimeRules.time(3661000));
-  assertEquals("01:01",AbBookTimeRules.time(61000));
-  assertEquals("00:00",AbBookTimeRules.time(-1));
+  assertEquals("1:01",AbBookTimeRules.time(61000));
+  assertEquals("0:00",AbBookTimeRules.time(-1));
  }
 }

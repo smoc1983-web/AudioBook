@@ -6,4 +6,16 @@ trap 'rm -rf "$classes"' EXIT
 java -m jdk.compiler/com.sun.tools.javac.Main -source 17 -target 17 -cp "$QUALITY_JUNIT_CLASSPATH" -d "$classes" \
  app/src/main/java/com/audiobookdownloader/AbBookTimeRules.java \
  app/src/test/java/com/audiobookdownloader/AbBookTimeRulesTest.java
-java -cp "$classes:$QUALITY_JUNIT_CLASSPATH" org.junit.runner.JUnitCore com.audiobookdownloader.AbBookTimeRulesTest
+java_args=()
+if [[ -n "${QUALITY_JACOCO_AGENT:-}" ]]; then
+    mkdir -p target/site/jacoco
+    java_args+=("-javaagent:$QUALITY_JACOCO_AGENT=destfile=target/site/jacoco/progress.exec,append=false")
+fi
+java "${java_args[@]}" -cp "$classes:$QUALITY_JUNIT_CLASSPATH" org.junit.runner.JUnitCore com.audiobookdownloader.AbBookTimeRulesTest
+if [[ -n "${QUALITY_JACOCO_CLI:-}" ]]; then
+    java -jar "$QUALITY_JACOCO_CLI" report target/site/jacoco/progress.exec \
+        --classfiles "$classes/com/audiobookdownloader/AbBookTimeRules.class" \
+        --classfiles "$classes/com/audiobookdownloader/AbBookTimeRules\$Totals.class" \
+        --classfiles "$classes/com/audiobookdownloader/AbBookTimeRules\$Result.class" \
+        --sourcefiles app/src/main/java --xml target/site/jacoco/jacoco.xml
+fi
