@@ -61,7 +61,12 @@ internal object AbDownloadedAudio {
         val n=Os.pread(fd,bytes,0,bytes.size,0)
         val error=AudioValidationRules.contentError(bytes.copyOf(n.coerceAtLeast(0)),size)
         if(error.isNotBlank())return Result(false,error,stamp=signature)
-        return probe(fd,signature)
+        val tail=ByteArray(minOf(size,4096).toInt())
+        if(Os.pread(fd,tail,0,tail.size,size-tail.size)!=tail.size)
+            return Result(false,"Не удалось прочитать конец файла. Повторите загрузку главы.",stamp=signature)
+        val result=probe(fd,signature)
+        return if(stamp(fd)==signature)result
+            else Result(false,"Файл изменился во время проверки. Повторите проверку главы.")
     }
     private fun probe(fd:java.io.FileDescriptor,signature:String):Result {
         val reader=MediaExtractor()
@@ -74,13 +79,11 @@ internal object AbDownloadedAudio {
             reader.selectTrack(index)
             val data=ByteBuffer.allocate(1024*1024)
             if(reader.readSampleData(data,0)<=0)return Result(false,"Аудиодорожка пуста или повреждена. Повторите загрузку главы.",stamp=signature)
-            val duration=if(format.containsKey(MediaFormat.KEY_DURATION))format.getLong(MediaFormat.KEY_DURATION) else 0
-            if(duration>0) {
-                // Encoder padding may place the advertised final microsecond after the last MP3 frame.
-                val tail=(duration-minOf(250000L,(duration/10).coerceAtLeast(1))).coerceAtLeast(0)
-                reader.seekTo(tail,MediaExtractor.SEEK_TO_PREVIOUS_SYNC)
-                data.clear()
-                if(reader.readSampleData(data,0)<=0)return Result(false,"Не удалось прочитать конец аудиофайла. Повторите загрузку главы.",stamp=signature)
+            repeat(2) {
+                if(reader.advance()) {
+                    data.clear()
+                    if(reader.readSampleData(data,0)<=0)return Result(false,"Не удалось прочитать аудиопакеты. Повторите загрузку главы.",stamp=signature)
+                }
             }
             Result(true,format=format.getString(MediaFormat.KEY_MIME).orEmpty(),stamp=signature)
         }catch(_:Exception){Result(false,"Аудиоформат не распознан или файл повреждён. Повторите загрузку либо выберите другое издание.",stamp=signature)}

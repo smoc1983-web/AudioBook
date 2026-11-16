@@ -38,11 +38,12 @@ class AudioValidationTest {
         }finally{AbPersistentDownloads.cancelBook(context,title);AbPersistentDownloads.clearCompleted(context)}
     }
     @Test fun contentDeterminesFormatForAllExistingAudioContainers() {
+        val failures=mutableListOf<String>()
         for(name in listOf("wav","mp3","flac","ogg","opus","aac","m4a")) {
             val bytes=fixture(name);val result=inspect(bytes,bytes.size.toLong())
-            assertTrue("$name: ${result.error}",result.valid)
-            assertTrue(result.format,result.format.startsWith("audio/"))
+            if(!result.valid || !result.format.startsWith("audio/"))failures.add("$name: ${result.error} ${result.format}")
         }
+        assertTrue(failures.joinToString("; "),failures.isEmpty())
     }
     @Test fun errorPagesPlaylistsTruncationAndWrongSizeAreRejected() {
         for(text in listOf("<html><title>503</title></html>","#EXTM3U\n#EXTINF:...","<MPD></MPD>")) {
