@@ -6,10 +6,14 @@ public final class AbBookTimeRules {
         public final long remainingMs,elapsedMs,totalMs,chapterRemainingMs;
         public final int knownRemaining,totalRemaining;
         public final float progress;
-        Result(long r,long e,long t,long c,int k,int n,float p){remainingMs=r;elapsedMs=e;totalMs=t;chapterRemainingMs=c;knownRemaining=k;totalRemaining=n;progress=p;}
+        public final boolean approximate;
+        Result(long r,long e,long t,long c,int k,int n,float p,boolean a){remainingMs=r;elapsedMs=e;totalMs=t;chapterRemainingMs=c;knownRemaining=k;totalRemaining=n;progress=p;approximate=a;}
     }
     public static Result calculate(long[] durations,int index,long position,float speed){
-        if(index<0||index>=durations.length)return new Result(-1,-1,-1,-1,0,0,0);
+        return calculate(durations,index,position,speed,false);
+    }
+    public static Result calculate(long[] durations,int index,long position,float speed,boolean completed){
+        if(index<0||index>=durations.length)return new Result(-1,-1,-1,-1,0,0,completed?1:0,!completed);
         double rate=Float.isNaN(speed)||Float.isInfinite(speed)||speed<=0?1:speed;
         long current=Math.max(0,durations[index]);
         long pos=current>0?Math.min(Math.max(0,position),current):Math.max(0,position);
@@ -24,7 +28,7 @@ public final class AbBookTimeRules {
         long total=whole?before+after:-1;
         float progress=total>0?Math.min(1,(float)((double)(before+pos)/total)):
             Math.min(1,(index+(current>0?(float)pos/current:0))/durations.length);
-        return new Result(remaining,elapsed,total,current>0?(long)((current-pos)/rate):-1,known,count,progress);
+        return new Result(remaining,elapsed,total,current>0?(long)((current-pos)/rate):-1,known,count,completed?1:progress,!completed&&!whole);
     }
     public static String time(long ms){
         long seconds=Math.max(0,ms)/1000;

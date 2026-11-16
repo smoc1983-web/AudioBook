@@ -87,16 +87,18 @@ internal object AbAudioDurations {
     }
     suspend fun resolve(context:Context,title:String,tracks:List<ServiceTrack>,force:Boolean=false) = supervisorScope {
         val app=context.applicationContext
+        val prefs=app.getSharedPreferences("audiobook_downloader",0)
         tracks.distinctBy{it.src}.filter{isNetworkAudio(it.src)||it.src.startsWith("/")||it.src.startsWith("content://")||it.src.startsWith("file://")}.chunked(2).forEach {batch ->
         batch.map {track -> async(Dispatchers.IO) {
-            if(track.durationMs>0){remember(app,track.src,track.durationMs);return@async}
-            if(cached(app,track.src)!=null)return@async
+            if(track.durationMs>0){AbBookProgress.remember(prefs,title,track,track.durationMs);remember(app,track.src,track.durationMs);return@async}
+            cached(app,track.src)?.let{AbBookProgress.remember(prefs,title,track,it);return@async}
             slots.withPermit {
-                if(cached(app,track.src)!=null||!start(track.src,force))return@withPermit
+                cached(app,track.src)?.let{AbBookProgress.remember(prefs,title,track,it);return@withPermit}
+                if(!start(track.src,force))return@withPermit
                 try {
                     val ms=probe(app,track.src,abAudioRequestHeaders(app,track.src,title))
                     currentCoroutineContext().ensureActive()
-                    if(ms!=null)remember(app,track.src,ms)
+                    if(ms!=null){AbBookProgress.remember(prefs,title,track,ms);remember(app,track.src,ms)}
                 } catch(error:CancellationException){cancelled(track.src);throw error}
                 catch(_:Exception){}
             }

@@ -109,7 +109,7 @@ private val abWidgetPalettes = listOf(
 private data class AbWidgetSnapshot(val title: String = "", val chapter: String = "", val index: Int = -1,
     val count: Int = 0, val position: Int = 0, val duration: Int = 0,
     val playing: Boolean = false, val loading: Boolean = false, val sleep: Int = 0,
-    val chapterTimer: Boolean = false) {
+    val chapterTimer: Boolean = false, val tracks: List<ServiceTrack> = emptyList()) {
     val selected: Boolean get() = title.isNotBlank() && index in 0 until count
     val transition: String get() = "$title|$chapter|$index|$count|$duration|$playing|$loading|${sleep>0}|$chapterTimer"
 }
@@ -137,7 +137,7 @@ internal object AbGlassWidgets {
     fun publish(context: Context, state: ServicePlaybackState) {
         val track = state.tracks.getOrNull(state.trackIndex)
         val snapshot = AbWidgetSnapshot(state.bookTitle,track?.title.orEmpty(),state.trackIndex,state.tracks.size,
-            state.positionMs,state.durationMs,state.isPlaying,state.isLoading,state.sleepSeconds,state.sleepChapterTarget.isNotBlank())
+            state.positionMs,state.durationMs,state.isPlaying,state.isLoading,state.sleepSeconds,state.sleepChapterTarget.isNotBlank(),state.tracks)
         latest = snapshot
         val now = SystemClock.elapsedRealtime()
         synchronized(lock) {
@@ -218,7 +218,7 @@ internal object AbGlassWidgets {
         if(live.hasSelection || latest?.selected==false && live.bookTitle.isNotBlank()) {
             val track=live.tracks.getOrNull(live.trackIndex)
             return AbWidgetSnapshot(live.bookTitle,track?.title.orEmpty(),live.trackIndex,live.tracks.size,
-                live.positionMs,live.durationMs,live.isPlaying,live.isLoading,live.sleepSeconds,live.sleepChapterTarget.isNotBlank())
+                live.positionMs,live.durationMs,live.isPlaying,live.isLoading,live.sleepSeconds,live.sleepChapterTarget.isNotBlank(),live.tracks)
         }
         val prefs=context.getSharedPreferences("audiobook_downloader",Context.MODE_PRIVATE)
         val title=prefs.getString("widget_book","").orEmpty()
@@ -230,7 +230,8 @@ internal object AbGlassWidgets {
         val resolvedCount=if(count>0)count else if(!prefs.getString("widget_media_src","").isNullOrBlank())1 else 0
         return AbWidgetSnapshot(title,prefs.getString("widget_track","").orEmpty(),
             prefs.getInt("widget_track_index",0).coerceIn(0,(resolvedCount-1).coerceAtLeast(0)),resolvedCount,
-            prefs.getInt("widget_position",0).coerceAtLeast(0),prefs.getInt("widget_duration",0).coerceAtLeast(0))
+            prefs.getInt("widget_position",0).coerceAtLeast(0),prefs.getInt("widget_duration",0).coerceAtLeast(0),
+            tracks=AbBookProgress.playlist(prefs,title))
         // A saved playlist is always shown paused after process death, never as still playing.
     }
 
@@ -272,12 +273,15 @@ internal object AbGlassWidgets {
         views.setImageViewBitmap(R.id.ab_widget_background,AbWidgetArt.background(palette,width,height))
         views.setImageViewBitmap(R.id.ab_widget_cover,AbWidgetArt.cover(context,state.title,palette,kind==1))
         views.setTextViewText(R.id.ab_widget_title,if(state.selected)state.title else "Audiobook")
+        val timing=AbBookProgress.calculate(context.getSharedPreferences("audiobook_downloader",0),state.title,
+            state.tracks.ifEmpty{List(state.count){ServiceTrack("Глава ${it+1}","")}},state.index,state.position,state.duration)
+        val progressText=AbBookProgress.description(timing)
         val chapter=if(!state.selected)"Выберите книгу" else if(state.loading)"Загрузка главы…" else
-            AbMediaPresentation.chapter(state.index,state.count,if(kind==0)"" else state.chapter)
+            AbMediaPresentation.chapter(state.index,state.count,if(kind==0)"" else state.chapter)+" · "+AbBookProgress.label(timing)
         views.setTextViewText(R.id.ab_widget_chapter,chapter)
         views.setTextColor(R.id.ab_widget_title,palette.text)
         views.setTextColor(R.id.ab_widget_chapter,palette.muted)
-        views.setContentDescription(R.id.ab_widget_root,if(state.selected)"${state.title}. $chapter" else "Audiobook. Выберите книгу в приложении")
+        views.setContentDescription(R.id.ab_widget_root,if(state.selected)"${state.title}. $chapter. $progressText" else "Audiobook. Выберите книгу в приложении")
         val open=openPending(context,id,AbWidgetRoutes.PLAYER)
         views.setOnClickPendingIntent(R.id.ab_widget_title,open)
         views.setOnClickPendingIntent(R.id.ab_widget_cover,open)
@@ -299,9 +303,9 @@ internal object AbGlassWidgets {
             }
         }
         if(kind!=0) {
-            val fraction=if(state.duration>0)state.position.toFloat()/state.duration else 0f
+            val fraction=timing.progress
             views.setImageViewBitmap(R.id.ab_widget_progress,AbWidgetArt.progress(palette,fraction))
-            views.setContentDescription(R.id.ab_widget_progress,if(state.duration>0)"Прослушано ${(fraction.coerceIn(0f,1f)*100).toInt()} процентов главы" else "Длительность главы пока неизвестна")
+            views.setContentDescription(R.id.ab_widget_progress,progressText)
         }
         if(kind==2) {
             views.setTextViewText(R.id.ab_widget_elapsed,time(state.position))

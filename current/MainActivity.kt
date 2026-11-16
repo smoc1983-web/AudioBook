@@ -9695,17 +9695,6 @@ private fun AbCover(title: String, local: LibraryBook?, remote: BookRef?, theme:
     }
 }
 
-private fun abProgress(prefs: android.content.SharedPreferences, local: LibraryBook,
-    playback: ServicePlaybackState): Float {
-    val active=playback.hasPlayer && playback.bookTitle==local.title
-    if(prefs.getBoolean("book_completed_"+safeFileName(local.title),false))return 1f
-    val index=if(active) playback.trackIndex else prefs.getInt(bookProgressTrackKey(local.title),0)
-    val position=if(active) playback.positionMs else prefs.getInt(bookProgressPositionKey(local.title),0)
-    val duration=if(active) playback.durationMs else prefs.getInt("book_duration_"+safeFileName(local.title),0)
-    val fraction=if(duration>0) (position.toFloat()/duration).coerceIn(0f,1f) else 0f
-    return ((index.coerceAtLeast(0)+fraction)/local.files.size.coerceAtLeast(1)).coerceIn(0f,1f)
-}
-
 @Composable
 internal fun AbProgress(value: Float, theme: AbTheme, modifier: Modifier=Modifier) {
     Box(modifier.height(3.dp).clip(RoundedCornerShape(3.dp)).background(theme.border)) {
@@ -9715,7 +9704,7 @@ internal fun AbProgress(value: Float, theme: AbTheme, modifier: Modifier=Modifie
 
 @Composable
 internal fun AbBookRow(ref: BookRef, local: LibraryBook?, subtitle: String, theme: AbTheme,
-    progress: Float?=null, playing: Boolean=false, onClick: ()->Unit, onMenu: ()->Unit) {
+    progress: AbBookTimeRules.Result?=null, playing: Boolean=false, onClick: ()->Unit, onMenu: ()->Unit) {
     Row(Modifier.fillMaxWidth().abGlass(theme,18,raised=true)
         .clickable(onClick=onClick).padding(10.dp),verticalAlignment=Alignment.CenterVertically) {
         AbCover(ref.title,local,ref,theme,Modifier.width(66.dp).height(94.dp))
@@ -9725,8 +9714,8 @@ internal fun AbBookRow(ref: BookRef, local: LibraryBook?, subtitle: String, them
             if(subtitle.isNotBlank()) Text(subtitle,color=theme.muted,fontSize=12.sp,maxLines=2,overflow=TextOverflow.Ellipsis)
             if(local!=null)Text(abLocalSize(local),color=theme.muted,fontSize=11.sp)
             if(progress!=null) Row(verticalAlignment=Alignment.CenterVertically) {
-                AbProgress(progress,theme,Modifier.weight(1f))
-                Text("${(progress*100).toInt()}%",color=theme.muted,fontSize=10.sp,modifier=Modifier.padding(start=8.dp))
+                AbProgress(progress.progress,theme,Modifier.weight(1f).semantics{contentDescription=AbBookProgress.description(progress)})
+                Text(AbBookProgress.label(progress),color=theme.muted,fontSize=10.sp,modifier=Modifier.padding(start=8.dp))
             }
         }
         AbIconButton(if(playing) AbIcon.PLAY else AbIcon.MORE,
@@ -9735,7 +9724,7 @@ internal fun AbBookRow(ref: BookRef, local: LibraryBook?, subtitle: String, them
 }
 
 @Composable
-private fun AbPoster(ref: BookRef, local: LibraryBook?, theme: AbTheme, progress: Float?,
+private fun AbPoster(ref: BookRef, local: LibraryBook?, theme: AbTheme, progress: AbBookTimeRules.Result?,
     modifier: Modifier=Modifier, onClick: ()->Unit) {
     Column(modifier.abGlass(theme,15)
         .padding(7.dp),verticalArrangement=Arrangement.spacedBy(7.dp)) {
@@ -9745,7 +9734,10 @@ private fun AbPoster(ref: BookRef, local: LibraryBook?, theme: AbTheme, progress
                 .semantics{contentDescription="Слушать: ${ref.title}";role=androidx.compose.ui.semantics.Role.Button}
                 .clickable(onClick=onClick).padding(vertical=4.dp),overflow=TextOverflow.Ellipsis)
         if(local!=null)Text(abLocalSize(local),color=theme.muted,fontSize=10.sp,maxLines=2)
-        if(progress!=null) AbProgress(progress,theme,Modifier.fillMaxWidth())
+        if(progress!=null) {
+            AbProgress(progress.progress,theme,Modifier.fillMaxWidth().semantics{contentDescription=AbBookProgress.description(progress)})
+            Text(AbBookProgress.label(progress),color=theme.muted,fontSize=10.sp)
+        }
     }
 }
 
@@ -10003,6 +9995,8 @@ private fun AbMiniPlayer(data: AbScreenData,actions: AbActions,books: List<Libra
     prefs: android.content.SharedPreferences,theme: AbTheme) {
     val context=androidx.compose.ui.platform.LocalContext.current
     val state=data.playback
+    val cached by AbAudioDurations.state.collectAsState()
+    val timing=AbBookProgress.playback(prefs,state,cached)
     val ref=bookRefFor(prefs,state.bookTitle)
     Column(Modifier.padding(horizontal=12.dp,vertical=5.dp).abGlass(theme,20,raised=true)
         .clickable {actions.navigate(AppPage.PLAYER)}) {
@@ -10010,14 +10004,14 @@ private fun AbMiniPlayer(data: AbScreenData,actions: AbActions,books: List<Libra
             AbCover(ref.title,abFindLocal(books,ref.title),ref,theme,Modifier.size(47.dp))
             Column(Modifier.weight(1f).padding(horizontal=12.dp)) {
                 Text(state.bookTitle,color=theme.text,fontSize=13.sp,fontWeight=FontWeight.SemiBold,maxLines=1,overflow=TextOverflow.Ellipsis)
-                Text(if(state.isLoading) "Загрузка главы…" else "Глава ${state.trackIndex+1} · ${state.tracks.getOrNull(state.trackIndex)?.title.orEmpty()}",
+                Text(if(state.isLoading) "Загрузка главы…" else "${AbBookProgress.label(timing)} · Глава ${state.trackIndex+1} · ${state.tracks.getOrNull(state.trackIndex)?.title.orEmpty()}",
                     color=theme.muted,fontSize=11.sp,maxLines=1,overflow=TextOverflow.Ellipsis)
             }
             AbIconButton(if(state.isPlaying) AbIcon.PAUSE else AbIcon.PLAY,
                 if(state.isPlaying) "Пауза" else "Продолжить",theme,active=true,
                 onClick={PlaybackService.command(context,PlaybackService.ACTION_TOGGLE)})
         }
-        AbProgress(if(state.durationMs>0) state.positionMs.toFloat()/state.durationMs else 0f,theme,Modifier.fillMaxWidth())
+        AbProgress(timing.progress,theme,Modifier.fillMaxWidth().semantics{contentDescription=AbBookProgress.description(timing)})
     }
 }
 
@@ -10025,6 +10019,7 @@ private fun AbMiniPlayer(data: AbScreenData,actions: AbActions,books: List<Libra
 private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<LibraryBook>,
     prefs: android.content.SharedPreferences,theme: AbTheme,onMenu:(BookRef)->Unit,
     catalogue: Map<String,SiteSearchResult>,catalogueRequested: Boolean,onLoadCatalogue:()->Unit) {
+    val durationCache by AbAudioDurations.state.collectAsState()
     var genreAtlas by remember {mutableStateOf<androidx.compose.ui.graphics.ImageBitmap?>(null)}
     val resources=androidx.compose.ui.platform.LocalContext.current.resources
     LaunchedEffect(resources) {
@@ -10162,7 +10157,7 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
                 AbHeading("Продолжить слушать",theme,"Все",{actions.navigate(AppPage.LIBRARY)})
                 val ref=history.first()
                 val local=abFindLocal(books,ref.title)
-                AbBookRow(ref,local,"С сохранённого места",theme,progress=local?.let{abProgress(prefs,it,data.playback)},
+                AbBookRow(ref,local,"С сохранённого места",theme,progress=local?.let{AbBookProgress.library(prefs,it,data.playback,durationCache)},
                     playing=true,onClick={actions.openRef(ref)},onMenu={onMenu(ref)})
             }
             if(history.size>1) item {
@@ -10613,6 +10608,7 @@ private fun AbOnlineChapter(data: AbScreenData,actions: AbActions,theme: AbTheme
 @Composable
 private fun AbLibraryScreen(data: AbScreenData,actions: AbActions,sync: LibrarySyncState,
     prefs: android.content.SharedPreferences,theme: AbTheme,onMenu:(BookRef)->Unit,onAccess:()->Unit) {
+    val durationCache by AbAudioDurations.state.collectAsState()
     var tab by androidx.compose.runtime.saveable.rememberSaveable {mutableStateOf(0)}
     var grid by androidx.compose.runtime.saveable.rememberSaveable {mutableStateOf(prefs.getBoolean("experience_library_grid",false))}
     var filter by androidx.compose.runtime.saveable.rememberSaveable {mutableStateOf("")}
@@ -10650,7 +10646,7 @@ private fun AbLibraryScreen(data: AbScreenData,actions: AbActions,sync: LibraryS
             sort==1 && tab!=4 -> selected.sortedBy{it.title.lowercase()}
             // Persisted progress changes every few seconds. Do not reorder rows every player tick.
             sort==2 && tab!=4 -> selected.sortedByDescending{ref->
-                byTitle[safeFileName(ref.title).lowercase()]?.let {abProgress(prefs,it,data.playback)} ?: 0f
+                byTitle[safeFileName(ref.title).lowercase()]?.let {AbBookProgress.library(prefs,it,data.playback,durationCache).progress} ?: 0f
             }
             else -> selected
         }
@@ -10693,7 +10689,7 @@ private fun AbLibraryScreen(data: AbScreenData,actions: AbActions,sync: LibraryS
             val local=abFindLocal(books,continueRef.title)
             val chapter=prefs.getInt(bookProgressTrackKey(continueRef.title),0)+1
             AbBookRow(continueRef,local,if(local!=null) "Глава $chapter из ${local.files.size}" else "Онлайн",
-                theme,local?.let{abProgress(prefs,it,data.playback)},true,
+                theme,local?.let{AbBookProgress.library(prefs,it,data.playback,durationCache)},true,
                 {actions.openRef(continueRef)},{onMenu(continueRef)})
         }
         item {AbHeading(when(tab){1->"На устройстве";2->"Избранное";3->"История";4->"Очередь";5->"Серии в библиотеке";6->"Все закладки";else->"Все книги"},theme,
@@ -10710,7 +10706,7 @@ private fun AbLibraryScreen(data: AbScreenData,actions: AbActions,sync: LibraryS
             items(group.books,key={"series-book:"+group.key+":"+it.first.title}) {entry ->
                 val local=abFindLocal(books,entry.first.title)
                 AbBookRow(entry.first,local,abVolumeLabel(entry.second),theme,
-                    local?.let{abProgress(prefs,it,data.playback)},onClick={actions.openRef(entry.first)},onMenu={onMenu(entry.first)})
+                    local?.let{AbBookProgress.library(prefs,it,data.playback,durationCache)},onClick={actions.openRef(entry.first)},onMenu={onMenu(entry.first)})
             }
         }
         if(tab==6) {
@@ -10738,7 +10734,7 @@ private fun AbLibraryScreen(data: AbScreenData,actions: AbActions,sync: LibraryS
                 row.forEach {ref ->
                     val local=abFindLocal(books,ref.title)
                     Column(Modifier.weight(1f)) {
-                        AbPoster(ref,local,theme,local?.let{abProgress(prefs,it,data.playback)},
+                        AbPoster(ref,local,theme,local?.let{AbBookProgress.library(prefs,it,data.playback,durationCache)},
                             Modifier.fillMaxWidth()){actions.openRef(ref)}
                         Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
                             Text(if(local!=null) "${local.files.size} глав" else "Онлайн",color=theme.muted,
@@ -10754,7 +10750,7 @@ private fun AbLibraryScreen(data: AbScreenData,actions: AbActions,sync: LibraryS
             val local=abFindLocal(books,ref.title)
             val author=prefs.getString(abAuthorKey(ref.title),"").orEmpty()
             AbBookRow(ref,local,if(author.isNotBlank()) author else if(local!=null) "${local.files.size} глав · На устройстве" else "Онлайн",
-                theme,local?.let{abProgress(prefs,it,data.playback)},onClick={actions.openRef(ref)},onMenu={onMenu(ref)})
+                theme,local?.let{AbBookProgress.library(prefs,it,data.playback,durationCache)},onClick={actions.openRef(ref)},onMenu={onMenu(ref)})
             if(tab==4) {
                 val index=queue.indexOf(ref.title)
                 Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
@@ -11217,21 +11213,16 @@ private fun AbBookPlaybackProgress(data: AbScreenData,theme: AbTheme,compact:Boo
     val cached by AbAudioDurations.state.collectAsState()
     var checking by remember(state.bookTitle){mutableStateOf(false)}
     var retry by remember(state.bookTitle){mutableStateOf(0)}
-    val durations=remember(state.tracks,state.trackIndex,state.durationMs,data.durations,cached) {
-        state.tracks.mapIndexed {index,track ->
-            (if(index==state.trackIndex && state.durationMs>0)state.durationMs
-            else track.durationMs.takeIf{it>0} ?: data.durations[track.src] ?: cached[track.src] ?: 0).toLong()
-        }.toLongArray()
-    }
-    val timing=AbBookTimeRules.calculate(durations,state.trackIndex,state.positionMs.toLong(),state.speed)
+    val prefs=remember(context){context.getSharedPreferences("audiobook_downloader",0)}
+    val timing=AbBookProgress.playback(prefs,state,data.durations+cached)
     val sourceKey=remember(state.tracks){state.tracks.map{it.src}}
     LaunchedEffect(state.bookTitle,sourceKey,state.trackIndex,retry) {
         checking=true
-        try {AbAudioDurations.resolve(context,state.bookTitle,state.tracks.drop(state.trackIndex.coerceAtLeast(0)),retry>0)}
+        try {AbAudioDurations.resolve(context,state.bookTitle,(state.tracks.drop(state.trackIndex.coerceAtLeast(0))+state.tracks.take(state.trackIndex.coerceAtLeast(0))),retry>0)}
         finally{checking=false}
     }
     Column(Modifier.padding(top=6.dp),verticalArrangement=Arrangement.spacedBy(5.dp)) {
-        AbProgress(timing.progress,theme,Modifier.fillMaxWidth())
+        AbProgress(timing.progress,theme,Modifier.fillMaxWidth().semantics{contentDescription=AbBookProgress.description(timing)})
         val text=when {
             timing.remainingMs>=0 -> "До конца книги: "+AbBookTimeRules.time(timing.remainingMs)+
                 (if(timing.elapsedMs>=0)" · прослушано "+AbBookTimeRules.time(timing.elapsedMs) else "")
@@ -11241,7 +11232,7 @@ private fun AbBookPlaybackProgress(data: AbScreenData,theme: AbTheme,compact:Boo
         }
         Text(text,color=theme.muted,fontSize=11.sp,maxLines=if(compact)2 else 3,modifier=Modifier.fillMaxWidth()
             .semantics{contentDescription=text},textAlign=androidx.compose.ui.text.style.TextAlign.Center)
-        if(!compact)Text((if(timing.totalMs>0)"Прогресс книги: " else "Прогресс по главам: ")+"${(timing.progress*100).toInt()}% · ${state.trackIndex+1} из ${state.tracks.size}",
+        Text(AbBookProgress.description(timing),
             color=theme.muted,fontSize=10.sp,modifier=Modifier.fillMaxWidth(),
             textAlign=androidx.compose.ui.text.style.TextAlign.Center)
         if(timing.remainingMs<0 && !checking && state.tracks.any{isNetworkAudio(it.src)})

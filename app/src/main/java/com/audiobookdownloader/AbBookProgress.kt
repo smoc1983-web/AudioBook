@@ -1,0 +1,83 @@
+package com.audiobookdownloader
+
+import android.content.SharedPreferences
+import org.json.JSONArray
+
+/** Read-only presentation of the existing checkpoint. Never writes a listening position. */
+internal object AbBookProgress {
+    private fun edition(p:SharedPreferences,book:String,tracks:List<ServiceTrack>) =
+        tracks.firstOrNull()?.editionId?.takeIf{it.isNotBlank()}
+            ?: ChapterIdentity.edition(book,p.getString(bookUrlKey(book),"").orEmpty())
+    private fun durationKey(edition:String,title:String) = "book_chapter_duration_"+ChapterIdentity.chapter(edition,title)
+    private fun array(raw:String?):JSONArray = try {JSONArray(raw ?: "[]")}catch(_:Exception){JSONArray()}
+
+    /** Durations are metadata belonging to the existing chapter ID, not to a temporary CDN URL. */
+    fun remember(p:SharedPreferences,book:String,track:ServiceTrack,ms:Int) {
+        if(ms<=0)return
+        val id=edition(p,book,listOf(track))
+        val key=durationKey(id,track.title)
+        if(p.getInt(key,0)!=ms)p.edit().putInt(key,ms).apply()
+    }
+    fun playlist(p:SharedPreferences,book:String):List<ServiceTrack> {
+        if(p.getString("widget_book","")!=book)return emptyList()
+        val rows=array(p.getString("widget_playlist","[]"))
+        return (0 until rows.length()).mapNotNull {i->rows.optJSONObject(i)?.let {
+            ServiceTrack(it.optString("t"),it.optString("s"),it.optInt("d"),it.optString("e"))
+        }}
+    }
+    /** Only expand a local subset when the recorded full list proves the same edition. */
+    private fun chapters(p:SharedPreferences,book:String,tracks:List<ServiceTrack>):List<ServiceTrack> {
+        if(tracks.isEmpty())return tracks
+        val id=edition(p,book,tracks)
+        val raw=array(p.getString("book_chapter_titles_"+safeFileName(book),"[]"))
+        val titles=(0 until raw.length()).map{raw.optString(it)}
+        if(titles.size<tracks.size || titles.distinct().size!=titles.size || tracks.map{it.title}.distinct().size!=tracks.size)return tracks
+        val revision=ChapterIdentity.revision(titles.map{ChapterIdentity.chapter(id,it)})
+        if(p.getString("book_edition_revision_"+safeFileName(book),null)!=revision || tracks.any{it.title !in titles})return tracks
+        val available=tracks.associateBy{it.title}
+        return titles.map{available[it] ?: ServiceTrack(it,"",editionId=id)}
+    }
+    fun playback(p:SharedPreferences,state:ServicePlaybackState,cache:Map<String,Int> = AbAudioDurations.state.value):AbBookTimeRules.Result =
+        calculate(p,state.bookTitle,state.tracks,state.trackIndex,state.positionMs,state.durationMs,state.speed,cache)
+
+    fun library(p:SharedPreferences,book:LibraryBook,state:ServicePlaybackState,cache:Map<String,Int> = AbAudioDurations.state.value):AbBookTimeRules.Result {
+        if(state.bookTitle==book.title && state.hasSelection)return playback(p,state,cache)
+        val local=StableProgress.localTracks(p,book.title,book.files)
+        // A retained playlist supplies source durations, but must belong to the local edition.
+        val retained=playlist(p,book.title)
+        val id=edition(p,book.title,local)
+        val tracks=if(retained.isNotEmpty() && edition(p,book.title,retained)==id)retained else local
+        val full=chapters(p,book.title,tracks)
+        val resume=StableProgress.resume(p,book.title,full)
+        val stable=p.contains("book_progress_identity_"+id) || p.getString("widget_book","")==book.title
+        val index=if(stable)resume.index else p.getInt(bookProgressTrackKey(book.title),0)
+        val position=if(stable)resume.position else p.getInt(bookProgressPositionKey(book.title),0)
+        // A legacy numeric index alone is not proof of a chapter in a downloaded subset.
+        val valid=full.size>=p.getInt(bookTotalKey(book.title),full.size)
+        val widgetIndex=p.getInt("widget_track_index",-1)
+        val sameChapter=p.getString("widget_book","")==book.title &&
+            retained.getOrNull(widgetIndex)?.title==full.getOrNull(index)?.title
+        val duration=if(sameChapter)p.getInt("widget_duration",0)
+            else if(!stable)p.getInt("book_duration_"+safeFileName(book.title),0) else 0
+        return calculate(p,book.title,full,if(valid)index else -1,position,duration,1f,cache)
+    }
+    fun calculate(p:SharedPreferences,book:String,tracks:List<ServiceTrack>,index:Int,position:Int,
+        currentDuration:Int=0,speed:Float=1f,cache:Map<String,Int> = AbAudioDurations.state.value):AbBookTimeRules.Result {
+        val full=chapters(p,book,tracks)
+        val selected=tracks.getOrNull(index)
+        val resolved=if(full===tracks)index else full.indexOfFirst{it.title==selected?.title}
+        val id=edition(p,book,tracks)
+        val durations=full.mapIndexed {i,track->
+            (if(i==resolved && currentDuration>0)currentDuration else
+                cache[track.src]?.takeIf{it>0} ?: track.durationMs.takeIf{it>0}
+                ?: p.getInt(durationKey(id,track.title),0)).toLong()
+        }.toLongArray()
+        // Do not mistake a downloaded subset for the complete book without an edition catalogue.
+        val selection=if(full.size<p.getInt(bookTotalKey(book),full.size)) -1 else resolved
+        return AbBookTimeRules.calculate(durations,selection,position.toLong(),speed,
+            p.getBoolean("book_completed_"+safeFileName(book),false))
+    }
+    fun label(result:AbBookTimeRules.Result) = (if(result.approximate)"≈ " else "")+"${(result.progress*100).toInt()}%"
+    fun description(result:AbBookTimeRules.Result) =
+        "Прогресс книги: "+(if(result.approximate)"примерно " else "")+"${(result.progress*100).toInt()}%"
+}
