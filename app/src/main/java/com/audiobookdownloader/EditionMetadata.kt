@@ -40,14 +40,28 @@ internal object EditionMetadata {
         val raw=p.getString(PREFIX+id,null)
         if(raw!=null)cached(p,book,id,listOf(raw)){decode(raw,book,id)}
         else {
-            val suffix=safeFileName(book)
-            val fields=listOf(p.getString("book_chapter_titles_"+suffix,"[]").orEmpty(),
-                p.getString("book_edition_revision_"+suffix,"").orEmpty(),p.getInt(bookTotalKey(book),0),
-                p.getBoolean("book_completed_"+suffix,false),p.getString("book_completed_chapters_"+suffix,"[]").orEmpty(),
-                p.getString(bookUrlKey(book),"").orEmpty(),p.getString("book_local_edition_"+suffix,"").orEmpty())
+            val fields=legacyFields(p,book)
             cached(p,book,id,fields){legacy(book,id,fields)}
         }
     }catch(_:Exception){Record(id,valid=false)}
+    private fun legacyFields(p:SharedPreferences,book:String):List<Any?> {
+        val suffix=safeFileName(book)
+        return listOf(p.getString("book_chapter_titles_"+suffix,"[]").orEmpty(),
+            p.getString("book_edition_revision_"+suffix,"").orEmpty(),p.getInt(bookTotalKey(book),0),
+            p.getBoolean("book_completed_"+suffix,false),p.getString("book_completed_chapters_"+suffix,"[]").orEmpty(),
+            p.getString(bookUrlKey(book),"").orEmpty(),p.getString("book_local_edition_"+suffix,"").orEmpty())
+    }
+    // Cold migration only: never scan the preference map on every progress render.
+    private fun legacyAlias(p:SharedPreferences,id:String):Record? {
+        val records=p.all.keys.filter{it.startsWith("book_edition_revision_")}.mapNotNull {key->
+            val alias=key.removePrefix("book_edition_revision_")
+            val value=try{legacy(alias,id,legacyFields(p,alias))}catch(_:Exception){return@mapNotNull null}
+            value.takeIf{it.titles.isNotEmpty()&&LibraryRecordRules.provesCatalogue(id,it.titles,it.revision)}
+        }
+        if(records.isEmpty())return null
+        val forms=records.map{it.copy(sourceUrl="")}.distinct()
+        return if(forms.size==1)records.first() else Record(id,valid=false)
+    }
     private fun decode(raw:String,book:String,id:String):Record {
         require(raw.length<=4*1024*1024)
         val o=JSONObject(raw);val bookId=LibraryRecordRules.bookId(id)
@@ -72,7 +86,8 @@ internal object EditionMetadata {
             titles=if(proven)titles else emptyList(),revision=if(proven)revision else "",completed=completed,finished=finished)
     }
     @Synchronized fun change(p:SharedPreferences,book:String,id:String,update:(Record)->Record):Boolean {
-        val old=read(p,book,id)
+        val current=read(p,book,id)
+        val old=if(current.valid&&current.titles.isEmpty()&&p.getString(PREFIX+id,null)==null)legacyAlias(p,id) ?: current else current
         if(!old.valid) {
             p.edit().putString(NOTICE,"Метаданные издания повреждены. Исходная запись сохранена; восстановите её из резервной копии. Файлы и позиция не удалены.").apply()
             return false

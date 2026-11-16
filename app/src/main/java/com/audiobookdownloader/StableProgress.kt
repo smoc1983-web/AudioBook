@@ -69,6 +69,7 @@ internal object StableProgress {
         for(book in books) {
             val id=EditionMetadata.local(p,book);val record=EditionMetadata.read(p,book.title,id)
             if(!record.valid){EditionMetadata.change(p,book.title,id){it};continue}
+            if(p.getString(EditionMetadata.PREFIX+id,null)==null&&record.titles.isNotEmpty())EditionMetadata.change(p,book.title,id){it}
             if(!record.completed)continue
             if(book.files.size>record.total || record.finished.isNotEmpty() && book.files.any{it.nameWithoutExtension !in record.finished})
                 EditionMetadata.change(p,book.title,id){it.copy(completed=false)}

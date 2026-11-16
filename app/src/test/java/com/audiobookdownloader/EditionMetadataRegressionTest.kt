@@ -44,4 +44,16 @@ class EditionMetadataRegressionTest {
   assertFalse(EditionMetadata.read(one,title,id).valid)
   assertTrue(EditionMetadata.read(two,title,id).valid)
  }
+ @Test fun legacyCatalogueMigratesAcrossRenameOnlyWithEditionRevisionProof() {
+  val p=BookProgressRegressionTest().preferences();val id=ChapterIdentity.edition(title,a)
+  val names=tracks(a).map{it.title};val rev=ChapterIdentity.revision(names.map{ChapterIdentity.chapter(id,it)})
+  val raw=org.json.JSONArray(names).toString()
+  p.edit().putString("book_chapter_titles_"+safeFileName(title),raw).putString("book_edition_revision_"+safeFileName(title),rev)
+   .putBoolean("book_completed_"+safeFileName(title),true).putInt(bookTotalKey(title),2).apply()
+  val renamed="Renamed";p.edit().putString(bookUrlKey(renamed),a).apply()
+  StableProgress.observe(p,renamed,tracks(a).map{AudioTrack(it.title,it.durationMs,it.src)},true)
+  assertTrue(EditionMetadata.read(p,renamed,id).completed)
+  assertEquals(raw,p.getString("book_chapter_titles_"+safeFileName(title),null))
+  assertTrue(p.getBoolean("book_completed_"+safeFileName(title),false))
+ }
 }
