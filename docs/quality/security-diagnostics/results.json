@@ -1,0 +1,111 @@
+{
+  "stage": 4,
+  "date": "2026-11-16",
+  "status": "passed-not-published",
+  "branch": "cloud/security-diagnostics-20261116",
+  "base": "49fcd1ccdecc11cedabaab4d51a91596ce9ed740",
+  "testedSource": "1cf01f19dbd4b9b461ddf43fe8cc333a49ccc0cd",
+  "run": 43885364170,
+  "publication": false,
+  "packageVersionSignerChanged": false,
+  "physicalDeviceTested": false,
+  "local": {
+    "newJavaTests": 20,
+    "crapperMax": 8,
+    "coverage": "JaCoCo actual JVM execution on DiagnosticPrivacy, NetworkAddressRules, SourceHttp",
+    "dryerThreshold": 0.8,
+    "duplicates": 0,
+    "kotlinSupportedByQualityTools": false,
+    "mutator": {
+      "killed": 83,
+      "survived": 0,
+      "total": 83,
+      "scope": [
+        "DiagnosticPrivacy",
+        "NetworkAddressRules",
+        "SourceHttp"
+      ],
+      "testCommand": "bash docs/quality/security-diagnostics/java-tests.sh"
+    }
+  },
+  "priorSuccessfulRun": {
+    "id": 43882336678,
+    "sha": "5891bb43378fbb5d9b196f93d1639dc89d67e462",
+    "jvmEach": {
+      "tests": 321,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    },
+    "nativeDistinct": 18,
+    "forceStopRebootInvocations": 2,
+    "lintEach": {
+      "errors": 0,
+      "warnings": 76,
+      "information": 76
+    }
+  },
+  "tokenEconomizer": {
+    "cliStatusExecuted": true,
+    "chatHooksVerified": false,
+    "savingsClaimed": false,
+    "standingPermission": true
+  },
+  "limits": [
+    "No real device or installer test",
+    "No DNS rebinding or platform subresource redirect interception claim",
+    "No universal sensitive-text detection guarantee; structural filtering and preview required",
+    "Stage 5 not started"
+  ],
+  "nativeFinalJob": {
+    "id": 133361924019,
+    "conclusion": "success",
+    "run": 43885364170,
+    "distinctTests": 18,
+    "passed": 18,
+    "forceStopRebootInvocations": 2,
+    "bootCountPositionBookmarkSingleJobVerified": true
+  },
+  "finalCI": {
+    "run": 43885364170,
+    "conclusion": "success",
+    "url": "https://github.com/smoc1983-web/AudioBook/actions/runs/43885364170",
+    "verifyJob": 133361924720,
+    "nativeJob": 133361924019,
+    "checks": {
+      "Debug": {
+        "tests": 326,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 1
+      },
+      "Release": {
+        "tests": 326,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 1
+      },
+      "lint-results-debug.xml": {
+        "counts": {
+          "Warning": 76,
+          "Information": 76
+        },
+        "new": 0,
+        "removed": 0
+      },
+      "lint-results-release.xml": {
+        "counts": {
+          "Warning": 76,
+          "Information": 76
+        },
+        "new": 0,
+        "removed": 0
+      }
+    },
+    "stableDebug": "passed",
+    "stableRelease": "passed unsigned",
+    "previewDebug": "passed existing signer",
+    "androidTestCompile": "passed",
+    "parserFixtures": "passed"
+  }
+}

@@ -1,14 +1,23 @@
-# Этап 4 — в работе, не опубликован (2026-11-16)
+# Этап 4 — проверен, не опубликован (2026-11-16)
 
-Владелец разрешил этап4 и выбрал ub-mode. Ветка cloud/security-diagnostics-20261116
-от49fcd1c (этап3); дерево было чистым, refs проверены. Добавлены фильтр диагностики,
-метрики вместо поисковых запросов/полных payload, предпросмотр отчёта, общие
-границы HTTP(S)/redirect и отделение секретных заголовков на CDN-переходах.
-Локальные Java-проверки проходят; первая native-проверка выявила пропуск
-browser-only источников в списке диагностических имён, исправляется. Итоговые
-CI/quality ещё не завершены. Не объявлять успешную сборку/этап до проверки.
-Main/package/version/signature не менять; не публиковать. Этап5 без подтверждения
-не начинать. TokenEconomizer CLI без вопросов, hooks/экономия чата не подтверждены.
+Владелец разрешил этап4 и ub-mode. Ветка cloud/security-diagnostics-20261116
+от49fcd1c; проверенные исходники1cf01f19dbd4b9b461ddf43fe8cc333a49ccc0cd.
+CI43885364170 SUCCESS: Stable Debug/unsigned Release, Preview Debug/AndroidTest
+с прежним signer, по326 JVM (по1 прежнему skip),18 native/API36 +2 отдельных
+instrumentation запуска с force-stop/reboot. Lint0Fatal/Error,76Warning/76Info,
+новых диагностик относительно этапа3 нет. Локально20 Java, maxCRAP8 с JaCoCo,
+Dryer0 scoped, Mutator83/83. Эти анализаторы не покрывают Kotlin.
+Диагностика обезличена, старые source/search/playback записи фильтруются при
+чтении, новые записи не сохраняют поисковые запросы/примеры. Перед отправкой
+есть preview; clipboard/TXT дополнительно фильтруются. Общие HTTP(S)/redirect
+правила, секретные заголовки не уходят на другой origin. Updater сохраняет
+строгие GH/CDN allowlist и проверки хеша/версии/package/подписи.
+Отчёт docs/SECURITY-DIAGNOSTICS-STAGE-4.md; docs/quality/security-diagnostics/results.json.
+Реального телефона/Installer не было; DNS rebinding и платформенные subresource
+redirect не перехватываются. Source main, package/version/signer и публичная4.2.95
+не изменены. Этап5 и публикация — только после подтверждения владельца.
+TokenEconomizer CLI без вопросов; hooks/экономия чата не подтверждены.
+Исторические записи ниже.
 
 # Этап 3 модернизации — проверен, не опубликован (2026-11-16)
 

@@ -1,0 +1,49 @@
+before-stop.log
+INSTRUMENTATION_STATUS: class=com.audiobookdownloader.QueueProcessTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=1
+INSTRUMENTATION_STATUS: stream=
+com.audiobookdownloader.QueueProcessTest:
+INSTRUMENTATION_STATUS: test=prepareActiveQueueBeforeProcessStop
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.audiobookdownloader.QueueProcessTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=1
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=prepareActiveQueueBeforeProcessStop
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_RESULT: stream=
+
+Time: 1.961
+
+OK (1 test)
+
+
+INSTRUMENTATION_CODE: -1
+
+after-reboot.log
+INSTRUMENTATION_STATUS: class=com.audiobookdownloader.QueueProcessTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=1
+INSTRUMENTATION_STATUS: stream=
+com.audiobookdownloader.QueueProcessTest:
+INSTRUMENTATION_STATUS: test=restoredQueueCompletesAfterProcessStopAndReboot
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.audiobookdownloader.QueueProcessTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=1
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=restoredQueueCompletesAfterProcessStopAndReboot
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_RESULT: stream=
+
+Time: 21.359
+
+OK (1 test)
+
+
+INSTRUMENTATION_CODE: -1

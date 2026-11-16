@@ -1,0 +1,30 @@
+CRAP Report
+===========
+Languages: java
+
+Function                       Namespace                                     CC    Cov%     CRAP
+------------------------------------------------------------------------------------------------
+redirect                       com.audiobookdownloader.NetworkAddressRules    8 100.0%      8.0
+open                           com.audiobookdownloader.SourceHttp             8 100.0%      8.0
+privateLiteral                 com.audiobookdownloader.NetworkAddressRules    7 100.0%      7.0
+origin                         com.audiobookdownloader.DiagnosticPrivacy      6 100.0%      6.0
+validAuthority                 com.audiobookdownloader.NetworkAddressRules    6 100.0%      6.0
+namedLocal                     com.audiobookdownloader.NetworkAddressRules    5 100.0%      5.0
+unusualIpv4                    com.audiobookdownloader.NetworkAddressRules    5 100.0%      5.0
+checkHeader                    com.audiobookdownloader.SourceHttp             5 100.0%      5.0
+stack                          com.audiobookdownloader.DiagnosticPrivacy      4 100.0%      4.0
+stackLine                      com.audiobookdownloader.DiagnosticPrivacy      4 100.0%      4.0
+checked                        com.audiobookdownloader.NetworkAddressRules    4 100.0%      4.0
+localHost                      com.audiobookdownloader.NetworkAddressRules    4 100.0%      4.0
+sameOrigin                     com.audiobookdownloader.NetworkAddressRules    3 100.0%      3.0
+redact                         com.audiobookdownloader.DiagnosticPrivacy      2 100.0%      2.0
+urls                           com.audiobookdownloader.DiagnosticPrivacy      2 100.0%      2.0
+accepts                        com.audiobookdownloader.NetworkAddressRules    2 100.0%      2.0
+forwardHeader                  com.audiobookdownloader.NetworkAddressRules    2 100.0%      2.0
+port                           com.audiobookdownloader.NetworkAddressRules    2 100.0%      2.0
+publicAddress                  com.audiobookdownloader.NetworkAddressRules    2 100.0%      2.0
+uniqueLocal                    com.audiobookdownloader.NetworkAddressRules    2 100.0%      2.0
+referrer                       com.audiobookdownloader.NetworkAddressRules    1 100.0%      1.0
+unsafeRaw                      com.audiobookdownloader.NetworkAddressRules    1 100.0%      1.0
+isRedirect                     com.audiobookdownloader.SourceHttp             1 100.0%      1.0
+open                           com.audiobookdownloader.SourceHttp             1 100.0%      1.0

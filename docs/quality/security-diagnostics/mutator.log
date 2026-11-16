@@ -1,0 +1,135 @@
+WARNING: 53 covered mutations selected in app/src/main/java/com/audiobookdownloader/NetworkAddressRules.java.
+KILLED    app/src/main/java/com/audiobookdownloader/DiagnosticPrivacy.java:19 == -> !=
+KILLED    app/src/main/java/com/audiobookdownloader/DiagnosticPrivacy.java:20 + -> -
+KILLED    app/src/main/java/com/audiobookdownloader/DiagnosticPrivacy.java:21 + -> -
+KILLED    app/src/main/java/com/audiobookdownloader/DiagnosticPrivacy.java:22 + -> -
+KILLED    app/src/main/java/com/audiobookdownloader/DiagnosticPrivacy.java:29 == -> !=
+KILLED    app/src/main/java/com/audiobookdownloader/DiagnosticPrivacy.java:33 delete !
+KILLED    app/src/main/java/com/audiobookdownloader/DiagnosticPrivacy.java:39 + -> -
+KILLED    app/src/main/java/com/audiobookdownloader/DiagnosticPrivacy.java:40 || -> &&
+KILLED    app/src/main/java/com/audiobookdownloader/DiagnosticPrivacy.java:51 delete !
+KILLED    app/src/main/java/com/audiobookdownloader/DiagnosticPrivacy.java:51 || -> &&
+KILLED    app/src/main/java/com/audiobookdownloader/DiagnosticPrivacy.java:51 || -> &&
+KILLED    app/src/main/java/com/audiobookdownloader/DiagnosticPrivacy.java:51 == -> !=
+KILLED    app/src/main/java/com/audiobookdownloader/DiagnosticPrivacy.java:53 + -> -
+KILLED    app/src/main/java/com/audiobookdownloader/DiagnosticPrivacy.java:53 + -> -
+KILLED    app/src/main/java/com/audiobookdownloader/NetworkAddressRules.java:14 delete !
+KILLED    app/src/main/java/com/audiobookdownloader/NetworkAddressRules.java:22 || -> &&
+KILLED    app/src/main/java/com/audiobookdownloader/NetworkAddressRules.java:22 && -> ||
+KILLED    app/src/main/java/com/audiobookdownloader/NetworkAddressRules.java:22 != -> ==
+KILLED    app/src/main/java/com/audiobookdownloader/NetworkAddressRules.java:22 && -> ||
+KILLED    app/src/main/java/com/audiobookdownloader/NetworkAddressRules.java:22 == -> !=
+KILLED    app/src/main/java/com/audiobookdownloader/NetworkAddressRules.java:22 && -> ||
+KILLED    app/src/main/java/com/audiobookdownloader/NetworkAddressRules.java:22 <= -> <
+KILLED    app/src/main/java/com/audiobookdownloader/NetworkAddressRules.java:22 && -> ||
+KILLED    app/src/main/java/com/audiobookdownloader/NetworkAddressRules.java:22 != -> ==
+KILLED    app/src/main/java/com/audiobookdownloader/NetworkAddressRules.java:22 0 -> 1
+KILLED    app/src/main/java/com/audiobookdownloader/NetworkAddressRules.java:25 0 -> 1
+KILLED    app/src/main/java/com/audiobookdownloader/NetworkAddressRules.java:27 true -> false
+KILLED    app/src/main/java/com/audiobookdownloader/NetworkAddressRules.java:27 false -> true
+KILLED    app/src/main/java/com/audiobookdownloader/NetworkAddressRules.java:28 delete !
+KILLED    app/src/main/java/com/audiobookdownloader/NetworkAddressRules.java:28 false -> true
+KILLED    app/src/main/java/com/audiobookdownloader/NetworkAddressRules.java:30 == -> !=
+KILLED    app/src/main/java/com/audiobookdownloader/NetworkAddressRules.java:30 || -> &&
+KILLED    app/src/main/java/com/audiobookdownloader/NetworkAddressRules.java:30 || -> &&
+KILLED    app/src/main/java/com/audiobookdownloader/NetworkAddressRules.java:32 && -> ||
+KILLED    app/src/main/java/com/audiobookdownloader/NetworkAddressRules.java:32 delete !
+KILLED    app/src/main/java/com/audiobookdownloader/NetworkAddressRules.java:33 delete !
+KILLED    app/src/main/java/com/audiobookdownloader/NetworkAddressRules.java:33 && -> ||
+KILLED    app/src/main/java/com/audiobookdownloader/NetworkAddressRules.java:39 || -> &&
+KILLED    app/src/main/java/com/audiobookdownloader/NetworkAddressRules.java:43 || -> &&
+KILLED    app/src/main/java/com/audiobookdownloader/NetworkAddressRules.java:43 || -> &&
+KILLED    app/src/main/java/com/audiobookdownloader/NetworkAddressRules.java:43 || -> &&
+KILLED    app/src/main/java/com/audiobookdownloader/NetworkAddressRules.java:43 || -> &&
+KILLED    app/src/main/java/com/audiobookdownloader/NetworkAddressRules.java:43 delete !
+KILLED    app/src/main/java/com/audiobookdownloader/NetworkAddressRules.java:46 delete !
+KILLED    app/src/main/java/com/audiobookdownloader/NetworkAddressRules.java:46 true -> false
+KILLED    app/src/main/java/com/audiobookdownloader/NetworkAddressRules.java:47 > -> >=
+KILLED    app/src/main/java/com/audiobookdownloader/NetworkAddressRules.java:47 1 -> 0
+KILLED    app/src/main/java/com/audiobookdownloader/NetworkAddressRules.java:47 && -> ||
+KILLED    app/src/main/java/com/audiobookdownloader/NetworkAddressRules.java:47 true -> false
+KILLED    app/src/main/java/com/audiobookdownloader/NetworkAddressRules.java:48 false -> true
+KILLED    app/src/main/java/com/audiobookdownloader/NetworkAddressRules.java:53 || -> &&
+KILLED    app/src/main/java/com/audiobookdownloader/NetworkAddressRules.java:53 || -> &&
+KILLED    app/src/main/java/com/audiobookdownloader/NetworkAddressRules.java:53 || -> &&
+KILLED    app/src/main/java/com/audiobookdownloader/NetworkAddressRules.java:53 || -> &&
+KILLED    app/src/main/java/com/audiobookdownloader/NetworkAddressRules.java:53 || -> &&
+KILLED    app/src/main/java/com/audiobookdownloader/NetworkAddressRules.java:54 true -> false
+KILLED    app/src/main/java/com/audiobookdownloader/NetworkAddressRules.java:56 == -> !=
+KILLED    app/src/main/java/com/audiobookdownloader/NetworkAddressRules.java:56 && -> ||
+KILLED    app/src/main/java/com/audiobookdownloader/NetworkAddressRules.java:56 0 -> 1
+KILLED    app/src/main/java/com/audiobookdownloader/NetworkAddressRules.java:56 == -> !=
+KILLED    app/src/main/java/com/audiobookdownloader/NetworkAddressRules.java:58 && -> ||
+KILLED    app/src/main/java/com/audiobookdownloader/NetworkAddressRules.java:58 && -> ||
+KILLED    app/src/main/java/com/audiobookdownloader/NetworkAddressRules.java:58 == -> !=
+KILLED    app/src/main/java/com/audiobookdownloader/NetworkAddressRules.java:61 || -> &&
+KILLED    app/src/main/java/com/audiobookdownloader/NetworkAddressRules.java:63 == -> !=
+KILLED    app/src/main/java/com/audiobookdownloader/NetworkAddressRules.java:63 delete -
+KILLED    app/src/main/java/com/audiobookdownloader/NetworkAddressRules.java:63 1 -> 0
+KILLED    app/src/main/java/com/audiobookdownloader/SourceHttp.java:17 0 -> 1
+KILLED    app/src/main/java/com/audiobookdownloader/SourceHttp.java:17 < -> <=
+KILLED    app/src/main/java/com/audiobookdownloader/SourceHttp.java:19 delete !
+KILLED    app/src/main/java/com/audiobookdownloader/SourceHttp.java:20 false -> true
+KILLED    app/src/main/java/com/audiobookdownloader/SourceHttp.java:22 false -> true
+KILLED    app/src/main/java/com/audiobookdownloader/SourceHttp.java:28 true -> false
+KILLED    app/src/main/java/com/audiobookdownloader/SourceHttp.java:29 delete !
+KILLED    app/src/main/java/com/audiobookdownloader/SourceHttp.java:34 delete !
+KILLED    app/src/main/java/com/audiobookdownloader/SourceHttp.java:34 || -> &&
+KILLED    app/src/main/java/com/audiobookdownloader/SourceHttp.java:34 == -> !=
+KILLED    app/src/main/java/com/audiobookdownloader/SourceHttp.java:34 || -> &&
+KILLED    app/src/main/java/com/audiobookdownloader/SourceHttp.java:34 >= -> >
+KILLED    app/src/main/java/com/audiobookdownloader/SourceHttp.java:34 0 -> 1
+KILLED    app/src/main/java/com/audiobookdownloader/SourceHttp.java:34 || -> &&
+KILLED    app/src/main/java/com/audiobookdownloader/SourceHttp.java:34 >= -> >
+KILLED    app/src/main/java/com/audiobookdownloader/SourceHttp.java:34 0 -> 1
+Function       Namespace                                    Killed  Survived  Uncovered  Sites   Score
+------------------------------------------------------------------------------------------------------
+isRedirect     com.audiobookdownloader.SourceHttp                0         0          0      0    n/a
+unsafeRaw      com.audiobookdownloader.NetworkAddressRules       0         0          0      0    n/a
+urls           com.audiobookdownloader.DiagnosticPrivacy         0         0          0      0    n/a
+accepts        com.audiobookdownloader.NetworkAddressRules       2         0          0      2 100.0%
+checkHeader    com.audiobookdownloader.SourceHttp                9         0          0      9 100.0%
+checked        com.audiobookdownloader.NetworkAddressRules       1         0          0      1 100.0%
+forwardHeader  com.audiobookdownloader.NetworkAddressRules       1         0          0      1 100.0%
+localHost      com.audiobookdownloader.NetworkAddressRules       1         0          0      1 100.0%
+namedLocal     com.audiobookdownloader.NetworkAddressRules       5         0          0      5 100.0%
+open           com.audiobookdownloader.SourceHttp                7         0          0      7 100.0%
+origin         com.audiobookdownloader.DiagnosticPrivacy         6         0          0      6 100.0%
+port           com.audiobookdownloader.NetworkAddressRules       3         0          0      3 100.0%
+privateLiteral com.audiobookdownloader.NetworkAddressRules       6         0          0      6 100.0%
+publicAddress  com.audiobookdownloader.NetworkAddressRules       2         0          0      2 100.0%
+redact         com.audiobookdownloader.DiagnosticPrivacy         4         0          0      4 100.0%
+redirect       com.audiobookdownloader.NetworkAddressRules       7         0          0      7 100.0%
+referrer       com.audiobookdownloader.NetworkAddressRules       1         0          0      1 100.0%
+sameOrigin     com.audiobookdownloader.NetworkAddressRules       3         0          0      3 100.0%
+stack          com.audiobookdownloader.DiagnosticPrivacy         2         0          0      2 100.0%
+stackLine      com.audiobookdownloader.DiagnosticPrivacy         2         0          0      2 100.0%
+uniqueLocal    com.audiobookdownloader.NetworkAddressRules       4         0          0      4 100.0%
+unusualIpv4    com.audiobookdownloader.NetworkAddressRules       7         0          0      7 100.0%
+validAuthority com.audiobookdownloader.NetworkAddressRules      10         0          0     10 100.0%
+------------------------------------------------------------------------------------------------------
+Total                                                           83         0          0     83  100.0%
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.AbBookTimeRules.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.AbBookTimeRules.Totals.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.AudioValidationRules.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.DiagnosticPrivacy.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.NetworkAddressRules.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.QueueRecoveryRules.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.QueueSnapshotRules.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.SourceHttp.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.AbBookTimeRules.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.AbBookTimeRules.Totals.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.AudioValidationRules.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.DiagnosticPrivacy.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.NetworkAddressRules.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.QueueRecoveryRules.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.QueueSnapshotRules.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.SourceHttp.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.AbBookTimeRules.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.AbBookTimeRules.Totals.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.AudioValidationRules.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.DiagnosticPrivacy.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.NetworkAddressRules.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.QueueRecoveryRules.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.QueueSnapshotRules.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.SourceHttp.edn
