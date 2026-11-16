@@ -269,7 +269,7 @@ internal object AbPersistentDownloads {
                             q.moveToFirst() && q.getInt(q.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS))==DownloadManager.STATUS_SUCCESSFUL
                         }==true
                         if(successful) {
-                            if(AbDownloadedAudio.rejected(c,current.job))update(c,row.key){it.copy(state="error",error="Не удалось безопасно заменить непригодный файл: владелец не подтверждён или хранилище недоступно. Прежние файлы сохранены.")}
+                            if(AbDownloadedAudio.unchangedRejected(c,current.job))update(c,row.key){it.copy(state="error",error="Не удалось безопасно заменить непригодный файл: владелец не подтверждён или хранилище недоступно. Прежние файлы сохранены.")}
                             else update(c,row.key){it.copy(state="verifying",error="")}
                             return@synchronized
                         }
