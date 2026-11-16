@@ -1,0 +1,8 @@
+CRAP Report
+===========
+Languages: java
+
+Function                       Namespace                                    CC    Cov%     CRAP
+-----------------------------------------------------------------------------------------------
+delay                          com.audiobookdownloader.PlaybackPulseRules    6 100.0%      6.0
+widget                         com.audiobookdownloader.PlaybackPulseRules    5 100.0%      5.0

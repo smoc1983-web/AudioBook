@@ -1,12 +1,25 @@
-# Этап 5 — в работе, не опубликован (2026-11-16)
+# Этап 5 — проверен, не опубликован (2026-11-16)
 
 Владелец разрешил этап5 и ub-mode. Ветка cloud/playback-idle-20261116
-от60a952a; дерево было чистым, remote refs проверены. Подтверждён 500мс цикл
-на паузе и повторный путь обновления виджетов. Red:5 ожидаемых отказов из6.
-Добавлены event-based остановка/возобновление pulse, отдельная cadence таймера,
-публикация paused seek без 5с задержки; работа и проверки ещё не завершены.
-Не публиковать, main/package/version/signer не менять; этап6 без подтверждения
-не начинать. TokenEconomizer CLI без вопросов; hooks/экономия не подтверждены.
+от60a952a; проверенные исходники2a1ef379a1d8422fdafaf1d7af368b2ac706acc2.
+CI43889295359 SUCCESS: Stable Debug/unsigned Release, Preview Debug/AndroidTest
+с прежним signer, по332 JVM (331 исполнен,1 прежний skip),10 native/API36.
+Lint0Fatal/Error,76Warning/76Info, новых диагностик относительно этапа4 нет.
+Локально6 Java, JaCoCo100% инструкций двух методов, maxCRAP6, Dryer0 scoped,
+Mutator17/17. Анализаторы не покрывают Kotlin; для него compile/JVM/native.
+Playback pause без часового таймера снимает periodic handler pulse; playing/
+loading до500мс, paused clock timer до1с/дедлайна. Position persistence5с при
+прослушивании и immediate pause/seek сохранены. Виджеты пропускают неизменные
+snapshots, события доставляются сразу, periodic progress ограничен5с.
+Обложка/поздняя длительность обновляются событиями, duplicate service widget path
+убран. Реальные MediaSession, MediaPlayer, handler idle, timer, seek/persistence,
+metadata cover, progress widgets/очередь/hidden UI проверены на API36.
+Отчёт docs/PLAYBACK-IDLE-STAGE-5.md; docs/quality/playback-idle/results.json.
+Измерений батареи/CPU, физического телефона, гарнитуры/Bluetooth/OEM launcher,
+глубокого сна нет; это не exact alarm. Main/package/version/signer/данные и
+публичная4.2.95 неизменны. Этап6 и публикация только после подтверждения.
+TokenEconomizer CLI без вопросов; hooks/экономия чата не подтверждены.
+Исторические записи ниже.
 
 # Этап 4 — проверен, не опубликован (2026-11-16)
 

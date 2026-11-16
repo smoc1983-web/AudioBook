@@ -1,0 +1,98 @@
+{
+  "stage": 5,
+  "date": "2026-11-16",
+  "status": "passed-not-published",
+  "branch": "cloud/playback-idle-20261116",
+  "base": "60a952aa14e103dc7f3391ea6fcbb35b3c77d4e1",
+  "testedSource": "2a1ef379a1d8422fdafaf1d7af368b2ac706acc2",
+  "run": 43889295359,
+  "published": false,
+  "packageVersionSignerChanged": false,
+  "local": {
+    "javaTests": 6,
+    "crapperMax": 6,
+    "coverage": "JaCoCo measured, two pure methods 100% instructions",
+    "dryerThreshold": 0.8,
+    "duplicates": 0,
+    "mutatorKilled": 17,
+    "mutatorSurvived": 0,
+    "kotlinSupportedByQualityTools": false,
+    "parserFixtures": "passed"
+  },
+  "nativeJob": {
+    "id": 133375799305,
+    "conclusion": "success",
+    "api": 36
+  },
+  "tokenEconomizer": {
+    "cliStatusExecuted": true,
+    "chatHooksVerified": false,
+    "savingsClaimed": false,
+    "standingPermission": true
+  },
+  "limits": [
+    "No battery or CPU measurements",
+    "No physical handset, Bluetooth/headset, OEM launcher or deep-sleep test",
+    "MediaSession controller tested, not physical hardware buttons",
+    "No new exact alarm or device wakeup guarantee",
+    "Stage 6 not started"
+  ],
+  "finalCI": {
+    "run": 43889295359,
+    "conclusion": "success",
+    "url": "https://github.com/smoc1983-web/AudioBook/actions/runs/43889295359",
+    "verifyJob": 133375798852,
+    "nativeJob": 133375799305,
+    "checks": {
+      "Debug": {
+        "tests": 332,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 1
+      },
+      "Release": {
+        "tests": 332,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 1
+      },
+      "lint-results-debug.xml": {
+        "counts": {
+          "Warning": 76,
+          "Information": 76
+        },
+        "added": 0,
+        "removed": 0
+      },
+      "lint-results-release.xml": {
+        "counts": {
+          "Warning": 76,
+          "Information": 76
+        },
+        "added": 0,
+        "removed": 0
+      }
+    },
+    "native": {
+      "tests": 10,
+      "passed": 10,
+      "names": [
+        "com.audiobookdownloader.IdlePlaybackTest.pausedAndPlayingClockTimersExpireWithoutLeavingAnIdleLoop",
+        "com.audiobookdownloader.IdlePlaybackTest.pauseIsQuietButMediaSessionSeekResumeSettingsAndArtworkStillWork",
+        "com.audiobookdownloader.VisiblePlaybackTest.hiddenScreenStopsCollectingAndReturnsToCurrentPosition",
+        "com.audiobookdownloader.BookProgressWidgetTest.restoredWidgetsAndLibraryUseTheSameBookProgress",
+        "com.audiobookdownloader.PlaybackOptionsUiTest.buttonsUseSelectedStepAndStopAtFourTimes",
+        "com.audiobookdownloader.PlaybackOptionsUiTest.pastedFractionDoesNotBecomeAnotherDuration",
+        "com.audiobookdownloader.LocalContinuationPlaybackTest.explicitQueueStillAdvancesWhenNoTimerStopsIt",
+        "com.audiobookdownloader.LocalContinuationPlaybackTest.chapterSleepTimerLeavesManualQueueUntouched",
+        "com.audiobookdownloader.LocalContinuationPlaybackTest.finishedBookOffersLocalNextVolumeAndExplicitChoiceStartsIt",
+        "com.audiobookdownloader.WidgetPreviewTest.previewsHaveIntrinsicHeightAndRenderAllTenThemes"
+      ]
+    },
+    "stableDebug": "passed",
+    "stableRelease": "passed unsigned",
+    "previewDebug": "passed existing signer",
+    "androidTestCompile": "passed",
+    "parserFixtures": "passed"
+  }
+}
