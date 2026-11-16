@@ -1090,12 +1090,12 @@ fun toggleFavorite(
     val old =
         loadBookRefs(prefs, FAVORITES_KEY)
 
-    return if (old.any { it.title == ref.title }) {
+    return if (old.any { bookRefIdentity(it)==bookRefIdentity(ref) }) {
 
         saveBookRefs(
             prefs,
             FAVORITES_KEY,
-            old.filter { it.title != ref.title }
+            old.filter { bookRefIdentity(it)!=bookRefIdentity(ref) }
         )
 
         false
@@ -1282,10 +1282,10 @@ fun toggleShelfBook(
 
             if (shelf.name != shelfName) {
                 shelf
-            } else if (shelf.books.any { it.title == ref.title }) {
+            } else if (shelf.books.any { bookRefIdentity(it)==bookRefIdentity(ref) }) {
                 shelf.copy(
                     books = shelf.books.filter {
-                        it.title != ref.title
+                        bookRefIdentity(it)!=bookRefIdentity(ref)
                     }
                 )
             } else {
@@ -10602,7 +10602,6 @@ private fun AbLibraryScreen(data: AbScreenData,actions: AbActions,sync: LibraryS
         bookmarkRows=if(tab==6) kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO){allBookmarks(prefs,all.map{it.title})} else emptyList()
     }
     val visibleBookmarks=bookmarkRows.filter{(book,mark)->listOf(book,mark.label,mark.note,mark.trackTitle).any{it.contains(filter,true)}}
-    val byTitle=remember(books) {books.associateBy{safeFileName(it.title).lowercase()}}
     val refs=remember(tab,filter,sort,all,localRefs,favorites,recent,queue,data.version,
         data.playback.bookTitle,data.playback.trackIndex) {
         val selected=when(tab){1->localRefs;2->favorites;3->recent;4->queue.map{bookRefFor(prefs,it)};else->all}
@@ -10612,7 +10611,7 @@ private fun AbLibraryScreen(data: AbScreenData,actions: AbActions,sync: LibraryS
             sort==1 && tab!=4 -> selected.sortedBy{it.title.lowercase()}
             // Persisted progress changes every few seconds. Do not reorder rows every player tick.
             sort==2 && tab!=4 -> selected.sortedByDescending{ref->
-                byTitle[safeFileName(ref.title).lowercase()]?.let {AbBookProgress.library(prefs,it,data.playback,durationCache).progress} ?: 0f
+                findDownloadedBook(books,ref.title,ref.editionId)?.let {AbBookProgress.library(prefs,it,data.playback,durationCache).progress} ?: 0f
             }
             else -> selected
         }
@@ -11876,7 +11875,7 @@ private fun AbBookMenu(ref: BookRef,local: LibraryBook?,prefs: android.content.S
     var moreActions by remember(ref.title){mutableStateOf(false)}
     var deleting by remember(ref.title){mutableStateOf(false)}
     var deleteMessage by remember(ref.title){mutableStateOf("")}
-    val favorite=remember(version,ref.title) {loadBookRefs(prefs,FAVORITES_KEY).any{it.title==ref.title}}
+    val favorite=remember(version,ref) {loadBookRefs(prefs,FAVORITES_KEY).any{bookRefIdentity(it)==bookRefIdentity(ref)}}
     val queue=remember(version) {loadQueue(prefs)}
     val queueTitle=local?.title ?: ref.title
     val canDelete=local?.files?.isNotEmpty()==true
@@ -11904,7 +11903,7 @@ private fun AbBookMenu(ref: BookRef,local: LibraryBook?,prefs: android.content.S
             AbButton("Слушать книгу",theme,primary=true){dismiss();actions.openRef(ref)}
             AbMenuEditionDownload(ref,local,index,downloads,theme,actions.downloadEdition)
             AbButton("Добавить в коллекцию",theme,onClick=onShelf)
-            loadShelves(prefs).filter{it.books.any{book->book.title==ref.title}}.forEach{collection ->
+            loadShelves(prefs).filter{it.books.any{book->bookRefIdentity(book)==bookRefIdentity(ref)}}.forEach{collection ->
                 AbButton("Убрать из коллекции «${collection.name}»",theme){abRemoveShelfBook(prefs,collection.name,ref)}
             }
             AbButton(if(moreActions) "Скрыть другие действия" else "Другие действия",theme){moreActions=!moreActions}
@@ -11945,7 +11944,7 @@ internal fun AbShelfPicker(ref: BookRef,prefs: android.content.SharedPreferences
     AbDialog("Добавить в коллекцию",theme,dismiss) {
         Text(ref.title,color=theme.muted,fontSize=14.sp)
         remember(version) {loadShelves(prefs)}.forEach {shelf ->
-            AbButton((if(shelf.books.any{it.title==ref.title}) "✓ " else "")+shelf.name,theme) {
+            AbButton((if(shelf.books.any{bookRefIdentity(it)==bookRefIdentity(ref)}) "✓ " else "")+shelf.name,theme) {
                 toggleShelfBook(prefs,shelf.name,ref)
             }
         }

@@ -89,7 +89,7 @@ internal object EditionMetadata {
         val current=read(p,book,id)
         val old=if(current.valid&&current.titles.isEmpty()&&p.getString(PREFIX+id,null)==null)legacyAlias(p,id) ?: current else current
         if(!old.valid) {
-            p.edit().putString(NOTICE,"Метаданные издания повреждены. Исходная запись сохранена; восстановите её из резервной копии. Файлы и позиция не удалены.").apply()
+            p.edit().putString(NOTICE,"Метаданные издания повреждены или неоднозначны. Исходные записи сохранены; восстановите её из резервной копии. Файлы и позиция не удалены.").apply()
             return false
         }
         val next=update(old);require(next.edition==id&&next.bookId==old.bookId)
