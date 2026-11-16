@@ -73,4 +73,13 @@ class EditionMetadataRegressionTest {
   saveShelves(p,listOf(Shelf("Collection",listOf(first))))
   toggleShelfBook(p,"Collection",renamed);assertTrue(loadShelves(p).single().books.isEmpty())
  }
+ @Test fun ambiguousImportedFolderCannotInheritTitleCompletionOrSourceOwnership() {
+  val p=BookProgressRegressionTest().preferences();observe(p,a);StableProgress.completed(p,title,tracks(a))
+  p.edit().putString("book_local_edition_"+safeFileName(title),a).apply()
+  val one=LibraryBook(title,File("/external/one"),listOf(File("/external/one/01.mp3")),identityAmbiguous=true)
+  val two=one.copy(folder=File("/external/two"),files=listOf(File("/external/two/01.mp3")))
+  assertFalse(StableProgress.isCompleted(p,one));assertFalse(StableProgress.isCompleted(p,two))
+  assertNotEquals(EditionMetadata.local(p,one),EditionMetadata.local(p,two))
+  assertEquals(EditionMetadata.local(p,one),EditionMetadata.local(p,one.copy(title="Renamed")))
+ }
 }

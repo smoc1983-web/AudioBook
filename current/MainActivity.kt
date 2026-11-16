@@ -153,7 +153,8 @@ data class LibraryBook(
     val coverRevision: Long = 0L,
     val audioSizes: Map<String,Long> = emptyMap(),
     val editionId:String="",
-    val chapterSources:Map<String,String> = emptyMap()
+    val chapterSources:Map<String,String> = emptyMap(),
+    val identityAmbiguous:Boolean=false
 ) {
     val bookId:String by lazy(LazyThreadSafetyMode.PUBLICATION){if(editionId.isNotBlank())LibraryRecordRules.bookId(editionId) else "l3-"+ChapterIdentity.hash(folderUri.ifBlank{folder.absolutePath})}
     val audioBytes:Long get()=audioSizes.values.sum()
@@ -7453,10 +7454,13 @@ fun scanLibraryReport(context: Context? = null): LibraryScanResult {
         .put("chapters",completed.sumOf{it.files.size}).put("unfinishedKeys",unfinished.size)
     context.getSharedPreferences("audiobook_diagnostics",Context.MODE_PRIVATE).edit()
         .putString("last_library",java.util.Date().toString()+"\n"+libraryTrace.toString(2)).apply()
+    val counts=completed.groupingBy{AbLibraryHousekeeping.bookKey(it.title)}.eachCount()
     return LibraryScanResult(completed.map{book->
+        val ambiguous=(counts[AbLibraryHousekeeping.bookKey(book.title)] ?: 0)>1 &&
+            book.folder.absoluteFile!=File(libraryRoot(),safeFileName(book.title)).absoluteFile
         val url=treePrefs.getString("book_local_edition_"+safeFileName(book.title),"").orEmpty()
         val sources=book.files.mapNotNull{file->AbPersistentDownloads.sourceFor(context,book.title,file.nameWithoutExtension)?.let{file.name to it}}.toMap()
-        abWithLibrarySizes(abLibraryCoverMetadata(book.copy(editionId=if(url.isNotBlank())ChapterIdentity.edition(book.title,url) else "",chapterSources=sources)),context)
+        abWithLibrarySizes(abLibraryCoverMetadata(book.copy(editionId=if(!ambiguous&&url.isNotBlank())ChapterIdentity.edition(book.title,url) else "",chapterSources=if(ambiguous)emptyMap() else sources,identityAmbiguous=ambiguous)),context)
     }.sortedBy { it.title.lowercase() }, folderUnavailable)
 }
 

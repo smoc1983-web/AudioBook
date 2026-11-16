@@ -29,6 +29,7 @@ class LibraryIdentityAndroidTest {
    p.edit().putString(bookUrlKey(title),url).putString("book_local_edition_"+safeFileName(title),url)
     .putString("book_chapter_titles_"+safeFileName(title),titles).putString("book_edition_revision_"+safeFileName(title),revision)
     .putInt(bookTotalKey(title),1).putBoolean("book_completed_"+safeFileName(title),true).commit()
+   AbBookProgress.remember(p,title,track,10000)
    StableProgress.save(p,title,listOf(track),0,4321)
    assertTrue(addBookmark(p,title,0,"01",4321,id));val mark=loadBookmarks(p,title).single()
    updateBookmark(p,title,mark,"Keep","Private note")
@@ -45,6 +46,7 @@ class LibraryIdentityAndroidTest {
    LibraryBackup.export(context,Uri.fromFile(archive),listOf(library),false){}
    val checked=LibraryBackup.inspect(context,Uri.fromFile(archive))
    assertEquals(p.getString(EditionMetadata.PREFIX+id,null),checked.values[EditionMetadata.PREFIX+id])
+   assertEquals(10000,checked.values["book_chapter_duration_"+ChapterIdentity.chapter(id,"01")])
    LibraryBackup.restore(context,Uri.fromFile(archive),null,checked){}
    assertEquals(oldFields,p.all.filterKeys{it in oldFields.keys})
    assertEquals(oldQueue+title,loadQueue(p));assertEquals(oldShelves+Shelf(title,listOf(ref)),loadShelves(p))
