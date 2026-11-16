@@ -31,9 +31,23 @@ internal fun abDownloadObservation(row:QueuedChapter,status:Int?,downloaded:Long
 internal object AbPersistentDownloads {
     private val lock=Any()
     private val pumpLock=kotlinx.coroutines.sync.Mutex()
-    private var cachedRaw:String?=null
     private var cachedRows:List<QueuedChapter> = emptyList()
+    private var cacheLoaded=false
+    private var storeRoot=""
+    private var storage:DownloadQueueStore?=null
+    private var dirty=false
+    private var lastFlush=0L
     private fun prefs(c:Context)=c.getSharedPreferences("audiobook_download_queue_v1",0)
+    private fun store(c:Context):DownloadQueueStore {
+        val root=java.io.File(c.filesDir,"download-queue")
+        if(storage==null||storeRoot!=root.path) {
+            storeRoot=root.path;cacheLoaded=false;dirty=false
+            storage=DownloadQueueStore(root,{prefs(c).all["entries"]},{decode(it);Unit},
+                java.io.File(c.applicationInfo.dataDir,"shared_prefs/audiobook_download_queue_v1.xml"))
+        }
+        return storage!!
+    }
+    fun problem(c:Context):String=synchronized(lock){entries(c);store(c).notice}
     private fun main(c:Context)=c.getSharedPreferences("audiobook_downloader",0)
     private fun legacyKey(book:String,title:String)=AbLibraryHousekeeping.bookKey(book)+"\u0000"+safeFileName(title).lowercase(java.util.Locale.ROOT)
     fun key(book:String,title:String,src:String,editionUrl:String="")=ChapterIdentity.download(book,title,src,editionUrl)
@@ -41,30 +55,52 @@ internal object AbPersistentDownloads {
     fun unverifiedKeys(c:Context):Set<String> = entries(c).filter{it.job>0 && it.state !in listOf("complete","cancelled") &&
         prefs(c).getString("destination_owner_"+ChapterIdentity.hash(destination(it)),null)==it.key}
         .map{destination(it)}.toSet()
-    fun sourceFor(c:Context,book:String,title:String):String?=prefs(c).getString("destination_source_"+ChapterIdentity.hash(legacyKey(book,title)),null)
+    fun sourceFor(c:Context,book:String,title:String):String?=synchronized(lock){entries(c);prefs(c).getString("destination_source_"+ChapterIdentity.hash(legacyKey(book,title)),null)}
     fun entries(c:Context):List<QueuedChapter> = synchronized(lock) {
-        val raw=prefs(c).getString("entries","[]").orEmpty()
-        if(raw==cachedRaw)return@synchronized cachedRows
-        val rows=decode(raw)
-        cachedRaw=raw;cachedRows=rows;rows
+        val source=store(c)
+        if(!cacheLoaded){cachedRows=decode(source.load());cacheLoaded=true}
+        cachedRows
     }
-    internal fun decode(raw:String):List<QueuedChapter> {
-        val a=try{JSONArray(raw)}catch(_:Exception){JSONArray()}
-        return (0 until minOf(a.length(),6000)).mapNotNull {i->try{a.optJSONObject(i)?.let {o->
+    internal fun decode(raw:String):List<QueuedChapter> = try {
+        val input=org.json.JSONTokener(raw);val a=JSONArray(input)
+        require(input.nextClean()=='\u0000' && a.length()<=6000)
+        val rows=linkedMapOf<String,QueuedChapter>();val jobs=mutableMapOf<Long,String>()
+        for(i in 0 until a.length()) {
+            val o=a.getJSONObject(i)
             val row=QueuedChapter(o.getString("key"),o.getString("book"),o.getString("title"),o.getString("src"),o.optInt("duration"),o.optLong("job"),o.optString("state","queued"),o.optLong("bytes"),o.optLong("total",-1),o.optString("error"),o.optString("editionUrl"),o.optString("initialSrc",o.getString("src")),o.optInt("refreshAttempts"))
-            row.takeIf{(it.key==legacyKey(it.book,it.title)||it.key==key(it.book,it.title,it.initialSrc,it.editionUrl))&&isNetworkAudio(it.src)&&isNetworkAudio(it.initialSrc)&&it.refreshAttempts in 0..1&&(it.src==it.initialSrc||ChapterRefreshRules.sameResource(it.initialSrc,it.src))&&it.state in listOf("queued","active","verifying","complete","error","cancelled")}
-                ?.let{it.copy(key=key(it.book,it.title,it.initialSrc,it.editionUrl))}
-        }}catch(_:Exception){null}}
-    }
-    private fun write(c:Context,rows:List<QueuedChapter>,maxBytes:Int=8*1024*1024) {
-        require(rows.sumOf{it.key.length.toLong()+it.book.length+it.title.length+it.src.length+it.error.length+it.editionUrl.length+(if(it.initialSrc!=it.src)it.initialSrc.length else 0)}<4L*1024*1024){"Очередь заполнена. Уберите завершённые загрузки из списка."}
-        val encoded=JSONArray().apply{rows.forEach{put(it.json())}}.toString()
-        require(encoded.toByteArray(Charsets.UTF_8).size<=maxBytes){"Очередь заполнена. Уберите завершённые загрузки из списка."}
-        val p=prefs(c);val previous=p.getString("entries","[]")
-        if(!p.edit().putString("entries",encoded).commit()) {
-            p.edit().putString("entries",previous).commit();error("Не удалось сохранить очередь. Проверьте свободное место.")
+            require((row.key==legacyKey(row.book,row.title)||row.key==key(row.book,row.title,row.initialSrc,row.editionUrl))&&
+                isNetworkAudio(row.src)&&isNetworkAudio(row.initialSrc)&&row.refreshAttempts in 0..1&&
+                (row.src==row.initialSrc||ChapterRefreshRules.sameResource(row.initialSrc,row.src))&&
+                row.state in listOf("queued","active","verifying","complete","error","cancelled"))
+            val canonical=row.copy(key=key(row.book,row.title,row.initialSrc,row.editionUrl))
+            require(rows[canonical.key]==null || rows[canonical.key]==canonical)
+            if(row.job>0){require(jobs[row.job]==null||jobs[row.job]==canonical.key);jobs[row.job]=canonical.key}
+            rows[canonical.key]=canonical
         }
-        cachedRaw=encoded;cachedRows=rows.toList()
+        rows.values.toList()
+    }catch(error:Exception){throw IllegalArgumentException("Повреждён снимок очереди загрузок",error)}
+    private fun encode(rows:List<QueuedChapter>,maxBytes:Int):String {
+        val raw=JSONArray().apply{rows.forEach{put(it.json())}}.toString()
+        require(raw.toByteArray(Charsets.UTF_8).size<=maxBytes){"Очередь заполнена. Уберите завершённые загрузки из списка."}
+        return raw
+    }
+    private fun sameIntents(a:List<QueuedChapter>,b:List<QueuedChapter>) =
+        a.size==b.size && a.zip(b).all{(x,y)->x.copy(bytes=0,total=0)==y.copy(bytes=0,total=0)}
+    private fun write(c:Context,rows:List<QueuedChapter>,maxBytes:Int=8*1024*1024) {
+        store(c).requireWritable()
+        val now=android.os.SystemClock.elapsedRealtime()
+        if(rows==cachedRows){flush(c);return}
+        if(sameIntents(cachedRows,rows)&&now-lastFlush<5000) {
+            cachedRows=rows.toList();dirty=true;return
+        }
+        store(c).save(encode(rows,maxBytes))
+        cachedRows=rows.toList();cacheLoaded=true;dirty=false;lastFlush=now
+    }
+    fun flush(c:Context,force:Boolean=false)=synchronized(lock) {
+        if(dirty&&(force||android.os.SystemClock.elapsedRealtime()-lastFlush>=5000)) {
+            store(c).save(encode(cachedRows,QueueSnapshotRules.MAX_BYTES));dirty=false
+            lastFlush=android.os.SystemClock.elapsedRealtime()
+        }
     }
     fun enqueue(c:Context,book:String,tracks:List<AudioTrack>)=enqueueBatch(c,listOf(AbDownloadEdition(BookRef(book,"",""),tracks,false)))
     fun enqueueBatch(c:Context,editions:List<AbDownloadEdition>)=synchronized(lock) {
@@ -90,8 +126,9 @@ internal object AbPersistentDownloads {
     fun update(c:Context,id:String,transform:(QueuedChapter)->QueuedChapter)=synchronized(lock) {
         val before=entries(c);val after=before.map{if(it.key==id)transform(it) else it};if(after!=before)write(c,after)
     }
-    fun paused(c:Context,book:String)=prefs(c).getBoolean("paused:v2:"+ChapterIdentity.hash(book),prefs(c).getBoolean("paused:"+AbLibraryHousekeeping.bookKey(book),false))
+    fun paused(c:Context,book:String):Boolean=synchronized(lock){entries(c);prefs(c).getBoolean("paused:v2:"+ChapterIdentity.hash(book),prefs(c).getBoolean("paused:"+AbLibraryHousekeeping.bookKey(book),false))}
     fun pause(c:Context,book:String,value:Boolean) {
+        synchronized(lock){entries(c);store(c).requireWritable()}
         check(prefs(c).edit().putBoolean("paused:v2:"+ChapterIdentity.hash(book),value).commit());if(!value)schedule(c)
     }
     fun clearCompleted(c:Context)=synchronized(lock){write(c,entries(c).filter{it.state !in listOf("complete","cancelled")})}
@@ -212,6 +249,7 @@ internal object AbPersistentDownloads {
     }
     suspend fun pump(c:Context):Boolean=pumpLock.withLock{pumpOnce(c)}
     private suspend fun pumpOnce(c:Context):Boolean {
+        synchronized(lock){entries(c);store(c).requireWritable();flush(c)}
         val dm=c.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
         val active=entries(c).filter{it.state in listOf("active","verifying")&&it.job>0}
         var finished=false
