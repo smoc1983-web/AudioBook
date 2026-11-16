@@ -7447,21 +7447,36 @@ fun scanLibraryReport(context: Context? = null): LibraryScanResult {
             bookKey+"\u0000"+safeFileName(file.nameWithoutExtension).lowercase(java.util.Locale.ROOT) !in unfinished
         })
     }.filter{it.files.isNotEmpty()}
-    StableProgress.observeLibrary(treePrefs,completed)
     val libraryTrace=JSONObject().put("audioPermission",hasLibraryAudioPermission(context))
         .put("treeConfigured",treeText.isNotBlank()).put("folderUnavailable",folderUnavailable)
         .put("booksBeforeDownloadFilter",books.size).put("books",completed.size)
         .put("chapters",completed.sumOf{it.files.size}).put("unfinishedKeys",unfinished.size)
     context.getSharedPreferences("audiobook_diagnostics",Context.MODE_PRIVATE).edit()
         .putString("last_library",java.util.Date().toString()+"\n"+libraryTrace.toString(2)).apply()
-    val counts=completed.groupingBy{AbLibraryHousekeeping.bookKey(it.title)}.eachCount()
-    return LibraryScanResult(completed.map{book->
-        val ambiguous=(counts[AbLibraryHousekeeping.bookKey(book.title)] ?: 0)>1 &&
-            book.folder.absoluteFile!=File(libraryRoot(),safeFileName(book.title)).absoluteFile
-        val url=treePrefs.getString("book_local_edition_"+safeFileName(book.title),"").orEmpty()
-        val sources=book.files.mapNotNull{file->AbPersistentDownloads.sourceFor(context,book.title,file.nameWithoutExtension)?.let{file.name to it}}.toMap()
-        abWithLibrarySizes(abLibraryCoverMetadata(book.copy(editionId=if(!ambiguous&&url.isNotBlank())ChapterIdentity.edition(book.title,url) else "",chapterSources=if(ambiguous)emptyMap() else sources,identityAmbiguous=ambiguous)),context)
-    }.sortedBy { it.title.lowercase() }, folderUnavailable)
+    val identified=identifyLibraryEntries(treePrefs,completed,libraryRoot()).map{book->
+        val sources=if(book.identityAmbiguous)emptyMap() else book.files.mapNotNull{file->
+            AbPersistentDownloads.sourceFor(context,book.title,file.nameWithoutExtension)?.let{file.name to it}
+        }.toMap()
+        abWithLibrarySizes(abLibraryCoverMetadata(book.copy(chapterSources=sources)),context)
+    }.sortedBy{it.title.lowercase()}
+    StableProgress.observeLibrary(treePrefs,identified)
+    if(identified.any{it.identityAmbiguous}) {
+        val warning="Есть одноимённые папки без подтверждённого издания. Их файлы сохранены; автоматический выбор и отметка прослушивания для них отключены."
+        if(treePrefs.getString(EditionMetadata.NOTICE,"")!=warning)treePrefs.edit().putString(EditionMetadata.NOTICE,warning).apply()
+    }
+    return LibraryScanResult(identified,folderUnavailable)
+}
+
+/** A legacy title binding is ambiguous across different folders; explicit editions stay authoritative. */
+internal fun identifyLibraryEntries(prefs:android.content.SharedPreferences,books:List<LibraryBook>,root:File):List<LibraryBook> {
+    val counts=books.groupingBy{AbLibraryHousekeeping.bookKey(it.title)}.eachCount()
+    return books.map{book->
+        val ambiguous=book.editionId.isBlank() && (counts[AbLibraryHousekeeping.bookKey(book.title)] ?: 0)>1 &&
+            book.folder.absoluteFile.normalize()!=File(root,safeFileName(book.title)).absoluteFile.normalize()
+        val url=prefs.getString("book_local_edition_"+safeFileName(book.title),"").orEmpty()
+        book.copy(editionId=if(ambiguous)"" else book.editionId.ifBlank{if(url.isBlank())"" else ChapterIdentity.edition(book.title,url)},
+            chapterSources=if(ambiguous)emptyMap() else book.chapterSources,identityAmbiguous=ambiguous)
+    }
 }
 
 /** Materialize byte counts in the IO scan; rendering a card never stats files or opens providers. */

@@ -88,4 +88,14 @@ class EditionMetadataRegressionTest {
   assertEquals(a,active.url);assertEquals(LibraryRecordRules.bookId(ChapterIdentity.edition(title,a)),active.bookId)
   assertEquals(b,bookRefFor(p,title).url)
  }
+ @Test fun folderIdentityIsResolvedBeforeNewChapterChecksCanChangeCompletion() {
+  val p=BookProgressRegressionTest().preferences();observe(p,a);StableProgress.completed(p,title,tracks(a))
+  p.edit().putString("book_local_edition_"+safeFileName(title),a).apply()
+  val owned=LibraryBook(title,File("/default",safeFileName(title)),listOf(File("/default/01.mp3"),File("/default/02.mp3")))
+  val foreign=LibraryBook(title,File("/external/same"),listOf(File("/external/foreign.mp3")))
+  val books=identifyLibraryEntries(p,listOf(owned,foreign),File("/default"))
+  assertFalse(books[0].identityAmbiguous);assertTrue(books[1].identityAmbiguous)
+  StableProgress.observeLibrary(p,books)
+  assertTrue(StableProgress.isCompleted(p,books[0]));assertFalse(StableProgress.isCompleted(p,books[1]))
+ }
 }
