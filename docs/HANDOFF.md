@@ -1,14 +1,22 @@
-# Этап 6 — в работе, не опубликован (2026-11-16)
+# Этап 6 — проверен, не опубликован (2026-11-16)
 
-Владелец разрешил этап6 и ub-mode. Ветка cloud/library-identity-20261116
-отf372216; дерево/refs проверены. Red CI43928936138 подтвердил3 проблемы:
-смешение completion одноимённых изданий, title rename metadata loss, arbitrary
-local folder selection. Red CI43930614008: core3 уже прошли,3 новых bookmark
-проверки ещё падали ожидаемо. Исправления внедряются: edition-scoped метаданные,
-добавочный bookId, legacy поля сохраняются; known-edition bookmarks ищутся по
-editionId и редактируются по прежнему ID. Полные проверки ещё в работе.
-Не публиковать, main/package/version/signer не менять. Этап7 без подтверждения
-не начинать. TokenEconomizer CLI без вопросов; hooks/экономия не подтверждены.
+Ветка cloud/library-identity-20261116 отf372216; проверенные исходники
+b26f32fee057b770eddc56906b1249737ab30a5d. CI43939142477 SUCCESS:
+Stable Debug/unsigned Release, Preview Debug/AndroidTest с прежним signer;
+по353 JVM (352 выполнены,1 прежний skip),24 native/API36. Lint0Fatal/Error,
+78Warning/76Info: +2 ApplySharedPref в BookmarkStore, commit нужен для результата
+записи; остальные диагностики совпадают с этапом5. Локально5 Java, CRAPmax7,
+JaCoCo100% инструкций2 методов, Dryer0 scoped, Mutator9/9; Kotlin ими не покрыт.
+Метаданные/членство/known-edition закладки разделены по editionId, добавлен
+bookId записи; переименование сохраняет метаданные/позицию. Старые ключи/ID,
+файлы, полки/очередь/настройки сохраняются; неоднозначные папки не угадываются.
+Миграция добавочная, не полное устранение title-зависимостей; новых completion/
+каталогов старый код не увидит, произвольное перемещение папки не отслеживается.
+Отчёт docs/LIBRARY-IDENTITY-STAGE-6.md, docs/quality/library-identity/results.json.
+Физического телефона/Installer, повторного reboot/force-stop этапа3 и измерений
+RAM/батареи/UI write latency нет. Source main/package/version/signer/public4.2.95
+не изменены. Этап7 и публикация только после отдельного подтверждения.
+TokenEconomizer CLI status выполнен; sessions0, hooks/экономия не подтверждены.
 
 # Этап 5 — проверен, не опубликован (2026-11-16)
 

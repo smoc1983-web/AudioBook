@@ -1,0 +1,8 @@
+CRAP Report
+===========
+Languages: java
+
+Function                       Namespace                                    CC    Cov%     CRAP
+-----------------------------------------------------------------------------------------------
+provesCatalogue                com.audiobookdownloader.LibraryRecordRules    7 100.0%      7.0
+bookId                         com.audiobookdownloader.LibraryRecordRules    3 100.0%      3.0

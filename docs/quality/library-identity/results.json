@@ -1,0 +1,111 @@
+{
+  "stage": 6,
+  "branch": "cloud/library-identity-20261116",
+  "base": "f37221605787196968bc64724eeaeb60541efa99",
+  "testedSource": "b26f32fee057b770eddc56906b1249737ab30a5d",
+  "ciRun": 43939142477,
+  "status": "success",
+  "published": false,
+  "localJava": {
+    "tests": 5,
+    "failures": 0,
+    "instructionCoveragePercent": 100,
+    "maxCrap": 7,
+    "dryerCandidatesAt08": 0,
+    "mutationKilled": 9,
+    "mutationSurvived": 0,
+    "scope": "LibraryRecordRules.java only; Kotlin unsupported"
+  },
+  "native": {
+    "api": 36,
+    "tests": 24,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "physicalDeviceTested": false,
+  "packageVersionSignerChanged": false,
+  "limitations": [
+    "Legacy ambiguous data is retained; no automatic merge",
+    "No arbitrary moved-folder tracking",
+    "Old code does not read new edition completion/catalogue updates",
+    "No measured RAM/battery/performance claim",
+    "No Stage 3 force-stop/reboot rerun"
+  ],
+  "tokenEconomizer": {
+    "cliStatusExecuted": true,
+    "observedSessions": 0,
+    "hooksVerified": false,
+    "tokenSavingsClaimed": false
+  },
+  "ciUrl": "https://github.com/smoc1983-web/AudioBook/actions/runs/43939142477",
+  "ciResults": {
+    "Debug": {
+      "files": 54,
+      "tests": 353,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    },
+    "Release": {
+      "files": 54,
+      "tests": 353,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    },
+    "lint": {
+      "lint-results-release.xml": {
+        "counts": {
+          "Warning": 78,
+          "Information": 76
+        },
+        "new": [
+          [
+            "ApplySharedPref",
+            "Warning",
+            "Consider using `apply()` instead; `commit` writes its data to persistent storage immediately, whereas `apply` will handle it in the background"
+          ],
+          [
+            "ApplySharedPref",
+            "Warning",
+            "Consider using `apply()` instead; `commit` writes its data to persistent storage immediately, whereas `apply` will handle it in the background"
+          ]
+        ],
+        "removed": []
+      },
+      "lint-results-debug.xml": {
+        "counts": {
+          "Warning": 78,
+          "Information": 76
+        },
+        "new": [
+          [
+            "ApplySharedPref",
+            "Warning",
+            "Consider using `apply()` instead; `commit` writes its data to persistent storage immediately, whereas `apply` will handle it in the background"
+          ],
+          [
+            "ApplySharedPref",
+            "Warning",
+            "Consider using `apply()` instead; `commit` writes its data to persistent storage immediately, whereas `apply` will handle it in the background"
+          ]
+        ],
+        "removed": []
+      }
+    },
+    "native": {
+      "tests": 24,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "builds": {
+    "stableDebug": "passed",
+    "stableUnsignedRelease": "passed",
+    "previewDebugOriginalSigner": "passed",
+    "androidTestCompilation": "passed"
+  },
+  "lintNewWarningsExplanation": "Two ApplySharedPref warnings in BookmarkStore: commit intentionally returns durable write success; not suppressed. UI write latency not measured."
+}
