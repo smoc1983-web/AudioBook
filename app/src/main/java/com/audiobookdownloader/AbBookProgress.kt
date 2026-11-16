@@ -25,17 +25,30 @@ internal object AbBookProgress {
             ServiceTrack(it.optString("t"),it.optString("s"),it.optInt("d"),it.optString("e"))
         }}
     }
+    private data class Catalog(val raw:String,val revision:String?,val titles:List<String>,val members:Set<String>,val valid:Boolean)
+    private val catalogs=linkedMapOf<String,Catalog>()
+    @Synchronized private fun catalog(p:SharedPreferences,book:String,id:String):Catalog {
+        val raw=p.getString("book_chapter_titles_"+safeFileName(book),"[]").orEmpty()
+        val revision=p.getString("book_edition_revision_"+safeFileName(book),null)
+        catalogs[id]?.takeIf{it.raw==raw && it.revision==revision}?.let{return it}
+        val rows=array(raw)
+        val titles=(0 until rows.length()).map{rows.optString(it)}
+        val members=titles.toSet()
+        val valid=members.size==titles.size && revision==ChapterIdentity.revision(titles.map{ChapterIdentity.chapter(id,it)})
+        val result=Catalog(raw,revision,titles,members,valid)
+        catalogs.remove(id);catalogs[id]=result
+        while(catalogs.size>64)catalogs.remove(catalogs.keys.first())
+        return result
+    }
     /** Only expand a local subset when the recorded full list proves the same edition. */
     private fun chapters(p:SharedPreferences,book:String,tracks:List<ServiceTrack>):List<ServiceTrack> {
         if(tracks.isEmpty())return tracks
         val id=edition(p,book,tracks)
-        val raw=array(p.getString("book_chapter_titles_"+safeFileName(book),"[]"))
-        val titles=(0 until raw.length()).map{raw.optString(it)}
-        if(titles.size<tracks.size || titles.distinct().size!=titles.size || tracks.map{it.title}.distinct().size!=tracks.size)return tracks
-        val revision=ChapterIdentity.revision(titles.map{ChapterIdentity.chapter(id,it)})
-        if(p.getString("book_edition_revision_"+safeFileName(book),null)!=revision || tracks.any{it.title !in titles})return tracks
+        val catalog=catalog(p,book,id)
+        if(!catalog.valid || catalog.titles.size<tracks.size || tracks.any{it.title !in catalog.members})return tracks
         val available=tracks.associateBy{it.title}
-        return titles.map{available[it] ?: ServiceTrack(it,"",editionId=id)}
+        if(available.size!=tracks.size)return tracks
+        return catalog.titles.map{available[it] ?: ServiceTrack(it,"",editionId=id)}
     }
     fun playback(p:SharedPreferences,state:ServicePlaybackState,cache:Map<String,Int> = AbAudioDurations.state.value):AbBookTimeRules.Result =
         calculate(p,state.bookTitle,state.tracks,state.trackIndex,state.positionMs,state.durationMs,state.speed,cache)

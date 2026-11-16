@@ -1,38 +1,81 @@
 package com.audiobookdownloader;
 
-/** Unknown durations stay unknown; remaining time only needs the current and future chapters. */
+/** Unknown durations stay unknown; remaining time only needs current and future chapters. */
 public final class AbBookTimeRules {
     public static final class Result {
-        public final long remainingMs,elapsedMs,totalMs,chapterRemainingMs;
-        public final int knownRemaining,totalRemaining;
+        public final long remainingMs, elapsedMs, totalMs, chapterRemainingMs;
+        public final int knownRemaining, totalRemaining;
         public final float progress;
         public final boolean approximate;
-        Result(long r,long e,long t,long c,int k,int n,float p,boolean a){remainingMs=r;elapsedMs=e;totalMs=t;chapterRemainingMs=c;knownRemaining=k;totalRemaining=n;progress=p;approximate=a;}
+
+        Result(long remaining, long elapsed, long total, long chapterRemaining,
+                int known, int count, float progress, boolean approximate) {
+            this.remainingMs=remaining; this.elapsedMs=elapsed; this.totalMs=total;
+            this.chapterRemainingMs=chapterRemaining; this.knownRemaining=known;
+            this.totalRemaining=count; this.progress=progress; this.approximate=approximate;
+        }
     }
-    public static Result calculate(long[] durations,int index,long position,float speed){
+
+    private static final class Totals {
+        long before, after;
+        int knownRemaining;
+        boolean pastKnown=true, wholeKnown=true;
+
+        Totals(long[] durations, int index) {
+            for(int i=0; i<durations.length; i++) {
+                long duration=durations[i];
+                if(duration<=0) {
+                    wholeKnown=false;
+                    if(i<index) pastKnown=false;
+                } else if(i<index) before+=duration;
+                else { after+=duration; knownRemaining++; }
+            }
+        }
+        long remaining(long position, double rate, int count) {
+            return knownRemaining==count ? (long)(Math.max(0,after-position)/rate) : -1;
+        }
+        long elapsed(long position) { return pastKnown ? before+position : -1; }
+        long total() { return wholeKnown ? before+after : -1; }
+        float progress(int index, long position, long current, int count) {
+            double fraction=wholeKnown ? (double)(before+position)/(before+after)
+                : (index+chapterFraction(position,current))/count;
+            return (float)Math.min(1,fraction);
+        }
+    }
+
+    public static Result calculate(long[] durations, int index, long position, float speed) {
         return calculate(durations,index,position,speed,false);
     }
-    public static Result calculate(long[] durations,int index,long position,float speed,boolean completed){
-        if(index<0||index>=durations.length)return new Result(-1,-1,-1,-1,0,0,completed?1:0,!completed);
-        double rate=Float.isNaN(speed)||Float.isInfinite(speed)||speed<=0?1:speed;
+
+    public static Result calculate(long[] durations, int index, long position, float speed, boolean completed) {
+        if(index<0 || index>=durations.length)
+            return new Result(-1,-1,-1,-1,0,0,completed?1:0,!completed);
+        double rate=rate(speed);
         long current=Math.max(0,durations[index]);
-        long pos=current>0?Math.min(Math.max(0,position),current):Math.max(0,position);
-        long before=0,after=0;int known=0;boolean past=true,whole=true;
-        for(int i=0;i<durations.length;i++){
-            long d=durations[i];if(d<=0){whole=false;if(i<index)past=false;continue;}
-            if(i<index)before+=d;else {after+=d;known++;}
-        }
+        long pos=clampPosition(position,current);
+        Totals totals=new Totals(durations,index);
         int count=durations.length-index;
-        long remaining=known==count?(long)(Math.max(0,after-pos)/rate):-1;
-        long elapsed=past?before+pos:-1;
-        long total=whole?before+after:-1;
-        float progress=total>0?Math.min(1,(float)((double)(before+pos)/total)):
-            Math.min(1,(index+(current>0?(float)pos/current:0))/durations.length);
-        return new Result(remaining,elapsed,total,current>0?(long)((current-pos)/rate):-1,known,count,completed?1:progress,!completed&&!whole);
+        return new Result(totals.remaining(pos,rate,count),totals.elapsed(pos),totals.total(),
+            chapterRemaining(pos,current,rate),totals.knownRemaining,count,
+            completed?1:totals.progress(index,pos,current,durations.length),!completed&&!totals.wholeKnown);
     }
-    public static String time(long ms){
+
+    private static double rate(float speed) {
+        return Float.isNaN(speed) || Float.isInfinite(speed) || speed<=0 ? 1 : speed;
+    }
+    private static long clampPosition(long position, long current) {
+        return current>0 ? Math.min(Math.max(0,position),current) : Math.max(0,position);
+    }
+    private static double chapterFraction(long position, long current) {
+        return current>0 ? (double)position/current : 0;
+    }
+    private static long chapterRemaining(long position, long current, double rate) {
+        return current>0 ? (long)((current-position)/rate) : -1;
+    }
+
+    public static String time(long ms) {
         long seconds=Math.max(0,ms)/1000;
-        return seconds>=3600?String.format(java.util.Locale.ROOT,"%d:%02d:%02d",seconds/3600,seconds/60%60,seconds%60):
-            String.format(java.util.Locale.ROOT,"%d:%02d",seconds/60,seconds%60);
+        return seconds>=3600 ? String.format(java.util.Locale.ROOT,"%d:%02d:%02d",seconds/3600,seconds/60%60,seconds%60)
+            : String.format(java.util.Locale.ROOT,"%d:%02d",seconds/60,seconds%60);
     }
 }
