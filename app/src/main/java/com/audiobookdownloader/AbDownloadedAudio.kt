@@ -46,7 +46,10 @@ internal object AbDownloadedAudio {
                     recordBlock(c,id,book,title,result.valid)
                     result
                 }
-            }catch(_:Exception){recordBlock(c,id,book,title,false);Result(false,"Не удалось открыть или проверить аудиофайл. Проверьте доступ к хранилищу и повторите загрузку главы.")}
+            }catch(_:Exception){
+                try{recordBlock(c,id,book,title,false)}catch(_:Exception){}
+                Result(false,"Не удалось открыть файл или сохранить результат проверки. Проверьте доступ к хранилищу и свободное место, затем повторите загрузку главы.")
+            }
         }
     }
     fun inspectDescriptor(fd:java.io.FileDescriptor,expected:Long):Result {

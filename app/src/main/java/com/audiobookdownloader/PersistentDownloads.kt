@@ -137,6 +137,7 @@ internal object AbPersistentDownloads {
         }
         if(entries(c).any{it.state in listOf("active","verifying","queued")})schedule(c)
     }
+    fun retainRejected(c:Context):Boolean=try{restore(c);true}catch(_:Exception){false}
     private fun pendingAndroidJob(dm:DownloadManager,row:QueuedChapter):Long? {
         // Recover the crash window after system enqueue and before persisting its returned ID.
         return dm.query(DownloadManager.Query().setFilterByStatus(DownloadManager.STATUS_PENDING or DownloadManager.STATUS_RUNNING or DownloadManager.STATUS_PAUSED))?.use{q->
@@ -234,7 +235,7 @@ internal object AbPersistentDownloads {
             }
             if(sample?.first==DownloadManager.STATUS_SUCCESSFUL) {
                 val result=if(source==row.src && title==row.book+" - "+row.title)
-                    AbDownloadedAudio.inspect(c,row.job,sample.third,row.book,row.title)
+                    AbDownloadedAudio.inspect(c,row.job,sample.third.takeIf{it>0} ?: row.total,row.book,row.title)
                     else AbDownloadedAudio.Result(false,"Задание Android не соответствует этой главе. Прежний файл сохранён.")
                 AbBookDeletion.storageLock(row.book).withLock {
                     update(c,row.key){current->

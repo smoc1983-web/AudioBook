@@ -2130,7 +2130,8 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                     trackStates[title]=if(checked.valid)TrackState.DOWNLOADED else TrackState.ERROR
                     if(!checked.valid) {
                         downloadErrors[title]=checked.error
-                        withContext(Dispatchers.IO){AbPersistentDownloads.restore(context.applicationContext)}
+                        if(!withContext(Dispatchers.IO){AbPersistentDownloads.retainRejected(context.applicationContext)})
+                            downloadErrors[title]=checked.error+" Не удалось сохранить очередь. Проверьте свободное место."
                     } else prefs.edit().remove(entry.key).apply()
                 }
                 DownloadManager.STATUS_FAILED -> {
@@ -2186,7 +2187,8 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                         } else {trackStates[entry.value]=TrackState.ERROR;downloadErrors[entry.value]=checked.error}
                         downloadIds.remove(entry.key)
                         if(checked.valid)prefs.edit().remove("download_job_"+entry.key).apply()
-                        else withContext(Dispatchers.IO){AbPersistentDownloads.restore(context.applicationContext)}
+                        else if(!withContext(Dispatchers.IO){AbPersistentDownloads.retainRejected(context.applicationContext)})
+                            downloadErrors[entry.value]=checked.error+" Не удалось сохранить очередь. Проверьте свободное место."
                         completedDownloads=true
                     }
                     DownloadManager.STATUS_FAILED -> {
