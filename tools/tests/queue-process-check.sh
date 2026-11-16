@@ -10,7 +10,7 @@ adb install -r -t app/build/outputs/apk/debug/app-debug.apk
 adb install -r -t app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
 adb reverse tcp:18084 tcp:18084
 timeout 150 adb shell am instrument -w -r -e class com.audiobookdownloader.QueueProcessTest#prepareActiveQueueBeforeProcessStop com.audiobookdownloader.preview.test/androidx.test.runner.AndroidJUnitRunner | tee "$report_dir/before-stop.log"
-rg -q 'OK \(1 test\)' "$report_dir/before-stop.log"
+grep -Fq 'OK (1 test)' "$report_dir/before-stop.log"
 adb shell am force-stop com.audiobookdownloader.preview
 adb reboot
 timeout 180 adb wait-for-disconnect
@@ -23,4 +23,4 @@ done
 adb reverse tcp:18084 tcp:18084
 adb shell input keyevent 82
 timeout 300 adb shell am instrument -w -r -e class com.audiobookdownloader.QueueProcessTest#restoredQueueCompletesAfterProcessStopAndReboot com.audiobookdownloader.preview.test/androidx.test.runner.AndroidJUnitRunner | tee "$report_dir/after-reboot.log"
-rg -q 'OK \(1 test\)' "$report_dir/after-reboot.log"
+grep -Fq 'OK (1 test)' "$report_dir/after-reboot.log"
