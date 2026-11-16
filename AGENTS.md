@@ -1,3 +1,17 @@
+# Этап 1 модернизации — проверен, не опубликован (2026-11-16)
+
+Владелец одобрил ub-mode ТОЛЬКО для этапа 1: единый прогресс книги.
+Ветка cloud/progress-unification-20261116, исходная точка cac497c; проверенные
+исходники14811d74e71ce8040490829966929a16c355ca18. CI43842485672 SUCCESS:
+Stable Debug/Release APK, по282 JVM (по1 прежнему skip), lint без новых сообщений;
+4 native/API36 прошли. 13 локальных Java-тестов; max CRAP6 с JaCoCo, Dryer0,
+Mutator66/67, один эквивалентный survivor. Kotlin этими анализаторами не покрыт.
+Позиции/ID/файлы/подпись/package/version сохранены. Public4.2.95 прежний.
+Читайте docs/PROGRESS-STAGE-1.md и docs/quality/progress/results.json.
+Не начинать этап2 и не публиковать без подтверждения. Source main/backup не менять.
+TokenEconomizer CLI status проверен; hooks этого чата/экономия не подтверждены.
+Ниже исторические состояния, для текущей задачи приоритет у этого заголовка.
+
 # Source resilience fixes, 2026-11-11 — unpublished
 
 Owner chose NO ub-mode. Branch cloud/fix-source-resilience-20261111.

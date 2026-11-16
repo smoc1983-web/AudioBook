@@ -1,0 +1,64 @@
+{
+  "Debug": {
+    "tests": 282,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1
+  },
+  "Release": {
+    "tests": 282,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1
+  },
+  "lint-debug": {
+    "counts": {
+      "Fatal": 0,
+      "Error": 0,
+      "Warning": 77,
+      "Information": 76
+    },
+    "newMessages": []
+  },
+  "lint-release": {
+    "counts": {
+      "Fatal": 0,
+      "Error": 0,
+      "Warning": 77,
+      "Information": 76
+    },
+    "newMessages": []
+  },
+  "date": "2026-11-16",
+  "stage": 1,
+  "branch": "cloud/progress-unification-20261116",
+  "source": "14811d74e71ce8040490829966929a16c355ca18",
+  "ci": 43842485672,
+  "ciConclusion": "success",
+  "baselineCi": 43061821679,
+  "native": {
+    "tests": 4,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "api": 36,
+    "device": "emulator"
+  },
+  "localJava": {
+    "tests": 13,
+    "failures": 0
+  },
+  "quality": {
+    "maxMeasuredCrap": 6,
+    "scoredMethodsInstructionCoverage": 100,
+    "dryerCandidates": 0,
+    "mutationSites": 67,
+    "killed": 66,
+    "survivedEquivalent": 1,
+    "mutationExitCode": 3,
+    "kotlinStaticAnalysisSupported": false
+  },
+  "physicalDeviceTested": false,
+  "published": false,
+  "publicRelease": "preview-v100095"
+}
