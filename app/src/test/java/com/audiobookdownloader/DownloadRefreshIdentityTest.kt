@@ -22,7 +22,8 @@ class DownloadRefreshIdentityTest {
     @Test fun storedOriginalUrlDoesNotAuthorizeAnotherFileOrHost() {
         for(address in listOf("https://other.example.org/02.mp3?sig=new","https://cdn.example.org/other.mp3?sig=new","file:///device.mp3","https://cdn.example.org/02.mp3?chapter=3&sig=new")) {
             val json=row().json().put("src",address).put("initialSrc",original)
-            assertTrue(AbPersistentDownloads.decode(JSONArray().put(json).toString()).isEmpty())
+            try {AbPersistentDownloads.decode(JSONArray().put(json).toString());fail("Foreign file accepted")}
+            catch(expected:IllegalArgumentException){}
         }
     }
 }

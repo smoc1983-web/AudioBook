@@ -56,10 +56,11 @@ internal val LocalAbBookCardContext=staticCompositionLocalOf<BookCardContext?>{n
     val scope=rememberCoroutineScope()
     var revision by remember{mutableStateOf(0)}
     var notice by remember{mutableStateOf("")}
+    var recoveryNotice by remember{mutableStateOf("")}
     var rows by remember{mutableStateOf<List<QueuedChapter>>(emptyList())}
     LaunchedEffect(revision,foreground){
         if(!foreground)return@LaunchedEffect
-        while(true){rows=withContext(Dispatchers.IO){AbPersistentDownloads.entries(context)};delay(1200)}
+        while(true){val snapshot=withContext(Dispatchers.IO){AbPersistentDownloads.entries(context) to AbPersistentDownloads.problem(context)};rows=snapshot.first;recoveryNotice=snapshot.second;delay(1200)}
     }
     fun work(block:()->Unit){scope.launch{try{withContext(Dispatchers.IO){block()};revision++}catch(e:Exception){notice=e.message?:"Не удалось изменить очередь"}}}
     var shown by remember{mutableStateOf(10)}
@@ -68,13 +69,14 @@ internal val LocalAbBookCardContext=staticCompositionLocalOf<BookCardContext?>{n
         AbOptions(listOf("Любая сеть","Только Wi-Fi"),if(prefs.getBoolean("experience_wifi_only",false))1 else 0,theme){prefs.edit().putBoolean("experience_wifi_only",it==1).apply();revision++}
         Text("Настройка сети применяется к новым главам. Пауза очереди не прерывает уже начатые главы.",color=theme.muted,fontSize=12.sp)
         if(notice.isNotBlank())Text(notice,color=theme.error,fontSize=13.sp)
+        if(recoveryNotice.isNotBlank()&&recoveryNotice!=notice)Text(recoveryNotice,color=theme.error,fontSize=13.sp)
         val groups=rows.groupBy{it.book}.entries.toList()
-        if(groups.isEmpty())Text("Очередь пуста",color=theme.text,fontSize=14.sp)
+        if(groups.isEmpty()&&recoveryNotice.isBlank())Text("Очередь пуста",color=theme.text,fontSize=14.sp)
         groups.take(shown).forEach{(book,chapters)->
             AbHeading(book,theme)
             val done=chapters.count{it.state=="complete"};val active=chapters.count{it.state in listOf("active","verifying")};val failed=chapters.count{it.state=="error"}
             Text("Скачано: $done из ${chapters.size} · в работе: $active · ошибок: $failed",color=theme.text,fontSize=13.sp)
-            val current=chapters.firstOrNull{it.state in listOf("active","verifying")}
+            val current=chapters.firstOrNull{it.state in listOf("active","verifying")} ?: chapters.firstOrNull{it.state=="queued"&&it.retryAt>0}
             current?.let{q->
                 Text(q.title,color=theme.muted,fontSize=12.sp)
                 if(q.state=="verifying")Text("Проверка файла",color=theme.accent,fontSize=12.sp)

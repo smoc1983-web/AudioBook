@@ -20,6 +20,38 @@ internal object AbDownloadedAudio {
         val s=Os.fstat(fd)
         return "${s.st_dev}:${s.st_ino}:${s.st_size}:${s.st_mtime}"
     }
+    private fun proofKey(book:String,title:String)="proof_"+ChapterIdentity.hash(
+        AbLibraryHousekeeping.bookKey(book)+"\u0000"+safeFileName(title).lowercase(java.util.Locale.ROOT))
+    private var knownPreferences:android.content.SharedPreferences?=null
+    private var knownSignatures:Set<String> = emptySet()
+    @Synchronized private fun knownSignature(c:Context,value:String):Boolean {
+        val p=prefs(c)
+        if(knownPreferences!==p) {
+            knownPreferences=p
+            knownSignatures=p.all.filterKeys{it.startsWith("ok_")}.values.filterIsInstance<String>().toSet()
+        }
+        return value in knownSignatures
+    }
+    @Synchronized private fun rememberSignature(){knownPreferences=null;knownSignatures=emptySet()}
+    suspend fun reuse(c:Context,book:String,title:String,file:java.io.File):Result?=withContext(Dispatchers.IO) {
+        mutex.withLock {
+            try {
+                val source=libraryTrackSource(file)
+                val descriptor=if(source.startsWith("content://"))c.contentResolver.openFileDescriptor(android.net.Uri.parse(source),"r")
+                    else android.os.ParcelFileDescriptor.open(file,android.os.ParcelFileDescriptor.MODE_READ_ONLY)
+                descriptor?.use {
+                    val signature=stamp(it.fileDescriptor)
+                    if(prefs(c).getString(proofKey(book,title),null)!=signature && !knownSignature(c,signature))return@withLock null
+                    val result=inspectDescriptor(it.fileDescriptor,-1)
+                    if(result.valid) {
+                        check(prefs(c).edit().putString(proofKey(book,title),signature).commit())
+                        recordBlock(c,0,book,title,true)
+                    }
+                    result
+                } ?: Result(false,"Сохранённый файл недоступен. Проверьте хранилище.")
+            }catch(_:Exception){Result(false,"Не удалось проверить сохранённую главу. Прежний файл оставлен.")}
+        }
+    }
     fun verified(c:Context,id:Long)=prefs(c).getString("ok_$id",null)!=null
     fun rejected(c:Context,id:Long)=prefs(c).getString("bad_$id",null)!=null
     fun blockedKeys(c:Context):Set<String> = prefs(c).all.filterKeys{it.startsWith("blocked_")}.values.filterIsInstance<String>().toSet()
@@ -40,9 +72,13 @@ internal object AbDownloadedAudio {
                     val signature=stamp(fd)
                     val result=inspectDescriptor(fd,expected)
                     val edit=prefs(c).edit()
-                    if(result.valid)edit.putString("ok_$id",signature).putString("format_$id",result.format).remove("bad_$id")
+                    if(result.valid) {
+                        edit.putString("ok_$id",signature).putString("format_$id",result.format).remove("bad_$id")
+                        if(book.isNotBlank()&&title.isNotBlank())edit.putString(proofKey(book,title),signature)
+                    }
                     else edit.remove("ok_$id").putString("bad_$id",signature)
                     check(edit.commit()){"Не удалось сохранить результат проверки файла"}
+                    if(result.valid)rememberSignature()
                     recordBlock(c,id,book,title,result.valid)
                     result
                 }

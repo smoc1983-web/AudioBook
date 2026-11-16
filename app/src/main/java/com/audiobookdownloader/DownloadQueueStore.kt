@@ -86,9 +86,12 @@ internal open class DownloadQueueStore(
         validate(raw);return raw
     }
     private fun preserveLegacyXml() {
-        val source=legacyXml?.takeIf{it.isFile} ?: return
-        archive(source)
-        File(source.path+".bak").takeIf{it.isFile}?.let{archive(it)}
+        val original=legacyXml ?: return
+        val backup=File(original.path+".bak")
+        val files=listOf(original,backup).filter{it.isFile}
+        if(files.isEmpty())return
+        files.forEach{archive(it)}
+        val source=backup.takeIf{it.isFile} ?: original
         source.inputStream().use{input->
             val parser=Xml.newPullParser();parser.setInput(input,"UTF-8")
             var root=false

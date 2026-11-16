@@ -2980,7 +2980,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
     }
     val durableDownloadItems=remember(durableQueue){durableQueue.map {q ->AbDownloadItem(AudioTrack(q.title,q.duration,q.src),q.book,
             when(q.state){"complete"->TrackState.DOWNLOADED;"error"->TrackState.ERROR;"cancelled"->TrackState.READY;else->TrackState.DOWNLOADING},
-            q.error,if(q.state=="verifying")"Проверка файла" else if(q.state=="queued")"В очереди на скачивание" else if(q.error.isNotBlank())q.error else "Скачивается",q.bytes,q.total)}}
+            q.error,if(q.retryAt>System.currentTimeMillis())q.error else if(q.state=="verifying")"Проверка файла" else if(q.state=="queued")"В очереди на скачивание" else if(q.error.isNotBlank())q.error else "Скачивается",q.bytes,q.total)}}
     val modernData = AbScreenData(
         page = appPage, query = searchText, searchSource=selectedSearchSource,results = bookLinks, onlineBook = player,
         pageTitle = pageTitle, pageUrl = currentUrl, pageCover = currentCoverUrl,
