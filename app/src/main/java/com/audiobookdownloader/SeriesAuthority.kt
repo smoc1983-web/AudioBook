@@ -69,13 +69,13 @@ internal class SeriesAuthorityHttp:SeriesAuthorityFetcher {
         var next=address
         repeat(3) {
             currentCoroutineContext().ensureActive();require(SeriesAuthorityRules.provider(next)==provider)
-            val c=URL(next).openConnection() as HttpURLConnection
+            val c=NetworkAddressRules.checked(next).openConnection() as HttpURLConnection
             try {
                 c.instanceFollowRedirects=false;c.connectTimeout=4000;c.readTimeout=4000
                 c.setRequestProperty("User-Agent","Mozilla/5.0 (Linux; Android) Audiobook-Metadata/1.0")
                 c.setRequestProperty("Accept-Language","ru-RU,ru;q=0.9");c.setRequestProperty("Accept-Encoding","identity")
                 val code=c.responseCode
-                if(code in listOf(301,302,303,307,308)){next=URL(URL(next),c.getHeaderField("Location") ?: error("Нет адреса справочника")).toString()}
+                if(code in listOf(301,302,303,307,308)){next=NetworkAddressRules.redirect(URL(next),c.getHeaderField("Location")).toString()}
                 else {
                     require(code==200){"Справочник недоступен (HTTP $code)"}
                     val out=ByteArrayOutputStream();c.inputStream.use{input->

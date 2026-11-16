@@ -85,8 +85,8 @@ public final class OpenAudioCatalog {
         if(!https(url))throw new IOException("Нужна HTTPS-ссылка");
         for(int redirects=0;redirects<6;redirects++){
             if(Thread.currentThread().isInterrupted())throw new InterruptedIOException("Запрос отменён");
-            HttpURLConnection c=(HttpURLConnection)new URL(url).openConnection();c.setConnectTimeout(12000);c.setReadTimeout(18000);c.setInstanceFollowRedirects(false);c.setRequestProperty("User-Agent","OpenAudio-Android/1.0");c.setRequestProperty("Accept","application/json,text/html");
-            try{int code=c.getResponseCode();if(code>=300&&code<400){url=new URL(new URL(url),c.getHeaderField("Location")).toString();if(!https(url))throw new IOException("Источник перенаправил на небезопасный адрес");continue;}if(code!=200)throw new IOException("Источник вернул HTTP "+code);
+            HttpURLConnection c=(HttpURLConnection)NetworkAddressRules.checked(url).openConnection();c.setConnectTimeout(12000);c.setReadTimeout(18000);c.setInstanceFollowRedirects(false);c.setRequestProperty("User-Agent","OpenAudio-Android/1.0");c.setRequestProperty("Accept","application/json,text/html");
+            try{int code=c.getResponseCode();if(SourceHttp.isRedirect(code)){url=NetworkAddressRules.redirect(new URL(url),c.getHeaderField("Location")).toString();if(!https(url))throw new IOException("Источник перенаправил на небезопасный адрес");continue;}if(code!=200)throw new IOException("Источник вернул HTTP "+code);
                 try(InputStream in=c.getInputStream();ByteArrayOutputStream out=new ByteArrayOutputStream()){byte[] buf=new byte[8192];int n;while((n=in.read(buf))!=-1){if(Thread.currentThread().isInterrupted())throw new InterruptedIOException();if(out.size()+n>8_000_000)throw new IOException("Ответ источника слишком большой");out.write(buf,0,n);}return new String(out.toByteArray(),StandardCharsets.UTF_8);}
             }finally{c.disconnect();}
         }throw new IOException("Слишком много перенаправлений");

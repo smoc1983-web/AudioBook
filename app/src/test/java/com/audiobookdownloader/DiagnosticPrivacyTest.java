@@ -2,13 +2,17 @@ package com.audiobookdownloader;
 import org.junit.Test;import static org.junit.Assert.*;
 public class DiagnosticPrivacyTest {
  @Test public void removesSecretsAndPrivateAddresses() {
-  String s=DiagnosticPrivacy.redact("Authorization: Bearer fixture-secret\nCookie: SID=fixture-cookie\nURL https://user:fixture-pass@cdn.example/chapter/private-book?token=fixture-token#secret\nfile:///storage/emulated/0/PrivateBook/a.mp3\ncontent://provider/document/private\nemail fixture@example.org");
-  for(String secret:new String[]{"fixture-secret","fixture-cookie","fixture-pass","private-book","fixture-token","PrivateBook","provider/document","fixture@example.org"})assertFalse(secret,s.contains(secret));
+  String s=DiagnosticPrivacy.redact("Authorization: Bearer fixture-secret\nCookie: SID=fixture-cookie; second=fixture-second\nURL https://user:fixture-pass@cdn.example/chapter/private-book?token=fixture-token#secret\nfile:///storage/emulated/0/PrivateBook/a.mp3\ncontent://provider/document/private\nemail fixture@example.org");
+  for(String secret:new String[]{"fixture-secret","fixture-cookie","fixture-second","fixture-pass","private-book","fixture-token","PrivateBook","provider/document","fixture@example.org"})assertFalse(secret,s.contains(secret));
   assertTrue(s.contains("cdn.example"));
  }
  @Test public void removesQuotedAndEscapedSecrets() {
   String s=DiagnosticPrivacy.redact("{\"access_token\":\"fixture token with spaces\",\"password\":\"fixture-pass\",\"query\":\"private search\",\"url\":\"https:\\/\\/cdn.example/book?sig=fixture-signature\"}");
   for(String secret:new String[]{"fixture token","fixture-pass","private search","fixture-signature"})assertFalse(secret,s.contains(secret));
+ }
+ @Test public void hidesUnlabelledExceptionMessagesButKeepsStackFrames() {
+  String s=DiagnosticPrivacy.stack("java.io.IOException: private book text arbitrarySecret\n at com.audiobookdownloader.Source.read(Source.kt:42)");
+  assertFalse(s.contains("arbitrarySecret"));assertFalse(s.contains("private book"));assertTrue(s.contains("java.io.IOException"));assertTrue(s.contains("Source.kt:42"));assertEquals("",DiagnosticPrivacy.stack(null));
  }
  @Test public void keepsTechnicalEvidenceAndIsIdempotent() {
   String s="java.net.SocketTimeoutException: timeout HTTP 503\n at com.audiobookdownloader.Source.load(Source.kt:42)\nAndroid 36; source=Aume; count=2";

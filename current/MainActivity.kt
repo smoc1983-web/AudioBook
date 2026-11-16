@@ -62,6 +62,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.ui.platform.testTag
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
@@ -3717,31 +3718,7 @@ private fun findCoverUrlFromBookPage(
 
     return try {
 
-        connection =
-            URL(
-                bookUrl
-            ).openConnection() as HttpURLConnection
-
-        connection.connectTimeout =
-            12000
-
-        connection.readTimeout =
-            12000
-
-        connection.instanceFollowRedirects =
-            true
-
-        connection.setRequestProperty(
-            "User-Agent",
-            "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36"
-        )
-
-        connection.setRequestProperty(
-            "Accept",
-            "text/html,application/xhtml+xml"
-        )
-
-        connection.connect()
+        connection = SourceHttp.open(bookUrl,mapOf("User-Agent" to "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36","Accept" to "text/html,application/xhtml+xml"),12000,12000)
 
         if (
             connection.responseCode !in 200..299
@@ -3763,7 +3740,7 @@ private fun findCoverUrlFromBookPage(
             html =
                 html,
             pageUrl =
-                bookUrl
+                connection.url.toString()
         )
 
     } catch (_: Exception) {
@@ -4123,36 +4100,10 @@ private fun downloadBitmapForSearch(
 
     return try {
 
-        connection =
-            URL(
-                imageUrl
-            ).openConnection() as HttpURLConnection
-
-        connection.connectTimeout =
-            12000
-
-        connection.readTimeout =
-            12000
-
-        connection.instanceFollowRedirects =
-            true
-
-        connection.setRequestProperty(
-            "User-Agent",
-            "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36"
-        )
-
-        if (
-            referer.isNotBlank()
-        ) {
-
-            connection.setRequestProperty(
-                "Referer",
-                referer
-            )
-        }
-
-        connection.connect()
+        connection = SourceHttp.open(imageUrl,buildMap {
+            put("User-Agent","Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36")
+            if(NetworkAddressRules.accepts(referer))put("Referer",NetworkAddressRules.referrer(referer))
+        },12000,12000)
 
         if (
             connection.responseCode in 200..299
@@ -6626,35 +6577,8 @@ suspend fun downloadBookCover(
 
             try {
 
-                val url =
-                    URL(
-                        coverUrl
-                    )
-
-                connection =
-                    url.openConnection()
-                        as HttpURLConnection
-
-                connection.connectTimeout =
-                    15000
-
-                connection.readTimeout =
-                    20000
-
-                connection.instanceFollowRedirects =
-                    true
-
-                connection.setRequestProperty(
-                    "User-Agent",
-                    "Mozilla/5.0 (Android)"
-                )
-
-                connection.setRequestProperty(
-                    "Accept",
-                    "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8"
-                )
-
-                connection.connect()
+                connection=SourceHttp.open(coverUrl,mapOf("User-Agent" to "Mozilla/5.0 (Android)",
+                    "Accept" to "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8"),15000,20000)
 
                 val code =
                     connection.responseCode
@@ -7102,7 +7026,7 @@ fun libraryTrackSource(file: File): String =
     (file as? LibraryAudioFile)?.audioUri ?: file.absolutePath
 
 fun isNetworkAudio(source:String):Boolean =
-    source.startsWith("https://",true)||source.startsWith("http://",true)
+    NetworkAddressRules.accepts(source)
 
 /** Exact chapter identity; choosing a source never accesses disk or the network. */
 fun preferDownloadedTracks(title:String,tracks:List<ServiceTrack>,books:List<LibraryBook>):List<ServiceTrack> {
@@ -7506,7 +7430,7 @@ fun scanLibraryReport(context: Context? = null): LibraryScanResult {
         })
     }.filter{it.files.isNotEmpty()}
     StableProgress.observeLibrary(treePrefs,completed)
-    val libraryTrace=JSONObject().put("root",root.absolutePath).put("audioPermission",hasLibraryAudioPermission(context))
+    val libraryTrace=JSONObject().put("audioPermission",hasLibraryAudioPermission(context))
         .put("treeConfigured",treeText.isNotBlank()).put("folderUnavailable",folderUnavailable)
         .put("booksBeforeDownloadFilter",books.size).put("books",completed.size)
         .put("chapters",completed.sumOf{it.files.size}).put("unfinishedKeys",unfinished.size)
@@ -12307,15 +12231,11 @@ internal object AbCoverStore {
             var temp: File? = null
             try {
                 if (!folder.exists() && !folder.mkdirs()) return null
-                connection = URL(url).openConnection() as HttpURLConnection
-                connection.connectTimeout = 8000
-                connection.readTimeout = 8000
-                connection.instanceFollowRedirects = true
-                connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36")
-                connection.setRequestProperty("Accept", "image/jpeg,image/png,image/webp,image/*;q=0.8")
-                if (page.isNotBlank()) connection.setRequestProperty("Referer", page)
-                val cookies = android.webkit.CookieManager.getInstance().getCookie(url)
-                if (!cookies.isNullOrBlank()) connection.setRequestProperty("Cookie", cookies)
+                connection=SourceHttp.open(url,buildMap {
+                    put("User-Agent","Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36");put("Accept","image/jpeg,image/png,image/webp,image/*;q=0.8")
+                    if(NetworkAddressRules.accepts(page))put("Referer",NetworkAddressRules.referrer(page))
+                    android.webkit.CookieManager.getInstance().getCookie(url)?.takeIf{it.isNotBlank()}?.let{put("Cookie",it)}
+                },8000,8000)
                 if (connection.responseCode !in 200..299 || connection.contentLength.toLong() > MAX_DOWNLOAD) return null
                 val target = File.createTempFile("cover-", ".tmp", folder)
                 temp = target
@@ -13501,7 +13421,7 @@ internal object AbPlaybackTrace {
         try {
             val prefs=context.applicationContext.getSharedPreferences("audiobook_downloader",Context.MODE_PRIVATE)
             val stamp=java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss Z",java.util.Locale.ROOT).format(java.util.Date())
-            val row=stamp+" | "+message.replace('\n',' ').take(600)
+            val row=stamp+" | "+AbDiagnosticSections.playback(message).replace('\n',' ').take(600)
             val previous=prefs.getString(KEY,"").orEmpty().lineSequence().filter{it.isNotBlank()}.toList().takeLast(79)
             prefs.edit().putString(KEY,(previous+row).joinToString("\n")).apply()
         }catch(_:Exception){}
@@ -13511,7 +13431,7 @@ internal object AbPlaybackTrace {
             .getString(KEY,"").orEmpty()
 }
 
-private object AbCrashReport {
+internal object AbCrashReport {
     private const val FILE="audiobook-last-crash.txt"
     private const val REVISION="4.2-thirteen-sources-1"
     private const val FIRST_RUN="first_run_"+REVISION
@@ -13572,7 +13492,7 @@ private object AbCrashReport {
             java.io.PrintWriter(limited).use {error.printStackTrace(it)}
             val body="Audiobook · локальный стек\nДиагностика: $REVISION\n${java.util.Date()}\n"+
                 "Android ${Build.VERSION.SDK_INT}, ${Build.MANUFACTURER} ${Build.MODEL}\n"+
-                "Экран: $screen\nПоток: ${thread.name}\n\n${limited.text}"
+                "Экран: ${DiagnosticPrivacy.redact(screen)}\nПоток ID: ${thread.id}\n\n${DiagnosticPrivacy.stack(limited.text.toString())}"
             val atomic=android.util.AtomicFile(File(app.filesDir,FILE))
             var stream:java.io.FileOutputStream?=null
             try {
@@ -13603,29 +13523,29 @@ private object AbCrashReport {
         val text=StringBuilder("Версия диагностики: "+REVISION+"\nОтчёт собран: "+java.util.Date()+"\n")
         text.append("\n=== Установленная сборка ===\n"+installedBuild(context)+"\n")
         val source=AbSourceTrace.read(context)
-        if(source.isNotBlank())text.append("\n=== Последняя проверка источника ===\n"+source+"\n")
+        if(source.isNotBlank())text.append("\n=== Последняя проверка источника ===\n"+AbDiagnosticSections.summary(source,AbBookSources.all.toSet())+"\n")
         val search=AbSourceTrace.readSearch(context)
-        if(search.isNotBlank())text.append("\n=== Последний общий поиск ===\n"+search+"\n")
+        if(search.isNotBlank())text.append("\n=== Последний общий поиск (без запроса) ===\n"+AbDiagnosticSections.summary(search,AbBookSources.all.toSet())+"\n")
         val library=context.getSharedPreferences("audiobook_diagnostics",Context.MODE_PRIVATE).getString("last_library","").orEmpty()
-        if(library.isNotBlank())text.append("\n=== Последняя синхронизация библиотеки ===\n"+library+"\n")
+        if(library.isNotBlank())text.append("\n=== Последняя синхронизация библиотеки ===\n"+AbDiagnosticSections.summary(library,emptySet())+"\n")
         val playback=AbPlaybackTrace.read(context)
-        if(playback.isNotBlank()) text.append("\n=== Последние события плеера ===\n"+playback+"\n")
+        if(playback.isNotBlank()) text.append("\n=== Последние события плеера ===\n"+AbDiagnosticSections.playback(playback)+"\n")
         if(historical(context,stamp))text.append(
             "\nИсторическая запись: событие произошло до первого запуска этой версии диагностики.\n")
         if(local!=null) {
-            text.append("\n=== Сохранённое исключение ===\nВремя записи: "+java.util.Date(local.first)+"\n"+local.second+"\n")
+            text.append("\n=== Сохранённое исключение ===\nВремя записи: "+java.util.Date(local.first)+"\n"+DiagnosticPrivacy.stack(local.second)+"\n")
             if(system!=null && kotlin.math.abs(system.stamp-local.first)>10_000L)
                 text.append("\nВремя этого сохранённого стека отличается от системного события. Он не подтверждает причину последнего завершения.\n")
         }
-        if(system!=null)text.append("\n=== Сведения Android ===\n"+system.text)
+        if(system!=null)text.append("\n=== Сведения Android ===\n"+DiagnosticPrivacy.stack(system.text))
         if(local==null && system==null)text.append("\nСохранённых сведений о сбое пока нет.\n")
         val target=system?.stamp ?: local?.first
         if(target!=null && (local==null || (system!=null && kotlin.math.abs(system.stamp-local.first)>10_000L))) {
             val log=readCrashBuffer(system?.pid,target)
             text.append("\n=== Журнал для указанного события ===\n"+log.note+"\n")
-            if(log.text.isNotBlank())text.append(log.text)
+            if(log.text.isNotBlank())text.append(DiagnosticPrivacy.stack(log.text))
         }
-        return stamp to text.toString()
+        return stamp to DiagnosticPrivacy.redact(text.toString())
     }
 
     @Suppress("DEPRECATION")
@@ -13807,7 +13727,7 @@ private object AbCrashReport {
     }
     fun copy(context: Context,text: String) {
         (context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager)
-            .setPrimaryClip(android.content.ClipData.newPlainText("Audiobook: диагностика",text))
+            .setPrimaryClip(android.content.ClipData.newPlainText("Audiobook: диагностика",DiagnosticPrivacy.redact(text)))
         Toast.makeText(context,"Отчёт скопирован. Его можно вставить в сообщение.",Toast.LENGTH_LONG).show()
     }
 }
@@ -13815,7 +13735,7 @@ private object AbCrashReport {
 // Android grants a recipient temporary read access to a report, never to the whole cache.
 class AbDiagnosticReportProvider : androidx.core.content.FileProvider()
 
-private object AbDiagnosticReportFiles {
+internal object AbDiagnosticReportFiles {
     private const val DIRECTORY="diagnostic-reports"
     private const val MAX_AGE_MS=24L*60L*60L*1000L
 
@@ -13830,7 +13750,7 @@ private object AbDiagnosticReportFiles {
         val stamp=java.text.SimpleDateFormat("yyyy-MM-dd_HH-mm-ss",java.util.Locale.ROOT).format(java.util.Date(now))
         val file=File.createTempFile("Audiobook-report-$stamp-",".txt",folder)
         try {
-            file.outputStream().bufferedWriter(Charsets.UTF_8).use {it.write(report)}
+            file.outputStream().bufferedWriter(Charsets.UTF_8).use {it.write(DiagnosticPrivacy.redact(report))}
             return androidx.core.content.FileProvider.getUriForFile(app,app.packageName+".diagnostic_reports",file)
         }catch(error:Exception){file.delete();throw error}
     }
@@ -13852,7 +13772,7 @@ private object AbDiagnosticReportFiles {
 }
 
 @Composable
-private fun AbCrashReports(theme: AbTheme,requested: Int) {
+internal fun AbCrashReports(theme: AbTheme,requested: Int) {
     val context=androidx.compose.ui.platform.LocalContext.current
     var report by remember {mutableStateOf<Pair<Long,String>?>(null)}
     var loading by remember {mutableStateOf(false)}
@@ -13885,10 +13805,14 @@ private fun AbCrashReports(theme: AbTheme,requested: Int) {
     val saved=report ?: return
     fun dismiss() {shareJob?.cancel();shareJob=null;sharing=false;shareError="";visible=false;report=null}
     AbDialog("Диагностика и логи",theme,{dismiss()}) {
-        Text("Отчёт содержит сведения об устройстве, последние события плеера и сохранённую ошибку, если она есть. Отправьте его вместе с описанием проблемы. Получателя вы выбираете сами.",
+        Text("Отчёт содержит сведения об устройстве, последние события плеера и сохранённую ошибку, если она есть. Секреты, ссылки на главы и поисковые запросы скрыты. Проверьте текст ниже перед отправкой. Получателя вы выбираете сами.",
             color=theme.muted,fontSize=14.sp,lineHeight=20.sp)
         if(AbCrashReport.historical(context,saved.first)) Text(
             "В отчёте есть событие предыдущей версии диагностики. Его дата указана отдельно.",color=theme.muted,fontSize=12.sp)
+        androidx.compose.foundation.text.selection.SelectionContainer {
+            Text(saved.second,Modifier.fillMaxWidth().heightIn(max=240.dp).verticalScroll(rememberScrollState())
+                .testTag("diagnostic_preview"),color=theme.text,fontSize=12.sp,lineHeight=17.sp)
+        }
         AbButton(if(sharing) "Готовим файл…" else "Отправить отчёт (.txt)",theme,
             primary=true,enabled=!sharing) {
             if(!sharing) {
@@ -14097,10 +14021,8 @@ private object AbPublicMetadata {
         try {return withContext(Dispatchers.IO) {
             var connection: java.net.HttpURLConnection?=null
             try {
-                connection=java.net.URL(url).openConnection() as java.net.HttpURLConnection
-                connection.connectTimeout=4500;connection.readTimeout=4500
-                connection.setRequestProperty("Accept","application/json")
-                connection.setRequestProperty("User-Agent","AudioBook/4.0 (Android; public book metadata)")
+                connection=SourceHttp.open(url,mapOf("Accept" to "application/json",
+                    "User-Agent" to "AudioBook/4.0 (Android; public book metadata)"),4500,4500)
                 if(connection.responseCode!=200)return@withContext null
                 val bytes=connection.inputStream.use {input ->
                     val buffer=java.io.ByteArrayOutputStream();val chunk=ByteArray(8192)
@@ -14416,7 +14338,7 @@ private object AbAzbykaPages {
         require(AbBookSources.isAzbyka(address) && Uri.parse(address).scheme=="https") {
             "Недопустимый адрес Азбуки"
         }
-        return java.net.URL(address)
+        return NetworkAddressRules.checked(address)
     }
     suspend fun text(context: Context,address: String,userAgent: String): String=withContext(Dispatchers.IO) {
         checked(address)
@@ -14443,7 +14365,7 @@ private object AbAzbykaPages {
                 val status=connection.responseCode
                 if(status in listOf(301,302,303,307,308)) {
                     val location=connection.getHeaderField("Location") ?: error("Пустой адрес перенаправления")
-                    target=java.net.URL(checked(target),location).toString()
+                    target=NetworkAddressRules.redirect(checked(target),location).toString()
                     checked(target)
                     if(android.os.SystemClock.elapsedRealtime()-started>18_000L) error("Истекло время загрузки")
                     continue
@@ -15099,13 +15021,7 @@ private suspend fun abEnrichAudioOnline(web:WebView,root:JSONObject,page:String)
     val player=root.optJSONObject("player") ?: return
     if((player.optJSONArray("playlist")?.length() ?: 0)>0)return
     val address=player.optString("playlistUrl")
-    fun listAddress(value:String):Boolean=try {
-        val u=Uri.parse(value)
-        val host=u.host.orEmpty().lowercase(java.util.Locale.ROOT)
-        u.scheme in listOf("http","https")&&u.userInfo==null&&host.isNotBlank()&&
-            host!="localhost"&&host!="::1"&&!host.endsWith(".local")&&
-            !Regex("^(?:127\\.|10\\.|192\\.168\\.|169\\.254\\.|172\\.(?:1[6-9]|2[0-9]|3[01])\\.)").containsMatchIn(host)
-    }catch(_:Exception){false}
+    fun listAddress(value:String):Boolean=NetworkAddressRules.publicAddress(value)
     if(!listAddress(address)) {
         if(address.isNotBlank())root.put("sourceError","Некорректный адрес списка глав источника.")
         return
@@ -15121,10 +15037,10 @@ private suspend fun abEnrichAudioOnline(web:WebView,root:JSONObject,page:String)
         for(attempt in 0 until 4) {
             kotlinx.coroutines.currentCoroutineContext().ensureActive()
             require(listAddress(current)){"Недопустимый адрес списка глав"}
-            val connection=URL(current).openConnection() as HttpURLConnection
+            val connection=NetworkAddressRules.checked(current).openConnection() as HttpURLConnection
             try {
                 connection.instanceFollowRedirects=false;connection.connectTimeout=4000;connection.readTimeout=4000
-                connection.setRequestProperty("User-Agent",agent);connection.setRequestProperty("Referer",page)
+                connection.setRequestProperty("User-Agent",agent);connection.setRequestProperty("Referer",NetworkAddressRules.referrer(page))
                 connection.setRequestProperty("Accept","application/json,text/plain,application/x-mpegurl,*/*;q=0.5")
                 if(AbExtraSources.name(page)=="Audioknigi.top" && abSameBookSource(page,current))
                     connection.setRequestProperty("X-Requested-With","XMLHttpRequest")
@@ -15136,7 +15052,7 @@ private suspend fun abEnrichAudioOnline(web:WebView,root:JSONObject,page:String)
                 loadDebug.put("httpStatus",code).put("contentType",connection.contentType.orEmpty().take(100))
                 if(code in listOf(301,302,303,307,308)) {
                     require(AbExtraSources.name(page)!="Audioknigi.top"){"Источник перенаправил API списка глав. Обновите страницу книги."}
-                    current=URL(URL(current),connection.getHeaderField("Location") ?: error("Нет адреса перенаправления")).toString()
+                    current=NetworkAddressRules.redirect(URL(current),connection.getHeaderField("Location")).toString()
                 } else {
                     if(code !in 200..299)throw SourceHttpFailure(code,connection.getHeaderField("Retry-After"))
                     val bytes=java.io.ByteArrayOutputStream()
@@ -15186,12 +15102,9 @@ private object AbSourceTrace {
             sites.put(JSONObject().put("site",site).put("state",if(result==null) "pending" else "finished")
                 .put("count",result?.books?.size ?: 0)
                 .put("withAuthor",result?.books?.count{it.author.isNotBlank()} ?: 0)
-                .put("error",result?.error.orEmpty().take(500))
-                .put("examples",JSONArray().apply {result?.books?.take(3)?.forEach {book ->
-                    put(JSONObject().put("title",book.title.take(160)).put("author",book.author.take(160)))
-                }}))
+                .put("error",if(result?.error.isNullOrBlank()) "" else "source_error"))
         }
-        val json=JSONObject().put("query",query.take(500)).put("scope",if(requested.size==1)requested.first() else "all").put("sites",sites)
+        val json=JSONObject().put("sites",sites)
         context.applicationContext.getSharedPreferences("audiobook_diagnostics",Context.MODE_PRIVATE)
             .edit().putString("last_search",java.util.Date().toString()+"\n"+json.toString(2)).apply()
     }
@@ -15199,7 +15112,7 @@ private object AbSourceTrace {
         .getString("last_search","").orEmpty()
     fun record(context:Context,stage:String,json:JSONObject?) {
         if(json==null)return
-        val text=java.util.Date().toString()+" · "+stage+"\n"+json.toString(2).take(16000)
+        val text=java.util.Date().toString()+" · "+stage+"\n"+AbDiagnosticSections.summary(json.toString(),AbBookSources.all.toSet()).take(16000)
         context.applicationContext.getSharedPreferences("audiobook_diagnostics",Context.MODE_PRIVATE)
             .edit().putString("last_source",text).apply()
     }
@@ -15565,8 +15478,7 @@ internal object AbAudioSizes {
         var address=source
         repeat(5) {
             kotlinx.coroutines.currentCoroutineContext().ensureActive()
-            val url=URL(address)
-            if(url.protocol!="https" && url.protocol!="http")return null
+            val url=NetworkAddressRules.checked(address)
             val connection=url.openConnection() as HttpURLConnection
             try {
                 connection.instanceFollowRedirects=false
@@ -15574,12 +15486,12 @@ internal object AbAudioSizes {
                 connection.requestMethod=method
                 connection.setRequestProperty("User-Agent","Mozilla/5.0 (Android) AudioBook/4.0")
                 connection.setRequestProperty("Accept-Encoding","identity")
-                if(isNetworkAudio(page))connection.setRequestProperty("Referer",page)
+                if(isNetworkAudio(page))connection.setRequestProperty("Referer",NetworkAddressRules.referrer(page))
                 if(method=="GET")connection.setRequestProperty("Range","bytes=0-0")
                 val code=connection.responseCode
                 if(code in listOf(301,302,303,307,308)) {
                     val location=connection.getHeaderField("Location") ?: return null
-                    address=URL(url,location).toString()
+                    address=NetworkAddressRules.redirect(url,location).toString()
                 } else return headerSize(connection)
             }finally{connection.disconnect()}
         }

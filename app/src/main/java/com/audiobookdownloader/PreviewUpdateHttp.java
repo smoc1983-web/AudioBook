@@ -16,10 +16,12 @@ final class PreviewUpdateHttp {
     PreviewUpdateHttp(){this(uri->(HttpURLConnection)uri.toURL().openConnection());}
     PreviewUpdateHttp(Connections connections){this.connections=connections;}
     HttpURLConnection open(String address,String accept) throws Exception {
+        NetworkAddressRules.checked(address);
         URI initial=new URI(address),uri=initial;
         if(!PreviewUpdateRules.acceptsUrl(initial))throw new IOException("Недопустимый адрес обновления");
         java.util.Set<URI> visited=new java.util.HashSet<>();
         for(int i=0;i<6;i++){
+            NetworkAddressRules.checked(uri.toString());
             if(!visited.add(uri))throw new IOException("Повторное перенаправление обновления");
             if(!initial.equals(uri)&&!PreviewUpdateRules.acceptsRedirect(initial,uri))throw new IOException("Недопустимый адрес обновления");
             checkCancelled();

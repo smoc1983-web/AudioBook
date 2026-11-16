@@ -23,11 +23,9 @@ public final class AbDurationRanges implements Closeable {
     };
     public AbDurationRanges(String source,Map<String,String> headers)throws IOException {this(source,headers,url->(HttpURLConnection)url.openConnection());}
     public AbDurationRanges(String source,Map<String,String> headers,Connections connections)throws IOException {
-        original=new URL(source);this.headers=new HashMap<>(headers);this.connections=connections;checkUrl(original);
+        original=new URL(source);this.headers=new HashMap<>(headers);this.connections=connections;NetworkAddressRules.checked(original.toString());
     }
     private void check()throws IOException {if(closed.get())throw new IOException("Metadata read cancelled");if(System.nanoTime()>deadline)throw new IOException("Metadata read timed out");}
-    private static void checkUrl(URL url)throws IOException {if(!Arrays.asList("https","http").contains(url.getProtocol())||url.getUserInfo()!=null)throw new IOException("Invalid audio URL");}
-    private static boolean sameOrigin(URL a,URL b){return a.getProtocol().equals(b.getProtocol())&&a.getHost().equalsIgnoreCase(b.getHost())&&a.getPort()==b.getPort();}
     private byte[] block(long start)throws IOException {
         check();byte[] cached=blocks.get(start);if(cached!=null)return cached;
         if(consumed>=MAX_BYTES)throw new IOException("Metadata byte budget exceeded");
@@ -39,15 +37,14 @@ public final class AbDurationRanges implements Closeable {
                 check();c.setInstanceFollowRedirects(false);c.setConnectTimeout(3000);c.setReadTimeout(3000);
                 for(Map.Entry<String,String> entry:headers.entrySet()){
                     String name=entry.getKey();
-                    if(!sameOrigin(original,address)&&(name.equalsIgnoreCase("Cookie")||name.equalsIgnoreCase("Authorization")))continue;
+                    if(!NetworkAddressRules.forwardHeader(original,address,name))continue;
                     c.setRequestProperty(name,entry.getValue());
                 }
                 c.setRequestProperty("Accept-Encoding","identity");c.setRequestProperty("Range","bytes="+start+"-"+end);
                 int code=c.getResponseCode();check();
                 if(Arrays.asList(301,302,303,307,308).contains(code)){
                     String target=c.getHeaderField("Location");if(target==null)throw new IOException("Missing redirect");
-                    URL next=new URL(address,target);checkUrl(next);
-                    if(address.getProtocol().equals("https")&&!next.getProtocol().equals("https"))throw new IOException("Insecure redirect");
+                    URL next=NetworkAddressRules.redirect(address,target);
                     address=next;continue;
                 }
                 String encoding=c.getHeaderField("Content-Encoding");

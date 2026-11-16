@@ -24,7 +24,7 @@ internal class ContinuationHttp(private val policy:ContinuationPolicy,private va
         repeat(5) {
             currentCoroutineContext().ensureActive()
             if(++requests>24||bytes>=8*1024*1024)throw ContinuationBudget()
-            val connection=URL(next).openConnection() as HttpURLConnection
+            val connection=NetworkAddressRules.checked(next).openConnection() as HttpURLConnection
             try {
                 connection.instanceFollowRedirects=false
                 connection.connectTimeout=6000;connection.readTimeout=6000
@@ -33,7 +33,7 @@ internal class ContinuationHttp(private val policy:ContinuationPolicy,private va
                 connection.setRequestProperty("Accept-Encoding","identity")
                 val code=connection.responseCode
                 if(code in listOf(301,302,303,307,308)) {
-                    val target=URL(URL(next),connection.getHeaderField("Location") ?: error("Нет адреса перенаправления")).toString()
+                    val target=NetworkAddressRules.redirect(URL(next),connection.getHeaderField("Location")).toString()
                     require(policy.same(address,target)){"Источник перенаправил на другой сайт"}
                     next=policy.canonical(target)
                 } else {
