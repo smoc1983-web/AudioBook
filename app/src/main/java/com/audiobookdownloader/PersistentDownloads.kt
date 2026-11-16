@@ -148,8 +148,23 @@ internal object AbPersistentDownloads {
             found
         }
     }
+    private fun claimLegacyDestination(c:Context,dm:DownloadManager,row:QueuedChapter):Boolean {
+        val ownership="destination_owner_"+ChapterIdentity.hash(destination(row))
+        val owner=prefs(c).getString(ownership,null)
+        if(owner!=null)return owner==row.key
+        val matches=dm.query(DownloadManager.Query().setFilterById(row.job))?.use{q->
+            if(!q.moveToFirst())false else {
+                val local=android.net.Uri.parse(q.getString(q.getColumnIndexOrThrow(DownloadManager.COLUMN_LOCAL_URI)).orEmpty())
+                val expected=java.io.File(java.io.File(libraryRoot(),safeFileName(row.book)),safeFileName(row.title)+".mp3")
+                local.scheme=="file" && java.io.File(local.path.orEmpty()).canonicalPath==expected.canonicalPath &&
+                    q.getString(q.getColumnIndexOrThrow(DownloadManager.COLUMN_URI))==row.src &&
+                    q.getString(q.getColumnIndexOrThrow(DownloadManager.COLUMN_TITLE))==row.book+" - "+row.title
+            }
+        }==true
+        return matches && prefs(c).edit().putString(ownership,row.key).commit()
+    }
     private fun removeOwnedFailedJob(c:Context,dm:DownloadManager,row:QueuedChapter):Boolean {
-        if(row.job<=0 || prefs(c).getString("destination_owner_"+ChapterIdentity.hash(destination(row)),null)!=row.key)return false
+        if(row.job<=0 || !claimLegacyDestination(c,dm,row))return false
         val failed=dm.query(DownloadManager.Query().setFilterById(row.job))?.use{q->
             q.moveToFirst() &&
                 (q.getInt(q.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS))==DownloadManager.STATUS_FAILED &&

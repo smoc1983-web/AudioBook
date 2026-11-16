@@ -73,7 +73,9 @@ internal object AbDownloadedAudio {
             if(reader.readSampleData(data,0)<=0)return Result(false,"Аудиодорожка пуста или повреждена. Повторите загрузку главы.",stamp=signature)
             val duration=if(format.containsKey(MediaFormat.KEY_DURATION))format.getLong(MediaFormat.KEY_DURATION) else 0
             if(duration>0) {
-                reader.seekTo((duration-1).coerceAtLeast(0),MediaExtractor.SEEK_TO_PREVIOUS_SYNC)
+                // Encoder padding may place the advertised final microsecond after the last MP3 frame.
+                val tail=(duration-minOf(250000L,(duration/10).coerceAtLeast(1))).coerceAtLeast(0)
+                reader.seekTo(tail,MediaExtractor.SEEK_TO_PREVIOUS_SYNC)
                 data.clear()
                 if(reader.readSampleData(data,0)<=0)return Result(false,"Не удалось прочитать конец аудиофайла. Повторите загрузку главы.",stamp=signature)
             }

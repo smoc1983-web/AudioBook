@@ -2128,8 +2128,10 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                     trackStates[title]=TrackState.DOWNLOADING
                     val checked=AbDownloadedAudio.inspect(context.applicationContext,id,statuses[id]?.total ?: -1,book,title)
                     trackStates[title]=if(checked.valid)TrackState.DOWNLOADED else TrackState.ERROR
-                    if(!checked.valid)downloadErrors[title]=checked.error
-                    prefs.edit().remove(entry.key).apply()
+                    if(!checked.valid) {
+                        downloadErrors[title]=checked.error
+                        withContext(Dispatchers.IO){AbPersistentDownloads.restore(context.applicationContext)}
+                    } else prefs.edit().remove(entry.key).apply()
                 }
                 DownloadManager.STATUS_FAILED -> {
                     trackStates[title]=TrackState.ERROR
@@ -2183,7 +2185,8 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                             downloadErrors.remove(entry.value)
                         } else {trackStates[entry.value]=TrackState.ERROR;downloadErrors[entry.value]=checked.error}
                         downloadIds.remove(entry.key)
-                        prefs.edit().remove("download_job_"+entry.key).apply()
+                        if(checked.valid)prefs.edit().remove("download_job_"+entry.key).apply()
+                        else withContext(Dispatchers.IO){AbPersistentDownloads.restore(context.applicationContext)}
                         completedDownloads=true
                     }
                     DownloadManager.STATUS_FAILED -> {
