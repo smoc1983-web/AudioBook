@@ -5,9 +5,12 @@ mkdir -p "$report_dir"
 python3 tools/tests/queue-test-server.py --port 18084 > "$report_dir/server.log" 2>&1 &
 queue_server_pid=$!
 trap 'kill "$queue_server_pid" 2>/dev/null || true' EXIT
+# Run instrumentation directly: Gradle may uninstall the package after connected tests.
+adb install -r -t app/build/outputs/apk/debug/app-debug.apk
+adb install -r -t app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
 adb reverse tcp:18084 tcp:18084
-gradle :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.audiobookdownloader.QueueProcessTest#prepareActiveQueueBeforeProcessStop --max-workers=2 --console=plain
-cp -R app/build/outputs/androidTest-results "$report_dir/before-stop"
+timeout 150 adb shell am instrument -w -r -e class com.audiobookdownloader.QueueProcessTest#prepareActiveQueueBeforeProcessStop com.audiobookdownloader.preview.test/androidx.test.runner.AndroidJUnitRunner | tee "$report_dir/before-stop.log"
+rg -q 'OK \(1 test\)' "$report_dir/before-stop.log"
 adb shell am force-stop com.audiobookdownloader.preview
 adb reboot
 timeout 180 adb wait-for-disconnect
@@ -19,5 +22,5 @@ until [[ "$(adb shell getprop sys.boot_completed | tr -d '\r')" == 1 ]]; do
 done
 adb reverse tcp:18084 tcp:18084
 adb shell input keyevent 82
-gradle :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.audiobookdownloader.QueueProcessTest#restoredQueueCompletesAfterProcessStopAndReboot --max-workers=2 --console=plain
-cp -R app/build/outputs/androidTest-results "$report_dir/after-reboot"
+timeout 300 adb shell am instrument -w -r -e class com.audiobookdownloader.QueueProcessTest#restoredQueueCompletesAfterProcessStopAndReboot com.audiobookdownloader.preview.test/androidx.test.runner.AndroidJUnitRunner | tee "$report_dir/after-reboot.log"
+rg -q 'OK \(1 test\)' "$report_dir/after-reboot.log"
