@@ -108,7 +108,9 @@ internal object AbPersistentDownloads {
         for(row in rows.filter{it.book==book&&(chapter==null||it.key==chapter)&&it.state !in listOf("complete","cancelled")}) {
             if(row.job>0) {
                 val done=dm.query(DownloadManager.Query().setFilterById(row.job))?.use{it.moveToFirst()&&it.getInt(it.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS))==DownloadManager.STATUS_SUCCESSFUL}==true
-                if(done)completed.add(row.key) else dm.remove(row.job)
+                if(done) {
+                    if(!AbDownloadedAudio.unchangedRejected(c,row.job) || !removeOwnedFailedJob(c,dm,row))completed.add(row.key)
+                } else dm.remove(row.job)
                 main(c).edit().remove("download_job_"+row.job).commit()
             }
         }

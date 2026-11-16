@@ -60,6 +60,7 @@ class AudioValidationTest {
         ParcelFileDescriptor.AutoCloseInputStream(InstrumentationRegistry.getInstrumentation().uiAutomation.executeShellCommand("pm grant ${context.packageName} $read")).use{it.readBytes()}
         val book="validation-"+UUID.randomUUID()
         val legacyBook=book+"-legacy"
+        val cancelBook=book+"-cancel"
         val prefs=context.getSharedPreferences("audiobook_downloader",0)
         val wifi=prefs.getBoolean("experience_wifi_only",false)
         prefs.edit().putBoolean("experience_wifi_only",false).putInt(bookProgressPositionKey(book),1234).commit()
@@ -137,6 +138,13 @@ class AudioValidationTest {
             await(legacyBook){it.size==1&&it.single().state=="error"}
             repaired.set(true);AbPersistentDownloads.retry(context,legacyBook)
             await(legacyBook){it.size==1&&it.single().state=="complete"}
+            repaired.set(false)
+            AbPersistentDownloads.enqueue(context,cancelBook,listOf(AudioTrack("02",1,"$base/02.mp3")))
+            val rejected=await(cancelBook){it.size==1&&it.single().state=="error"}.single()
+            AbPersistentDownloads.cancelBook(context,cancelBook)
+            assertEquals("cancelled",AbPersistentDownloads.entries(context).single{it.book==cancelBook}.state)
+            dm.query(DownloadManager.Query().setFilterById(rejected.job))!!.use{assertFalse(it.moveToFirst())}
+            assertEquals(1234,prefs.getInt(bookProgressPositionKey(book),0))
             assertEquals(checksum,dm.openDownloadedFile(valid.job).use{descriptor->
                 ParcelFileDescriptor.AutoCloseInputStream(ParcelFileDescriptor.dup(descriptor.fileDescriptor)).use{ChapterIdentity.checksum(it)}
             })
@@ -144,6 +152,7 @@ class AudioValidationTest {
             running.set(false);server.close();thread.join(2000)
             AbPersistentDownloads.cancelBook(context,book)
             AbPersistentDownloads.cancelBook(context,legacyBook)
+            AbPersistentDownloads.cancelBook(context,cancelBook)
             jobs.forEach{dm.remove(it)}
             AbPersistentDownloads.clearCompleted(context)
             prefs.edit().putBoolean("experience_wifi_only",wifi).remove(bookProgressPositionKey(book)).commit()
