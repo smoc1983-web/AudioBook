@@ -151,8 +151,9 @@ internal val LocalAbBookCardContext=staticCompositionLocalOf<BookCardContext?>{n
     var selected by remember{mutableStateOf<List<LibraryBook>>(emptyList())}
     var running by remember{mutableStateOf(false)}
     var status by remember{mutableStateOf("")}
-    val finished=books.filter{prefs.getBoolean("book_completed_"+safeFileName(it.title),false)}
-    val partial=books.filter{val total=prefs.getInt(bookTotalKey(it.title),0);total>it.files.size}
+    prefs.getString(EditionMetadata.NOTICE,"")?.takeIf{it.isNotBlank()}?.let{Text(it,color=theme.muted,fontSize=12.sp)}
+    val finished=books.filter{StableProgress.isCompleted(prefs,it)}
+    val partial=books.filter{val total=StableProgress.expected(prefs,it);total>it.files.size}
     val filtered=when(tab){1->finished;2->partial;else->books}.sortedByDescending{it.audioBytes}
     Text("Аудиофайлы в библиотеке: "+formatFileSize(books.sumOf{it.audioBytes})+(if(books.any{!it.sizeKnown})" · часть размеров неизвестна" else ""),color=theme.text,fontSize=14.sp)
     Text("Прослушанные отмечаются после достижения конца книги. Для старых записей завершение может быть неизвестно.",color=theme.muted,fontSize=12.sp)

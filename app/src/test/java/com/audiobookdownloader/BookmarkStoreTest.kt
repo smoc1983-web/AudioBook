@@ -54,4 +54,28 @@ class BookmarkStoreTest {
         assertEquals(1,resolveBookmark(mark,listOf(ServiceTrack("Новая глава","1"),ServiceTrack("Глава","2"))))
         assertEquals(-1,resolveBookmark(mark,listOf(ServiceTrack("Глава","1"),ServiceTrack("Глава","2"))))
     }
+    @Test fun knownEditionBookmarksAreFoundAfterRenameWithoutChangingIds() {
+        val p=prefs();val e=ChapterIdentity.edition("Before","https://source.example/a")
+        addBookmark(p,"Before",0,"01",4000,e)
+        val old=loadBookmarks(p,"Before").single()
+        val found=loadBookmarks(p,"After",e).single()
+        assertEquals(old.id,found.id);assertEquals(old.chapterId,found.chapterId)
+        updateBookmark(p,"After",found,"Label","Note")
+        assertEquals("Note",loadBookmarks(p,"Before",e).single().note)
+        removeBookmark(p,"After",found)
+        assertTrue(loadBookmarks(p,"Before",e).isEmpty());assertTrue(loadBookmarks(p,"After",e).isEmpty())
+    }
+    @Test fun sameTitleBookmarksAreFilteredByEdition() {
+        val p=prefs();val a=ChapterIdentity.edition("Book","https://source.example/a");val b=ChapterIdentity.edition("Book","https://source.example/b")
+        addBookmark(p,"Book",0,"01",4000,a);addBookmark(p,"Book",0,"01",8000,b)
+        assertEquals(listOf(4000),loadBookmarks(p,"Book",a).map{it.position})
+        assertEquals(listOf(8000),loadBookmarks(p,"Book",b).map{it.position})
+        assertEquals(2,loadBookmarks(p,"Book").size)
+    }
+    @Test fun malformedBookmarkDataIsNotOverwrittenByNewBookmark() {
+        val p=prefs();val raw="{broken bookmark snapshot"
+        p.edit().putString(bookmarksKey("Book"),raw).apply()
+        addBookmark(p,"Book",0,"01",4000)
+        assertEquals(raw,p.getString(bookmarksKey("Book"),null))
+    }
 }

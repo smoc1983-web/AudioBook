@@ -28,8 +28,9 @@ internal object AbBookProgress {
     private data class Catalog(val raw:String,val revision:String?,val titles:List<String>,val members:Set<String>,val valid:Boolean)
     private val catalogs=linkedMapOf<String,Catalog>()
     @Synchronized private fun catalog(p:SharedPreferences,book:String,id:String):Catalog {
-        val raw=p.getString("book_chapter_titles_"+safeFileName(book),"[]").orEmpty()
-        val revision=p.getString("book_edition_revision_"+safeFileName(book),null)
+        val record=EditionMetadata.read(p,book,id)
+        val raw=JSONArray(record.titles).toString()
+        val revision=record.revision
         catalogs[id]?.takeIf{it.raw==raw && it.revision==revision}?.let{return it}
         val rows=array(raw)
         val titles=(0 until rows.length()).map{rows.optString(it)}
@@ -56,7 +57,7 @@ internal object AbBookProgress {
     private data class LocalTracks(val files:List<java.io.File>,val titles:String?,val edition:String?,val tracks:List<ServiceTrack>)
     private val locals=linkedMapOf<String,LocalTracks>()
     @Synchronized private fun localTracks(p:SharedPreferences,book:LibraryBook):List<ServiceTrack> {
-        val titles=p.getString("book_chapter_titles_"+safeFileName(book.title),null)
+        val titles=JSONArray(EditionMetadata.read(p,book.title,EditionMetadata.local(p,book)).titles).toString()
         val edition=p.getString("book_local_edition_"+safeFileName(book.title),null)
         locals[book.title]?.takeIf{it.files==book.files && it.titles==titles && it.edition==edition}?.let{return it.tracks}
         val tracks=StableProgress.localTracks(p,book.title,book.files)
@@ -79,7 +80,7 @@ internal object AbBookProgress {
         val index=if(stable)resume.index else p.getInt(bookProgressTrackKey(book.title),0)
         val position=if(stable)resume.position else p.getInt(bookProgressPositionKey(book.title),0)
         // A legacy numeric index alone is not proof of a chapter in a downloaded subset.
-        val valid=full.size>=p.getInt(bookTotalKey(book.title),full.size) &&
+        val valid=full.size>=EditionMetadata.read(p,book.title,id).total &&
             (checkpoint || retained.isEmpty() || sameEdition)
         val widgetIndex=p.getInt("widget_track_index",-1)
         val sameChapter=sameEdition &&
@@ -100,9 +101,9 @@ internal object AbBookProgress {
                 ?: p.getInt(durationKey(id,track.title),0)).toLong()
         }.toLongArray()
         // Do not mistake a downloaded subset for the complete book without an edition catalogue.
-        val selection=if(full.size<p.getInt(bookTotalKey(book),full.size)) -1 else resolved
+        val selection=if(full.size<EditionMetadata.read(p,book,id).total) -1 else resolved
         return AbBookTimeRules.calculate(durations,selection,position.toLong(),speed,
-            p.getBoolean("book_completed_"+safeFileName(book),false))
+            EditionMetadata.read(p,book,id).completed)
     }
     fun label(result:AbBookTimeRules.Result) = if(result.totalRemaining==0 && result.approximate)"—" else (if(result.approximate)"≈ " else "")+"${(result.progress*100).toInt()}%"
     fun description(result:AbBookTimeRules.Result) =

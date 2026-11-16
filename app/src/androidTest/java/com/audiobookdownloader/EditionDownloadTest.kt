@@ -65,7 +65,7 @@ class EditionDownloadTest {
             compose.setContent {Column {AbEditionDownloadControls(edition(),DownloadedChapterIndex.EMPTY,emptySet(),abTheme(2)){_,tracks->chosen=tracks}}}
             compose.onNodeWithText("Скачать отдельные главы").performClick()
             compose.onNodeWithText("2. Глава 2 · Скачать главу").assertIsDisplayed().performClick()
-            assertEquals(listOf(track(2)),chosen);assertEquals(2,p.getInt(key,0));assertEquals(before,PlaybackService.state.value)
+            assertEquals(listOf(track(2)),chosen);assertEquals(2,EditionMetadata.read(p,ref.title,ref.editionId).total);assertEquals(previous,p.getInt(key,0));assertEquals(before,PlaybackService.state.value)
             compose.onNodeWithText("Скачать").assertIsEnabled()
         }finally{p.edit().putInt(key,previous).commit()}
     }

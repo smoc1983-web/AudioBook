@@ -11,7 +11,7 @@ data class Bookmark(val track:Int,val trackTitle:String,val position:Int,val cre
 fun bookmarksKey(bookTitle:String)="bookmarks_v2_"+ChapterIdentity.hash(bookTitle)
 private fun legacyBookmarksKey(bookTitle:String)="bookmarks_"+safeFileName(bookTitle)
 
-fun loadBookmarks(prefs:SharedPreferences,bookTitle:String):List<Bookmark> {
+fun loadBookmarks(prefs:SharedPreferences,bookTitle:String,editionId:String=""):List<Bookmark> {
     if(bookTitle.isBlank())return emptyList()
     // An explicitly saved empty v2 list must never resurrect the legacy records.
     return try {

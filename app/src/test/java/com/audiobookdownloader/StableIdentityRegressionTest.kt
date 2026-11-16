@@ -69,20 +69,20 @@ class StableIdentityRegressionTest {
     @Test fun newChaptersInvalidateListenedStatus() {
         val p=preferences();val old=listOf(AudioTrack("01",1,"https://a.invalid/1"))
         StableProgress.observe(p,"Book",old,true)
-        p.edit().putBoolean("book_completed_Book",true).apply()
+        StableProgress.completed(p,"Book",old.map{ServiceTrack(it.title,it.src,it.duration)})
         StableProgress.observe(p,"Book",old+AudioTrack("02",1,"https://a.invalid/2"),true)
-        assertFalse(p.getBoolean("book_completed_Book",false));assertEquals(2,p.getInt(bookTotalKey("Book"),0))
+        assertFalse(EditionMetadata.read(p,"Book",ChapterIdentity.edition("Book","")).completed);assertEquals(2,EditionMetadata.read(p,"Book",ChapterIdentity.edition("Book","")).total)
     }
     @Test fun unchangedRevisionKeepsListenedStatus() {
         val p=preferences();val old=listOf(AudioTrack("01",1,"https://a.invalid/1"))
-        StableProgress.observe(p,"Book",old,true);p.edit().putBoolean("book_completed_Book",true).apply()
-        StableProgress.observe(p,"Book",old,true);assertTrue(p.getBoolean("book_completed_Book",false))
+        StableProgress.observe(p,"Book",old,true);StableProgress.completed(p,"Book",old.map{ServiceTrack(it.title,it.src,it.duration)})
+        StableProgress.observe(p,"Book",old,true);assertTrue(EditionMetadata.read(p,"Book",ChapterIdentity.edition("Book","")).completed)
     }
     @Test fun replacementAtSameCountInvalidatesListenedStatus() {
-        val p=preferences();StableProgress.observe(p,"Book",listOf(AudioTrack("01",1,"https://a.invalid/1")),true)
-        p.edit().putBoolean("book_completed_Book",true).apply()
+        val p=preferences();val old=listOf(AudioTrack("01",1,"https://a.invalid/1"));StableProgress.observe(p,"Book",old,true)
+        StableProgress.completed(p,"Book",old.map{ServiceTrack(it.title,it.src,it.duration)})
         StableProgress.observe(p,"Book",listOf(AudioTrack("02",1,"https://a.invalid/2")),true)
-        assertFalse(p.getBoolean("book_completed_Book",false))
+        assertFalse(EditionMetadata.read(p,"Book",ChapterIdentity.edition("Book","")).completed)
     }
     @Test fun queueSeparatesSourcesAndLossyNames() {
         assertNotEquals(AbPersistentDownloads.key("Book","01","https://a.invalid/1","edition1"),AbPersistentDownloads.key("Book","01","https://a.invalid/1","edition2"))
@@ -113,11 +113,11 @@ class StableIdentityRegressionTest {
     }
     @Test fun singleChapterRequestCannotShrinkKnownEditionOrKeepFalseCompletion() {
         val p=preferences();val all=listOf(AudioTrack("01",1,"https://a.invalid/1"),AudioTrack("02",1,"https://a.invalid/2"))
-        StableProgress.observe(p,"Book",all,true);p.edit().putBoolean("book_completed_Book",true).apply()
+        StableProgress.observe(p,"Book",all,true);StableProgress.completed(p,"Book",all.map{ServiceTrack(it.title,it.src,it.duration)})
         StableProgress.observe(p,"Book",all.take(1),true)
-        assertEquals(2,p.getInt(bookTotalKey("Book"),0));assertTrue(p.getBoolean("book_completed_Book",false))
+        assertEquals(2,EditionMetadata.read(p,"Book",ChapterIdentity.edition("Book","")).total);assertTrue(EditionMetadata.read(p,"Book",ChapterIdentity.edition("Book","")).completed)
         StableProgress.observe(p,"Book",listOf(AudioTrack("03",1,"https://a.invalid/3")),false)
-        assertFalse(p.getBoolean("book_completed_Book",false))
+        assertFalse(EditionMetadata.read(p,"Book",ChapterIdentity.edition("Book","")).completed)
     }
     @Test fun unknownAndForeignLocalAudioAreNotReportedAsThisSourceDownloaded() {
         val file=java.io.File("/unused/01.mp3");val track=AudioTrack("01",0,"https://a.invalid/1")
@@ -131,7 +131,7 @@ class StableIdentityRegressionTest {
         val p=preferences();val old=tracks("01");p.edit().putInt(bookTotalKey("Book"),1).apply()
         StableProgress.completed(p,"Book",old)
         StableProgress.observeLibrary(p,listOf(LibraryBook("Book",java.io.File("/unused"),listOf(java.io.File("/unused/01.mp3"),java.io.File("/unused/02.mp3")))))
-        assertFalse(p.getBoolean("book_completed_Book",false))
+        assertFalse(EditionMetadata.read(p,"Book",ChapterIdentity.edition("Book","")).completed)
     }
 
     @Test fun unknownLocalFilesNeverBorrowOnlineEditionPosition() {

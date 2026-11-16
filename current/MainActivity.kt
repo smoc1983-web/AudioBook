@@ -155,6 +155,7 @@ data class LibraryBook(
     val editionId:String="",
     val chapterSources:Map<String,String> = emptyMap()
 ) {
+    val bookId:String get()=if(editionId.isNotBlank())LibraryRecordRules.bookId(editionId) else "l3-"+ChapterIdentity.hash(folderUri.ifBlank{folder.absolutePath})
     val audioBytes:Long get()=audioSizes.values.sum()
     val sizeKnown:Boolean get()=files.isNotEmpty() && audioSizes.size==files.size
 }
@@ -972,7 +973,10 @@ data class BookRef(
     val title: String,
     val url: String,
     val cover: String
-)
+) {
+    val editionId:String get()=if(url.isBlank())"" else ChapterIdentity.edition(title,url)
+    val bookId:String get()=if(editionId.isBlank())"" else LibraryRecordRules.bookId(editionId)
+}
 
 data class Shelf(
     val name: String,
@@ -1050,9 +1054,14 @@ fun saveBookRefs(
  */
 fun bookRefFor(
     prefs: android.content.SharedPreferences,
-    title: String
+    title: String,editionId:String=""
 ): BookRef {
-
+    if(editionId.isNotBlank()) {
+        val source=EditionMetadata.read(prefs,title,editionId).sourceUrl
+        if(source.isNotBlank())return BookRef(title,source,prefs.getString(bookCoverKey(title),"").orEmpty())
+        val current=prefs.getString(bookUrlKey(title),"").orEmpty()
+        if(current.isNotBlank()&&ChapterIdentity.edition(title,current)!=editionId)return BookRef(title,"","")
+    }
     return BookRef(
         title,
         prefs.getString(
@@ -2465,7 +2474,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
      */
     fun openBookRef(ref:BookRef,autoPlay:Boolean=true) {
         val id=++bookOpenId
-        val libraryBook=findDownloadedBook(libraryBooks,ref.title)
+        val libraryBook=findDownloadedBook(libraryBooks,ref.title,ref.editionId)
         if(libraryBook==null && librarySync.isSyncing) {
             status="Проверяю скачанные главы…"
             modernWork.launch {
@@ -2901,7 +2910,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
             val edit=prefs.edit().putString(bookUrlKey(ref.title),ref.url).putString(bookCoverKey(ref.title),ref.cover)
 
             edit.apply()
-            StableProgress.observe(prefs,ref.title,edition.tracks,recordTotal)
+            StableProgress.observe(prefs,ref.title,edition.tracks,recordTotal,ref.editionId,ref.url)
         }
         withContext(Dispatchers.IO){AbPersistentDownloads.enqueueBatch(context.applicationContext,editions)}
         editions.forEach{keepDownloadedCover(it.ref.title)}
@@ -7030,8 +7039,8 @@ fun isNetworkAudio(source:String):Boolean =
 
 /** Exact chapter identity; choosing a source never accesses disk or the network. */
 fun preferDownloadedTracks(title:String,tracks:List<ServiceTrack>,books:List<LibraryBook>):List<ServiceTrack> {
-    val book=findDownloadedBook(books,title) ?: return tracks
     val selectedEdition=tracks.firstOrNull()?.editionId.orEmpty()
+    val book=findDownloadedBook(books,title,selectedEdition) ?: return tracks
     if(selectedEdition.isNotBlank() && selectedEdition!=book.editionId)return tracks
     val chapters=book.files.groupBy {
         safeFileName(it.nameWithoutExtension).lowercase(java.util.Locale.ROOT)
@@ -7046,9 +7055,11 @@ fun preferDownloadedTracks(title:String,tracks:List<ServiceTrack>,books:List<Lib
     }
 }
 
-fun findDownloadedBook(books:List<LibraryBook>,title:String):LibraryBook? {
+fun findDownloadedBook(books:List<LibraryBook>,title:String,editionId:String=""):LibraryBook? {
+    if(editionId.isNotBlank())return books.filter{it.files.isNotEmpty()&&it.editionId==editionId}.singleOrNull()
     if(title.isBlank())return null
-    books.firstOrNull {it.title==title && it.files.isNotEmpty()}?.let{return it}
+    val exact=books.filter{it.title==title&&it.files.isNotEmpty()}
+    if(exact.isNotEmpty())return exact.singleOrNull()
     val key=safeFileName(cleanBookTitle(title)).lowercase(java.util.Locale.ROOT)
     return books.filter {it.files.isNotEmpty()&&
         safeFileName(cleanBookTitle(it.title)).lowercase(java.util.Locale.ROOT)==key}.singleOrNull()
@@ -11661,7 +11672,7 @@ private fun AbEditionChapterControls(edition:AbDownloadEdition,index:DownloadedC
         val working=track.title in activeChapters
         val segmented=EditionDownloadRules.isSegmented(track.src)
         AbButton("${i+1}. ${track.title} · "+if(saved)"На устройстве" else if(working)"В очереди" else if(segmented)"Поток HLS/DASH" else "Скачать главу",theme,enabled=!saved&&!working&&!segmented) {
-            StableProgress.observe(editionPrefs,edition.ref.title,edition.tracks,true)
+            StableProgress.observe(editionPrefs,edition.ref.title,edition.tracks,true,edition.ref.editionId,edition.ref.url)
             onDownload(edition.ref,listOf(track))
         }
     }
@@ -13083,7 +13094,7 @@ internal fun AbOfficialSeriesPanel(title:String,author:String,prefs:android.cont
     var scope by androidx.compose.runtime.saveable.rememberSaveable(title,author){mutableStateOf(0)}
     var details by remember(title,author){mutableStateOf(false)}
     DisposableEffect(store,prefs){val listener=android.content.SharedPreferences.OnSharedPreferenceChangeListener{changed,key->
-        if(changed===store.preferences||key?.startsWith("book_completed_")==true||key=="experience_library_revision")revision++}
+        if(changed===store.preferences||key?.startsWith("book_completed_")==true||key?.startsWith(EditionMetadata.PREFIX)==true||key=="experience_library_revision")revision++}
         store.preferences.registerOnSharedPreferenceChangeListener(listener);prefs.registerOnSharedPreferenceChangeListener(listener)
         onDispose{store.preferences.unregisterOnSharedPreferenceChangeListener(listener);prefs.unregisterOnSharedPreferenceChangeListener(listener)}}
     var snapshot by remember(title,author){mutableStateOf<OfficialSnapshot?>(null)}
@@ -13132,7 +13143,7 @@ internal fun AbOfficialSeriesPanel(title:String,author:String,prefs:android.cont
             }
             if(grouped.isEmpty())Text(if(running)"Загружаем сведения…" else "Подтверждённых продолжений для выбранного формата пока не найдено. Можно открыть всю серию или повторить сверку.",color=theme.muted,fontSize=12.sp)
             val listed=grouped.map{it.first()}
-            val completed=listed.count{book->library.any{SeriesAuthorityRules.title(it.title)==SeriesAuthorityRules.title(book.title)&&prefs.getBoolean("book_completed_"+safeFileName(it.title),false)}}
+            val completed=listed.count{book->library.any{SeriesAuthorityRules.title(it.title)==SeriesAuthorityRules.title(book.title)&&StableProgress.isCompleted(prefs,it)}}
             Text("В этом списке прослушано: $completed из ${listed.size}",color=theme.muted,fontSize=12.sp)
             var shown by androidx.compose.runtime.saveable.rememberSaveable(title,filter,scope){mutableStateOf(if(compact)5 else 20)}
             grouped.take(shown).forEach{editions->
@@ -13143,7 +13154,7 @@ internal fun AbOfficialSeriesPanel(title:String,author:String,prefs:android.cont
                     Text(book.title,color=theme.text,fontSize=14.sp,fontWeight=FontWeight.SemiBold)
                     Text(book.series+" · "+book.author,color=theme.muted,fontSize=11.sp)
                     Text(when {
-                        device!=null&&prefs.getBoolean("book_completed_"+safeFileName(device.title),false)->"Прослушано · на устройстве"
+                        device!=null&&StableProgress.isCompleted(prefs,device)->"Прослушано · на устройстве"
                         device!=null->"На устройстве"+(if(prefs.getString("book_author_"+safeFileName(device.title),"").isNullOrBlank())" · совпадение по названию" else "")
                         editions.all{it.format=="text"}->"Только текст в этом списке"
                         else->"Аудио не скачано"

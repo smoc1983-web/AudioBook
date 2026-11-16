@@ -43,14 +43,15 @@ internal object StableProgress {
     fun save(p:SharedPreferences,book:String,tracks:List<ServiceTrack>,index:Int,position:Int) {
         val track=tracks.getOrNull(index)?:return
         // Match a downloaded safe filename to the original chapter only when unique.
-        val catalog=try{JSONArray(p.getString("book_chapter_titles_"+safeFileName(book),"[]"))}catch(_:Exception){JSONArray()}
+        val catalog=JSONArray(EditionMetadata.read(p,book,edition(p,book,tracks)).titles)
         val aliases=(0 until catalog.length()).map{catalog.optString(it)}.filter{safeFileName(it)==track.title}
         val original=if(!isNetworkAudio(track.src)&&aliases.size==1)aliases.single() else track.title
         p.edit().putString(key(p,book,tracks),JSONObject().put("chapter",ChapterIdentity.chapter(edition(p,book,tracks),original))
             .put("position",position.coerceAtLeast(0)).toString()).apply()
     }
     fun localTracks(p:SharedPreferences,book:String,files:List<java.io.File>):List<ServiceTrack> {
-        val catalog=try{JSONArray(p.getString("book_chapter_titles_"+safeFileName(book),"[]"))}catch(_:Exception){JSONArray()}
+        val localId=ChapterIdentity.edition(book,p.getString("book_local_edition_"+safeFileName(book),"").orEmpty())
+        val catalog=JSONArray(EditionMetadata.read(p,book,localId).titles)
         val titles=(0 until catalog.length()).map{catalog.optString(it)}
         return files.map {file->
             val aliases=titles.filter{safeFileName(it)==file.nameWithoutExtension}
@@ -58,34 +59,30 @@ internal object StableProgress {
         }
     }
     fun completed(p:SharedPreferences,book:String,tracks:List<ServiceTrack>) {
-        p.edit().putBoolean("book_completed_"+safeFileName(book),true)
-            .putString("book_completed_chapters_"+safeFileName(book),JSONArray(tracks.map{safeFileName(it.title)}).toString()).apply()
+        if(tracks.isEmpty())return
+        val id=edition(p,book,tracks)
+        EditionMetadata.change(p,book,id){it.copy(total=maxOf(it.total,tracks.size),completed=true,finished=tracks.map{t->safeFileName(t.title)})}
     }
+    fun isCompleted(p:SharedPreferences,book:LibraryBook)=EditionMetadata.read(p,book.title,EditionMetadata.local(p,book)).completed
+    fun expected(p:SharedPreferences,book:LibraryBook)=EditionMetadata.read(p,book.title,EditionMetadata.local(p,book)).total
     fun observeLibrary(p:SharedPreferences,books:List<LibraryBook>) {
         for(book in books) {
-            if(!p.getBoolean("book_completed_"+safeFileName(book.title),false))continue
-            val known=try{JSONArray(p.getString("book_completed_chapters_"+safeFileName(book.title),"[]"))}catch(_:Exception){JSONArray()}
-            val titles=(0 until known.length()).map{known.optString(it)}.toSet()
-            if(book.files.size>p.getInt(bookTotalKey(book.title),0) ||
-                titles.isNotEmpty() && book.files.any{it.nameWithoutExtension !in titles})
-                p.edit().putBoolean("book_completed_"+safeFileName(book.title),false).apply()
+            val id=EditionMetadata.local(p,book);val record=EditionMetadata.read(p,book.title,id)
+            if(!record.completed)continue
+            if(book.files.size>record.total || record.finished.isNotEmpty() && book.files.any{it.nameWithoutExtension !in record.finished})
+                EditionMetadata.change(p,book.title,id){it.copy(completed=false)}
         }
     }
-    fun observe(p:SharedPreferences,book:String,tracks:List<AudioTrack>,full:Boolean) {
-        val expected=p.getInt(bookTotalKey(book),0)
-        val size=maxOf(expected,tracks.size)
-        val authoritative=full && tracks.size>=expected
-        val known=try{JSONArray(p.getString("book_chapter_titles_"+safeFileName(book),"[]"))}catch(_:Exception){JSONArray()}
-        val oldTitles=(0 until known.length()).map{known.optString(it)}
-        val added=oldTitles.isNotEmpty() && tracks.any{it.title !in oldTitles}
-        val revisionKey="book_edition_revision_"+safeFileName(book)
-        val revision=ChapterIdentity.revision(tracks.map{ChapterIdentity.chapter(ChapterIdentity.edition(book,p.getString(bookUrlKey(book),"").orEmpty()),it.title)})
-        val previous=p.getString(revisionKey,null)
-        val edit=p.edit().putInt(bookTotalKey(book),size)
-        if(size>expected || added || authoritative && previous!=revision)
-            edit.putBoolean("book_completed_"+safeFileName(book),false)
-        if(authoritative)edit.putString(revisionKey,revision).putString("book_chapter_titles_"+safeFileName(book),
-            JSONArray(tracks.map{it.title}).toString())
-        edit.apply()
+    fun observe(p:SharedPreferences,book:String,tracks:List<AudioTrack>,full:Boolean,editionId:String="",sourceUrl:String="") {
+        val id=editionId.ifBlank{EditionMetadata.current(p,book)}
+        EditionMetadata.change(p,book,id){old->
+            val size=maxOf(old.total,tracks.size)
+            val authoritative=full&&tracks.isNotEmpty()&&tracks.size>=old.total
+            val added=old.titles.isNotEmpty()&&tracks.any{it.title !in old.titles}
+            val revision=ChapterIdentity.revision(tracks.map{ChapterIdentity.chapter(id,it.title)})
+            val source=sourceUrl.ifBlank{p.getString(bookUrlKey(book),"").orEmpty()}.takeIf{it.isNotBlank()&&ChapterIdentity.edition(book,it)==id} ?: old.sourceUrl
+            old.copy(sourceUrl=source,total=size,completed=old.completed&&!(size>old.total||added||authoritative&&old.revision!=revision),
+                titles=if(authoritative)tracks.map{it.title} else old.titles,revision=if(authoritative)revision else old.revision)
+        }
     }
 }

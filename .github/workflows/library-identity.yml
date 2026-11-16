@@ -28,7 +28,7 @@ jobs:
           python -m pip install Pillow
           python tools/run_checks.py
       - name: Red regression checks
-        run: gradle -PaudiobookChannel=stable :app:testDebugUnitTest --tests com.audiobookdownloader.EditionMetadataRegressionTest --max-workers=2 --console=plain
+        run: gradle -PaudiobookChannel=stable :app:testDebugUnitTest --tests com.audiobookdownloader.EditionMetadataRegressionTest --tests com.audiobookdownloader.BookmarkStoreTest --max-workers=2 --console=plain
       - uses: actions/upload-artifact@v4
         if: always()
         with:

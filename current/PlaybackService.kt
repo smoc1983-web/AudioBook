@@ -808,7 +808,7 @@ class PlaybackService : Service() {
         isPlaying = false
         positionMs = durationMs
         if(LibraryExperienceRules.completedEdition(trackIndex,playlist.size,
-            playbackPrefs.getInt(bookTotalKey(bookTitle),0),EditionDownloadRules.isPreview(bookTitle,playlist.map{it.src})))
+            EditionMetadata.read(playbackPrefs,bookTitle,playlist.firstOrNull()?.editionId?.ifBlank{EditionMetadata.current(playbackPrefs,bookTitle)} ?: EditionMetadata.current(playbackPrefs,bookTitle)).total,EditionDownloadRules.isPreview(bookTitle,playlist.map{it.src})))
             StableProgress.completed(playbackPrefs,bookTitle,playlist)
         persistState()
         if(stopForExpiredTimer(SystemClock.elapsedRealtime()))return
@@ -857,7 +857,7 @@ class PlaybackService : Service() {
                     .map{AbLibraryHousekeeping.bookKey(it.book)}.toSet()
                 val volumes=books.map {book ->
                     val metadata=abStoredCatalog(playbackPrefs,book.title)
-                    LocalVolume(book,metadata,playbackPrefs.getInt(bookTotalKey(book.title),0),
+                    LocalVolume(book,metadata,StableProgress.expected(playbackPrefs,book),
                         AbLibraryHousekeeping.bookKey(book.title) in busy,AbSourceAvailability.isPreview(playbackPrefs,metadata))
                 }
                 books to abNextLocalVolume(abStoredCatalog(playbackPrefs,completedBook),volumes)

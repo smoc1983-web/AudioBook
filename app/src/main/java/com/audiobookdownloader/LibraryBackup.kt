@@ -21,7 +21,7 @@ internal object LibraryBackup {
     private val floats=setOf("playback_speed","appearance_dim","appearance_card_opacity","appearance_text_scale")
     private fun type(key:String):String?=when {
         key.startsWith("book_cover_revision_")->"long"
-        key in strings||listOf("book_url_","book_cover_","book_author_","bookmarks_","eq_book_","book_progress_identity_","book_edition_revision_","book_chapter_titles_","book_local_edition_","book_completed_chapters_").any{key.startsWith(it)}->"string"
+        key in strings||listOf("book_identity_v3_","book_url_","book_cover_","book_author_","bookmarks_","eq_book_","book_progress_identity_","book_edition_revision_","book_chapter_titles_","book_local_edition_","book_completed_chapters_").any{key.startsWith(it)}->"string"
         key in ints||key.startsWith("book_progress_")||key.startsWith("book_total_")||key.startsWith("book_duration_")->"int"
         key in flags||key.startsWith("book_completed_")||key.startsWith("experience_collapsed_")->"boolean"
         key in floats||key.startsWith("book_speed_")->"float"
