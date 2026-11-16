@@ -98,4 +98,17 @@ class EditionMetadataRegressionTest {
   StableProgress.observeLibrary(p,books)
   assertTrue(StableProgress.isCompleted(p,books[0]));assertFalse(StableProgress.isCompleted(p,books[1]))
  }
+ @Test fun partialRequestAfterRenameCannotShrinkProvenLegacyCatalogue() {
+  val p=BookProgressRegressionTest().preferences();val id=ChapterIdentity.edition(title,a)
+  val names=tracks(a).map{it.title};val revision=ChapterIdentity.revision(names.map{ChapterIdentity.chapter(id,it)})
+  p.edit().putString("book_chapter_titles_"+safeFileName(title),org.json.JSONArray(names).toString())
+   .putString("book_edition_revision_"+safeFileName(title),revision).putInt(bookTotalKey(title),2)
+   .putBoolean("book_completed_"+safeFileName(title),true).apply()
+  StableProgress.save(p,title,tracks(a),1,4321)
+  val renamed="Renamed partial";p.edit().putString(bookUrlKey(renamed),a).apply()
+  StableProgress.observe(p,renamed,tracks(a).take(1).map{AudioTrack(it.title,it.durationMs,it.src)},false)
+  val metadata=EditionMetadata.read(p,renamed,id)
+  assertEquals(2,metadata.total);assertEquals(names,metadata.titles);assertTrue(metadata.completed)
+  assertEquals(StableProgress.Resume(1,4321),StableProgress.resume(p,renamed,tracks(a)))
+ }
 }
