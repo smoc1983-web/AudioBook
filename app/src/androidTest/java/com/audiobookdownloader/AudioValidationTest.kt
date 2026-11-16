@@ -58,6 +58,7 @@ class AudioValidationTest {
         val read=if(android.os.Build.VERSION.SDK_INT>=33)"android.permission.READ_MEDIA_AUDIO" else "android.permission.READ_EXTERNAL_STORAGE"
         ParcelFileDescriptor.AutoCloseInputStream(InstrumentationRegistry.getInstrumentation().uiAutomation.executeShellCommand("pm grant ${context.packageName} $read")).use{it.readBytes()}
         val book="validation-"+UUID.randomUUID()
+        val legacyBook=book+"-legacy"
         val prefs=context.getSharedPreferences("audiobook_downloader",0)
         val wifi=prefs.getBoolean("experience_wifi_only",false)
         prefs.edit().putBoolean("experience_wifi_only",false).putInt(bookProgressPositionKey(book),1234).commit()
@@ -81,10 +82,10 @@ class AudioValidationTest {
         }.apply{isDaemon=true;start()}
         val dm=context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
         val jobs=mutableSetOf<Long>()
-        suspend fun await(done:(List<QueuedChapter>)->Boolean):List<QueuedChapter> = withTimeout(60000) {
+        suspend fun await(targetBook:String=book,done:(List<QueuedChapter>)->Boolean):List<QueuedChapter> = withTimeout(60000) {
             while(true) {
                 AbPersistentDownloads.pump(context)
-                val rows=AbPersistentDownloads.entries(context).filter{it.book==book}
+                val rows=AbPersistentDownloads.entries(context).filter{it.book==targetBook}
                 jobs.addAll(rows.map{it.job}.filter{it>0})
                 if(done(rows))return@withTimeout rows
                 delay(300)
@@ -117,9 +118,29 @@ class AudioValidationTest {
             await{it.all{r->r.state=="complete"}}
             assertEquals(2,requests["/02.mp3"])
             assertTrue(DownloadedChapterIndex.fromLibrary(scanLibrary(context)).contains(book,"02"))
+            // Upgrade case: a direct Android job exists, but the old release had no durable owner entry.
+            repaired.set(false)
+            val legacy=downloadTrack(context,AudioTrack("02",1,"$base/02.mp3"),legacyBook,DownloadedChapterIndex.EMPTY)!!
+            jobs.add(legacy)
+            prefs.edit().putString("download_job_$legacy","02|||$legacyBook|||$base/02.mp3").commit()
+            withTimeout(60000) {
+                while(true) {
+                    val complete=dm.query(DownloadManager.Query().setFilterById(legacy))!!.use{q->q.moveToFirst()&&q.getInt(q.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS))==DownloadManager.STATUS_SUCCESSFUL}
+                    if(complete)break
+                    delay(200)
+                }
+            }
+            AbPersistentDownloads.restore(context)
+            await(legacyBook){it.size==1&&it.single().state=="error"}
+            repaired.set(true);AbPersistentDownloads.retry(context,legacyBook)
+            await(legacyBook){it.size==1&&it.single().state=="complete"}
+            assertEquals(checksum,dm.openDownloadedFile(valid.job).use{descriptor->
+                ParcelFileDescriptor.AutoCloseInputStream(ParcelFileDescriptor.dup(descriptor.fileDescriptor)).use{ChapterIdentity.checksum(it)}
+            })
         } finally {
             running.set(false);server.close();thread.join(2000)
             AbPersistentDownloads.cancelBook(context,book)
+            AbPersistentDownloads.cancelBook(context,legacyBook)
             jobs.forEach{dm.remove(it)}
             AbPersistentDownloads.clearCompleted(context)
             prefs.edit().putBoolean("experience_wifi_only",wifi).remove(bookProgressPositionKey(book)).commit()

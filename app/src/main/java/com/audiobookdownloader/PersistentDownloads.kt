@@ -267,7 +267,11 @@ internal object AbPersistentDownloads {
                         val successful=dm.query(DownloadManager.Query().setFilterById(current.job))?.use{q->
                             q.moveToFirst() && q.getInt(q.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS))==DownloadManager.STATUS_SUCCESSFUL
                         }==true
-                        if(successful){update(c,row.key){it.copy(state="verifying",error="")};return@synchronized}
+                        if(successful) {
+                            if(AbDownloadedAudio.rejected(c,current.job))update(c,row.key){it.copy(state="error",error="Не удалось безопасно заменить непригодный файл: владелец не подтверждён или хранилище недоступно. Прежние файлы сохранены.")}
+                            else update(c,row.key){it.copy(state="verifying",error="")}
+                            return@synchronized
+                        }
                     }
                     val track=AudioTrack(row.title,row.duration,row.src)
                     val ownership="destination_owner_"+ChapterIdentity.hash(destination(row))
