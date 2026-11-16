@@ -25,4 +25,7 @@ public class DiagnosticPrivacyTest {
   }
   assertFalse(DiagnosticPrivacy.redact("Bearer fixture-only-token").contains("fixture"));
  }
+ @Test public void nonHttpOriginsNeverAppearInDiagnosticExports() {
+  for(String s:new String[]{"ftp://cdn.example/secret","smb://nas.example/share","https:///secret"})assertEquals("[скрыто]",DiagnosticPrivacy.redact(s));
+ }
 }

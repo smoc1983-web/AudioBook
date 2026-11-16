@@ -54,4 +54,8 @@ public class SourceHttpTest {
    task.get(3,java.util.concurrent.TimeUnit.SECONDS);
   }
  }
+ @Test public void singleCrOrLfAtFirstOrLaterPositionIsRejected()throws Exception {
+  for(String value:new String[]{"\rsecret","safe\rsecret","\nsecret","safe\nsecret"})NetworkAddressRulesTest.rejected(()->SourceHttp.open("https://books.example/a",Map.of("Cookie",value),1,2,"GET",u->new Reply(u,200,null)));
+  NetworkAddressRulesTest.rejected(()->SourceHttp.open("https://books.example/a",Collections.singletonMap("Cookie",null),1,2,"GET",u->new Reply(u,200,null)));
+ }
 }

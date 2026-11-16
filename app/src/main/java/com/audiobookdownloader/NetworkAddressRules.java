@@ -16,7 +16,7 @@ public final class NetworkAddressRules {
         }catch(Exception bad){throw new IOException("Недопустимый сетевой адрес");}
     }
     private static boolean unsafeRaw(String value) {
-        return value==null||value.matches("(?s).*[\\\\\\p{Cntrl}\\s].*")||value.toLowerCase(Locale.ROOT).matches(".*%(?:0[0-9a-f]|1[0-9a-f]|7f).*");
+        return value.toLowerCase(Locale.ROOT).matches(".*%(?:0[0-9a-f]|1[0-9a-f]|7f).*");
     }
     private static boolean validAuthority(URI u) {
         return ("http".equalsIgnoreCase(u.getScheme())||"https".equalsIgnoreCase(u.getScheme()))&&u.getHost()!=null&&u.getRawUserInfo()==null&&u.getPort()<=65535&&u.getPort()!=0;
@@ -61,5 +61,5 @@ public final class NetworkAddressRules {
     public static boolean forwardHeader(URL original,URL next,String name) {
         return sameOrigin(original,next)||Arrays.asList("user-agent","accept","accept-language","accept-encoding","range","if-range").contains(name.toLowerCase(Locale.ROOT));
     }
-    private static int port(URL u) {return u.getPort()<0?u.getDefaultPort():u.getPort();}
+    private static int port(URL u) {return u.getPort()==-1?u.getDefaultPort():u.getPort();}
 }
