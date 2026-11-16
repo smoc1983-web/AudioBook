@@ -7058,6 +7058,10 @@ fun downloadTrack(
             false
         )
 
+        // Avoid DownloadManager's concurrent mkdir race for the first chapters of a new book.
+        // Scoped-storage devices may delegate directory creation to DownloadManager.
+        val destinationFolder=File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),folder)
+        if(!destinationFolder.isDirectory)destinationFolder.mkdirs()
         request.setDestinationInExternalPublicDir(
             Environment.DIRECTORY_DOWNLOADS,
             "$folder/$fileName"
