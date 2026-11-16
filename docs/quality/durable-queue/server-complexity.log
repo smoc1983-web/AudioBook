@@ -1,0 +1,9 @@
+CRAP Report
+===========
+Languages: python
+
+Function                       Namespace                               CC    Cov%     CRAP
+------------------------------------------------------------------------------------------
+do_GET                         tools.tests.queue-test-server.Handler    7   N/A       N/A
+log_message                    tools.tests.queue-test-server.Handler    1   N/A       N/A
+Wrote /workspace/Audiobook-Workspace/.metrics/crap.edn

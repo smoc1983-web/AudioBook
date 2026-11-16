@@ -1,0 +1,117 @@
+{
+  "stage": 3,
+  "date": "2026-11-16",
+  "status": "passed-not-published",
+  "branch": "cloud/durable-queue-20261116",
+  "base": "742e36130beb03b7504cb7fc2df272ef5a666c0b",
+  "testedSource": "2dd0d8ef0b98a100ec64662a1d06c425a8883907",
+  "run": 43872154868,
+  "baselineClean": true,
+  "published": false,
+  "packageVersionSignerChanged": false,
+  "local": {
+    "javaTests": 8,
+    "parserChecks": "passed",
+    "javaCoverage": "JaCoCo measured; QueueSnapshotRules and QueueRecoveryRules",
+    "javaMaxCrap": 7,
+    "dryerThreshold": 0.8,
+    "scopedDuplicateCandidates": 0,
+    "mutations": {
+      "killed": 32,
+      "survived": 0
+    },
+    "kotlinSupportedByQualityTools": false
+  },
+  "checks": {
+    "priorRun43871309347": {
+      "verify": "success",
+      "debug": {
+        "tests": 302,
+        "skipped": 1,
+        "failures": 0,
+        "errors": 0
+      },
+      "release": {
+        "tests": 302,
+        "skipped": 1,
+        "failures": 0,
+        "errors": 0
+      },
+      "lintEach": {
+        "fatal": 0,
+        "error": 0,
+        "warning": 76,
+        "information": 76
+      },
+      "lintComparedWithStage2": "No new diagnostics ignoring shifted lines; one ApplySharedPref warning removed",
+      "native": "16 normal tests passed; process harness stopped because rg absent, not a pass"
+    }
+  },
+  "tokenEconomizer": {
+    "cliStatusExecuted": true,
+    "chatHooksVerified": false,
+    "savingsClaimed": false,
+    "standingPermission": true
+  },
+  "limits": [
+    "No physical-device test",
+    "Preserve and block when every queue copy is invalid",
+    "No release published",
+    "Stage 4 not started"
+  ],
+  "native": {
+    "run": 43872154868,
+    "job": 133315826311,
+    "api": 36,
+    "distinctTests": 16,
+    "failed": 0,
+    "forceStopReboot": {
+      "prepare": "passed",
+      "restore": "passed",
+      "checks": [
+        "boot_count increased",
+        "same queue key",
+        "one system job",
+        "one audio file",
+        "same position 1234",
+        "same bookmark id and note"
+      ]
+    },
+    "physicalDevice": false
+  },
+  "finalCI": {
+    "run": 43872154868,
+    "conclusion": "success",
+    "url": "https://github.com/smoc1983-web/AudioBook/actions/runs/43872154868",
+    "verifyJob": 133315826966,
+    "nativeJob": 133315826311,
+    "reports": {
+      "Debug": {
+        "tests": 302,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 1
+      },
+      "Release": {
+        "tests": 302,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 1
+      },
+      "lint-results-release.xml": {
+        "Warning": 76,
+        "Information": 76
+      },
+      "lint-results-debug.xml": {
+        "Warning": 76,
+        "Information": 76
+      }
+    },
+    "stableDebugBuild": "passed",
+    "stableReleaseBuild": "passed unsigned",
+    "previewDebugBuild": "passed existing signer",
+    "androidTestCompile": "passed",
+    "lintNewDiagnostics": 0,
+    "lintRemovedWarnings": 1
+  }
+}

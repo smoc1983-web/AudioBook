@@ -1,0 +1,13 @@
+CRAP Report
+===========
+Languages: java
+
+Function                       Namespace                                    CC    Cov%     CRAP
+-----------------------------------------------------------------------------------------------
+decode                         com.audiobookdownloader.QueueSnapshotRules    7 100.0%      7.0
+transientFailure               com.audiobookdownloader.QueueRecoveryRules    6 100.0%      6.0
+retryDelay                     com.audiobookdownloader.QueueRecoveryRules    4 100.0%      4.0
+encode                         com.audiobookdownloader.QueueSnapshotRules    2 100.0%      2.0
+text                           com.audiobookdownloader.QueueSnapshotRules    2 100.0%      2.0
+confirmedMissing               com.audiobookdownloader.QueueRecoveryRules    1 100.0%      1.0
+hash                           com.audiobookdownloader.QueueSnapshotRules    1 100.0%      1.0
