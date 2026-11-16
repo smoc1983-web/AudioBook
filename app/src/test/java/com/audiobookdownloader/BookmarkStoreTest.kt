@@ -78,4 +78,15 @@ class BookmarkStoreTest {
         addBookmark(p,"Book",0,"01",4000)
         assertEquals(raw,p.getString(bookmarksKey("Book"),null))
     }
+    @Test fun reusedLegacyBookmarkIdsNeverMergeDifferentEditions() {
+        val p=prefs();val a=ChapterIdentity.edition("Book","https://source.example/a");val b=ChapterIdentity.edition("Book","https://source.example/b")
+        val one=Bookmark(0,"01",4000,1,id="legacy-shared",note="First",editionId=a)
+        val two=one.copy(editionId=b,note="Second")
+        saveBookmarks(p,"Book",listOf(one,two))
+        assertEquals(2,allBookmarks(p,emptyList()).size)
+        updateBookmark(p,"Book",one,"Edited","New first")
+        assertEquals("New first",loadBookmarks(p,"Book",a).single().note)
+        assertEquals("Second",loadBookmarks(p,"Book",b).single().note)
+        removeBookmark(p,"Book",one);assertEquals(listOf(two),loadBookmarks(p,"Book"))
+    }
 }

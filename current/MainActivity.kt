@@ -10694,7 +10694,7 @@ private fun AbLibraryScreen(data: AbScreenData,actions: AbActions,sync: LibraryS
         }
         if(tab==6) {
             if(visibleBookmarks.isEmpty())item{Text("Закладок пока нет. Сохраните нужный момент в плеере.",color=theme.muted)}
-            items(visibleBookmarks,key={it.first+":"+it.second.id}) {(book,mark)->
+            items(visibleBookmarks,key={it.first+":"+it.second.editionId+":"+it.second.id}) {(book,mark)->
                 AbBookmarkRow(book,mark,theme,{
                     if(mark.editionId.isNotBlank()&&data.playback.tracks.any{it.editionId==mark.editionId} || mark.editionId.isBlank()&&data.playback.bookTitle==book) {
                         val at=resolveBookmark(mark,data.playback.tracks)

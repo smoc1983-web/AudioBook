@@ -42,7 +42,7 @@ fun loadBookmarks(prefs:SharedPreferences,bookTitle:String,editionId:String=""):
     prefs.all.filterKeys{it.startsWith("bookmarks_v2_")}.values.filterIsInstance<String>().filter{it.contains(editionId)}.forEach {raw->
         try{result+=bookmarkRows(raw,bookTitle).filter{it.editionId==editionId}}catch(_:Exception){}
     }
-    return result.distinctBy{it.id}.sortedWith(compareBy<Bookmark>{it.track}.thenBy{it.position})
+    return result.distinctBy{it.editionId to it.id}.sortedWith(compareBy<Bookmark>{it.track}.thenBy{it.position})
 }
 fun saveBookmarks(prefs:SharedPreferences,bookTitle:String,list:List<Bookmark>):Boolean = try {
     // Never replace an unreadable original with the empty result of a failed parse.
@@ -59,7 +59,7 @@ fun addBookmark(prefs:SharedPreferences,bookTitle:String,track:Int,trackTitle:St
         editionId=editionId,chapterId=if(editionId.isBlank())"" else ChapterIdentity.chapter(editionId,trackTitle)))
 }
 private fun changeBookmark(prefs:SharedPreferences,bookTitle:String,mark:Bookmark,change:(Bookmark)->Bookmark?):Boolean {
-    if(mark.editionId.isBlank())return saveBookmarks(prefs,bookTitle,loadBookmarks(prefs,bookTitle).mapNotNull{if(it.id==mark.id)change(it) else it})
+    if(mark.editionId.isBlank())return saveBookmarks(prefs,bookTitle,loadBookmarks(prefs,bookTitle).mapNotNull{if(it.id==mark.id&&it.editionId==mark.editionId)change(it) else it})
     return try {
         val updates=mutableMapOf<String,String>()
         prefs.all.filterKeys{it.startsWith("bookmarks_v2_")}.forEach {(key,value)->
@@ -70,7 +70,7 @@ private fun changeBookmark(prefs:SharedPreferences,bookTitle:String,mark:Bookmar
             val owner=JSONArray(raw).optJSONObject(0)?.optString("book").orEmpty().ifBlank{bookTitle}
             updates[key]=bookmarkJson(owner,rows.mapNotNull{if(it.id==mark.id&&it.editionId==mark.editionId)change(it) else it})
         }
-        if(updates.isEmpty())return saveBookmarks(prefs,bookTitle,loadBookmarks(prefs,bookTitle).mapNotNull{if(it.id==mark.id)change(it) else it})
+        if(updates.isEmpty())return saveBookmarks(prefs,bookTitle,loadBookmarks(prefs,bookTitle).mapNotNull{if(it.id==mark.id&&it.editionId==mark.editionId)change(it) else it})
         val edit=prefs.edit();updates.forEach{(key,value)->edit.putString(key,value)}
         edit.commit().also{if(!it)bookmarkProblem(prefs)}
     }catch(_:Exception){bookmarkProblem(prefs);false}
@@ -94,5 +94,5 @@ internal fun allBookmarks(prefs:SharedPreferences,knownTitles:List<String>):List
     prefs.all.filterKeys{it.startsWith("bookmarks_v2_")}.values.filterIsInstance<String>().forEach {value->
         try {val rows=JSONArray(value);for(i in 0 until rows.length())rows.optJSONObject(i)?.optString("book")?.takeIf{it.isNotBlank()}?.let{titles.add(it)}}catch(_:Exception){}
     }
-    return titles.flatMap{title->loadBookmarks(prefs,title).map{title to it}}.distinctBy{it.second.id}.sortedByDescending{it.second.created}
+    return titles.flatMap{title->loadBookmarks(prefs,title).map{title to it}}.distinctBy{it.second.editionId to it.second.id}.sortedByDescending{it.second.created}
 }
