@@ -53,22 +53,36 @@ internal object AbBookProgress {
     fun playback(p:SharedPreferences,state:ServicePlaybackState,cache:Map<String,Int> = AbAudioDurations.state.value):AbBookTimeRules.Result =
         calculate(p,state.bookTitle,state.tracks,state.trackIndex,state.positionMs,state.durationMs,state.speed,cache)
 
+    private data class LocalTracks(val files:List<java.io.File>,val titles:String?,val edition:String?,val tracks:List<ServiceTrack>)
+    private val locals=linkedMapOf<String,LocalTracks>()
+    @Synchronized private fun localTracks(p:SharedPreferences,book:LibraryBook):List<ServiceTrack> {
+        val titles=p.getString("book_chapter_titles_"+safeFileName(book.title),null)
+        val edition=p.getString("book_local_edition_"+safeFileName(book.title),null)
+        locals[book.title]?.takeIf{it.files==book.files && it.titles==titles && it.edition==edition}?.let{return it.tracks}
+        val tracks=StableProgress.localTracks(p,book.title,book.files)
+        locals.remove(book.title);locals[book.title]=LocalTracks(book.files.toList(),titles,edition,tracks)
+        while(locals.size>64)locals.remove(locals.keys.first())
+        return tracks
+    }
     fun library(p:SharedPreferences,book:LibraryBook,state:ServicePlaybackState,cache:Map<String,Int> = AbAudioDurations.state.value):AbBookTimeRules.Result {
         if(state.bookTitle==book.title && state.hasSelection)return playback(p,state,cache)
-        val local=StableProgress.localTracks(p,book.title,book.files)
+        val local=localTracks(p,book)
         // A retained playlist supplies source durations, but must belong to the local edition.
         val retained=playlist(p,book.title)
         val id=edition(p,book.title,local)
-        val tracks=if(retained.isNotEmpty() && edition(p,book.title,retained)==id)retained else local
+        val sameEdition=retained.isNotEmpty() && edition(p,book.title,retained)==id
+        val tracks=if(sameEdition)retained else local
         val full=chapters(p,book.title,tracks)
         val resume=StableProgress.resume(p,book.title,full)
-        val stable=p.contains("book_progress_identity_"+id) || p.getString("widget_book","")==book.title
+        val checkpoint=p.contains("book_progress_identity_"+id)
+        val stable=checkpoint || sameEdition
         val index=if(stable)resume.index else p.getInt(bookProgressTrackKey(book.title),0)
         val position=if(stable)resume.position else p.getInt(bookProgressPositionKey(book.title),0)
         // A legacy numeric index alone is not proof of a chapter in a downloaded subset.
-        val valid=full.size>=p.getInt(bookTotalKey(book.title),full.size)
+        val valid=full.size>=p.getInt(bookTotalKey(book.title),full.size) &&
+            (checkpoint || retained.isEmpty() || sameEdition)
         val widgetIndex=p.getInt("widget_track_index",-1)
-        val sameChapter=p.getString("widget_book","")==book.title &&
+        val sameChapter=sameEdition &&
             retained.getOrNull(widgetIndex)?.title==full.getOrNull(index)?.title
         val duration=if(sameChapter)p.getInt("widget_duration",0)
             else if(!stable)p.getInt("book_duration_"+safeFileName(book.title),0) else 0
@@ -90,7 +104,8 @@ internal object AbBookProgress {
         return AbBookTimeRules.calculate(durations,selection,position.toLong(),speed,
             p.getBoolean("book_completed_"+safeFileName(book),false))
     }
-    fun label(result:AbBookTimeRules.Result) = (if(result.approximate)"≈ " else "")+"${(result.progress*100).toInt()}%"
+    fun label(result:AbBookTimeRules.Result) = if(result.totalRemaining==0 && result.approximate)"—" else (if(result.approximate)"≈ " else "")+"${(result.progress*100).toInt()}%"
     fun description(result:AbBookTimeRules.Result) =
+        if(result.totalRemaining==0 && result.approximate)"Прогресс книги пока не определён" else
         "Прогресс книги: "+(if(result.approximate)"примерно " else "")+"${(result.progress*100).toInt()}%"
 }

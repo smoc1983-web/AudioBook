@@ -47,4 +47,32 @@ public class AbBookTimeRulesTest {
   }
   assertEquals(0f,AbBookTimeRules.calculate(new long[]{0},9,100,1).progress,0);
  }
+
+ @Test public void unavailableSelectionHasNoInventedTimesOrCounts(){
+  for(boolean completed:new boolean[]{false,true}) {
+   AbBookTimeRules.Result r=AbBookTimeRules.calculate(new long[]{1000},1,500,1,completed);
+   assertEquals(-1,r.remainingMs);assertEquals(-1,r.elapsedMs);assertEquals(-1,r.totalMs);
+   assertEquals(-1,r.chapterRemainingMs);assertEquals(0,r.knownRemaining);assertEquals(0,r.totalRemaining);
+   assertEquals(!completed,r.approximate);assertEquals(completed?1f:0f,r.progress,0f);
+  }
+ }
+ @Test public void chapterTimeRespectsSpeedAndZeroOrUnknownDuration(){
+  AbBookTimeRules.Result known=AbBookTimeRules.calculate(new long[]{1000},0,500,2);
+  assertEquals(250,known.chapterRemainingMs);
+  AbBookTimeRules.Result unknown=AbBookTimeRules.calculate(new long[]{0},0,123,1);
+  assertEquals(-1,unknown.chapterRemainingMs);assertEquals(123,unknown.elapsedMs);
+  assertEquals(0,AbBookTimeRules.calculate(new long[]{0},0,-123,1).elapsedMs);
+  assertEquals(0,AbBookTimeRules.calculate(new long[]{1000},0,0,1).elapsedMs);
+  assertEquals(0,AbBookTimeRules.calculate(new long[]{1},0,1,1).chapterRemainingMs);
+  assertEquals(.5f,AbBookTimeRules.calculate(new long[]{1,0},0,1,1).progress,0f);
+ }
+ @Test public void slowerThanNormalSpeedIsValid(){
+  assertEquals(1000,AbBookTimeRules.calculate(new long[]{1000},0,500,.5f).remainingMs);
+ }
+ @Test public void timeFormatsHoursMinutesAndBoundaries(){
+  assertEquals("1:00:00",AbBookTimeRules.time(3600000));
+  assertEquals("1:01:01",AbBookTimeRules.time(3661000));
+  assertEquals("01:01",AbBookTimeRules.time(61000));
+  assertEquals("00:00",AbBookTimeRules.time(-1));
+ }
 }

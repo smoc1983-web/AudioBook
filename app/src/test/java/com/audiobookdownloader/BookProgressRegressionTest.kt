@@ -79,6 +79,8 @@ class BookProgressRegressionTest {
         val local=LibraryBook(book,File("/unused"),listOf(File("/unused/01.mp3"),File("/unused/02.mp3")))
         val result=AbBookProgress.library(p,local,ServicePlaybackState())
         assertTrue(result.approximate);assertEquals(0f,result.progress,0f)
+        assertEquals("—",AbBookProgress.label(result))
+        assertEquals("Прогресс книги пока не определён",AbBookProgress.description(result))
         assertEquals(19,p.getInt(bookProgressTrackKey(book),0))
     }
     @Test fun completedStatusIsConsistentOnAllReadPaths() {
@@ -116,5 +118,23 @@ class BookProgressRegressionTest {
         val widget=AbBookProgress.calculate(p,book,tracks,1,1740000,3540000)
         assertEquals(.5f,library.progress,.00001f);assertFalse(library.approximate)
         assertEquals(widget.progress,library.progress,0f)
+    }
+
+    @Test fun foreignRetainedPlaylistCannotSupplyLocalDuration() {
+        val p=preferences();catalogue(p)
+        StableProgress.save(p,book,full(),1,1740000)
+        p.edit().putString("widget_book",book).putString("widget_playlist",
+            "[{\"t\":\"01\",\"s\":\"/foreign/01\",\"e\":\"other-edition\"},{\"t\":\"02\",\"s\":\"/foreign/02\",\"e\":\"other-edition\"}]")
+            .putInt("widget_track_index",1).putInt("widget_duration",999999).apply()
+        val local=LibraryBook(book,File("/unused"),full().map{File(it.src)})
+        assertEquals(.5f,AbBookProgress.library(p,local,ServicePlaybackState()).progress,.00001f)
+    }
+    @Test fun changedLocalFilesInvalidatePresentationCache() {
+        val p=preferences();catalogue(p);StableProgress.save(p,book,full(),1,1740000)
+        val local=LibraryBook(book,File("/unused"),listOf(File(full()[1].src)))
+        assertEquals(.5f,AbBookProgress.library(p,local,ServicePlaybackState()).progress,.00001f)
+        val changed=local.copy(files=listOf(File("/unused/foreign.mp3")))
+        assertEquals("—",AbBookProgress.label(AbBookProgress.library(p,changed,ServicePlaybackState())))
+        assertEquals(.5f,AbBookProgress.library(p,local,ServicePlaybackState()).progress,.00001f)
     }
 }

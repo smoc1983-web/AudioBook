@@ -274,7 +274,7 @@ internal object AbGlassWidgets {
         views.setImageViewBitmap(R.id.ab_widget_cover,AbWidgetArt.cover(context,state.title,palette,kind==1))
         views.setTextViewText(R.id.ab_widget_title,if(state.selected)state.title else "Audiobook")
         val timing=AbBookProgress.calculate(context.getSharedPreferences("audiobook_downloader",0),state.title,
-            state.tracks.ifEmpty{List(state.count){ServiceTrack("Глава ${it+1}","")}},state.index,state.position,state.duration)
+            state.tracks,state.index,state.position,state.duration)
         val progressText=AbBookProgress.description(timing)
         val chapter=if(!state.selected)"Выберите книгу" else if(state.loading)"Загрузка главы…" else
             AbMediaPresentation.chapter(state.index,state.count,if(kind==0)"" else state.chapter)+" · "+AbBookProgress.label(timing)
