@@ -122,7 +122,7 @@ internal object AbGlassWidgets {
     private val callbacks = mutableListOf<(Boolean)->Unit>()
     private var all = false
     private var running = false
-    private var lastTransition = ""
+    private var lastPublished:AbWidgetSnapshot?=null
     private var lastUpdate = 0L
     private var nextEmptyScan = 0L
     @Volatile private var latest: AbWidgetSnapshot? = null
@@ -134,16 +134,16 @@ internal object AbGlassWidgets {
         provider != null && components.any { provider == ComponentName(context,it) }
     } catch (_: Exception) { false }
 
-    fun publish(context: Context, state: ServicePlaybackState) {
+    fun publish(context: Context, state: ServicePlaybackState,periodic:Boolean=false) {
         val track = state.tracks.getOrNull(state.trackIndex)
         val snapshot = AbWidgetSnapshot(state.bookTitle,track?.title.orEmpty(),state.trackIndex,state.tracks.size,
             state.positionMs,state.durationMs,state.isPlaying,state.isLoading,state.sleepSeconds,state.sleepChapterTarget.isNotBlank(),state.tracks)
         latest = snapshot
         val now = SystemClock.elapsedRealtime()
         synchronized(lock) {
-            if(snapshot.transition==lastTransition && now-lastUpdate<5000L)return
-            lastTransition=snapshot.transition;lastUpdate=now
             if(now<nextEmptyScan)return
+            if(!PlaybackPulseRules.widget(snapshot!=lastPublished,snapshot.transition!=lastPublished?.transition,periodic,now-lastUpdate))return
+            lastPublished=snapshot;lastUpdate=now
         }
         update(context)
     }

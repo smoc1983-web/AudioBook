@@ -204,6 +204,17 @@ class PlaybackService : Service() {
             })
         }
 
+        fun refreshArtwork(title:String) {
+            val service=instance ?: return
+            service.handler.post {
+                if(instance===service && !service.stopped && service.bookTitle==title) {
+                    service.coverBook="";service.coverBitmap=null;service.metadataKey=""
+                    service.publish()
+                    AbGlassWidgets.refreshAll(service.applicationContext)
+                }
+            }
+        }
+
         fun refreshSettings(context: Context) {
             if (instance != null) command(context, ACTION_SETTINGS)
         }
@@ -285,6 +296,7 @@ class PlaybackService : Service() {
     private var shakeRegistered = false
     private val shakeDetector = SleepShakeDetector()
     private var sleepRestartedAt = 0L
+    private var nextPulseAt = Long.MAX_VALUE
     private var lastPersistAt = 0L
     private var lastNotificationAt = 0L
     private var coverBook = ""
@@ -373,15 +385,27 @@ class PlaybackService : Service() {
 
     private val tickRunnable = object : Runnable {
         override fun run() {
-            if (stopped) return
-            readPosition()
-            val now = SystemClock.elapsedRealtime()
-            stopForExpiredTimer(now)
-            updateVolume()
-            updateShakeListener()
-            if (isPlaying && now - lastPersistAt >= 5000L) persistState()
-            publish(refreshNotification = now - lastNotificationAt >= 1000L)
-            handler.postDelayed(this, 500L)
+            nextPulseAt=Long.MAX_VALUE
+            if(stopped)return
+            if(isPlaying)readPosition()
+            val now=SystemClock.elapsedRealtime()
+            if(stopForExpiredTimer(now))return
+            if(isPlaying)updateVolume()
+            if(isPlaying && now-lastPersistAt>=5000L)persistState()
+            publish(refreshNotification=now-lastNotificationAt>=1000L,periodic=true)
+        }
+    }
+
+    private fun schedulePulse() {
+        val now=SystemClock.elapsedRealtime()
+        val remaining=if(sleepEndAt>0L)(sleepEndAt-now).coerceAtLeast(0L) else -1L
+        val delay=PlaybackPulseRules.delay(stopped,isPlaying,isLoading,remaining)
+        if(delay<0L) {
+            handler.removeCallbacks(tickRunnable);nextPulseAt=Long.MAX_VALUE
+        } else if(now+delay<nextPulseAt) {
+            handler.removeCallbacks(tickRunnable)
+            nextPulseAt=now+delay
+            handler.postDelayed(tickRunnable,delay)
         }
     }
 
@@ -428,7 +452,7 @@ class PlaybackService : Service() {
             @Suppress("DEPRECATION")
             registerReceiver(ringerReceiver,IntentFilter(AudioManager.RINGER_MODE_CHANGED_ACTION))
         }
-        handler.post(tickRunnable)
+        schedulePulse()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -437,8 +461,8 @@ class PlaybackService : Service() {
         if (stopped) {
             stopped = false
             instance = this
-            handler.removeCallbacks(tickRunnable)
-            handler.post(tickRunnable)
+            nextPulseAt=Long.MAX_VALUE
+            schedulePulse()
         }
         // Уведомление создаётся до prepareAsync и до запроса аудиофокуса.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -1115,15 +1139,17 @@ class PlaybackService : Service() {
         }catch(error:Exception){trace("Ошибка снятия блокировки: "+error.javaClass.simpleName)}
     }
 
-    private fun publish(refreshNotification: Boolean = true) {
+    private fun publish(refreshNotification: Boolean = true,periodic:Boolean=false) {
         updatePlaybackWakeLock()
+        updateShakeListener()
         val wasActive=mutableState.value.isPlaying || mutableState.value.isLoading
         mutableState.value = ServicePlaybackState(bookTitle, sourceType, playlist, trackIndex,
             positionMs, durationMs, isPlaying, isLoading, mediaPlayer != null || isLoading,
             playbackSpeed, eqAvailable, remainingSleepSeconds(), sleepChapterTarget, errorMessage, playbackNote,
             shakeListening=shakeRegistered, sleepRestartedAt=sleepRestartedAt,nextBookTitle=nextBookTitle)
         if(wasActive && !isPlaying && !isLoading)AbLibraryHousekeeping.request(applicationContext)
-        AbGlassWidgets.publish(applicationContext,mutableState.value)
+        AbGlassWidgets.publish(applicationContext,mutableState.value,periodic)
+        schedulePulse()
         if (refreshNotification && !stopped) {
             updateSessionState()
             try { getSystemService(NotificationManager::class.java).notify(NOTIFICATION_ID, buildNotification()) }
@@ -1147,7 +1173,6 @@ class PlaybackService : Service() {
             .setState(playbackState, positionMs.toLong(), if (isPlaying) playbackSpeed else 0f, SystemClock.elapsedRealtime())
         if(errorMessage.isNotBlank())sessionState.setErrorMessage(errorMessage)
         mediaSession.setPlaybackState(sessionState.build())
-        AudioBookWidget.updateAll(this, bookTitle, trackTitle, isPlaying, positionMs, durationMs)
         val cover = loadCoverCached()
         val title=AbMediaPresentation.bookTitle(bookTitle)
         val chapter=AbMediaPresentation.chapter(trackIndex,playlist.size,trackTitle)

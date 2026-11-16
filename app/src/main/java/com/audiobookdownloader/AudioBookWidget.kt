@@ -18,6 +18,7 @@ class AudioBookWidget : AbGlassWidgetProvider() {
             val temp=File.createTempFile("cover-",".jpg",folder)
             temp.outputStream().use{bitmap.compress(Bitmap.CompressFormat.JPEG,88,it)}
             if(!temp.renameTo(target)){temp.copyTo(target,overwrite=true);temp.delete()}
+            PlaybackService.refreshArtwork(title)
         }
     }
 }
