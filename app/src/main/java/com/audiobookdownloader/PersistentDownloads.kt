@@ -21,7 +21,7 @@ internal fun abDownloadObservation(row:QueuedChapter,status:Int?,downloaded:Long
     providerAvailable:Boolean=true):QueuedChapter {
     if(!providerAvailable)return row
     return when(status) {
-        DownloadManager.STATUS_SUCCESSFUL->row.copy(state="complete",bytes=downloaded,total=total,error="")
+        DownloadManager.STATUS_SUCCESSFUL->row.copy(state="verifying",bytes=downloaded,total=total,error="")
         DownloadManager.STATUS_FAILED,null->row.copy(state="error",error="Android не завершил загрузку. Можно повторить.")
         else->row.copy(bytes=if(downloaded>=0)downloaded else row.bytes,total=if(total>=0)total else row.total,
             error=if(status==DownloadManager.STATUS_PAUSED)"Ожидание сети или Wi-Fi" else "")
@@ -38,6 +38,9 @@ internal object AbPersistentDownloads {
     private fun legacyKey(book:String,title:String)=AbLibraryHousekeeping.bookKey(book)+"\u0000"+safeFileName(title).lowercase(java.util.Locale.ROOT)
     fun key(book:String,title:String,src:String,editionUrl:String="")=ChapterIdentity.download(book,title,src,editionUrl)
     private fun destination(row:QueuedChapter)=legacyKey(row.book,row.title)
+    fun unverifiedKeys(c:Context):Set<String> = entries(c).filter{it.job>0 && it.state !in listOf("complete","cancelled") &&
+        prefs(c).getString("destination_owner_"+ChapterIdentity.hash(destination(it)),null)==it.key}
+        .map{destination(it)}.toSet()
     fun sourceFor(c:Context,book:String,title:String):String?=prefs(c).getString("destination_source_"+ChapterIdentity.hash(legacyKey(book,title)),null)
     fun entries(c:Context):List<QueuedChapter> = synchronized(lock) {
         val raw=prefs(c).getString("entries","[]").orEmpty()
@@ -49,7 +52,7 @@ internal object AbPersistentDownloads {
         val a=try{JSONArray(raw)}catch(_:Exception){JSONArray()}
         return (0 until minOf(a.length(),6000)).mapNotNull {i->try{a.optJSONObject(i)?.let {o->
             val row=QueuedChapter(o.getString("key"),o.getString("book"),o.getString("title"),o.getString("src"),o.optInt("duration"),o.optLong("job"),o.optString("state","queued"),o.optLong("bytes"),o.optLong("total",-1),o.optString("error"),o.optString("editionUrl"),o.optString("initialSrc",o.getString("src")),o.optInt("refreshAttempts"))
-            row.takeIf{(it.key==legacyKey(it.book,it.title)||it.key==key(it.book,it.title,it.initialSrc,it.editionUrl))&&isNetworkAudio(it.src)&&isNetworkAudio(it.initialSrc)&&it.refreshAttempts in 0..1&&(it.src==it.initialSrc||ChapterRefreshRules.sameResource(it.initialSrc,it.src))&&it.state in listOf("queued","active","complete","error","cancelled")}
+            row.takeIf{(it.key==legacyKey(it.book,it.title)||it.key==key(it.book,it.title,it.initialSrc,it.editionUrl))&&isNetworkAudio(it.src)&&isNetworkAudio(it.initialSrc)&&it.refreshAttempts in 0..1&&(it.src==it.initialSrc||ChapterRefreshRules.sameResource(it.initialSrc,it.src))&&it.state in listOf("queued","active","verifying","complete","error","cancelled")}
                 ?.let{it.copy(key=key(it.book,it.title,it.initialSrc,it.editionUrl))}
         }}catch(_:Exception){null}}
     }
@@ -91,7 +94,8 @@ internal object AbPersistentDownloads {
     fun pause(c:Context,book:String,value:Boolean) {
         check(prefs(c).edit().putBoolean("paused:v2:"+ChapterIdentity.hash(book),value).commit());if(!value)schedule(c)
     }
-    fun clearCompleted(c:Context)=synchronized(lock){write(c,entries(c).filter{it.state !in listOf("complete","cancelled")})}
+    fun clearCompleted(c:Context)=synchronized(lock){write(c,entries(c).filter{it.job>0 && it.state !in listOf("complete","cancelled") &&
+        prefs(c).getString("destination_owner_"+ChapterIdentity.hash(destination(it)),null)==it.key})}
     fun retry(c:Context,book:String)=synchronized(lock) {
         write(c,entries(c).map{if(it.book==book&&it.state=="error")it.copy(state="queued",error="",refreshAttempts=0) else it});schedule(c)
     }
@@ -109,7 +113,8 @@ internal object AbPersistentDownloads {
                 main(c).edit().remove("download_job_"+row.job).commit()
             }
         }
-        write(c,rows.map{if(it.key in completed)it.copy(state="complete") else if(it.book==book&&(chapter==null||it.key==chapter)&&it.state!="complete")it.copy(state="cancelled",job=0) else it})
+        write(c,rows.map{if(it.key in completed)it.copy(state=if(AbDownloadedAudio.verified(c,it.job))"complete" else "verifying") else if(it.book==book&&(chapter==null||it.key==chapter)&&it.state!="complete")it.copy(state="cancelled",job=0) else it})
+        if(completed.isNotEmpty())schedule(c)
 
     }
     fun install(c:Context) {
@@ -131,7 +136,7 @@ internal object AbPersistentDownloads {
             }
             write(c,rows)
         }
-        if(entries(c).any{it.state in listOf("active","queued")})schedule(c)
+        if(entries(c).any{it.state in listOf("active","verifying","queued")})schedule(c)
     }
     private fun pendingAndroidJob(dm:DownloadManager,row:QueuedChapter):Long? {
         // Recover the crash window after system enqueue and before persisting its returned ID.
@@ -147,13 +152,16 @@ internal object AbPersistentDownloads {
     private fun removeOwnedFailedJob(c:Context,dm:DownloadManager,row:QueuedChapter):Boolean {
         if(row.job<=0 || prefs(c).getString("destination_owner_"+ChapterIdentity.hash(destination(row)),null)!=row.key)return false
         val failed=dm.query(DownloadManager.Query().setFilterById(row.job))?.use{q->
-            q.moveToFirst() && q.getInt(q.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS))==DownloadManager.STATUS_FAILED &&
-                q.getInt(q.getColumnIndexOrThrow(DownloadManager.COLUMN_REASON)) in 400..599 &&
+            q.moveToFirst() &&
+                (q.getInt(q.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS))==DownloadManager.STATUS_FAILED &&
+                    q.getInt(q.getColumnIndexOrThrow(DownloadManager.COLUMN_REASON)) in 400..599 ||
+                 q.getInt(q.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS))==DownloadManager.STATUS_SUCCESSFUL &&
+                    AbDownloadedAudio.unchangedRejected(c,row.job)) &&
                 q.getString(q.getColumnIndexOrThrow(DownloadManager.COLUMN_URI))==row.src &&
                 q.getString(q.getColumnIndexOrThrow(DownloadManager.COLUMN_TITLE))==row.book+" - "+row.title
         }==true
         if(!failed)return false
-        // DownloadManager removes only its own failed job/partial file, never a successful job.
+        // Only this exact owned HTTP-failed or validator-rejected job may be retried; verified files are preserved.
         if(dm.remove(row.job)<=0)return false
         main(c).edit().remove("download_job_"+row.job).apply()
         return true
@@ -188,7 +196,7 @@ internal object AbPersistentDownloads {
     suspend fun pump(c:Context):Boolean=pumpLock.withLock{pumpOnce(c)}
     private suspend fun pumpOnce(c:Context):Boolean {
         val dm=c.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
-        val active=entries(c).filter{it.state=="active"&&it.job>0}
+        val active=entries(c).filter{it.state in listOf("active","verifying")&&it.job>0}
         var finished=false
         for(row in active) {
             var reason=0
@@ -206,15 +214,25 @@ internal object AbPersistentDownloads {
             if(sample?.first==DownloadManager.STATUS_FAILED && source==row.src && title==row.book+" - "+row.title &&
                 refreshExpired(c,dm,row,reason))continue
             update(c,row.key){current->
-                if(current.job!=row.job||current.state!="active")current else {
-                    if(sample?.first==DownloadManager.STATUS_SUCCESSFUL)finished=true
+                if(current.job!=row.job||current.state !in listOf("active","verifying"))current else {
                     abDownloadObservation(current,sample?.first,sample?.second ?: -1,sample?.third ?: -1,cursor!=null)
+                }
+            }
+            if(sample?.first==DownloadManager.STATUS_SUCCESSFUL) {
+                val result=if(source==row.src && title==row.book+" - "+row.title)
+                    AbDownloadedAudio.inspect(c,row.job,sample.third,row.book,row.title)
+                    else AbDownloadedAudio.Result(false,"Задание Android не соответствует этой главе. Прежний файл сохранён.")
+                AbBookDeletion.storageLock(row.book).withLock {
+                    update(c,row.key){current->
+                        if(current.job!=row.job||current.state!="verifying"||AbBookDeletion.busy(row.book))current
+                        else {finished=result.valid || finished;current.copy(state=if(result.valid)"complete" else "error",error=result.error)}
+                    }
                 }
             }
         }
         for(row in entries(c).filter{it.job>0&&it.state in listOf("complete","error")})main(c).edit().remove("download_job_"+row.job).apply()
         if(finished){main(c).edit().putLong("experience_library_revision",System.currentTimeMillis()).apply();AbLibraryHousekeeping.request(c)}
-        val available=(3-entries(c).count{it.state=="active"}).coerceAtLeast(0)
+        val available=(3-entries(c).count{it.state=="active"||it.state=="verifying"}).coerceAtLeast(0)
         val pending=entries(c).filter{it.state=="queued"&&!paused(c,it.book)}.take(available)
         if(pending.isNotEmpty()) {
             // Explicit retry retains the old job until its own HTTP-failed partial can be cleaned on IO.
@@ -231,13 +249,19 @@ internal object AbPersistentDownloads {
                 synchronized(lock) {
                     val current=entries(c).firstOrNull{it.key==row.key}
                     if(current?.state!="queued"||paused(c,row.book)||AbBookDeletion.busy(row.book))return@synchronized
+                    if(current.job>0) {
+                        val successful=dm.query(DownloadManager.Query().setFilterById(current.job))?.use{q->
+                            q.moveToFirst() && q.getInt(q.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS))==DownloadManager.STATUS_SUCCESSFUL
+                        }==true
+                        if(successful){update(c,row.key){it.copy(state="verifying",error="")};return@synchronized}
+                    }
                     val track=AudioTrack(row.title,row.duration,row.src)
                     val ownership="destination_owner_"+ChapterIdentity.hash(destination(row))
                     val owner=prefs(c).getString(ownership,null)
                     val exists=index.contains(row.book,row.title)
                     val adopted=pendingAndroidJob(dm,row)
                     val jobClaimed=adopted!=null && entries(c).any{it.key!=row.key&&it.job==adopted}
-                    val colliding=entries(c).any{it.key!=row.key && destination(it)==destination(row) && (it.state=="active" || it.state=="complete" && exists)}
+                    val colliding=entries(c).any{it.key!=row.key && destination(it)==destination(row) && (it.state in listOf("active","verifying") || it.state=="complete" && exists)}
                     if(colliding || jobClaimed || owner!=null && owner!=row.key && (exists||adopted!=null)) {
                         update(c,row.key){it.copy(state="error",error="Другое издание использует тот же файл. Прежняя глава сохранена; выберите отдельную папку или удалите прежнее издание.")}
                     } else if(adopted!=null) {
@@ -246,7 +270,7 @@ internal object AbPersistentDownloads {
                         update(c,row.key){it.copy(job=adopted,state="active",error="")}
                     } else if(exists) {
                         // Legacy files have no provable source: do not label another edition complete.
-                        if(owner==row.key)update(c,row.key){it.copy(state="complete")}
+                        if(owner==row.key && AbDownloadedAudio.verified(c,row.job))update(c,row.key){it.copy(state="complete")}
                         else update(c,row.key){it.copy(state="error",error="Одноимённая глава уже есть на устройстве; источник не подтверждён. Файл не изменён.")}
                     } else {
                         check(prefs(c).edit().putString(ownership,row.key).putString("destination_source_"+ChapterIdentity.hash(destination(row)),row.src).commit())
@@ -268,7 +292,7 @@ internal object AbPersistentDownloads {
                 }
             }
         }
-        return entries(c).any{it.state=="active" || it.state=="queued"&&!paused(c,it.book)}
+        return entries(c).any{it.state=="active" || it.state=="verifying" || it.state=="queued"&&!paused(c,it.book)}
     }
 }
 
@@ -288,7 +312,7 @@ class AbDownloadsWorker(context:Context,params:WorkerParameters):CoroutineWorker
 
 class AbQueueRecoveryWorker(context:Context,params:WorkerParameters):Worker(context,params) {
     override fun doWork():Result=try {
-        if(AbPersistentDownloads.entries(applicationContext).any{it.state=="active"||it.state=="queued"&&!AbPersistentDownloads.paused(applicationContext,it.book)})
+        if(AbPersistentDownloads.entries(applicationContext).any{it.state=="active"||it.state=="verifying"||it.state=="queued"&&!AbPersistentDownloads.paused(applicationContext,it.book)})
             AbPersistentDownloads.schedule(applicationContext,recovery=true)
         Result.success()
     }catch(_:Exception){Result.retry()}

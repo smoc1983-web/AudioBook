@@ -2125,7 +2125,10 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                     downloadRetryBooks[title]=book
                 }
                 DownloadManager.STATUS_SUCCESSFUL -> {
-                    trackStates[title]=TrackState.DOWNLOADED
+                    trackStates[title]=TrackState.DOWNLOADING
+                    val checked=AbDownloadedAudio.inspect(context.applicationContext,id,statuses[id]?.total ?: -1,book,title)
+                    trackStates[title]=if(checked.valid)TrackState.DOWNLOADED else TrackState.ERROR
+                    if(!checked.valid)downloadErrors[title]=checked.error
                     prefs.edit().remove(entry.key).apply()
                 }
                 DownloadManager.STATUS_FAILED -> {
@@ -2171,10 +2174,14 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                 downloadRetryTracks[entry.value]?.let{AbAudioSizes.remember(it.src,result.total)}
                 when(result.status) {
                     DownloadManager.STATUS_SUCCESSFUL -> {
-                        dlFinishedBytes+=if(result.total>0L)result.total else result.downloaded
-                        dlFinishedCount++
-                        trackStates[entry.value]=TrackState.DOWNLOADED
-                        downloadErrors.remove(entry.value)
+                        val checked=AbDownloadedAudio.inspect(context.applicationContext,entry.key,result.total,downloadRetryBooks[entry.value].orEmpty(),entry.value)
+                        if(downloadIds[entry.key]!=entry.value)return@forEach
+                        if(checked.valid) {
+                            dlFinishedBytes+=if(result.total>0L)result.total else result.downloaded
+                            dlFinishedCount++
+                            trackStates[entry.value]=TrackState.DOWNLOADED
+                            downloadErrors.remove(entry.value)
+                        } else {trackStates[entry.value]=TrackState.ERROR;downloadErrors[entry.value]=checked.error}
                         downloadIds.remove(entry.key)
                         prefs.edit().remove("download_job_"+entry.key).apply()
                         completedDownloads=true
@@ -2947,7 +2954,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
         try{withContext(Dispatchers.IO){AbPersistentDownloads.restore(context.applicationContext)}}
         catch(cancel:kotlinx.coroutines.CancellationException){throw cancel}
         catch(_:Exception){status="Не удалось восстановить очередь загрузок. Остальные функции доступны."}
-        while(true){durableQueue=withContext(Dispatchers.IO){AbPersistentDownloads.entries(context.applicationContext)};delay(if(durableQueue.any{it.state=="active"||it.state=="queued"})1500 else 5000)}
+        while(true){durableQueue=withContext(Dispatchers.IO){AbPersistentDownloads.entries(context.applicationContext)};delay(if(durableQueue.any{it.state=="active"||it.state=="verifying"||it.state=="queued"})1500 else 5000)}
     }
     val modernTrackStates = remember(player,pageTitle,downloadedIndex,durableQueue) {
         val book=cleanBookTitle(pageTitle)
@@ -2955,9 +2962,9 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
         player?.tracks.orEmpty().associate{track->
             val row=queued.values.firstOrNull{it.title==track.title && it.src==track.src}
             track.title to when {
-                row?.state in listOf("queued","active")->TrackState.DOWNLOADING
-                row?.state=="complete"||abHasDownloadedChapter(downloadedIndex,book,track)->TrackState.DOWNLOADED
+                row?.state in listOf("queued","active","verifying")->TrackState.DOWNLOADING
                 row?.state=="error"->TrackState.ERROR
+                row?.state=="complete"||abHasDownloadedChapter(downloadedIndex,book,track)->TrackState.DOWNLOADED
                 else->TrackState.READY
             }
         }
@@ -2968,7 +2975,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
     }
     val durableDownloadItems=remember(durableQueue){durableQueue.map {q ->AbDownloadItem(AudioTrack(q.title,q.duration,q.src),q.book,
             when(q.state){"complete"->TrackState.DOWNLOADED;"error"->TrackState.ERROR;"cancelled"->TrackState.READY;else->TrackState.DOWNLOADING},
-            q.error,if(q.state=="queued")"В очереди на скачивание" else if(q.error.isNotBlank())q.error else "Скачивается",q.bytes,q.total)}}
+            q.error,if(q.state=="verifying")"Проверка файла" else if(q.state=="queued")"В очереди на скачивание" else if(q.error.isNotBlank())q.error else "Скачивается",q.bytes,q.total)}}
     val modernData = AbScreenData(
         page = appPage, query = searchText, searchSource=selectedSearchSource,results = bookLinks, onlineBook = player,
         pageTitle = pageTitle, pageUrl = currentUrl, pageCover = currentCoverUrl,
@@ -7373,21 +7380,25 @@ private fun unfinishedLibraryChapters(context:Context):Set<String> {
         else id to (safeFileName(parts[1]).lowercase(java.util.Locale.ROOT)+"\u0000"+
             safeFileName(parts[0]).lowercase(java.util.Locale.ROOT))
     }.toMap()
-    if(jobs.isEmpty())return emptySet()
+    val pendingValidation=AbPersistentDownloads.unverifiedKeys(context)+AbDownloadedAudio.blockedKeys(context)
+    if(jobs.isEmpty())return pendingValidation
     val unfinished=mutableSetOf<Long>()
     try {
         val manager=context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
         jobs.keys.chunked(128).forEach {ids ->
-            manager.query(DownloadManager.Query().setFilterById(*ids.toLongArray()))?.use {cursor ->
-                val idColumn=cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_ID)
-                val statusColumn=cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS)
-                while(cursor.moveToNext())if(LibraryRecoveryRules.unfinished(cursor.getInt(statusColumn)))
-                    unfinished.add(cursor.getLong(idColumn))
+            val cursor=manager.query(DownloadManager.Query().setFilterById(*ids.toLongArray()))
+            if(cursor==null)unfinished.addAll(ids) else cursor.use {
+                val idColumn=it.getColumnIndexOrThrow(DownloadManager.COLUMN_ID)
+                val statusColumn=it.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS)
+                while(it.moveToNext()) {
+                    val id=it.getLong(idColumn);val status=it.getInt(statusColumn)
+                    if(LibraryRecoveryRules.unfinished(status)||status==DownloadManager.STATUS_SUCCESSFUL&&!AbDownloadedAudio.verified(context,id))unfinished.add(id)
+                }
             }
         }
-    }catch(_:Exception){}
+    }catch(_:Exception){unfinished.addAll(jobs.keys)}
     // Only a returned unfinished status excludes a file. Missing/expired jobs do not.
-    return jobs.filterKeys{it in unfinished}.values.toSet()
+    return jobs.filterKeys{it in unfinished}.values.toSet()+pendingValidation
 }
 
 /** Scans on IO; old jobs are not required to discover existing completed audio. */
@@ -11999,7 +12010,7 @@ private fun abTransferPhase(sample:AbDownloadStatus?):String=when(sample?.status
         DownloadManager.PAUSED_WAITING_TO_RETRY->"Ожидание повторной попытки"
         else->"Загрузка приостановлена"
     }
-    DownloadManager.STATUS_SUCCESSFUL->"Скачано"
+    DownloadManager.STATUS_SUCCESSFUL->"Проверка файла"
     else->"Ожидает запуска загрузки"
 }
 
