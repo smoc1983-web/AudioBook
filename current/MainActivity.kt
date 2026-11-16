@@ -10669,11 +10669,11 @@ private fun AbLibraryScreen(data: AbScreenData,actions: AbActions,sync: LibraryS
             if(visibleBookmarks.isEmpty())item{Text("Закладок пока нет. Сохраните нужный момент в плеере.",color=theme.muted)}
             items(visibleBookmarks,key={it.first+":"+it.second.id}) {(book,mark)->
                 AbBookmarkRow(book,mark,theme,{
-                    if(data.playback.bookTitle==book) {
+                    if(mark.editionId.isNotBlank()&&data.playback.tracks.any{it.editionId==mark.editionId} || mark.editionId.isBlank()&&data.playback.bookTitle==book) {
                         val at=resolveBookmark(mark,data.playback.tracks)
                         if(at>=0){PlaybackService.selectChapter(context,at,mark.position);actions.navigate(AppPage.PLAYER)}
                         else Toast.makeText(context,"Глава закладки не найдена. Обновите книгу.",Toast.LENGTH_SHORT).show()
-                    }else actions.openRef(bookRefFor(prefs,book))
+                    }else actions.openRef(bookRefFor(prefs,book,mark.editionId))
                 },{editingBookmark=book to mark},{removeBookmark(prefs,book,mark)})
             }
         }
@@ -10934,7 +10934,8 @@ private fun AbPlayerScreen(data: AbScreenData,actions: AbActions,books: List<Lib
     var shownDetails by remember(state.bookTitle,tab){mutableStateOf(20)}
     val ref=remember(prefs,state.bookTitle,data.version) {bookRefFor(prefs,state.bookTitle)}
     val local=remember(books,state.bookTitle) {abFindLocal(books,state.bookTitle)}
-    val marks=remember(prefs,state.bookTitle,data.version) {loadBookmarks(prefs,state.bookTitle)}
+    val bookmarkEdition=state.tracks.firstOrNull()?.editionId.orEmpty()
+    val marks=remember(prefs,state.bookTitle,bookmarkEdition,data.version) {loadBookmarks(prefs,state.bookTitle,bookmarkEdition)}
     val queue=remember(prefs,data.version) {loadQueue(prefs)}
     val downloading=data.downloads.any{AbLibraryHousekeeping.bookKey(it.book)==AbLibraryHousekeeping.bookKey(state.bookTitle) && it.state==TrackState.DOWNLOADING}
     val canDownload=state.sourceType=="online" && state.tracks.any {

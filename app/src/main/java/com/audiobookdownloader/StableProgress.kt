@@ -68,6 +68,7 @@ internal object StableProgress {
     fun observeLibrary(p:SharedPreferences,books:List<LibraryBook>) {
         for(book in books) {
             val id=EditionMetadata.local(p,book);val record=EditionMetadata.read(p,book.title,id)
+            if(!record.valid){EditionMetadata.change(p,book.title,id){it};continue}
             if(!record.completed)continue
             if(book.files.size>record.total || record.finished.isNotEmpty() && book.files.any{it.nameWithoutExtension !in record.finished})
                 EditionMetadata.change(p,book.title,id){it.copy(completed=false)}
@@ -77,9 +78,10 @@ internal object StableProgress {
         val id=editionId.ifBlank{EditionMetadata.current(p,book)}
         EditionMetadata.change(p,book,id){old->
             val size=maxOf(old.total,tracks.size)
-            val authoritative=full&&tracks.isNotEmpty()&&tracks.size>=old.total
+            val requested=full&&tracks.isNotEmpty()&&tracks.size>=old.total
             val added=old.titles.isNotEmpty()&&tracks.any{it.title !in old.titles}
             val revision=ChapterIdentity.revision(tracks.map{ChapterIdentity.chapter(id,it.title)})
+            val authoritative=requested&&LibraryRecordRules.provesCatalogue(id,tracks.map{it.title},revision)
             val source=sourceUrl.ifBlank{p.getString(bookUrlKey(book),"").orEmpty()}.takeIf{it.isNotBlank()&&ChapterIdentity.edition(book,it)==id} ?: old.sourceUrl
             old.copy(sourceUrl=source,total=size,completed=old.completed&&!(size>old.total||added||authoritative&&old.revision!=revision),
                 titles=if(authoritative)tracks.map{it.title} else old.titles,revision=if(authoritative)revision else old.revision)

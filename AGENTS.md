@@ -1,3 +1,15 @@
+# Этап 6 — в работе, не опубликован (2026-11-16)
+
+Владелец разрешил этап6 и ub-mode. Ветка cloud/library-identity-20261116
+отf372216; дерево/refs проверены. Red CI43928936138 подтвердил3 проблемы:
+смешение completion одноимённых изданий, title rename metadata loss, arbitrary
+local folder selection. Red CI43930614008: core3 уже прошли,3 новых bookmark
+проверки ещё падали ожидаемо. Исправления внедряются: edition-scoped метаданные,
+добавочный bookId, legacy поля сохраняются; known-edition bookmarks ищутся по
+editionId и редактируются по прежнему ID. Полные проверки ещё в работе.
+Не публиковать, main/package/version/signer не менять. Этап7 без подтверждения
+не начинать. TokenEconomizer CLI без вопросов; hooks/экономия не подтверждены.
+
 # Этап 5 — проверен, не опубликован (2026-11-16)
 
 Владелец разрешил этап5 и ub-mode. Ветка cloud/playback-idle-20261116
