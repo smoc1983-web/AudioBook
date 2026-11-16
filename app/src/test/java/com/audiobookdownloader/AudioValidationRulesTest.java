@@ -10,6 +10,8 @@ public class AudioValidationRulesTest {
   assertFalse(AudioValidationRules.sizeError(10,20).isEmpty());
   assertFalse(AudioValidationRules.sizeError(20,10).isEmpty());
   assertEquals("",AudioValidationRules.sizeError(20,20));
+  assertEquals("",AudioValidationRules.sizeError(1,1));
+  assertFalse(AudioValidationRules.sizeError(2,1).isEmpty());
   assertEquals("",AudioValidationRules.sizeError(20,-1));
   assertEquals("",AudioValidationRules.sizeError(20,0));
  }
@@ -32,5 +34,11 @@ public class AudioValidationRulesTest {
  @Test public void unknownOrShortHeaderIsLeftToAndroidMediaParser(){
   for(byte[] bytes:new byte[][]{new byte[0],text("RIFF"),text("not an extension"),text("ID3...."),text("fLaC"),text("OggS")})
    assertEquals("",AudioValidationRules.contentError(bytes,1000));
+ }
+
+ @Test public void embeddedMarkupAndWrongMagicAreNotInventedContainers(){
+  assertEquals("",AudioValidationRules.contentError(text("ID3 metadata <mpd fragment"),1000));
+  byte[] wrong=text("XIFFd123WAVE");
+  assertEquals("",AudioValidationRules.contentError(wrong,12));
  }
 }

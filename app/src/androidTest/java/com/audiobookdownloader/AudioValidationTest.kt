@@ -27,6 +27,16 @@ class AudioValidationTest {
             AbDownloadedAudio.inspectDescriptor(it.fileDescriptor,expected)
         }}finally{file.delete()}
     }
+    @Test fun clearingFinishedRowsKeepsPendingJobsWithoutAnAndroidId() {
+        val title="pending-validation-"+UUID.randomUUID()
+        try {
+            AbPersistentDownloads.pause(context,title,true)
+            AbPersistentDownloads.enqueue(context,title,listOf(AudioTrack("01",1,"https://example.org/01.mp3")))
+            AbPersistentDownloads.clearCompleted(context)
+            val row=AbPersistentDownloads.entries(context).single{it.book==title}
+            assertEquals("queued",row.state);assertEquals(0L,row.job)
+        }finally{AbPersistentDownloads.cancelBook(context,title);AbPersistentDownloads.clearCompleted(context)}
+    }
     @Test fun contentDeterminesFormatForAllExistingAudioContainers() {
         for(name in listOf("wav","mp3","flac","ogg","opus","aac","m4a")) {
             val bytes=fixture(name);val result=inspect(bytes,bytes.size.toLong())

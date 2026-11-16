@@ -94,8 +94,7 @@ internal object AbPersistentDownloads {
     fun pause(c:Context,book:String,value:Boolean) {
         check(prefs(c).edit().putBoolean("paused:v2:"+ChapterIdentity.hash(book),value).commit());if(!value)schedule(c)
     }
-    fun clearCompleted(c:Context)=synchronized(lock){write(c,entries(c).filter{it.job>0 && it.state !in listOf("complete","cancelled") &&
-        prefs(c).getString("destination_owner_"+ChapterIdentity.hash(destination(it)),null)==it.key})}
+    fun clearCompleted(c:Context)=synchronized(lock){write(c,entries(c).filter{it.state !in listOf("complete","cancelled")})}
     fun retry(c:Context,book:String)=synchronized(lock) {
         write(c,entries(c).map{if(it.book==book&&it.state=="error")it.copy(state="queued",error="",refreshAttempts=0) else it});schedule(c)
     }

@@ -35,7 +35,7 @@ internal object LibraryBackup {
         }
         val files=JSONArray();val seen=mutableSetOf<String>();val queue=if(audio)AbPersistentDownloads.entries(c).associateBy{it.key} else emptyMap()
         if(audio)for(book in books)for(file in book.files) {
-            check();require(queue.values.none{it.book==book.title && safeFileName(it.title)==file.nameWithoutExtension && it.state in listOf("active","error","queued")}){"Дождитесь завершения загрузки этой главы перед копированием"}
+            check();require(queue.values.none{it.book==book.title && safeFileName(it.title)==file.nameWithoutExtension && it.state in listOf("active","verifying","error","queued")}){"Дождитесь завершения загрузки этой главы перед копированием"}
             val name=entryName(book,file);require(safeEntry(name)&&seen.add(name)){"Совпадают имена глав в резервной копии"}
             val source=libraryTrackSource(file)
             var size=book.audioSizes[source] ?: (file as? LibraryAudioFile)?.sizeBytes?.takeIf{it>=0} ?: if(source.startsWith("content://"))

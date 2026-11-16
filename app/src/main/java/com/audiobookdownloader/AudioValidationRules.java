@@ -15,7 +15,7 @@ public final class AudioValidationRules {
         String text=new String(prefix,StandardCharsets.UTF_8).replace("\uFEFF","").trim().toLowerCase(Locale.ROOT);
         if(isPage(text))return "Источник вернул страницу ошибки вместо аудио. Повторите загрузку или выберите другой источник.";
         if(isPlaylist(text))return "Источник вернул плейлист HLS/DASH вместо аудиофайла. Этот способ скачивания пока не поддерживается.";
-        if(matches(prefix,0,"RIFF") && matches(prefix,8,"WAVE") && prefix.length>=12) {
+        if(prefix.length>=12 && matches(prefix,0,"RIFF") && matches(prefix,8,"WAVE")) {
             long declared=unsigned32(prefix,4)+8;
             if(declared>actual)return "Аудиофайл WAV не загружен полностью. Повторите скачивание главы.";
         }
@@ -30,7 +30,6 @@ public final class AudioValidationRules {
         return text.startsWith("#extm3u") || text.startsWith("<mpd") || text.startsWith("<?xml") && text.contains("<mpd");
     }
     private static boolean matches(byte[] bytes,int offset,String value) {
-        if(offset+value.length()>bytes.length)return false;
         for(int i=0;i<value.length();i++)if(bytes[offset+i]!=(byte)value.charAt(i))return false;
         return true;
     }

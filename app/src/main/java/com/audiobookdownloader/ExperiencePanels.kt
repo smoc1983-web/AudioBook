@@ -72,16 +72,17 @@ internal val LocalAbBookCardContext=staticCompositionLocalOf<BookCardContext?>{n
         if(groups.isEmpty())Text("Очередь пуста",color=theme.text,fontSize=14.sp)
         groups.take(shown).forEach{(book,chapters)->
             AbHeading(book,theme)
-            val done=chapters.count{it.state=="complete"};val active=chapters.count{it.state=="active"};val failed=chapters.count{it.state=="error"}
+            val done=chapters.count{it.state=="complete"};val active=chapters.count{it.state in listOf("active","verifying")};val failed=chapters.count{it.state=="error"}
             Text("Скачано: $done из ${chapters.size} · в работе: $active · ошибок: $failed",color=theme.text,fontSize=13.sp)
-            val current=chapters.firstOrNull{it.state=="active"}
+            val current=chapters.firstOrNull{it.state in listOf("active","verifying")}
             current?.let{q->
                 Text(q.title,color=theme.muted,fontSize=12.sp)
+                if(q.state=="verifying")Text("Проверка файла",color=theme.accent,fontSize=12.sp)
                 if(q.total>0){AbProgress((q.bytes.toDouble()/q.total).toFloat(),theme,Modifier.fillMaxWidth());Text(formatFileSize(q.bytes)+" / "+formatFileSize(q.total),color=theme.muted,fontSize=12.sp)}
                 if(q.error.isNotBlank())Text(q.error,color=theme.muted,fontSize=12.sp)
             }
             val paused=remember(book,revision,rows){AbPersistentDownloads.paused(context,book)}
-            if(chapters.any{it.state=="queued"||it.state=="active"}) {
+            if(chapters.any{it.state=="queued"||it.state in listOf("active","verifying")}) {
                 AbButton(if(paused)"Продолжить очередь" else "Пауза очереди",theme){work{AbPersistentDownloads.pause(context,book,!paused)}}
                 AbButton("Отменить оставшиеся главы",theme){work{AbPersistentDownloads.cancelBook(context,book)}}
             }
