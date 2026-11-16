@@ -82,4 +82,10 @@ class EditionMetadataRegressionTest {
   assertNotEquals(EditionMetadata.local(p,one),EditionMetadata.local(p,two))
   assertEquals(EditionMetadata.local(p,one),EditionMetadata.local(p,one.copy(title="Renamed")))
  }
+ @Test fun activeEditionReferenceDoesNotFollowAnotherEditionUnderTheSameTitle() {
+  val p=BookProgressRegressionTest().preferences();observe(p,a);observe(p,b)
+  val active=bookRefFor(p,title,ChapterIdentity.edition(title,a))
+  assertEquals(a,active.url);assertEquals(LibraryRecordRules.bookId(ChapterIdentity.edition(title,a)),active.bookId)
+  assertEquals(b,bookRefFor(p,title).url)
+ }
 }

@@ -9963,7 +9963,7 @@ private fun AbMiniPlayer(data: AbScreenData,actions: AbActions,books: List<Libra
     val state=data.playback
     val cached by AbAudioDurations.state.collectAsState()
     val timing=AbBookProgress.playback(prefs,state,cached)
-    val ref=bookRefFor(prefs,state.bookTitle)
+    val ref=bookRefFor(prefs,state.bookTitle,state.tracks.firstOrNull()?.editionId.orEmpty())
     Column(Modifier.padding(horizontal=12.dp,vertical=5.dp).abGlass(theme,20,raised=true)
         .clickable {actions.navigate(AppPage.PLAYER)}) {
         Row(Modifier.padding(8.dp),verticalAlignment=Alignment.CenterVertically) {
@@ -10648,7 +10648,9 @@ private fun AbLibraryScreen(data: AbScreenData,actions: AbActions,sync: LibraryS
             }
             if(sync.isSyncing) Text("Синхронизация библиотеки…",color=theme.muted,fontSize=12.sp,modifier=Modifier.padding(top=10.dp))
         }
-        val continueRef=recent.firstOrNull{ref->books.any{it.title==ref.title} || ref.url.isNotBlank()}
+        val continueRef=recent.firstOrNull{ref->books.any{it.title==ref.title} || ref.url.isNotBlank()}?.let {ref->
+            if(data.playback.bookTitle==ref.title&&data.playback.hasSelection)bookRefFor(prefs,ref.title,data.playback.tracks.firstOrNull()?.editionId.orEmpty()) else ref
+        }
         if(tab==0 && filter.isBlank() && continueRef!=null) item {
             AbHeading("Продолжить слушать",theme)
             val local=abFindLocal(books,continueRef.title,continueRef.editionId)
@@ -10941,9 +10943,9 @@ private fun AbPlayerScreen(data: AbScreenData,actions: AbActions,books: List<Lib
     val state=data.playback
     var tab by androidx.compose.runtime.saveable.rememberSaveable {mutableStateOf(0)}
     var shownDetails by remember(state.bookTitle,tab){mutableStateOf(20)}
-    val ref=remember(prefs,state.bookTitle,data.version) {bookRefFor(prefs,state.bookTitle)}
-    val local=remember(books,state.bookTitle) {abFindLocal(books,state.bookTitle)}
     val bookmarkEdition=state.tracks.firstOrNull()?.editionId.orEmpty()
+    val ref=remember(prefs,state.bookTitle,bookmarkEdition,data.version) {bookRefFor(prefs,state.bookTitle,bookmarkEdition)}
+    val local=remember(books,state.bookTitle,bookmarkEdition) {abFindLocal(books,state.bookTitle,bookmarkEdition)}
     val marks=remember(prefs,state.bookTitle,bookmarkEdition,data.version) {loadBookmarks(prefs,state.bookTitle,bookmarkEdition)}
     val queue=remember(prefs,data.version) {loadQueue(prefs)}
     val downloading=data.downloads.any{AbLibraryHousekeeping.bookKey(it.book)==AbLibraryHousekeeping.bookKey(state.bookTitle) && it.state==TrackState.DOWNLOADING}
