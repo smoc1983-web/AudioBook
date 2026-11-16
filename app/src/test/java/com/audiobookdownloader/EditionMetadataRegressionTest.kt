@@ -35,4 +35,13 @@ class EditionMetadataRegressionTest {
   assertEquals(0f,result.progress,0f);assertFalse(StableProgress.isCompleted(p,local))
   assertEquals(ChapterIdentity.edition(title,b),StableProgress.localTracks(p,title,local.files,local.editionId).single().editionId)
  }
+ @Test fun metadataCacheCannotLeakAcrossPreferenceStoresAndInvalidatesOnChange() {
+  val one=BookProgressRegressionTest().preferences();val two=BookProgressRegressionTest().preferences()
+  observe(one,a);StableProgress.completed(one,title,tracks(a));observe(two,a)
+  val id=ChapterIdentity.edition(title,a)
+  repeat(3){assertTrue(EditionMetadata.read(one,title,id).completed);assertFalse(EditionMetadata.read(two,title,id).completed)}
+  one.edit().putString(EditionMetadata.PREFIX+id,"{damaged").apply()
+  assertFalse(EditionMetadata.read(one,title,id).valid)
+  assertTrue(EditionMetadata.read(two,title,id).valid)
+ }
 }

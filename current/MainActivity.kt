@@ -155,7 +155,7 @@ data class LibraryBook(
     val editionId:String="",
     val chapterSources:Map<String,String> = emptyMap()
 ) {
-    val bookId:String get()=if(editionId.isNotBlank())LibraryRecordRules.bookId(editionId) else "l3-"+ChapterIdentity.hash(folderUri.ifBlank{folder.absolutePath})
+    val bookId:String by lazy(LazyThreadSafetyMode.PUBLICATION){if(editionId.isNotBlank())LibraryRecordRules.bookId(editionId) else "l3-"+ChapterIdentity.hash(folderUri.ifBlank{folder.absolutePath})}
     val audioBytes:Long get()=audioSizes.values.sum()
     val sizeKnown:Boolean get()=files.isNotEmpty() && audioSizes.size==files.size
 }
@@ -974,8 +974,8 @@ data class BookRef(
     val url: String,
     val cover: String
 ) {
-    val editionId:String get()=if(url.isBlank())"" else ChapterIdentity.edition(title,url)
-    val bookId:String get()=if(editionId.isBlank())"" else LibraryRecordRules.bookId(editionId)
+    val editionId:String by lazy(LazyThreadSafetyMode.PUBLICATION){if(url.isBlank())"" else ChapterIdentity.edition(title,url)}
+    val bookId:String by lazy(LazyThreadSafetyMode.PUBLICATION){if(editionId.isBlank())"" else LibraryRecordRules.bookId(editionId)}
 }
 
 data class Shelf(
