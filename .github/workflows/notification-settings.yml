@@ -88,11 +88,13 @@ jobs:
           GITHUB_RUN_NUMBER: '90'
         with:
           api-level: ${{ matrix.api }}
-          target: ${{ matrix.api == 36 && 'aosp_atd' || 'default' }}
+          target: ${{ matrix.api == 36 && 'google_apis' || 'default' }}
           arch: x86_64
           profile: pixel_6
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -memory 2048 -cores 2
           script: |
+            adb shell pm path com.android.settings | tee /tmp/notification-settings-package.txt
+            test -s /tmp/notification-settings-package.txt
             gradle :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.audiobookdownloader.NotificationSettingsTest --max-workers=2 --console=plain
             mkdir -p app/build/reports/stage3-native
             cp -R app/build/outputs/androidTest-results app/build/reports/stage3-native/normal
