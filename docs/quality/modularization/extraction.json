@@ -1,0 +1,20 @@
+{
+  "base": "4326a8086dec9cf01b6c6f4456ca924b216dcae8",
+  "unchangedFunctionBodies": {
+    "bookRefToJson": true,
+    "bookRefFromJson": true,
+    "loadBookRefs": true,
+    "saveBookRefs": true,
+    "toggleFavorite": true,
+    "loadShelves": true,
+    "saveShelves": true,
+    "createShelf": true,
+    "renameShelf": true,
+    "deleteShelf": true,
+    "toggleShelfBook": true,
+    "loadQueue": true,
+    "saveQueue": true
+  },
+  "mainActivityLinesRemoved": 261,
+  "notAnAndroidBuild": true
+}
