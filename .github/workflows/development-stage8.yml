@@ -87,7 +87,8 @@ jobs:
           source=p.read_text()
           marker='<application android:networkSecurityConfig='
           assert source.count(marker)==1
-          p.write_text(source.replace(marker,'<application android:usesCleartextTraffic="true" android:networkSecurityConfig='))
+          source=source.replace('<manifest ', '<manifest xmlns:tools="http://schemas.android.com/tools" ',1)
+          p.write_text(source.replace(marker,'<application tools:replace="android:usesCleartextTraffic" android:usesCleartextTraffic="true" android:networkSecurityConfig='))
           assert 'android:usesCleartextTraffic="false"' in Path('app/src/main/AndroidManifest.xml').read_text()
           PY
       - name: Build Preview tests with the existing signer
