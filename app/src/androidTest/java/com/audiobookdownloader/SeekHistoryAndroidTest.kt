@@ -55,7 +55,8 @@ class SeekHistoryAndroidTest {
             "pm grant ${c.packageName} android.permission.POST_NOTIFICATIONS")).use{it.readBytes()}
         try{ActivityScenario.launch(MainActivity::class.java).use{check(title,file,edition)}}
         finally {
-            PlaybackService.stop(c,true);c.stopService(Intent(c,PlaybackService::class.java));instrumentation.waitForIdleSync()
+            PlaybackService.stop(c,true);waitState{!it.hasSelection&&!it.isPlaying}
+            c.stopService(Intent(c,PlaybackService::class.java));instrumentation.waitForIdleSync()
             SeekHistory.clearEdition(c,edition);file.delete()
         }
     }
@@ -110,6 +111,37 @@ class SeekHistoryAndroidTest {
         }
         PlaybackService.returnToSeek(c,"missing")
         assertEquals(1,SeekHistoryRules.edition(SeekHistory.read(c).entries,edition).size)
+    }
+    @Test fun failedNativeSeekDoesNotInventAHistoryEntryOrReplaceSavedPosition()=fixture{title,file,edition->
+        val tracks=listOf(ServiceTrack("01",file.path,60000,edition))
+        start(title,tracks)
+        PlaybackService.seek(c,4321);waitState{it.positionMs in 4200..4450}
+        SeekHistory.clearEdition(c,edition)
+        instrumentation.runOnMainSync {
+            val service=PlaybackService::class.java.getDeclaredField("instance").apply{isAccessible=true}.get(null)
+            val player=PlaybackService::class.java.getDeclaredField("mediaPlayer").apply{isAccessible=true}.get(service) as android.media.MediaPlayer
+            player.reset()
+        }
+        PlaybackService.seek(c,20000)
+        val after=waitState{it.playbackNote=="Не удалось перемотать главу."}
+        assertTrue(after.positionMs in 4200..4450);assertFalse(after.isPlaying)
+        assertTrue(SeekHistoryRules.edition(SeekHistory.read(c).entries,edition).isEmpty())
+        assertTrue(StableProgress.resume(p,title,tracks).position in 4200..4450)
+    }
+    @Test fun returnPointSurvivesServiceRecreationWithoutStartingAudio()=fixture{title,file,edition->
+        val tracks=listOf(ServiceTrack("01",file.path,60000,edition))
+        start(title,tracks)
+        SeekHistory.record(c,edition,ChapterIdentity.chapter(edition,"01"),2345,20000)
+        val point=SeekHistoryRules.edition(SeekHistory.read(c).entries,edition).single()
+        PlaybackService.stop(c)
+        runBlocking {withTimeout(10000){
+            while(PlaybackService::class.java.getDeclaredField("instance").apply{isAccessible=true}.get(null)!=null)delay(50)
+        }}
+        assertEquals(point.id,SeekHistoryRules.edition(SeekHistory.read(c).entries,edition).single().id)
+        PlaybackService.returnToSeek(c,point.id)
+        waitState{it.bookTitle==title&&!it.isPlaying&&!it.isLoading&&it.positionMs in 2200..2500}
+        assertEquals(1,SeekHistoryRules.edition(SeekHistory.read(c).entries,edition).size)
+        assertTrue(StableProgress.resume(p,title,tracks).position in 2200..2500)
     }
     private class Device(base:Context):ContextWrapper(base) {
         val id=UUID.randomUUID().toString()
