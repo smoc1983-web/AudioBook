@@ -7,12 +7,14 @@ import java.nio.charset.StandardCharsets;
 public class SharedAudioRulesTest {
     @Test public void onlyBoundedContentUrisAreAccepted() {
         assertTrue(SharedAudioRules.accepts("content://com.provider/files/01?token=fixture"));
+        String prefix="content://provider/";assertTrue(SharedAudioRules.accepts(prefix+String.join("",Collections.nCopies(8192-prefix.length(),"x"))));
         for(String value:new String[]{"file:///data/private.mp3","https://example.org/01.mp3","content://user@provider/01","content://provider:80/01","content://provider/01#x","not uri","content:///01",null,"content://provider/"+String.join("",Collections.nCopies(8192,"x"))})assertFalse(String.valueOf(value),SharedAudioRules.accepts(value));
     }
     @Test public void naturalChapterOrderIsDeterministicForMixedNumericSegments() {
         List<String> rows=new ArrayList<>(Arrays.asList("Глава 10.mp3","Глава 2.mp3","Глава 1.mp3","Глава 2 часть 12.mp3","Глава 2 часть 3.mp3"));
         rows.sort(SharedAudioRules::compare);
         assertEquals(Arrays.asList("Глава 1.mp3","Глава 2.mp3","Глава 2 часть 3.mp3","Глава 2 часть 12.mp3","Глава 10.mp3"),rows);
+        assertTrue(SharedAudioRules.compare("10","a")<0);assertTrue(SharedAudioRules.compare("1","000a")>0);assertTrue(SharedAudioRules.compare("2","3")<0);
         assertEquals(0,SharedAudioRules.compare("01","01"));assertTrue(SharedAudioRules.compare("a","B")<0);
         assertTrue(SharedAudioRules.compare("99999999999999999999999","100000000000000000000000")<0);
     }
@@ -28,6 +30,7 @@ public class SharedAudioRulesTest {
         String a=ChapterIdentity.hash("audio a"),b=ChapterIdentity.hash("audio b");
         assertEquals(SharedAudioRules.bundle(Arrays.asList(a,b)),SharedAudioRules.bundle(Arrays.asList(a,b)));
         assertNotEquals(SharedAudioRules.bundle(Arrays.asList(a,b)),SharedAudioRules.bundle(Arrays.asList(b,a)));
+        assertNotNull(SharedAudioRules.bundle(Collections.nCopies(128,a)));
         assertNotEquals(SharedAudioRules.bundle(Arrays.asList(a)),SharedAudioRules.bundle(Arrays.asList(a,a)));
         for(List<String> rows:Arrays.asList(Collections.<String>emptyList(),Arrays.asList("bad"),Collections.nCopies(129,a)))try{SharedAudioRules.bundle(rows);fail();}catch(IllegalArgumentException expected){}
     }

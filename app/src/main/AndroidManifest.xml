@@ -13,6 +13,22 @@
         <category android:name="android.intent.category.LAUNCHER" />
       </intent-filter>
     </activity>
+    <activity android:name="com.audiobookdownloader.SharedAudioImportActivity" android:exported="true" android:label="Импорт аудиокниги">
+      <intent-filter>
+        <action android:name="android.intent.action.SEND" />
+        <action android:name="android.intent.action.SEND_MULTIPLE" />
+        <category android:name="android.intent.category.DEFAULT" />
+        <data android:mimeType="audio/*" />
+        <data android:mimeType="application/ogg" />
+        <data android:mimeType="application/octet-stream" />
+      </intent-filter>
+      <intent-filter>
+        <action android:name="android.intent.action.VIEW" />
+        <category android:name="android.intent.category.DEFAULT" />
+        <data android:scheme="content" android:mimeType="audio/*" />
+        <data android:scheme="content" android:mimeType="application/ogg" />
+      </intent-filter>
+    </activity>
     <activity android:name="com.audiobookdownloader.ReleaseNotesActivity" android:exported="false" android:label="Что нового" />
     <activity android:name="com.audiobookdownloader.CollectionTransferActivity" android:exported="false" android:label="Перенос коллекций" />
     <service android:name="com.audiobookdownloader.PlaybackService" android:exported="false" android:foregroundServiceType="mediaPlayback" android:stopWithTask="false" />

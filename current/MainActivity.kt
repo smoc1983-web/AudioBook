@@ -1323,6 +1323,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
     val widgetRoute by AbWidgetRoutes.requests.collectAsState()
     LaunchedEffect(widgetRoute.serial) {
         if(widgetRoute.target=="player" || widgetRoute.target=="timer")appPage=AppPage.PLAYER
+        else if(widgetRoute.target=="library")appPage=AppPage.LIBRARY
     }
 
     var searchText by androidx.compose.runtime.saveable.rememberSaveable {
@@ -7193,7 +7194,8 @@ fun scanLibraryReport(context: Context? = null): LibraryScanResult {
         .put("chapters",completed.sumOf{it.files.size}).put("unfinishedKeys",unfinished.size)
     context.getSharedPreferences("audiobook_diagnostics",Context.MODE_PRIVATE).edit()
         .putString("last_library",java.util.Date().toString()+"\n"+libraryTrace.toString(2)).apply()
-    val identified=identifyLibraryEntries(treePrefs,completed,libraryRoot()).map{book->
+    val imported=SharedAudioStore.library(context)
+    val identified=identifyLibraryEntries(treePrefs,completed+imported,libraryRoot()).map{book->
         val sources=if(book.identityAmbiguous)emptyMap() else book.files.mapNotNull{file->
             AbPersistentDownloads.sourceFor(context,book.title,file.nameWithoutExtension)?.let{file.name to it}
         }.toMap()
@@ -7535,7 +7537,7 @@ internal object AbBookDeletion {
     }
 
     private fun tidy(context:Context,book:LibraryBook):Boolean {return try {
-        val sidecars=setOf("cover.jpg","book_metadata.json")
+        val sidecars=setOf("cover.jpg","book_metadata.json")+SharedAudioStore.importSidecars(context,book)
         // Unknown documents are retained. Failure to remove a known sidecar is not success.
         if(book.folderUri.isNotBlank()) {
             val uri=Uri.parse(book.folderUri)
@@ -9077,7 +9079,7 @@ private val AbGlassThemes = listOf(
 
 internal fun abTheme(skin: Int): AbTheme = AbGlassThemes.firstOrNull {it.id==skin} ?: AbGlassThemes[1]
 
-private fun abReadGlassSkin(prefs: android.content.SharedPreferences): Int {
+internal fun abReadGlassSkin(prefs: android.content.SharedPreferences): Int {
     if(prefs.contains("glass_theme"))return prefs.getInt("glass_theme",2).takeIf {it in 1..10} ?: 2
     // Preserve light/dark preference when retiring the old theme collection.
     return when(prefs.getInt("app_skin",1)) {4->1;2,5->5;3->3;else->2}
@@ -9577,10 +9579,11 @@ private fun AbModernApp(data: AbScreenData, actions: AbActions, sync: LibrarySyn
     val widgetRoute by AbWidgetRoutes.requests.collectAsState()
     LaunchedEffect(widgetRoute.serial) {
         if(widgetRoute.target=="timer")settings=AbSettingsSection.TIMER
-        else if(widgetRoute.target=="player")settings=null
+        else if(widgetRoute.target=="player" || widgetRoute.target=="library")settings=null
     }
     var downloads by remember { mutableStateOf(false) }
     var libraryAccess by remember { mutableStateOf(false) }
+    LaunchedEffect(widgetRoute.serial){if(widgetRoute.target=="library"){downloads=false;libraryAccess=false}}
     var menuBook by remember { mutableStateOf<BookRef?>(null) }
     var shelfBook by remember { mutableStateOf<BookRef?>(null) }
     var catalogue by remember { mutableStateOf<Map<String,SiteSearchResult>>(emptyMap()) }
@@ -10404,6 +10407,8 @@ private fun AbLibraryScreen(data: AbScreenData,actions: AbActions,sync: LibraryS
                 }
                 AbIconButton(AbIcon.SEARCH,"Найти книги",theme,onClick={actions.navigate(AppPage.SEARCH)})
             }
+            Spacer(Modifier.height(10.dp))
+            AbButton("Импортировать файлы",theme){context.startActivity(Intent(context,SharedAudioImportActivity::class.java))}
             if(sync.isSyncing) Text("Синхронизация библиотеки…",color=theme.muted,fontSize=12.sp,modifier=Modifier.padding(top=10.dp))
         }
         val continueRef=recent.firstOrNull{ref->books.any{it.title==ref.title} || ref.url.isNotBlank()}?.let {ref->

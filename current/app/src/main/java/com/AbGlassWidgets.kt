@@ -49,6 +49,7 @@ import kotlin.math.sqrt
 internal data class AbWidgetRoute(val serial: Long = 0, val target: String = "")
 
 internal object AbWidgetRoutes {
+    const val LIBRARY = BuildConfig.APPLICATION_ID + ".import.OPEN_LIBRARY"
     const val PLAYER = BuildConfig.APPLICATION_ID + ".widget.OPEN_PLAYER"
     const val TIMER = BuildConfig.APPLICATION_ID + ".widget.OPEN_TIMER"
     private val counter = AtomicLong()
@@ -56,7 +57,7 @@ internal object AbWidgetRoutes {
     val requests = mutable.asStateFlow()
     fun isWidgetIntent(intent: Intent?) = intent?.action==PLAYER || intent?.action==TIMER
     fun accept(intent: Intent?) {
-        val target = when (intent?.action) { PLAYER -> "player"; TIMER -> "timer"; else -> "" }
+        val target = when (intent?.action) { PLAYER -> "player"; TIMER -> "timer"; LIBRARY -> "library"; else -> "" }
         mutable.value = AbWidgetRoute(counter.incrementAndGet(), target)
     }
 }
