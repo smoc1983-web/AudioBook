@@ -121,6 +121,9 @@ internal object AbDownloadedAudio {
             if(reader.readSampleData(data,0)<=0)return Result(false,"Аудиодорожка пуста или повреждена. Повторите загрузку главы.",stamp=signature)
             repeat(2) {
                 if(reader.advance()) {
+                    // API23 advance() releases the current sample and may still return true at EOF.
+                    // Require an actual next sample before attempting to read another packet.
+                    if(reader.sampleTrackIndex<0 && reader.sampleTime<0)return@repeat
                     data.clear()
                     if(reader.readSampleData(data,0)<=0)return Result(false,"Не удалось прочитать аудиопакеты. Повторите загрузку главы.",stamp=signature)
                 }
