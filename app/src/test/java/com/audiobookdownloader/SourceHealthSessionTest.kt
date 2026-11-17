@@ -58,6 +58,24 @@ class SourceHealthSessionTest {
         }
         val session=SourceHealthSession(store,SourceHealthClient{calls.incrementAndGet();ok(100000)},{100000})
         session.run(listOf(a),true);assertTrue(session.state.value.message.contains("не удалось сохранить"))
+        session.load(listOf(a))
         session.run(listOf(a),true);assertEquals(1,calls.get());assertEquals(SourceHealthRules.Status.RESPONDED,session.state.value.values[a.key]?.status)
+    }
+    @Test fun reopeningDuringCancelledCacheLoadCannotLeaveThePanelPermanentlyLoading()=runBlocking {
+        val started=java.util.concurrent.CountDownLatch(1);val release=java.util.concurrent.CountDownLatch(1)
+        val reads=AtomicInteger()
+        val store=object:SourceHealthStore {
+            override fun get(target:SourceHealthTarget):SourceHealthObservation {
+                if(reads.incrementAndGet()==1){started.countDown();release.await(5,java.util.concurrent.TimeUnit.SECONDS)}
+                return ok(100000)
+            }
+            override fun put(target:SourceHealthTarget,value:SourceHealthObservation){error("Read only")}
+        }
+        val session=SourceHealthSession(store,SourceHealthClient{error("No automatic request")},{100000})
+        val first=launch(Dispatchers.Default){session.load(listOf(a))}
+        assertTrue(started.await(2,java.util.concurrent.TimeUnit.SECONDS));first.cancel()
+        val reopened=launch{session.load(listOf(a))}
+        release.countDown();withTimeout(5000){first.join();reopened.join()}
+        assertFalse(session.state.value.loading);assertEquals(ok(100000),session.state.value.values[a.key])
     }
 }

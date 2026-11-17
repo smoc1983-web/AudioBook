@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
+import kotlinx.coroutines.sync.withLock
 import org.json.JSONObject
 
 internal interface SourceHealthStore {
@@ -43,14 +44,13 @@ internal class SourceHealthSession(private val store:SourceHealthStore,private v
     private val mutex=Mutex()
     private val mutable=MutableStateFlow(SourceHealthState())
     val state=mutable.asStateFlow()
-    suspend fun load(targets:List<SourceHealthTarget>) {
-        if(!mutex.tryLock())return
+    suspend fun load(targets:List<SourceHealthTarget>)=mutex.withLock {
         try {
             val values=withContext(Dispatchers.IO){targets.mapNotNull{t->store.get(t)?.let{t.key to it}}.toMap()}
-            mutable.value=SourceHealthState(values=values,loading=false)
+            val known=targets.map{it.key}.toSet()
+            mutable.update{SourceHealthState(values=values+it.values.filterKeys{key->key in known},loading=false)}
         }catch(cancel:CancellationException){throw cancel}
-        catch(_:Exception){mutable.value=SourceHealthState(loading=false,message="Сохранённые проверки недоступны. Можно проверить сайты заново.")}
-        finally{mutex.unlock()}
+        catch(_:Exception){mutable.update{it.copy(loading=false,message="Сохранённые проверки недоступны. Можно проверить сайты заново.")}}
     }
     suspend fun run(targets:List<SourceHealthTarget>,force:Boolean=false):Boolean {
         require(targets.size<=64&&targets.distinctBy{it.key}.size==targets.size)
