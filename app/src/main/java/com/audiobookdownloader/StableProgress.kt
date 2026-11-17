@@ -6,7 +6,7 @@ import org.json.JSONObject
 
 /** The filename is only an alias into an edition; it is never the persistent chapter ID. */
 internal object StableProgress {
-    private fun edition(p:SharedPreferences,book:String,tracks:List<ServiceTrack>)=tracks.firstOrNull()?.editionId?.takeIf{it.isNotBlank()} ?: ChapterIdentity.edition(book,
+    internal fun edition(p:SharedPreferences,book:String,tracks:List<ServiceTrack>)=tracks.firstOrNull()?.editionId?.takeIf{it.isNotBlank()} ?: ChapterIdentity.edition(book,
         p.getString(bookUrlKey(book), "").orEmpty())
     private fun key(p:SharedPreferences,book:String,tracks:List<ServiceTrack>)="book_progress_identity_"+edition(p,book,tracks)
     private fun titles(tracks:List<ServiceTrack>)=tracks.map{it.title}
@@ -40,13 +40,17 @@ internal object StableProgress {
             !p.getString("book_local_edition_"+safeFileName(book),null).equals(p.getString(bookUrlKey(book),"")))return Resume(0,0)
         return Resume(index,p.getInt("widget_position",0).coerceAtLeast(0))
     }
-    fun save(p:SharedPreferences,book:String,tracks:List<ServiceTrack>,index:Int,position:Int) {
-        val track=tracks.getOrNull(index)?:return
+    internal fun chapter(p:SharedPreferences,book:String,tracks:List<ServiceTrack>,index:Int):String {
+        val track=tracks[index]
         // Match a downloaded safe filename to the original chapter only when unique.
         val catalog=JSONArray(EditionMetadata.read(p,book,edition(p,book,tracks)).titles)
         val aliases=(0 until catalog.length()).map{catalog.optString(it)}.filter{safeFileName(it)==track.title}
         val original=if(!isNetworkAudio(track.src)&&aliases.size==1)aliases.single() else track.title
-        p.edit().putString(key(p,book,tracks),JSONObject().put("chapter",ChapterIdentity.chapter(edition(p,book,tracks),original))
+        return ChapterIdentity.chapter(edition(p,book,tracks),original)
+    }
+    fun save(p:SharedPreferences,book:String,tracks:List<ServiceTrack>,index:Int,position:Int) {
+        if(index !in tracks.indices)return
+        p.edit().putString(key(p,book,tracks),JSONObject().put("chapter",chapter(p,book,tracks,index))
             .put("position",position.coerceAtLeast(0)).toString()).apply()
     }
     fun localTracks(p:SharedPreferences,book:String,files:List<java.io.File>,editionId:String=""):List<ServiceTrack> {

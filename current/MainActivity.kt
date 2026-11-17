@@ -10772,8 +10772,9 @@ private fun AbPlayerScreen(data: AbScreenData,actions: AbActions,books: List<Lib
             }
         }
     }
-    if(state.hasSelection&&tab>0)AbDialog(listOf("","Закладки книги","Очередь прослушивания","Серия книги","Главы книги")[tab],theme,{tab=0}) {
+    if(state.hasSelection&&tab>0)AbDialog(listOf("","Закладки книги","Очередь прослушивания","Серия книги","Главы книги","История перемоток")[tab],theme,{tab=0}) {
         when(tab) {
+                5->AbSeekHistoryPanel(state,theme){id->tab=0;PlaybackService.returnToSeek(context,id)}
                 4->{state.tracks.take(shownDetails).forEachIndexed {index,track ->
                     val active=index==state.trackIndex
                     Row(Modifier.fillMaxWidth().abGlass(theme,12,selected=active)
@@ -10797,6 +10798,7 @@ private fun AbPlayerScreen(data: AbScreenData,actions: AbActions,books: List<Lib
                         {tab=0;onShelf(it)},{tab=0;onSettings(it)})
                 }
                 1->{
+                    AbButton("История перемоток",theme){tab=5}
                     AbButton("Добавить закладку",theme,primary=true) {
                         val ok=addBookmark(prefs,state.bookTitle,state.trackIndex,
                             state.tracks.getOrNull(state.trackIndex)?.title.orEmpty(),state.positionMs,state.tracks.getOrNull(state.trackIndex)?.editionId.orEmpty())

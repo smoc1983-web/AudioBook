@@ -92,6 +92,7 @@ class PlaybackService : Service() {
         private const val ACTION_NEXT_BOOK = BuildConfig.APPLICATION_ID + ".NEXT_LOCAL_BOOK"
         private const val ACTION_START = BuildConfig.APPLICATION_ID + ".START_PLAYLIST"
         private const val ACTION_SEEK = BuildConfig.APPLICATION_ID + ".SEEK"
+        private const val ACTION_RETURN_SEEK = BuildConfig.APPLICATION_ID + ".RETURN_SEEK"
         private const val ACTION_SLEEP = BuildConfig.APPLICATION_ID + ".SLEEP"
         private const val ACTION_SETTINGS = BuildConfig.APPLICATION_ID + ".SETTINGS"
         private const val EXTRA_SOURCE = "source_type"
@@ -192,6 +193,12 @@ class PlaybackService : Service() {
             val current = state.value
             if (index !in current.tracks.indices) return
             play(context, current.bookTitle, current.sourceType, current.tracks, index, positionMs)
+        }
+
+        fun returnToSeek(context:Context,id:String) {
+            send(context,Intent(context,PlaybackService::class.java).apply {
+                action=ACTION_RETURN_SEEK;putExtra("seek_history_id",id)
+            })
         }
 
         fun playNextLocal(context:Context) = command(context,ACTION_NEXT_BOOK)
@@ -511,6 +518,7 @@ class PlaybackService : Service() {
             ACTION_REWIND -> { readPosition(); seekPlayback(positionMs.toLong() - 30_000L) }
             ACTION_FORWARD -> { readPosition(); seekPlayback(positionMs.toLong() + 30_000L) }
             ACTION_SEEK -> seekPlayback(intent.getLongExtra(EXTRA_POSITION, 0L))
+            ACTION_RETURN_SEEK -> returnToSeek(intent.getStringExtra("seek_history_id"))
             ACTION_STOP -> {
                 val target=intent.getStringExtra("target_book")
                 if(target==null||safeFileName(bookTitle).equals(safeFileName(target),true))
@@ -774,7 +782,9 @@ class PlaybackService : Service() {
         publish()
     }
 
-    private fun seekPlayback(requested: Long) {
+    private fun seekPlayback(requested: Long,record:Boolean=true) {
+        readPosition()
+        val previous=positionMs
         val maximum = if (durationMs > 0) durationMs else Int.MAX_VALUE
         positionMs = requested.coerceIn(0L, maximum.toLong()).toInt()
         trace("Перемотка запрошена: "+requested+" мс; выбранная позиция="+positionMs+" мс")
@@ -785,11 +795,35 @@ class PlaybackService : Service() {
             }
         } catch (error: Exception) {
             pendingSeek = null
+            positionMs=previous
             playbackNote="Не удалось перемотать главу."
             trace("Ошибка перемотки: "+error.javaClass.simpleName+"; "+error.message)
+            persistState();publish();return
+        }
+        if(record&&previous!=positionMs&&trackIndex in playlist.indices) {
+            val saved=try {
+                SeekHistory.record(this,StableProgress.edition(playbackPrefs,bookTitle,playlist),
+                    StableProgress.chapter(playbackPrefs,bookTitle,playlist,trackIndex),previous,positionMs)
+            }catch(_:Exception){false}
+            if(!saved)playbackNote="Перемотка выполнена, но история недоступна. Прежние записи сохранены."
         }
         persistState()
         publish()
+    }
+
+    private fun returnToSeek(id:String?) {
+        val point=SeekHistory.read(this).entries.singleOrNull{it.id==id}
+        val index=point?.let{SeekHistory.resolve(playbackPrefs,bookTitle,playlist,it)} ?: -1
+        val known=if(index==trackIndex)durationMs else playlist.getOrNull(index)?.durationMs ?: 0
+        if(point==null||index<0||known>0&&point.from>known) {
+            playbackNote="Точка возврата недоступна в текущем издании или оглавлении. Позиция не изменена."
+            publish();return
+        }
+        if(index==trackIndex)seekPlayback(point.from.toLong(),record=false)
+        else {
+            readPosition();persistState()
+            startTrack(index,point.from,autoPlay=playWhenReady)
+        }
     }
 
     private fun skip(delta: Int) {
