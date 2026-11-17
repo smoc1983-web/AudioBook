@@ -134,6 +134,7 @@ internal val LocalAbBookCardContext=staticCompositionLocalOf<BookCardContext?>{n
     AbButton("Создать резервную копию",theme,enabled=!busy){create.launch("Audiobook-backup-"+java.text.SimpleDateFormat("yyyyMMdd-HHmm",java.util.Locale.ROOT).format(java.util.Date())+".zip")}
     AbButton("Выбрать резервную копию",theme,enabled=!busy){choose.launch(arrayOf("application/zip","application/octet-stream"))}
     if(status.isNotBlank())Text(status,color=theme.muted,fontSize=13.sp)
+    AbProgressFolderPanel(theme,busy,onRestored)
     AbAutomaticBackupPanel(theme,busy){uri->run{
         preview=null;source=null
         val checked=withContext(Dispatchers.IO){LibraryBackup.inspect(context,uri)}

@@ -89,7 +89,7 @@ jobs:
           profile: pixel_6
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -memory 2048 -cores 2
           script: |
-            gradle :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.audiobookdownloader.Stage8ReliabilityTest,com.audiobookdownloader.AudioValidationTest,com.audiobookdownloader.LibraryIdentityAndroidTest --max-workers=2 --console=plain
+            gradle :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.audiobookdownloader.Stage8ReliabilityTest,com.audiobookdownloader.Stage8ProgressFolderTest,com.audiobookdownloader.Stage8FolderPanelStateTest,com.audiobookdownloader.AudioValidationTest,com.audiobookdownloader.LibraryIdentityAndroidTest --max-workers=2 --console=plain
             mkdir -p app/build/reports/stage3-native
             cp -R app/build/outputs/androidTest-results app/build/reports/stage3-native/normal
       - uses: actions/upload-artifact@v4

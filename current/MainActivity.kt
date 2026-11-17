@@ -9573,7 +9573,7 @@ private fun AbModernApp(data: AbScreenData, actions: AbActions, sync: LibrarySyn
             controller.isAppearanceLightNavigationBars=theme.light
         }
     }
-    var settings by remember { mutableStateOf<AbSettingsSection?>(null) }
+    var settings by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<AbSettingsSection?>(null) }
     val widgetRoute by AbWidgetRoutes.requests.collectAsState()
     LaunchedEffect(widgetRoute.serial) {
         if(widgetRoute.target=="timer")settings=AbSettingsSection.TIMER
@@ -11112,7 +11112,7 @@ private fun AbSettingsTiles(theme:AbTheme,onSelect:(AbSettingsSection)->Unit) {
 @Composable
 private fun AbSettingsDialog(data: AbScreenData,prefs: android.content.SharedPreferences,theme: AbTheme,
     actions: AbActions,sync:LibrarySyncState,initialSection:AbSettingsSection,onCrashReport:()->Unit,dismiss:()->Unit) {
-    var section by remember(initialSection) {mutableStateOf(initialSection)}
+    var section by androidx.compose.runtime.saveable.rememberSaveable(initialSection) {mutableStateOf(initialSection)}
     androidx.activity.compose.BackHandler(enabled=section!=AbSettingsSection.HOME) {section=AbSettingsSection.HOME}
     val context=androidx.compose.ui.platform.LocalContext.current
     val title=data.playback.bookTitle
