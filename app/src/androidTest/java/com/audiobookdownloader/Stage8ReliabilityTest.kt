@@ -134,6 +134,37 @@ class Stage8ReliabilityTest {
             assertEquals(before,p.all);assertTrue(c.getSharedPreferences("library_integrity_v1",0).all.isEmpty());assertTrue(file.isFile)
         }finally{c.root.deleteRecursively()}
     }
+    @Test fun ambiguousSanitizedChapterNamesCannotClaimCompleteCatalogue()=runBlocking {
+        val c=Fixture(app)
+        try {
+            val folder=File(c.root,"Book").apply{mkdirs()};val file=File(folder,"A_B.mp3").apply{writeBytes(fixture("mp3"))}
+            val url="https://source.example/book";val id=ChapterIdentity.edition("Book",url)
+            prefs(c).edit().putString(bookUrlKey("Book"),url).commit()
+            StableProgress.observe(prefs(c),"Book",listOf(AudioTrack("A/B",10,"https://cdn.example/a.mp3"),AudioTrack("A:B",10,"https://cdn.example/b.mp3")),true)
+            val result=LibraryIntegrity.inspect(c,LibraryBook("Book",folder,listOf(file),editionId=id))
+            assertTrue(result.notice.contains("неоднозначны"));assertEquals(1,result.rows.size)
+        }finally{c.root.deleteRecursively()}
+    }
+    @Test fun restorePreparationClearsCachedPausedSelectionBeforeApplyingBackup()=runBlocking {
+        val c=Fixture(app)
+        try {
+            val file=File(c.root,"01.mp3").apply{writeBytes(fixture("mp3"))}
+            val id=ChapterIdentity.edition("Book","https://source.example/book")
+            val tracks=listOf(ServiceTrack("01",file.path,10000,id));val p=prefs(c)
+            StableProgress.save(p,"Book",tracks,0,4321)
+            val copy=AutomaticProgressBackups.create(c);val checked=LibraryBackup.inspect(c,Uri.fromFile(copy.file))
+            StableProgress.save(p,"Book",tracks,0,8000)
+            p.edit().putString("widget_book","Book").putString("widget_playlist",org.json.JSONArray().put(org.json.JSONObject().put("t","01").put("s",file.path).put("d",10000).put("e",id)).toString())
+                .putInt("widget_position",8000).putInt("widget_track_index",0).commit()
+            PlaybackService.restoreScreenState(c)
+            assertTrue(PlaybackService.state.value.hasSelection);assertEquals(8000,PlaybackService.state.value.positionMs)
+            AutomaticProgressBackups.prepareRestore(c)
+            assertFalse(PlaybackService.state.value.hasSelection)
+            LibraryBackup.restore(c,Uri.fromFile(copy.file),null,checked){}
+            assertEquals(StableProgress.Resume(0,4321),StableProgress.resume(p,"Book",tracks))
+            assertFalse(PlaybackService.state.value.isPlaying)
+        }finally{withContext(Dispatchers.Main){PlaybackService.stop(c,clearSelection=true)};c.root.deleteRecursively()}
+    }
     @Test fun networkUrlsAreNotFetchedByLocalIntegrityInspection()=runBlocking {
         val c=Fixture(app)
         try {

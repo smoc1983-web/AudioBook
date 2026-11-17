@@ -73,7 +73,8 @@ internal object LibraryIntegrity {
             catch(_:Exception){Row(file.name,State.UNAVAILABLE,"Не удалось прочитать файл. Проверьте доступ к папке.")}
         }.toMutableList()
         val metadata=EditionMetadata.read(p,book.title,edition)
-        if(metadata.valid) {
+        val ambiguous=metadata.titles.map{name(it)}.let{it.distinct().size!=it.size}
+        if(metadata.valid&&!ambiguous) {
             val present=book.files.map{name(it.nameWithoutExtension)}.toSet()
             metadata.titles.filter{name(it) !in present}.forEach {title->
                 rows+=Row(title,if(owned.any{name(it.title)==name(title)&&it.state in setOf("queued","active","verifying")})State.BUSY else State.MISSING,
@@ -87,6 +88,8 @@ internal object LibraryIntegrity {
         Report(rows,when {
             !saved->"Проверка завершена, но отпечатки не удалось сохранить. Проверьте свободное место."
             !metadata.valid->"Метаданные оглавления повреждены; наличие всех глав не проверено. Исходные данные сохранены."
+            ambiguous->"Имена глав неоднозначны; наличие всех глав по оглавлению не подтверждено."
+            metadata.titles.isEmpty()->"Оглавление неизвестно: проверены только имеющиеся файлы. Локальный отпечаток не подтверждает подлинность с сервера."
             metadata.total>metadata.titles.size->"Оглавление неполное: наличие всех глав подтвердить нельзя."
             else->"Локальный отпечаток обнаруживает последующие изменения, но не подтверждает подлинность файла с сервера. Полного декодирования аудио не выполняется."
         })
