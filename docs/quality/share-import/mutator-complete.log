@@ -1,0 +1,60 @@
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.AbBookTimeRules.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.AbBookTimeRules.Totals.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.AudioValidationRules.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.DiagnosticPrivacy.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.LibraryRecordRules.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.NetworkAddressRules.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.PlaybackPulseRules.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.ProgressSnapshotStore.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.QueueRecoveryRules.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.QueueSnapshotRules.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.SeekHistoryRules.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.SharedAudioRules.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.SourceHealthRules.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.SourceHttp.edn
+KILLED    app/src/main/java/com/audiobookdownloader/SharedAudioRules.java:12 > -> >=
+KILLED    app/src/main/java/com/audiobookdownloader/SharedAudioRules.java:12 false -> true
+KILLED    app/src/main/java/com/audiobookdownloader/SharedAudioRules.java:14 && -> ||
+KILLED    app/src/main/java/com/audiobookdownloader/SharedAudioRules.java:14 != -> ==
+KILLED    app/src/main/java/com/audiobookdownloader/SharedAudioRules.java:14 && -> ||
+KILLED    app/src/main/java/com/audiobookdownloader/SharedAudioRules.java:15 && -> ||
+KILLED    app/src/main/java/com/audiobookdownloader/SharedAudioRules.java:15 == -> !=
+KILLED    app/src/main/java/com/audiobookdownloader/SharedAudioRules.java:16 false -> true
+KILLED    app/src/main/java/com/audiobookdownloader/SharedAudioRules.java:20 0 -> 1
+KILLED    app/src/main/java/com/audiobookdownloader/SharedAudioRules.java:23 < -> <=
+KILLED    app/src/main/java/com/audiobookdownloader/SharedAudioRules.java:23 0 -> 1
+KILLED    app/src/main/java/com/audiobookdownloader/SharedAudioRules.java:23 || -> &&
+KILLED    app/src/main/java/com/audiobookdownloader/SharedAudioRules.java:23 >= -> >
+KILLED    app/src/main/java/com/audiobookdownloader/SharedAudioRules.java:23 || -> &&
+KILLED    app/src/main/java/com/audiobookdownloader/SharedAudioRules.java:23 delete !
+KILLED    app/src/main/java/com/audiobookdownloader/SharedAudioRules.java:24 + -> -
+KILLED    app/src/main/java/com/audiobookdownloader/SharedAudioRules.java:24 1 -> 0
+KILLED    app/src/main/java/com/audiobookdownloader/SharedAudioRules.java:27 || -> &&
+KILLED    app/src/main/java/com/audiobookdownloader/SharedAudioRules.java:27 > -> >=
+KILLED    app/src/main/java/com/audiobookdownloader/SharedAudioRules.java:28 delete !
+KILLED    app/src/main/java/com/audiobookdownloader/SharedAudioRules.java:34 0 -> 1
+KILLED    app/src/main/java/com/audiobookdownloader/SharedAudioRules.java:34 < -> <=
+KILLED    app/src/main/java/com/audiobookdownloader/SharedAudioRules.java:35 != -> ==
+KILLED    app/src/main/java/com/audiobookdownloader/SharedAudioRules.java:35 0 -> 1
+KILLED    app/src/main/java/com/audiobookdownloader/SharedAudioRules.java:37 != -> ==
+KILLED    app/src/main/java/com/audiobookdownloader/SharedAudioRules.java:37 0 -> 1
+KILLED    app/src/main/java/com/audiobookdownloader/SharedAudioRules.java:45 delete !
+KILLED    app/src/main/java/com/audiobookdownloader/SharedAudioRules.java:45 || -> &&
+KILLED    app/src/main/java/com/audiobookdownloader/SharedAudioRules.java:45 delete !
+KILLED    app/src/main/java/com/audiobookdownloader/SharedAudioRules.java:47 != -> ==
+KILLED    app/src/main/java/com/audiobookdownloader/SharedAudioRules.java:47 0 -> 1
+KILLED    app/src/main/java/com/audiobookdownloader/SharedAudioRules.java:50 >= -> >
+KILLED    app/src/main/java/com/audiobookdownloader/SharedAudioRules.java:50 && -> ||
+Function        Namespace                                 Killed  Survived  Uncovered  Sites   Score
+----------------------------------------------------------------------------------------------------
+formatExtension com.audiobookdownloader.SharedAudioRules       0         0          0      0    n/a
+parts           com.audiobookdownloader.SharedAudioRules       0         0          0      0    n/a
+accepts         com.audiobookdownloader.SharedAudioRules       8         0          0      8 100.0%
+bundle          com.audiobookdownloader.SharedAudioRules       3         0          0      3 100.0%
+compare         com.audiobookdownloader.SharedAudioRules       6         0          0      6 100.0%
+extension       com.audiobookdownloader.SharedAudioRules       2         0          0      2 100.0%
+filename        com.audiobookdownloader.SharedAudioRules       8         0          0      8 100.0%
+label           com.audiobookdownloader.SharedAudioRules       1         0          0      1 100.0%
+part            com.audiobookdownloader.SharedAudioRules       5         0          0      5 100.0%
+----------------------------------------------------------------------------------------------------
+Total                                                         33         0          0     33  100.0%

@@ -1,0 +1,171 @@
+{
+  "task": "Stage8 explicit audio share import",
+  "base": "3c37db9808c3dcf07a2339d3ffc0444e49ff6e10",
+  "branch": "cloud/share-import-20261117",
+  "initialTreeClean": true,
+  "testedSource": "cf3c363a68786b45dd0750ec4593f4e9c0daad17",
+  "ciRun": 44149578424,
+  "ciUrl": "https://github.com/smoc1983-web/AudioBook/actions/runs/44149578424",
+  "status": "success",
+  "published": false,
+  "stage8Complete": false,
+  "ubMode": true,
+  "ciResults": {
+    "jvm": {
+      "Debug": {
+        "tests": 402,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 1
+      },
+      "Release": {
+        "tests": 402,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 1
+      }
+    },
+    "native": {
+      "23": {
+        "tests": 59,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "classes": {
+          "com.audiobookdownloader.ShortAudioValidationTest": 1,
+          "com.audiobookdownloader.AudioValidationTest": 2,
+          "com.audiobookdownloader.SharedAudioImportTest": 11,
+          "com.audiobookdownloader.SharedAudioPanelTest": 3,
+          "com.audiobookdownloader.SourceHealthAndroidTest": 4,
+          "com.audiobookdownloader.SourceHealthPanelTest": 3,
+          "com.audiobookdownloader.SeekHistoryAndroidTest": 8,
+          "com.audiobookdownloader.SeekHistoryPanelTest": 3,
+          "com.audiobookdownloader.Stage8ReliabilityTest": 11,
+          "com.audiobookdownloader.Stage8ProgressFolderTest": 7,
+          "com.audiobookdownloader.Stage8FolderPanelStateTest": 1,
+          "com.audiobookdownloader.Stage8ExportStateTest": 2,
+          "com.audiobookdownloader.LibraryIdentityAndroidTest": 3
+        }
+      },
+      "36": {
+        "tests": 61,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "classes": {
+          "com.audiobookdownloader.ShortAudioValidationTest": 1,
+          "com.audiobookdownloader.AudioValidationTest": 2,
+          "com.audiobookdownloader.SharedAudioImportTest": 11,
+          "com.audiobookdownloader.SharedAudioPanelTest": 3,
+          "com.audiobookdownloader.SourceHealthAndroidTest": 4,
+          "com.audiobookdownloader.SourceHealthPanelTest": 3,
+          "com.audiobookdownloader.SeekHistoryAndroidTest": 8,
+          "com.audiobookdownloader.SeekHistoryPanelTest": 3,
+          "com.audiobookdownloader.Stage8ReliabilityTest": 11,
+          "com.audiobookdownloader.Stage8ProgressFolderTest": 7,
+          "com.audiobookdownloader.Stage8FolderPanelStateTest": 1,
+          "com.audiobookdownloader.Stage8ExportStateTest": 2,
+          "com.audiobookdownloader.LibraryIdentityAndroidTest": 3,
+          "com.audiobookdownloader.IdlePlaybackTest": 2
+        }
+      }
+    },
+    "lint": {
+      "lint-results-release.xml": {
+        "counts": {
+          "Warning": 272,
+          "Hint": 83
+        },
+        "addedCounts": {
+          "ApplySharedPref": 1,
+          "UseKtx": 1
+        },
+        "added": [
+          [
+            "ApplySharedPref",
+            "Warning",
+            "Consider using `apply()` instead; `commit` writes its data to persistent storage immediately, whereas `apply` will handle it in the background"
+          ],
+          [
+            "UseKtx",
+            "Warning",
+            "Use the KTX extension function `SharedPreferences.edit` instead?"
+          ]
+        ],
+        "removed": []
+      },
+      "lint-results-debug.xml": {
+        "counts": {
+          "Warning": 272,
+          "Hint": 83
+        },
+        "addedCounts": {
+          "ApplySharedPref": 1,
+          "UseKtx": 1
+        },
+        "added": [
+          [
+            "ApplySharedPref",
+            "Warning",
+            "Consider using `apply()` instead; `commit` writes its data to persistent storage immediately, whereas `apply` will handle it in the background"
+          ],
+          [
+            "UseKtx",
+            "Warning",
+            "Use the KTX extension function `SharedPreferences.edit` instead?"
+          ]
+        ],
+        "removed": []
+      }
+    }
+  },
+  "builds": {
+    "stableDebug": true,
+    "stableUnsignedRelease": true,
+    "previewDebugWithOriginalSigner": true,
+    "previewAndroidTest": true,
+    "upgradeProbeCompiled": true,
+    "legacyFixtureCompiled": true,
+    "runtimeDependencyAudit": true
+  },
+  "local": {
+    "javaTests": 5,
+    "mutationsKilled": 33,
+    "mutationsTotal": 33,
+    "crapMax": 9,
+    "dryerScopedCandidates": 0,
+    "parserSourceJvmChecks": true,
+    "kotlinQualityToolSupport": false,
+    "tokenEconomizer": "CLI status executed; sessions0; hook integration/token savings unverified"
+  },
+  "firstCi": {
+    "run": 44147675850,
+    "source": "bbff1d933cbf5232bf7e884c3ad3266ff81c8b9b",
+    "native36": "success",
+    "native23": "7 valid-short-WAV validation failures; corrected EOF handling, no assertion disabled"
+  },
+  "invariants": {
+    "sourceMain": "c8301dbf2fb558c8330d87baa67cacf307708529",
+    "release": "preview-v100095",
+    "packageVersionSignerUnchanged": true,
+    "originalFilesUnchanged": true,
+    "progressIdsFormatUnchanged": true
+  },
+  "limitations": [
+    "No physical phone/real Telegram or Yandex/Google provider test",
+    "No actual disk-full/process-kill/reboot or Installer run",
+    "No APK release uploaded",
+    "No full decode/integrity proof for all audio bytes",
+    "No guaranteed hard deadline for providers blocking Binder and ignoring CancellationSignal",
+    "Import is not automatically resumed after process destruction",
+    "Import root/manifest corruption preserves originals and stored copies; damaged records are not guessed",
+    "Whole historical native suite not run: selected regression classes/methods only",
+    "Internal copies are removed on app uninstall; use existing export for migration"
+  ],
+  "remainingStage8": [
+    "Multiple library roots",
+    "Metadata editor",
+    "Consented Wi-Fi next-volume downloads",
+    "Additional search filters"
+  ]
+}

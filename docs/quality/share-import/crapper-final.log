@@ -1,0 +1,16 @@
+CRAP Report
+===========
+Languages: java
+
+Function                       Namespace                                  CC    Cov%     CRAP
+---------------------------------------------------------------------------------------------
+formatExtension                com.audiobookdownloader.SharedAudioRules    9 100.0%      9.0
+accepts                        com.audiobookdownloader.SharedAudioRules    6 100.0%      6.0
+bundle                         com.audiobookdownloader.SharedAudioRules    6 100.0%      6.0
+compare                        com.audiobookdownloader.SharedAudioRules    4 100.0%      4.0
+filename                       com.audiobookdownloader.SharedAudioRules    4 100.0%      4.0
+part                           com.audiobookdownloader.SharedAudioRules    4 100.0%      4.0
+extension                      com.audiobookdownloader.SharedAudioRules    3 100.0%      3.0
+label                          com.audiobookdownloader.SharedAudioRules    2 100.0%      2.0
+parts                          com.audiobookdownloader.SharedAudioRules    2 100.0%      2.0
+Wrote /workspace/Audiobook-Workspace/.metrics/crap.edn

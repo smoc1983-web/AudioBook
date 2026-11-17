@@ -1,3 +1,45 @@
+# Этап8 — импорт аудио через «Поделиться» проверен, не опубликован (2026-11-17)
+
+Ветка cloud/share-import-20261117 от3c37db9 (чистая база/fetch совпали).
+Проверенные исходникиcf3c363a68786b45dd0750ec4593f4e9c0daad17;
+CI44149578424 SUCCESS: Stable Debug/unsigned Release, Preview Debug/AndroidTest/
+upgradeProbe с прежним signer, legacyFixture compile, dependency audit. JVM по402
+(401 выполнен/1 прежнийLiveCatalogskip); native59/API23,61/API36 (120,0fail/error/skip).
+Lint0Fatal/Error,272Warning83Hint: +1ApplySharedPref/+1UseKtx регистрации, без
+подавлений, commit наIO нужен для результата. Java5/5, CRAPmax9/Dryer0scoped/
+Mutator33из33; Kotlin ими не покрыт. Parser/source/JVM checks green.
+Импорт: Android Share/Open with либо Библиотека→Импортировать файлы; content URI,
+подтверждение названия/порядка1,2,10/перестановки, копия в filesDir/imported-audio-v1.
+Без автоматического воспроизведения. Оригиналы не меняются; 128файлов,2ГиБ/файл,
+8ГиБ/книга; streamcopy,size/MediaExtractor/audio packets/hash, HTML/плейлисты и
+неполные/неподдерживаемые файлы отклоняются, суффикс по фактическому формату.
+Ordered content SHA определяет edition; внутренние numeric chapter names стабильны
+при переименовании внешних файлов/смене URI. Дубликат не создаётся, недостающая
+глава восстанавливается, изменённая существующая не затирается. Титулы старых
+позиций/очереди/коллекций защищены; checkpoint/заметки/закладки сохраняются.
+Manifest/staging+atomic rename, отмена; старый owned staging чистится на следующем
+импорте, автоматического resume послеprocesskill нет. Missing pref registration
+восстанавливается из манифеста, corrupt binding сохраняется. Existing delete/backup
+интегрированы; удаление только private copies. При uninstall копии пропадут — экспорт.
+Android6 redCI44147675850:7 отказов корректного short WAV, API36 green. AOSP23
+advance освобождает текущий sample, EOF виден только следующему fetch; добавлен
+next sample index/time guard после первого пакета. Итог проверяет short/long WAV,
+семь прежних форматов, HTML/HLS/DASH/размер/повреждения без ослабления assertions.
+Отдельный testAPKUID/grants, pipe unknown size, AFD range, rotation безautoimport/
+playback, repeat/repair/delete/progress/backup contracts пройдены на23/36.
+Сторонний провайдер может застрять в Binder, игнорируя cancel; UI не ждёт, жёсткий
+deadline/полная декодировка/DRM не обещаны. Реальные Telegram/Yandex/Google provider,
+телефон, diskfull/processkill/reboot, Installer, батарея/RAM не проверены. Весь
+исторический native suite не запускался; выбранные регрессии перечислены в отчёте.
+Отчёт docs/SHARE-IMPORT-STAGE-8.md и docs/quality/share-import/results.json.
+Source main/public4.2.95/package/version/signer/пользовательские оригиналы прежние.
+Этап8 НЕ завершён: далее несколько library roots, metadata editor, consented Wi-Fi
+next-volume, дополнительные фильтры. Публикация только после разрешения.
+Ub-mode разрешён для текущего этапа8; TokenEconomizer CLI без повторных вопросов,
+status sessions0, hooks/экономия не доказаны. Предыдущие история/мониторинг/копии/
+SAF/Яндекс сохранены (Яндекс только writable tree provider, безOAuth).
+Исторические указания «следующее — импорт» ниже уже выполнены.
+
 # Этап8 — ручной мониторинг источников проверен, не опубликован (2026-11-17)
 
 Ветка cloud/source-health-20261117 от033e002 (чистая база/fetch совпали).
