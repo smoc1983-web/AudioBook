@@ -1,3 +1,41 @@
+# Этап 8 — история перемоток проверена, не опубликована (2026-11-17)
+
+Ветка cloud/seek-history-20261117 отaa3e8f3 (чистая база, удалённая совпадала).
+Проверенные исходникиed7cf99789e4851f0caa43258f5de6e7960296fd,
+CI44123938415 SUCCESS: Stable Debug/unsigned Release, Preview Debug/AndroidTest/
+upgradeProbe с прежним signer, fixture compile/dependency audit. JVM по378
+(377 выполнены/1 прежнийskip), native35/API23 и37/API36 (72,0fail/error/skip).
+Lint0Fatal/Error,268Warning83Hint: к прошлому пакету только+3UseKtx, подавлений нет.
+Локальные7Java, CRAPmax4 методов/Dryer0scoped/Mutator6из6 (append/resolve), parser
+и shell class-filter contract пройдены. Kotlin инструментами ub-mode не покрыт.
+История: Плеер→Закладки→История перемоток, максимум50 общих точек устройства,
+показ только текущего edition, stable chapter ID, до/после позиции, без URL/секретов.
+Возврат сохраняет паузу/скорость/минутный таймер, работает после перестановки глав и
+пересоздания службы; чужие/неточные главы отклоняются, возврат сам не записывается.
+Обычное прослушивание/auto chapter/resume rewind/кнопки next-previous/закладки не
+записываются. Очистка своего издания подтверждается; повреждённый JSON не заменяется
+молча, подтверждённый reset сохраняет raw в damaged. Хранение отдельно seek_history_v1,
+apply без новых периодических задач; в backup/SAF история не добавлена.
+Canonical chapter helper общий со StableProgress; wire format/IDs/аудио/закладки прежние.
+Для UI все ID рассчитываются одним проходом и кэшируются до смены каталога/плейлиста.
+Дополнительно исправлен прежний API23 applySettings: pause разрешён только если
+native player.isPlaying, а не в Prepared после setPlaybackParams. Red CI44122287510:
+API23 4fail/34,36green,verifygreen; logcatpause state8/error-38. После guard35/37green.
+Первый CI44120323342 ошибочно запускал всю историю тестов из-за отдельных shell
+в emulator-runner. Исправлен runner script; старые Settings/reboot/server/sensor
+сценарии нуждаются в специальных стендах, StartupSmoke list14/Lis10 устарел.
+Подробности/старые5отказов/API36 в отчёте; не заявлять green всего исторического набора.
+Отчёт docs/SEEK-HISTORY-STAGE-8.md и docs/quality/seek-history/results.json.
+Физический телефон/гарнитура/OEM/process-kill/reboot/Installer/батарея/RAM не проверены.
+Source main/public4.2.95/package/version/signer/пользовательские файлы не менялись.
+Весь этап8 НЕ завершён: далее мониторинг источников, share-import, несколько library
+roots, metadata editor, consented Wi-Fi next-volume, дополнительные фильтры.
+Предыдущие копии/SAF/Яндекс сохранены: Яндекс только через установленный SAF-провайдер
+с persistable writable tree, без OAuth; реальный аккаунт по-прежнему не проверен.
+Ub-mode разрешён на текущий этап8; TokenEconomizer CLI без повторных вопросов,
+status выполнен, sessions0, hooks/экономия не подтверждены. Релиз только с разрешения.
+Исторические записи ниже; их рекомендации «следующее — история» уже выполнены.
+
 # Этап 8 — первый пакет проверен, не опубликован (2026-11-17)
 
 Владелец разрешил этап8 и ub-mode. Ветка cloud/development-stage8-20261117,

@@ -1,0 +1,236 @@
+{
+  "task": "Stage8 incremental seek history and edition-safe return",
+  "base": "aa3e8f3ea636d2f56597e317173eeff27bba9335",
+  "branch": "cloud/seek-history-20261117",
+  "initialTreeClean": true,
+  "ubModeApprovedForCurrentStage8": true,
+  "published": false,
+  "stage8Complete": false,
+  "testedSource": "ed7cf99789e4851f0caa43258f5de6e7960296fd",
+  "ciRun": 44123938415,
+  "ciUrl": "https://github.com/smoc1983-web/AudioBook/actions/runs/44123938415",
+  "status": "success",
+  "local": {
+    "redTests": 7,
+    "expectedRedFailures": 5,
+    "greenJavaTests": 7,
+    "javaMethodCrapMax": 4.0,
+    "javaMethodInstructionCoverage": 1.0,
+    "dryerCandidatesScoped": 0,
+    "generatedMutationSites": 6,
+    "mutantsKilled": 6,
+    "mutationScope": "append/resolve; not all project or constructors",
+    "kotlinToolsSupported": false,
+    "sourceParserJvmChecks": "passed",
+    "nativeRunnerFilterContract": "passed API23 seven classes/API36 eight classes; one nonempty Gradle argument",
+    "tokenEconomizer": "CLI status executed; observed sessions0; hooks/savings unverified"
+  },
+  "unchanged": {
+    "sourceMain": "c8301dbf2fb558c8330d87baa67cacf307708529",
+    "publicRelease": "4.2.95",
+    "publicTag": "preview-v100095",
+    "publicTagCommit": "aade1a88688219571eaef0cef93557e8230739f6",
+    "package": true,
+    "signer": true,
+    "bookChapterIds": true,
+    "audioFiles": true,
+    "backupWireFormat": true,
+    "progressWireFormat": true,
+    "networkSecurityPolicy": true
+  },
+  "history": {
+    "limitGlobal": 50,
+    "stored": "private seek_history_v1 preferences; asynchronous apply",
+    "scope": "manual seek commands only, not automatic chapter changes, rewind after pause, bookmark or next/previous chapter commands",
+    "containsAudioUrlsOrCredentials": false,
+    "includedInBackupOrSafExchange": false,
+    "pausePreserved": true,
+    "returnCreatesHistoryEntry": false,
+    "chapterIdsCachedUntilPlaylistOrCatalogueChanges": true
+  },
+  "ciHistory": [
+    {
+      "run": 44120323342,
+      "issue": "emulator-runner used separate shells; class variable lost; empty filter ran entire historical native suite",
+      "api36FailuresObserved": [
+        "NotificationSettingsTest actual Settings missing on ATD",
+        "QueueProcessTest restore stage invoked without preparation/reboot",
+        "QueueProcessTest preparation missing external HTTP fixture",
+        "StartupSmokeTest stale removed-source expectation for Lis10",
+        "StartupSmokeTest no external accelerometer injection"
+      ],
+      "correction": "one native-tests.sh process selects classes and invokes Gradle; nonempty filter verified with stub Gradle for both API levels; historical assertions not disabled",
+      "conclusion": "cancelled remaining work once diagnosed; not a passing full native suite"
+    },
+    {
+      "run": 44120708781,
+      "conclusion": "superseded and cancelled after deterministic released-decoder fixture correction"
+    },
+    {
+      "run": 44120946746,
+      "conclusion": "superseded and cancelled after catalogue alias/ID cache improvement"
+    },
+    {
+      "run": 44121890050,
+      "conclusion": "superseded and cancelled after runner shell-scope correction"
+    },
+    {
+      "run": 44122287510,
+      "verify": "success",
+      "native36": "success",
+      "native23": {
+        "tests": 34,
+        "failures": 4
+      },
+      "cause": "Pre-existing applySettings unconditionally paused a Prepared player when setPlaybackParams did not auto-start on API23; native -38 released MediaPlayer",
+      "fix": "Only pause if logical isPlaying=false and player.isPlaying=true; add dedicated speed-while-paused regression; no assertion disabled"
+    }
+  ],
+  "physicalDeviceTested": false,
+  "realHeadsetTested": false,
+  "processKillOrRebootTestedInThisStep": false,
+  "serviceRecreationTested": true,
+  "batteryMemoryMeasured": false,
+  "androidInstallerTested": false,
+  "remainingStage8": [
+    "source health monitor",
+    "share import",
+    "multiple library roots",
+    "metadata editor",
+    "consented Wi-Fi next-volume downloads",
+    "additional filters"
+  ],
+  "ciResults": {
+    "jvm": {
+      "Debug": {
+        "tests": 378,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 1
+      },
+      "Release": {
+        "tests": 378,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 1
+      }
+    },
+    "native": {
+      "23": {
+        "tests": 35,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "classes": {
+          "com.audiobookdownloader.SeekHistoryAndroidTest": 8,
+          "com.audiobookdownloader.SeekHistoryPanelTest": 3,
+          "com.audiobookdownloader.Stage8ReliabilityTest": 11,
+          "com.audiobookdownloader.Stage8ProgressFolderTest": 7,
+          "com.audiobookdownloader.Stage8FolderPanelStateTest": 1,
+          "com.audiobookdownloader.Stage8ExportStateTest": 2,
+          "com.audiobookdownloader.LibraryIdentityAndroidTest": 3
+        }
+      },
+      "36": {
+        "tests": 37,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "classes": {
+          "com.audiobookdownloader.SeekHistoryAndroidTest": 8,
+          "com.audiobookdownloader.SeekHistoryPanelTest": 3,
+          "com.audiobookdownloader.Stage8ReliabilityTest": 11,
+          "com.audiobookdownloader.Stage8ProgressFolderTest": 7,
+          "com.audiobookdownloader.Stage8FolderPanelStateTest": 1,
+          "com.audiobookdownloader.Stage8ExportStateTest": 2,
+          "com.audiobookdownloader.LibraryIdentityAndroidTest": 3,
+          "com.audiobookdownloader.IdlePlaybackTest": 2
+        }
+      }
+    },
+    "lint": {
+      "lint-results-release.xml": {
+        "counts": {
+          "Warning": 268,
+          "Hint": 83
+        },
+        "addedCounts": {
+          "UseKtx": 3
+        },
+        "added": [
+          [
+            "UseKtx",
+            "Warning",
+            "Use the KTX extension function `SharedPreferences.edit` instead?"
+          ],
+          [
+            "UseKtx",
+            "Warning",
+            "Use the KTX extension function `SharedPreferences.edit` instead?"
+          ],
+          [
+            "UseKtx",
+            "Warning",
+            "Use the KTX extension function `SharedPreferences.edit` instead?"
+          ]
+        ],
+        "removed": []
+      },
+      "lint-results-debug.xml": {
+        "counts": {
+          "Warning": 268,
+          "Hint": 83
+        },
+        "addedCounts": {
+          "UseKtx": 3
+        },
+        "added": [
+          [
+            "UseKtx",
+            "Warning",
+            "Use the KTX extension function `SharedPreferences.edit` instead?"
+          ],
+          [
+            "UseKtx",
+            "Warning",
+            "Use the KTX extension function `SharedPreferences.edit` instead?"
+          ],
+          [
+            "UseKtx",
+            "Warning",
+            "Use the KTX extension function `SharedPreferences.edit` instead?"
+          ]
+        ],
+        "removed": []
+      }
+    }
+  },
+  "builds": {
+    "stableDebug": "passed",
+    "stableUnsignedRelease": "passed",
+    "androidTestCompile": "passed",
+    "previewDebugExistingSigner": "passed",
+    "upgradeProbeAssembly": "passed",
+    "legacyFixtureCompile": "passed",
+    "runtimeDependencyAudit": "passed"
+  },
+  "lintBaseline": "Stage8 first package CI44046401127, 265Warning83Hint",
+  "lintDelta": "3 UseKtx recommendations; no Error/Fatal and no suppressed checks",
+  "artifacts": [
+    {
+      "id": 14347381320,
+      "name": "seek-history-native-23-reports",
+      "digest": "sha256:88a6c3b7c653382b1ff8580386d1e19d5f5e23b0f18d136875350c32f0e52049"
+    },
+    {
+      "id": 14347292069,
+      "name": "seek-history-reports",
+      "digest": "sha256:713a7ab4094176345d7ba81662242a6cedd926225e5d937b06699661acc7c84d"
+    },
+    {
+      "id": 14346009386,
+      "name": "seek-history-native-36-reports",
+      "digest": "sha256:739f8b1fa27d8f18e64fd809610a0808fb7707eddcbd6f4ffb9a17604ee9985e"
+    }
+  ]
+}

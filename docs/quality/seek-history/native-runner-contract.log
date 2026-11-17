@@ -1,0 +1,5 @@
+Selected native test classes: com.audiobookdownloader.SeekHistoryAndroidTest,com.audiobookdownloader.SeekHistoryPanelTest,com.audiobookdownloader.Stage8ReliabilityTest,com.audiobookdownloader.Stage8ProgressFolderTest,com.audiobookdownloader.Stage8FolderPanelStateTest,com.audiobookdownloader.Stage8ExportStateTest,com.audiobookdownloader.LibraryIdentityAndroidTest
+Class filter is nonempty and preserved as one Gradle argument
+Selected native test classes: com.audiobookdownloader.SeekHistoryAndroidTest,com.audiobookdownloader.SeekHistoryPanelTest,com.audiobookdownloader.Stage8ReliabilityTest,com.audiobookdownloader.Stage8ProgressFolderTest,com.audiobookdownloader.Stage8FolderPanelStateTest,com.audiobookdownloader.Stage8ExportStateTest,com.audiobookdownloader.LibraryIdentityAndroidTest,com.audiobookdownloader.IdlePlaybackTest
+Class filter is nonempty and preserved as one Gradle argument
+PASS: both native class selections, no unfiltered full-suite invocation

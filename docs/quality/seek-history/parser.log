@@ -1,0 +1,294 @@
++ /opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3 check.py
+Kotlin delimiter/string check passed (not compilation)
+Both Kotlin files structurally checked; version, support details and compile-error opt-in preserved
+Extracted actual JavaScript classifier, catalogue, category browser and audio analyzer
+Extracted external classifier, public search and book verification scripts
+Extracted Azbyka catalogue, page and M3U parser scripts
+Extracted fourth-source route, search-form, player and external-playlist adapters
++ node test-catalog.cjs
+PASS: Bookinfo: route categories, exact genre tags and recommendation exclusion
+PASS: Knigoblud: UUIDs classified by source labels; titles never determine genre
+PASS: JSON-LD explicit categories override ambiguous Bookinfo URL category
+PASS: Multiple metadata genres include book once; unknown explicit category is excluded
+PASS: Source-specific aliases classify categories consistently
+PASS: Series detail block gets explicit Roman volume and excludes related series
+PASS: Knigoblud sibling book links cannot become false cycle names
+PASS: Series membership without URL is retained without inventing a destination
+PASS: ItemList reading positions retained on explicit UUID series pages only
+PASS: Numbers in titles, invalid Roman numerals and search rankings do not become volume numbers
+PASS: JSON-LD recommendations cannot reappear in category results
+PASS: Category discovery still excludes keyword-search links and book-card titles
+PASS: Pagination stays inside the same category
+PASS: Audio analyzer keeps playlist alongside series and genre metadata
+PASS: Load-more interaction still collects additional volumes and ignores disabled buttons
+15 parser fixture tests passed. Android compilation/runtime not tested.
++ node test-genre-directory.cjs
+PASS: All source headings, including unknown categories, retained without the preset list
+PASS: Entire category label/count in anchor and thousands separators cleaned
+PASS: Plain category list and relative genre paths retained; missing counts stay unknown
+PASS: Category headings can include posters without becoming individual books
+PASS: Navigation, login, search, external destinations and book previews excluded
+PASS: Duplicates use real canonical URLs and preserve source spelling
+PASS: More than three or fifteen source categories retained
+PASS: Directory safety bound is explicit and does not render unlimited rows
+PASS: Blocked page returns an access condition instead of claiming an empty working directory
+PASS: Native section accepts an unknown source subgenre and keeps genre-page provenance
+PASS: Native section pagination still remains inside its own category
+11 source-directory fixture scenarios passed; no live Bookinfo HTML or Android build.
++ node test-native-genres.cjs
+PASS: Screenshot section: Тру-крайм with heading and count
+PASS: Screenshot section: Тру-крайм when the entire title/count is link text
+PASS: Screenshot section: На иностранных языках with heading and count
+PASS: Screenshot section: На иностранных языках when the entire title/count is link text
+PASS: Screenshot section: Аудиоспектакли with heading and count
+PASS: Screenshot section: Аудиоспектакли when the entire title/count is link text
+PASS: Detectives joins exact parent, thriller, historical detective and true-crime categories
+PASS: Count decorations, punctuation, case and ё normalize consistently
+PASS: Genre directories discovered under alternate menu labels and deduplicated
+PASS: No guessed URL when the site contains no matching category
+PASS: Search links, external URLs, book titles and recommendations are not category roots
+PASS: Desktop and mobile same-site category links work without accepting lookalike hosts
+PASS: Category card with explicit native subgenre: Исторический детектив → Детективы
+PASS: Category card with explicit native subgenre: Тру-крайм → Детективы
+PASS: Category card with explicit native subgenre: Бытовое фэнтези → Фэнтези
+PASS: Category card with explicit native subgenre: Постапокалипсис → Фантастика
+PASS: Category card with explicit native subgenre: Военная история → История
+PASS: Category card with explicit native subgenre: Современные любовные романы → Романы
+PASS: Category card with explicit native subgenre: Практическая психология → Саморазвитие
+PASS: Category card with explicit native subgenre: Ужасы, мистика, хоррор → Ужасы и мистика
+PASS: Category card with explicit native subgenre: True Crime → Тру-крайм
+PASS: Category card with explicit native subgenre: Радиоспектакль → Аудиоспектакли
+PASS: Category card with explicit native subgenre: Книги на иностранных языках → На иностранных языках
+PASS: Romantic fantasy can belong to both parents without duplicate rows
+PASS: Explicit conflicting and unknown genres still override title words
+PASS: Unknown labels remain unknown; no guessed genre from title-like prose
+PASS: Every selectable canonical group is discoverable and accepts its own source metadata
+PASS: Source-specific Bookinfo alias uses observed link rather than a constructed path
+PASS: Discovery output is bounded and duplicate URLs cannot grow the root queue
+PASS: Public evidence classification shares native subgenre labels and added sections
+30 native-category fixture tests passed; no live-site or Android execution.
++ node test-online-player-load.cjs
+PASS: Player after 240 advertising scripts is still read
+PASS: Variable-backed playlist after 240 external scripts retains declaration order
+PASS: Script selection prioritizes player without unbounded literal parsing
+PASS: Diagnostic gives player declaration priority over the first 16 ad URLs
+PASS: Observed ad endpoints are distinguished from real source and CDN assets
+PASS: A lazy player is scrolled into view without a play click
+PASS: Deferred iframe gets its declared URL and advertising iframe stays deferred
+PASS: Ads and recommendations do not supply player candidates or trigger scroll
+PASS: Inline advertising references cannot fill the diagnostic before a real player initializer
+9 player-load regressions passed; synthetic DOM, not Android/live-source playback.
++ node test-online-reader-fix.cjs
+PASS: Variable-backed inline Playerjs config resolves without execution
+PASS: Separate script declarations retain chapter order and signed media URLs
+PASS: JSON string inside Playerjs file decodes into chapters
+PASS: Literal JSON.parse declarations work without arbitrary evaluation
+PASS: Executable declarations, property access, and call expressions are rejected
+PASS: Recommendation playlist variables do not leak into the book
+PASS: Player-scoped DOM list yields all chapter links in order
+PASS: Loaded Playerjs is queried only for its documented root playlist
+PASS: Same-origin player frame resolves relative chapter URLs against frame address
+PASS: Cross-origin player frame response requires both matching window and origin
+PASS: Catalogue uses actual title when genre links share the book URL
+PASS: Wrong recommendation cover cannot replace the opened book cover
+PASS: Missing book cover stays empty rather than taking unrelated global image
+PASS: DLE form submission bypasses intercepted quick-search, preserving native POST
+PASS: Source diagnostic omits media query strings and form secret values
+PASS: POST search page is confirmed by its result container when the URL has no query parameters
+PASS: Multiple ordinary audio elements retain every chapter
+17 reader/search regression scenarios passed (synthetic DOM).
++ node test-online-source.cjs
+PASS: Only exact source hosts and current article/book routes qualify
+PASS: DLE POST search preserves real action, hidden mode and CSRF fields
+PASS: GET search uses the actual query parameter and preserves the literal query
+PASS: Login, newsletter and off-site forms are not submitted
+PASS: Discovered search-page link can be followed without inventing an endpoint
+PASS: Home-page access check yields an explicit blocked state
+PASS: Unknown search markup returns a recoverable missing state
+PASS: Short-story card yields book, cover, explicit author and genre; metadata links excluded
+PASS: Observed category routes supply source genre while explicit conflicting metadata wins
+PASS: Schema search records retain author and skip non-book utility URLs
+PASS: Source title suffix and author prefix removed only when the author is known
+PASS: Search page is confirmed by actual URL rather than home-page books
+PASS: Explicit no-results and access-check states are reported
+PASS: Playerjs inline playlist reads real signed MP3s and durations
+PASS: Nested player folders preserve chapter order
+PASS: JWPlayer and jPlayer audio data supported without executing page code
+PASS: Executable expressions and ad/recommendation player initializers excluded
+PASS: Extended constructor reader is scoped to the new source
+PASS: Plain JSON player data, deduplication and invalid media handling
+PASS: External list remains a descriptor and is never treated as an MP3 chapter
+PASS: Ready audio element takes priority over pending external-list reference
+PASS: External JSON playlist resolves relative chapter paths against the actual list URL
+PASS: External JSON supports BOM and M3U supports titles and durations
+PASS: HLS manifests, malformed lists and images do not become playable MP3 lists
+PASS: Large explicit playlist is bounded
+PASS: Full analyzer combines native heading, author, cover and playable chapters
+PASS: Public discovery recognizes the fourth host and rejects lookalikes
+27 new-source fixture scenarios passed; no live source or Android runtime validation.
++ node test-php-playlist.cjs
+PASS: Exact constructor from user report exposes the real PHP playlist address
+PASS: Previous shipped parser returns null for the exact same observed initializer
+PASS: Compound PHP extensions are recognized independently of case, query and hash
+PASS: Arbitrary PHP pages, HLS manifests and images do not become list descriptors
+PASS: Observed list address supplies the correct base for relative chapter URLs
+PASS: PHP response body JSON is parsed regardless of endpoint suffix
+PASS: Real HTML response and executable expressions remain unplayable
+PASS: M3U supplied by a compound PHP endpoint keeps all chapter titles
+PASS: DLE service hash value is redacted in the manual diagnostic
+PASS: Actual playerjs1 ID is prepared and preparation attempts stay bounded
+10 PHP-playlist regression scenarios passed; response bodies are fixtures, not a live server recording.
++ node test-player-reader.cjs
+PASS: Original JSON init remains playable
+PASS: Whitespace, comments, single quotes, unquoted keys and trailing commas are data, not failures
+PASS: JSON.parse payload is decoded without evaluating page code
+PASS: Empty/malformed first player does not hide a later valid player
+PASS: Bad URLs/null records and duplicate chapters are excluded
+PASS: Explicit player JSON and current-page audio/source nodes work
+PASS: Recommendation and advert audio do not become book chapters
+PASS: Full analyzer retains a recovered book playlist
+PASS: Screenshot regression: UUID genre link must not become a book with the volume cover
+PASS: A genuine book titled Фантастика remains a book
+Player/catalog fixture tests completed; no live site or Android WebView tested.
++ node test-public.cjs
+PASS: Google Books uses title, author and bibliographic categories
+PASS: Open Library supplies genre when Google returns no metadata
+PASS: Another author and another volume are rejected
+PASS: Ambiguous authorless titles cannot inherit whichever result arrives first
+PASS: Author order and ё/e spelling differences are tolerated without title substring matching
+PASS: Generic Fiction and a genre word in the book title do not establish a category
+PASS: Search snippets require an explicit genre field with matching book and author
+PASS: Authorless snippet evidence needs two independent domains
+PASS: Google query/search navigation cannot masquerade as a metadata source
+PASS: Series classification uses its own matched identity, not a different book title
+PASS: Google result links are decoded; actual audiobook hosts and categories retained
+PASS: Bing backup result parser supports h2 and excludes author indexes from candidates
+PASS: Captcha/access checks produce a blocked state instead of empty successful results
+PASS: Actual book identity comes from h1/schema while audio playlist is still available
+14 external-source fixtures passed. No live network or Android build claimed.
++ node tests/test-additional-sources.cjs
+PASS: Exact source identity: Книга в Ухе
+PASS: Exact source identity: Izibuk
+PASS: Exact source identity: Uknig
+PASS: Exact source identity: Поле книг
+PASS: Exact source identity: Аудиокниги Все
+PASS: Exact source identity: Отруб
+PASS: Exact source identity: Akniga
+PASS: Exact source identity: Audioknigi.pro
+PASS: Exact source identity: База книг
+PASS: Exact source identity: Предание.ру
+PASS: Exact source identity: Библус
+PASS: Exact source identity: Слушать книги
+PASS: Exact source identity: AudioKniga.one
+PASS: Exact source identity: Аудиополка
+PASS: Exact source identity: AudioBoo
+PASS: Exact source identity: A-kniga
+PASS: Exact source identity: Aknigi24
+PASS: Exact source identity: Audiokniga.life
+PASS: Exact source identity: Аудиокниги онлайн
+PASS: Exact source identity: Bookish
+PASS: Exact source identity: Book-Zvuk
+PASS: Exact source identity: Голосом
+PASS: Exact source identity: Aknig
+PASS: Exact source identity: Audioknigi.top
+PASS: The retained additions and Predanie stay enabled and preserve their order
+PASS: Removed sources cannot be classified or offered by the active adapters
+PASS: Observed search HTML yields named catalogue books: Книга в Ухе
+PASS: Actual named search form preserves query and hidden fields: Книга в Ухе
+PASS: Observed search HTML yields named catalogue books: Izibuk
+PASS: Actual named search form preserves query and hidden fields: Izibuk
+PASS: Observed search HTML yields named catalogue books: Uknig
+PASS: Actual named search form preserves query and hidden fields: Uknig
+PASS: Observed search HTML yields named catalogue books: Поле книг
+PASS: Actual named search form preserves query and hidden fields: Поле книг
+PASS: Observed search HTML yields named catalogue books: Аудиокниги Все
+PASS: Actual named search form preserves query and hidden fields: Аудиокниги Все
+PASS: Observed search HTML yields named catalogue books: Отруб
+PASS: Actual named search form preserves query and hidden fields: Отруб
+PASS: Observed search HTML yields named catalogue books: Akniga
+PASS: Actual named search form preserves query and hidden fields: Akniga
+PASS: Observed search HTML yields named catalogue books: Audioknigi.pro
+PASS: Actual named search form preserves query and hidden fields: Audioknigi.pro
+PASS: Observed search HTML yields named catalogue books: База книг
+PASS: Actual named search form preserves query and hidden fields: База книг
+PASS: Observed public player data: knigavuhe
+PASS: Observed public player data: izibuk
+PASS: Observed public player data: otrub
+PASS: Observed public player data: uknig
+PASS: Observed public player data: audioknigivse
+PASS: Observed public player data: audioknigi-pro
+PASS: Online chapter duration aliases preserve source time metadata
+PASS: Trial outside the metadata card is visibly labelled as a fragment
+PASS: Rights-holder removal and blocked book return no playable substitute
+PASS: Challenge never returns cached recommendations as search results
+PASS: External Baza TXT is a descriptor, then resolves all twenty chapters
+PASS: Akniga only reads the current book audio, ignoring restored or advertising tracks
+PASS: Search refuses login and third-party forms
+PASS: 57 additional-source fixtures (recorded HTML and parser behaviour; no live audio playback assertion)
++ node tests/test-author-search.cjs
+PASS: 23 author-search checks (executed Bookinfo JS + Kotlin integration guards; not an Android build)
++ node tests/test-nova-sources.cjs
+PASS Catalogue cards and exact hosts: baza-knig.top
+PASS Catalogue cards and exact hosts: biblus.org
+PASS Current book chapters: biblus.org
+PASS Catalogue cards and exact hosts: slushat-knigi.com
+PASS Current book chapters: slushat-knigi.com
+PASS Catalogue cards and exact hosts: audiokniga.one
+PASS Current book chapters: audiokniga.one
+PASS Catalogue cards and exact hosts: audiopolka.club
+PASS Current book chapters: audiopolka.club
+PASS Catalogue cards and exact hosts: audioboo.org
+PASS Current book chapters: audioboo.org
+PASS Catalogue cards and exact hosts: a-kniga.com
+PASS Current book chapters: a-kniga.com
+PASS Catalogue cards and exact hosts: aknigi24.com
+PASS Current book chapters: aknigi24.com
+PASS Catalogue cards and exact hosts: audiokniga.life
+PASS Current book chapters: audiokniga.life
+PASS Catalogue cards and exact hosts: audioknigi-onlain.com
+PASS Current book chapters: audioknigi-onlain.com
+PASS Catalogue cards and exact hosts: bookish.site
+PASS Current book chapters: bookish.site
+PASS Catalogue cards and exact hosts: book-zvuk.com
+PASS Current book chapters: book-zvuk.com
+PASS Catalogue cards and exact hosts: golosom.org
+PASS Current book chapters: golosom.org
+PASS Catalogue cards and exact hosts: s2.aknig.xyz
+PASS Current book chapters: s2.aknig.xyz
+PASS Unavailable pages never return advertising audio as the book
+PASS Narrator labels are retained separately from author
+29 source fixture checks; no claim of device playback or live availability
++ node tests/test-predanie.cjs
+PASS: Live-recorded audio catalogue exposes titled audio cards and authors
+PASS: Live-recorded search retains audio and mixed media, excluding text-only and video-only
+PASS: Explicit public playlist retains 162 unique chapters from 163 source rows with real durations and relative URL resolution
+PASS: Book analyzer shows source author, title and the same playlist
+PASS: Video-only, malformed or missing playlist never falls back to unrelated audio
+PASS: Search submits the actual on-site form without touching account forms
+PASS: Rubric directory uses observed category links and excludes another host
+PASS: 7 Predanie source scenarios
++ node tests/test-segment-errors.cjs
+PASS: unsupported HLS/DASH manifests and MIME never turn into an audio sample
++ node tests/test-source-directory.cjs
+PASS: 7 source-directory fixtures, exact host/category isolation and access challenge detection
++ node tests/test-top-downloads.cjs
+PASS Signed playlist descriptor takes precedence over current single audio element
+PASS All chapters retain order and duplicates do not download twice
+PASS Wrong edition, failed API, malformed and executable payloads fail closed
+PASS Player endpoint must belong to this HTTPS source and expected API
+PASS Catalogue excludes navigation, recommendations and duplicate links
+PASS Connection-check pages do not yield advertisement audio
+PASS Manual source explicit playlist, not a single audio fragment: slushkinvsem.ru
+PASS Manual source explicit playlist, not a single audio fragment: aume.ru
+PASS Manual source explicit playlist, not a single audio fragment: lis10book.com
+PASS Manual source explicit playlist, not a single audio fragment: audio-lib.club
+PASS Manual source explicit playlist, not a single audio fragment: knigiaudio.net
+PASS Manual source explicit playlist, not a single audio fragment: author.today
+12 source download/parser checks passed
++ java -m jdk.compiler/com.sun.tools.javac.Main -source 8 -target 8 -Xlint:-options -d /tmp/audiobook-checks-j9dmuylj app/src/main/java/com/SearchBookIndex.java app/src/main/java/com/LibraryRecoveryRules.java tests/SearchBookIndexTest.java tests/LibraryRecoveryRulesTest.java
++ java -cp /tmp/audiobook-checks-j9dmuylj SearchBookIndexTest
+PASS: actual Java index identity, URL, volume, author compatibility, same-site editions, author upgrade and Unicode cases
+PASS: 40,000 insert/lookups on actual index, distinct titles and same-title/different-author stress, 0.745 s (desktop JVM, not Android)
++ java -cp /tmp/audiobook-checks-j9dmuylj LibraryRecoveryRulesTest
+PASS: 22 library recovery and audio-container rules
+All saved source/parser/JVM checks passed. Android build/device tests were not run.
