@@ -74,6 +74,22 @@ jobs:
           if not path.is_file(): raise SystemExit('Original signing key unavailable; refusing to generate a replacement')
           with open(os.environ['GITHUB_ENV'],'a') as out: out.write('PREVIEW_KEYSTORE='+str(path)+'\n')
           PY
+      # API23 predates domain-scoped Network Security Config. Its DownloadManager
+      # rejects the loopback HTTP fixture with status400 before reaching the server.
+      # Modify only this disposable native-test workspace; normal Debug/Release
+      # builds in verify and every publication workflow retain cleartext=false.
+      - name: Permit the local HTTP fixture in the disposable API23 test APK only
+        if: matrix.api == 23
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('app/src/debug/AndroidManifest.xml')
+          source=p.read_text()
+          marker='<application android:networkSecurityConfig='
+          assert source.count(marker)==1
+          p.write_text(source.replace(marker,'<application android:usesCleartextTraffic="true" android:networkSecurityConfig='))
+          assert 'android:usesCleartextTraffic="false"' in Path('app/src/main/AndroidManifest.xml').read_text()
+          PY
       - name: Build Preview tests with the existing signer
         run: gradle :app:assembleDebug :app:assembleDebugAndroidTest :upgradeProbe:assembleDebug --max-workers=2 --console=plain
       - name: Emulator access
