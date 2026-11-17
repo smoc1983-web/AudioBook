@@ -116,7 +116,7 @@ internal val LocalAbBookCardContext=staticCompositionLocalOf<BookCardContext?>{n
     fun restore(tree:Uri?) {
         val uri=source?:return;val checked=preview?:return
         run{val job=currentCoroutineContext()[Job]
-            try{withContext(Dispatchers.IO){LibraryBackup.restore(context,uri,tree,checked,check={job?.ensureActive()}){message->scope.launch{status=message}}}.also{preview=null}}
+            try{AutomaticProgressBackups.prepareRestore(context);withContext(Dispatchers.IO){LibraryBackup.restore(context,uri,tree,checked,check={job?.ensureActive()}){message->scope.launch{status=message}}}.also{preview=null}}
             finally{onRestored()}
         }
     }
@@ -141,7 +141,7 @@ internal val LocalAbBookCardContext=staticCompositionLocalOf<BookCardContext?>{n
     }}
     preview?.let{p->
         Text("Готово к восстановлению: ${p.values.size} настроек · ${p.chapters} глав. Выбранные настройки заменят текущие; остальные сохранятся.",color=theme.text,fontSize=14.sp)
-        Text("Сначала поставьте плеер на паузу. Аудиофайлы с совпадающими именами не перезаписываются. Доступ к папке библиотеки и фон из галереи при необходимости выберите заново.",color=theme.muted,fontSize=12.sp)
+        Text("Сначала поставьте плеер на паузу. Подтверждение закроет текущую книгу в плеере, чтобы прежняя позиция не заменила восстановленную. Аудиофайлы с совпадающими именами не перезаписываются. Доступ к папке библиотеки и фон из галереи при необходимости выберите заново.",color=theme.muted,fontSize=12.sp)
         AbButton("Восстановить настройки и коллекции",theme,enabled=!busy){restore(null)}
         if(p.chapters>0)AbButton("Выбрать папку и восстановить с аудио",theme,enabled=!busy){folder.launch(null)}
         AbButton("Отменить восстановление",theme,enabled=!busy){preview=null;source=null}

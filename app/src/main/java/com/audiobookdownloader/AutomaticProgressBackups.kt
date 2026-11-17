@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import androidx.work.*
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.io.File
@@ -49,6 +50,15 @@ internal object AutomaticProgressBackups {
                 if(saved.cleanupFailures==0)"Копия прогресса сохранена" else "Копия сохранена; часть старых копий не удалось очистить").apply()
             Snapshot(saved.file,true,LibraryBackup.inspect(c,Uri.fromFile(saved.file)).values.size)
         }
+    }
+    suspend fun prepareRestore(c:Context) {
+        require(!PlaybackService.state.value.isPlaying){"Сначала поставьте плеер на паузу"}
+        withContext(Dispatchers.Main.immediate) {
+            require(!PlaybackService.state.value.isPlaying){"Сначала поставьте плеер на паузу"}
+            PlaybackService.stop(c,clearSelection=true)
+        }
+        try { withTimeout(10000){PlaybackService.state.first{!it.hasSelection&&!it.isPlaying}} }
+        catch(_:TimeoutCancellationException){error("Не удалось закрыть плеер. Повторите восстановление после его закрытия.")}
     }
     fun setEnabled(c:Context,value:Boolean) {
         preferences(c).edit().putBoolean("enabled",value).apply();install(c)
