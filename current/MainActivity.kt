@@ -11010,7 +11010,7 @@ private fun AbContinuationSettings(theme:AbTheme,onOpen:(BookRef)->Unit) {
         AbButton("Разрешить уведомления",theme){
             if(android.os.Build.VERSION.SDK_INT>=33 && context.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)!=android.content.pm.PackageManager.PERMISSION_GRANTED)
                 permission.launch(android.Manifest.permission.POST_NOTIFICATIONS)
-            else try{context.startActivity(Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(android.provider.Settings.EXTRA_APP_PACKAGE,context.packageName))}catch(_:Exception){}
+            else openAppNotificationSettings(context)
         }
     }
     AbButton("Проверить сейчас",theme,enabled=enabled){AbContinuationAlerts.checkNow(context)}
