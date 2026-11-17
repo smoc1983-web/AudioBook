@@ -28,7 +28,7 @@ Stable имеет другой пакет и не смешивается с Prev
 
 ## Проверки и сборка
 
-Для сборки нужны JDK17, Gradle8.9, Android SDK36 и build-tools35.0.0.
+Для сборки используются AGP8.10.1 и Kotlin/Compose Compiler2.2.21. Нужны JDK17, Gradle8.11.1, Android SDK36 и build-tools35.0.0.
 
 ```sh
 python3 tools/run_checks.py

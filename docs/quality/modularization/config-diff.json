@@ -1,0 +1,28 @@
+{
+  "applicationConfigUnchangedExceptJvmTargetDsl": true,
+  "otherWorkflowChangesOnlyGradlePin": [
+    ".github/workflows/collection-notices.yml",
+    ".github/workflows/publish-approved95.yml",
+    ".github/workflows/audio-validation.yml",
+    ".github/workflows/publish-approved94.yml",
+    ".github/workflows/bridge-candidate-review.yml",
+    ".github/workflows/library-experience.yml",
+    ".github/workflows/collection-series.yml",
+    ".github/workflows/github-updater-review.yml",
+    ".github/workflows/progress-consistency.yml",
+    ".github/workflows/playback-idle.yml",
+    ".github/workflows/book-description.yml",
+    ".github/workflows/security-diagnostics.yml",
+    ".github/workflows/library-identity.yml",
+    ".github/workflows/library-file-actions.yml",
+    ".github/workflows/audit-release68.yml",
+    ".github/workflows/edition-download.yml",
+    ".github/workflows/search-editions-review.yml",
+    ".github/workflows/phone-candidate.yml",
+    ".github/workflows/durable-queue.yml",
+    ".github/workflows/source-resilience.yml",
+    ".github/workflows/build-apk.yml"
+  ],
+  "publishingTriggersAndCommandsUnchanged": true,
+  "newVerificationWorkflowAddsFixtureCompileProbeAssemblyAndDependencyInventory": true
+}

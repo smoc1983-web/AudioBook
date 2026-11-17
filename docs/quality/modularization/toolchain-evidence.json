@@ -1,0 +1,18 @@
+{
+  "reviewed": "2026-11-17",
+  "agp": {
+    "url": "https://developer.android.com/build/releases/agp-8-10-0-release-notes",
+    "maximumApi": 36,
+    "minimumGradle": "8.11.1",
+    "jdk": 17,
+    "buildTools": "35.0.0"
+  },
+  "kotlin": {
+    "url": "https://kotlinlang.org/docs/gradle-configure-project.html",
+    "selected": "2.2.21",
+    "documentedRange": "2.2.20–2.2.21",
+    "gradleRange": "7.6.3–8.14",
+    "agpRange": "7.3.1–8.11.1"
+  },
+  "decision": "AGP 8.10.1 / Gradle 8.11.1 / Kotlin and Compose compiler 2.2.21 / JDK 17; retain compileSdk/targetSdk 36 and minSdk 23; no blanket runtime dependency upgrade"
+}

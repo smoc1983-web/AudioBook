@@ -38,11 +38,12 @@ android {
         sourceCompatibility=JavaVersion.VERSION_17;targetCompatibility=JavaVersion.VERSION_17
         isCoreLibraryDesugaringEnabled=true
     }
-    kotlinOptions { jvmTarget="17" }
     sourceSets {
         getByName("main") { java.srcDirs("../current/app/src/main/java",layout.buildDirectory.dir("generated/currentSources"));res.srcDirs("../current/app/src/main/res") }
     }
 }
+kotlin { compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17) } }
+
 val syncCurrentSources by tasks.registering(Copy::class) {
     from("../current") { include("MainActivity.kt","PlaybackService.kt") }
     into(layout.buildDirectory.dir("generated/currentSources"))
