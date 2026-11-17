@@ -9895,6 +9895,8 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
     } // Cover requests wait for this list to stop scrolling.
     manualSource?.let { (name,url) -> AbManualSourceBrowser(name,url,data,actions,theme){manualSource=null} }
     if(showSources) AbDialog("Источники поиска",theme,{showSources=false}) {
+        val healthTargets=remember{abSourceHealthTargets()}
+        val health=AbSourceHealthControls(healthTargets,enabledSources,theme)
         Text("Нажмите название для поиска на одном сайте. В результатах откройте меню книги → «Скачать». Переключатели задают состав общего поиска. Проверка каталога не гарантирует доступность каждой книги.",color=theme.muted,fontSize=12.sp)
         AbButton("Общий поиск · ${enabledSources.size} из ${AbBookSources.searchOrder.size}",theme,primary=data.searchSource.isBlank()) {
             showSources=false;actions.searchScope("")
@@ -9905,6 +9907,7 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
                     Text((if(data.searchSource==site)"✓ " else "")+site,color=theme.text,fontSize=14.sp)
                     val status=AbExtraSources.status(site)
                     if(status.isNotBlank())Text(status,color=theme.muted,fontSize=10.sp)
+                    AbSourceHealthStatus(site,health,theme)
                 }
                 androidx.compose.material3.Switch(checked=site in enabledSources,onCheckedChange={checked ->
                     val next=if(checked)enabledSources+site else enabledSources-site
@@ -14903,6 +14906,9 @@ private object AbSourceTrace {
     fun read(context:Context):String=context.getSharedPreferences("audiobook_diagnostics",Context.MODE_PRIVATE)
         .getString("last_source","").orEmpty()
 }
+
+internal fun abSourceHealthTargets():List<SourceHealthTarget> = AbBookSources.searchOrder.distinct()
+    .map{SourceHealthTarget(it,AbBookSources.home(it))}
 
 private object AbBookSources {
     const val AZBYKA="Азбука веры"
