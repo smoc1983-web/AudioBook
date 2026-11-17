@@ -16,17 +16,18 @@ import java.util.zip.GZIPInputStream
 import javax.net.ssl.SSLException
 
 internal data class SourceHealthTarget(val name:String,val home:String) {
-    val key=ChapterIdentity.hash(name+"\u0000"+home)
     init {
-        val uri=NetworkAddressRules.checked(home).toURI()
         require(name.isNotBlank()&&name.length<=120&&home.length<=512)
+        val uri=NetworkAddressRules.checked(home).toURI()
         require(uri.scheme=="https"&&uri.port in listOf(-1,443)&&uri.rawQuery==null&&uri.rawFragment==null)
     }
+    val key=ChapterIdentity.hash(name+"\u0000"+home)
 }
 internal data class SourceHealthObservation(val status:SourceHealthRules.Status,val checked:Long,
     val millis:Long,val http:Int=0,val retryUntil:Long=0) {
     init {
         require(checked>=0&&millis in 0..60000&&retryUntil>=0&&http in 0..599)
+        require(retryUntil==0L||http in listOf(429,503)&&retryUntil>=checked&&retryUntil-checked<=SourceHealthRules.MAX_WAIT)
         when(status) {
             SourceHealthRules.Status.RESPONDED,SourceHealthRules.Status.UNEXPECTED->require(http in 200..299)
             SourceHealthRules.Status.RESTRICTED->require(http in 200..299||http==401||http==403)

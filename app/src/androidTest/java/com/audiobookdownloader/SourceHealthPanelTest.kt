@@ -43,12 +43,15 @@ class SourceHealthPanelTest {
         assertEquals(1,calls.get());assertFalse(store.rows.containsKey(b.key))
     }
     @Test fun staleAndRestrictedStatesHaveReadableTextWithoutRelyingOnColour() {
+        val c=SourceHealthTarget("Другая проверка","https://www.bookinfo.net/")
         val state=SourceHealthState(values=mapOf(a.key to SourceHealthObservation(SourceHealthRules.Status.RESPONDED,100000,12,200),
-            b.key to SourceHealthObservation(SourceHealthRules.Status.RESTRICTED,100000+SourceHealthRules.TTL,45,403)),loading=false)
-        val view=SourceHealthView(state,mapOf(a.name to a,b.name to b),100000+SourceHealthRules.TTL)
-        compose.setContent{Column{AbSourceHealthStatus(a.name,view,abTheme(10));AbSourceHealthStatus(b.name,view,abTheme(10))}}
+            b.key to SourceHealthObservation(SourceHealthRules.Status.RESTRICTED,100000+SourceHealthRules.TTL,45,403),
+            c.key to SourceHealthObservation(SourceHealthRules.Status.TIMEOUT,Long.MAX_VALUE,10000)),loading=false)
+        val view=SourceHealthView(state,mapOf(a.name to a,b.name to b,c.name to c),100000+SourceHealthRules.TTL)
+        compose.setContent{Column{AbSourceHealthStatus(a.name,view,abTheme(10));AbSourceHealthStatus(b.name,view,abTheme(10));AbSourceHealthStatus(c.name,view,abTheme(10))}}
         compose.onNodeWithText("Устарело · Сайт ответил",substring=true).assertExists()
         compose.onNodeWithText("Доступ ограничен / нужна проверка · HTTP 403").assertExists()
+        compose.onNodeWithText("проверьте часы устройства",substring=true).assertExists()
     }
     @Test fun cancelButtonAndClosingPanelCancelRequestsWithoutLateCacheWritesOrBusyState() {
         val store=Memory();val calls=AtomicInteger()

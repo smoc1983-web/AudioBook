@@ -44,7 +44,7 @@ class SourceHealthAndroidTest {
         val c=Device(app);val cache=SourceHealthCache(c);cache.put(target,ok(100000))
         val prefs=c.getSharedPreferences("source_health_v1",0);val good=prefs.getString(target.key,null)!!
         val invalid=listOf("broken",good+" junk",JSONObject(good).put("schema",2).toString(),JSONObject(good).put("checked",100.5).toString(),
-            JSONObject(good).put("http",503).toString(),JSONObject(good).put("millis",70000).toString())
+            JSONObject(good).put("http",503).toString(),JSONObject(good).put("millis",70000).toString(),JSONObject(good).put("retry",200000).toString())
         for(raw in invalid) {
             prefs.edit().putString(target.key,raw).commit();assertNull(cache.get(target));assertEquals(raw,prefs.getString(target.key,null))
         }

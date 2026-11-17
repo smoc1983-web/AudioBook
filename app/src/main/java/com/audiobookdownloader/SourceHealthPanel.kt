@@ -68,7 +68,12 @@ internal data class SourceHealthView(val state:SourceHealthState,val targets:Map
         else->theme.error
     }
     Text((if(!fresh)"Устарело · " else "")+label+if(value.http>0)" · HTTP ${value.http}" else "",color=color,fontSize=11.sp)
-    val date=DateFormat.getDateTimeInstance(DateFormat.SHORT,DateFormat.SHORT).format(Date(value.checked))
+    val date=remember(value.checked){healthDate(value.checked)}
     Text("Проверено: $date"+if(value.checked>view.now)" · проверьте часы устройства" else "",color=theme.muted,fontSize=10.sp)
-    if(value.retryUntil>view.now)Text("Повтор после: "+DateFormat.getDateTimeInstance(DateFormat.SHORT,DateFormat.SHORT).format(Date(value.retryUntil)),color=theme.muted,fontSize=10.sp)
+    if(value.retryUntil>view.now) {
+        val retry=remember(value.retryUntil){healthDate(value.retryUntil)}
+        Text("Повтор после: $retry",color=theme.muted,fontSize=10.sp)
+    }
 }
+private fun healthDate(value:Long):String=try{DateFormat.getDateTimeInstance(DateFormat.SHORT,DateFormat.SHORT).format(Date(value))}
+    catch(_:Exception){"некорректное время"}
