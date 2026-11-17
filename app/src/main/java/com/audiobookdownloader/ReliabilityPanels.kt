@@ -5,6 +5,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.*
 import java.text.DateFormat
@@ -18,7 +19,8 @@ import java.util.Date
     var working by remember{mutableStateOf(false)}
     var copies by remember{mutableStateOf<List<AutomaticProgressBackups.Snapshot>>(emptyList())}
     var message by remember{mutableStateOf("")}
-    var selected by remember{mutableStateOf<AutomaticProgressBackups.Snapshot?>(null)}
+    var selectedName by rememberSaveable{mutableStateOf("")}
+    var selecting by rememberSaveable{mutableStateOf(false)}
     DisposableEffect(p) {
         val listener=android.content.SharedPreferences.OnSharedPreferenceChangeListener{_,_->scope.launch{revision++}}
         p.registerOnSharedPreferenceChangeListener(listener)
@@ -30,12 +32,15 @@ import java.util.Date
         catch(_:Exception){message="Не удалось прочитать сохранённые копии"}
     }
     val save=rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/zip")){uri->
-        val copy=selected
-        if(uri!=null&&copy!=null&&uri.scheme!="content")message="Выберите файл через системный провайдер документов"
-        else if(uri!=null&&copy!=null)scope.launch {
+        selecting=false
+        val name=selectedName
+        if(uri!=null&&name.isNotBlank()&&uri.scheme!="content")message="Выберите файл через системный провайдер документов"
+        else if(uri!=null&&name.isNotBlank())scope.launch {
             working=true
             try {
                 withContext(Dispatchers.IO){
+                    val copy=AutomaticProgressBackups.snapshots(context).singleOrNull{it.file.name==name} ?: error("Копия больше недоступна; выберите другую")
+                    check(copy.valid)
                     check(LibraryBackup.inspect(context,Uri.fromFile(copy.file)).chapters==0)
                     requireNotNull(context.contentResolver.openOutputStream(uri,"wt")).use{out->copy.file.inputStream().use{it.copyTo(out,65536)}}
                     LibraryBackup.inspect(context,uri)
@@ -43,14 +48,14 @@ import java.util.Date
                 message="Копия экспортирована"
             }catch(cancel:CancellationException){throw cancel}
             catch(_:Exception){message="Не удалось экспортировать копию. Исходная копия на устройстве сохранена."}
-            finally{working=false}
+            finally{working=false;selectedName=""}
         }
     }
     AbHeading("Автоматические копии прогресса",theme)
     Text("Позиции, закладки, коллекции и метаданные без аудиофайлов. Сохраняются до семи исправных копий на этом устройстве; повреждённые старые копии не удаляются автоматически.",color=theme.muted,fontSize=12.sp)
-    key(revision){AbOptions(listOf("Выключено","Раз в сутки"),if(AutomaticProgressBackups.enabled(context))1 else 0,theme,enabled=!busy&&!working){AutomaticProgressBackups.setEnabled(context,it==1);revision++}}
+    key(revision){AbOptions(listOf("Выключено","Раз в сутки"),if(AutomaticProgressBackups.enabled(context))1 else 0,theme,enabled=!busy&&!working&&!selecting){AutomaticProgressBackups.setEnabled(context,it==1);revision++}}
     Text("Android может отложить фоновую работу. При удалении приложения или потере телефона внутренние копии будут потеряны — экспортируйте нужную копию отдельно.",color=theme.muted,fontSize=12.sp)
-    AbButton("Сохранить копию на устройстве сейчас",theme,enabled=!busy&&!working){scope.launch{
+    AbButton("Сохранить копию на устройстве сейчас",theme,enabled=!busy&&!working&&!selecting){scope.launch{
         working=true
         try{val job=currentCoroutineContext()[Job];AutomaticProgressBackups.create(context){job?.ensureActive()};message="Копия сохранена";revision++}
         catch(cancel:CancellationException){throw cancel}
@@ -64,8 +69,11 @@ import java.util.Date
         val label=DateFormat.getDateTimeInstance(DateFormat.SHORT,DateFormat.SHORT).format(Date(copy.file.lastModified()))
         Text(label+if(copy.valid)" · ${copy.values} записей" else " · повреждена; оригинал сохранён",color=if(copy.valid)theme.text else theme.error,fontSize=12.sp)
         if(copy.valid) {
-            AbButton("Выбрать копию: $label",theme,enabled=!busy&&!working){onUse(Uri.fromFile(copy.file))}
-            AbButton("Экспортировать: $label",theme,enabled=!busy&&!working){selected=copy;save.launch("Audiobook-progress-"+copy.file.name.removePrefix("snapshot-"))}
+            AbButton("Выбрать копию: $label",theme,enabled=!busy&&!working&&!selecting){onUse(Uri.fromFile(copy.file))}
+            AbButton("Экспортировать: $label",theme,enabled=!busy&&!working&&!selecting){selectedName=copy.file.name;selecting=true
+                try{save.launch("Audiobook-progress-"+copy.file.name.removePrefix("snapshot-"))}
+                catch(_:android.content.ActivityNotFoundException){selecting=false;message="На устройстве нет системного выбора файлов. Внутренняя копия сохранена."}
+                catch(_:SecurityException){selecting=false;message="Система запретила выбор файла. Внутренняя копия сохранена."}}
         }
     }
     if(copies.size>12)Text("Ещё ${copies.size-12} копий сохранено в хранилище приложения",color=theme.muted,fontSize=12.sp)

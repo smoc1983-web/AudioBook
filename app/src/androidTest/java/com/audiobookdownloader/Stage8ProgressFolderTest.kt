@@ -104,10 +104,12 @@ class Stage8ProgressFolderTest {
             val valid=ProgressFolderSync.encode(ProgressFolderSync.capture(sender)).toString(Charsets.UTF_8)
             val mutations=listOf<(JSONObject)->Unit>(
                 {it.put("package",app.packageName+".different")},
+                {it.put("schema",1.5)},
                 {it.getJSONArray("positions").put(it.getJSONArray("positions").getJSONObject(0))},
                 {it.getJSONArray("positions").getJSONObject(0).put("position",1.5)},
                 {it.getJSONArray("positions").getJSONObject(0).put("chapter","../../private")}
             )
+            try{ProgressFolderSync.decode((valid+"\u0000hidden").toByteArray());fail()}catch(_:IllegalArgumentException){}
             for(change in mutations){val obj=JSONObject(valid);change(obj);try{ProgressFolderSync.decode(obj.toString().toByteArray());fail()}catch(_:IllegalArgumentException){}}
         }
     }

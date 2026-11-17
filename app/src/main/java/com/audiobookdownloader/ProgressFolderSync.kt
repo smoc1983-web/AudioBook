@@ -31,7 +31,7 @@ internal object ProgressFolderSync {
         val value=UUID.randomUUID().toString();check(p.edit().putString("device",value).commit()){"Не удалось сохранить идентификатор подключения"};return value
     }
     private fun root(tree:Uri):Uri {
-        require(tree.scheme=="content"&&tree.authority?.isNotBlank()==true&&Docs.isTreeUri(tree)){"Выберите папку через системное окно Android"}
+        require(tree.scheme=="content"&&tree.authority?.isNotBlank()==true&&androidx.core.provider.DocumentsContractCompat.isTreeUri(tree)){"Выберите папку через системное окно Android"}
         return Docs.buildDocumentUriUsingTree(tree,Docs.getTreeDocumentId(tree))
     }
     fun validateFolder(c:Context,tree:Uri) {
@@ -87,11 +87,12 @@ internal object ProgressFolderSync {
     }
     fun decode(bytes:ByteArray):Packet {
         require(bytes.size in 1..MAX_BYTES){"Файл прогресса пуст или слишком велик"}
-        val tokens=JSONTokener(bytes.toString(Charsets.UTF_8));val root=tokens.nextValue() as? JSONObject ?: error("Неверный формат прогресса")
+        val text=bytes.toString(Charsets.UTF_8);require(!text.contains('\u0000')){"Нулевые байты в файле прогресса"}
+        val tokens=JSONTokener(text);val root=tokens.nextValue() as? JSONObject ?: error("Неверный формат прогресса")
         require(tokens.nextClean()=='\u0000'){"Лишние данные после файла прогресса"}
-        require(root.getString("format")=="AudiobookProgress"&&root.getInt("schema")==1){"Неподдерживаемый формат прогресса"}
+        require(root.getString("format")=="AudiobookProgress"&&root.get("schema") is Number && (root.get("schema") as Number).toDouble()==1.0){"Неподдерживаемый формат прогресса"}
         require(root.getString("package")==BuildConfig.APPLICATION_ID){"Файл предназначен для другого приложения или канала"}
-        val device=root.getString("device");UUID.fromString(device)
+        val device=root.getString("device");require(UUID.fromString(device).toString()==device)
         val created=root.getLong("created");require(created>=0)
         val rows=root.getJSONArray("positions");require(rows.length() in 1..10000)
         val positions=(0 until rows.length()).map {val row=rows.getJSONObject(it);position(row.getString("edition"),row)}

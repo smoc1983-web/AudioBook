@@ -24,6 +24,7 @@ import java.util.Date
     var files by remember{mutableStateOf<List<ProgressFolderSync.RemoteFile>>(emptyList())}
     var preview by remember{mutableStateOf<ProgressFolderSync.Preview?>(null)}
     var shown by remember{mutableStateOf(10)}
+    var shownPositions by remember{mutableStateOf(20)}
     val keys=listOf("tree_common","tree_yandex")
     var pickingSlot by rememberSaveable{mutableStateOf(0)}
     val tree=remember(slot,revision){p.getString(keys[slot],null)?.let{Uri.parse(it)}}
@@ -78,7 +79,7 @@ import java.util.Date
         }
         files.take(shown).forEach {file->AbButton(file.name,theme,enabled=!blocked&&!busy&&!selecting){preview=null;work{
             val job=currentCoroutineContext()[Job]
-            preview=ProgressFolderSync.preview(context,tree,file.uri){job?.ensureActive()}
+            preview=ProgressFolderSync.preview(context,tree,file.uri){job?.ensureActive()};shownPositions=20
             "Файл прочитан. Для замены позиций требуется подтверждение ниже."
         }}}
         if(files.size>shown)AbButton("Ещё файлы",theme,enabled=!busy){shown+=10}
@@ -88,8 +89,15 @@ import java.util.Date
         val packet=checked.packet
         Text("Устройство: ${packet.device.take(8)} · дата: "+DateFormat.getDateTimeInstance(DateFormat.SHORT,DateFormat.SHORT).format(Date(packet.created)),color=theme.muted,fontSize=12.sp)
         Text("Будут заменены позиции: ${packet.positions.size}. Дата зависит от часов отправителя; приложение не выбирает «более новый» прогресс автоматически.",color=theme.text,fontSize=13.sp)
-        packet.positions.take(10).forEach{row->Text((row.title.ifBlank{"Издание "+row.edition.takeLast(10)})+" · "+formatMillis(row.position),color=theme.muted,fontSize=12.sp)}
-        if(packet.positions.size>10)Text("… ещё ${packet.positions.size-10} записей",color=theme.muted,fontSize=12.sp)
+        packet.positions.take(shownPositions).forEach{row->
+            val chapter=try {
+                val raw=context.getSharedPreferences("audiobook_downloader",0).getString(EditionMetadata.PREFIX+row.edition,null)
+                val titles=raw?.let{org.json.JSONObject(it).optJSONArray("titles")}
+                if(titles==null)null else (0 until titles.length()).map{titles.getString(it)}.firstOrNull{ChapterIdentity.chapter(row.edition,it)==row.chapter}
+            }catch(_:Exception){null}
+            Text((row.title.ifBlank{"Издание "+row.edition.takeLast(10)})+" · глава "+(chapter ?: row.chapter.takeLast(10))+" · позиция "+formatMillis(row.position),color=theme.muted,fontSize=12.sp)
+        }
+        if(packet.positions.size>shownPositions)AbButton("Ещё позиции",theme,enabled=!busy){shownPositions+=20}
         Text("Сначала поставьте плеер на паузу. Подтверждение закроет текущую книгу. Если файл, глава или местная позиция изменились, применение будет остановлено. Остальные книги, файлы и списки сохранятся.",color=theme.muted,fontSize=12.sp)
         AbButton("Подтвердить замену позиций",theme,enabled=!blocked&&!busy&&!selecting){work {
             val job=currentCoroutineContext()[Job]

@@ -37,6 +37,10 @@ jobs:
             app/build/test-results/
             app/build/reports/
   native:
+    strategy:
+      fail-fast: false
+      matrix:
+        api: [23, 36]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -83,19 +87,19 @@ jobs:
         env:
           GITHUB_RUN_NUMBER: '90'
         with:
-          api-level: 36
-          target: aosp_atd
+          api-level: ${{ matrix.api }}
+          target: ${{ matrix.api == 36 && 'aosp_atd' || 'default' }}
           arch: x86_64
           profile: pixel_6
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -memory 2048 -cores 2
           script: |
-            gradle :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.audiobookdownloader.Stage8ReliabilityTest,com.audiobookdownloader.Stage8ProgressFolderTest,com.audiobookdownloader.Stage8FolderPanelStateTest,com.audiobookdownloader.AudioValidationTest,com.audiobookdownloader.LibraryIdentityAndroidTest --max-workers=2 --console=plain
+            gradle :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.audiobookdownloader.Stage8ReliabilityTest,com.audiobookdownloader.Stage8ProgressFolderTest,com.audiobookdownloader.Stage8FolderPanelStateTest,com.audiobookdownloader.Stage8ExportStateTest,com.audiobookdownloader.AudioValidationTest,com.audiobookdownloader.LibraryIdentityAndroidTest --max-workers=2 --console=plain
             mkdir -p app/build/reports/stage3-native
             cp -R app/build/outputs/androidTest-results app/build/reports/stage3-native/normal
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: development-stage8-native-reports
+          name: development-stage8-native-${{ matrix.api }}-reports
           path: |
             app/build/outputs/androidTest-results/
             app/build/reports/
