@@ -134,6 +134,11 @@ internal val LocalAbBookCardContext=staticCompositionLocalOf<BookCardContext?>{n
     AbButton("Создать резервную копию",theme,enabled=!busy){create.launch("Audiobook-backup-"+java.text.SimpleDateFormat("yyyyMMdd-HHmm",java.util.Locale.ROOT).format(java.util.Date())+".zip")}
     AbButton("Выбрать резервную копию",theme,enabled=!busy){choose.launch(arrayOf("application/zip","application/octet-stream"))}
     if(status.isNotBlank())Text(status,color=theme.muted,fontSize=13.sp)
+    AbAutomaticBackupPanel(theme,busy){uri->run{
+        preview=null;source=null
+        val checked=withContext(Dispatchers.IO){LibraryBackup.inspect(context,uri)}
+        source=uri;preview=checked;"Копия проверена. Подтвердите восстановление ниже."
+    }}
     preview?.let{p->
         Text("Готово к восстановлению: ${p.values.size} настроек · ${p.chapters} глав. Выбранные настройки заменят текущие; остальные сохранятся.",color=theme.text,fontSize=14.sp)
         Text("Сначала поставьте плеер на паузу. Аудиофайлы с совпадающими именами не перезаписываются. Доступ к папке библиотеки и фон из галереи при необходимости выберите заново.",color=theme.muted,fontSize=12.sp)
@@ -152,6 +157,7 @@ internal val LocalAbBookCardContext=staticCompositionLocalOf<BookCardContext?>{n
     var running by remember{mutableStateOf(false)}
     var status by remember{mutableStateOf("")}
     prefs.getString(EditionMetadata.NOTICE,"")?.takeIf{it.isNotBlank()}?.let{Text(it,color=theme.muted,fontSize=12.sp)}
+    var auditing by remember{mutableStateOf<LibraryBook?>(null)}
     val finished=books.filter{StableProgress.isCompleted(prefs,it)}
     val partial=books.filter{val total=StableProgress.expected(prefs,it);total>it.files.size}
     val filtered=when(tab){1->finished;2->partial;else->books}.sortedByDescending{it.audioBytes}
@@ -162,9 +168,11 @@ internal val LocalAbBookCardContext=staticCompositionLocalOf<BookCardContext?>{n
     filtered.take(shown).forEach{book->
         Text(book.title,color=theme.text,fontSize=14.sp)
         Text("${book.files.size} глав · "+formatFileSize(book.audioBytes),color=theme.muted,fontSize=12.sp)
+        AbButton("Проверить файлы: ${book.title}",theme,enabled=!running){auditing=book}
         AbButton("Удалить файлы: ${book.title}",theme,enabled=!running){selected=listOf(book)}
     }
     if(filtered.size>shown)AbButton("Ещё книги",theme){shown+=20}
+    auditing?.let{AbLibraryIntegrityDialog(it,theme){auditing=null}}
     if(selected.isNotEmpty()) {
         Text("Будут удалены аудиофайлы книг: "+selected.joinToString{it.title}+". Коллекции, закладки и позиции сохранятся.",color=theme.text,fontSize=14.sp)
         Text("Всего: ${selected.sumOf{it.files.size}} глав · "+formatFileSize(selected.sumOf{it.audioBytes}),color=theme.muted,fontSize=13.sp)
