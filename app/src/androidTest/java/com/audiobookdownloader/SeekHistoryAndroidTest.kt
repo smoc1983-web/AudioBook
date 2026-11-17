@@ -120,7 +120,7 @@ class SeekHistoryAndroidTest {
         instrumentation.runOnMainSync {
             val service=PlaybackService::class.java.getDeclaredField("instance").apply{isAccessible=true}.get(null)
             val player=PlaybackService::class.java.getDeclaredField("mediaPlayer").apply{isAccessible=true}.get(service) as android.media.MediaPlayer
-            player.reset()
+            player.release()
         }
         PlaybackService.seek(c,20000)
         val after=waitState{it.playbackNote=="Не удалось перемотать главу."}
