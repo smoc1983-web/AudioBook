@@ -21,7 +21,7 @@ class CollectionStoreContractTest {
         saveBookRefs(p,FAVORITES_KEY,listOf(b,a))
         val rows=JSONArray(p.getString(FAVORITES_KEY,null))
         assertEquals(2,rows.length())
-        assertEquals(setOf("t","u","c"),rows.getJSONObject(0).keySet())
+        assertEquals(setOf("t","u","c"),rows.getJSONObject(0).keys().asSequence().toSet())
         assertEquals(b,bookRefFromJson(rows.getJSONObject(0)))
         assertEquals(a,bookRefFromJson(rows.getJSONObject(1)))
     }
@@ -33,7 +33,7 @@ class CollectionStoreContractTest {
         assertTrue(renameShelf(p,"Первая","  Новая  "))
         assertEquals(listOf(Shelf("Новая",listOf(a,b)),Shelf("Вторая",listOf(b))),loadShelves(p))
         val rows=JSONArray(p.getString(SHELVES_KEY,null))
-        assertEquals(setOf("n","b"),rows.getJSONObject(0).keySet())
+        assertEquals(setOf("n","b"),rows.getJSONObject(0).keys().asSequence().toSet())
         deleteShelf(p,"Новая")
         assertEquals(listOf(Shelf("Вторая",listOf(b))),loadShelves(p))
     }
