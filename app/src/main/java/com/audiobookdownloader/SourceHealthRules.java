@@ -25,10 +25,11 @@ final class SourceHealthRules {
     static boolean fresh(long checked,long now) {return checked>=0&&now>=checked&&now-checked<TTL;}
     static boolean mayRequest(long checked,long retryUntil,long now,boolean force) {
         if(checked<0)return true;
-        if(now<checked||now<retryUntil)return false;
+        if(now<retryUntil)return false;
         return now-checked>=MIN_WAIT&&(force||!fresh(checked,now));
     }
     static long retryWait(String header,long now) {
+        if(now<0)throw new IllegalArgumentException("Invalid clock");
         if(header==null||header.trim().isEmpty())return MIN_WAIT;
         String value=header.trim();
         if(value.matches("[0-9]+")) {
@@ -38,6 +39,7 @@ final class SourceHealthRules {
         SimpleDateFormat format=new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz",Locale.US);format.setLenient(false);
         ParsePosition at=new ParsePosition(0);Date date=format.parse(value,at);
         if(date==null||at.getIndex()!=value.length())return MIN_WAIT;
-        return date.getTime()<=now ? 0 : Math.min(date.getTime()-now,MAX_WAIT);
+        long time=Math.max(0,date.getTime());
+        return Math.min(Math.max(0,time-now),MAX_WAIT);
     }
 }

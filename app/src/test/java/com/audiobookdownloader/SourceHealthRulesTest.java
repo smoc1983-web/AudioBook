@@ -25,6 +25,7 @@ public class SourceHealthRulesTest {
     @Test public void manualRefreshCannotBypassCooldownOrServerWait() {
         long checked=100;
         assertTrue(SourceHealthRules.mayRequest(-1,0,0,false));
+        assertFalse(SourceHealthRules.mayRequest(0,0,0,true));
         assertFalse(SourceHealthRules.mayRequest(checked,0,checked-1,true));
         assertFalse(SourceHealthRules.mayRequest(checked,0,checked+SourceHealthRules.MIN_WAIT-1,true));
         assertTrue(SourceHealthRules.mayRequest(checked,0,checked+SourceHealthRules.MIN_WAIT,true));
@@ -40,7 +41,13 @@ public class SourceHealthRulesTest {
         assertEquals(SourceHealthRules.MAX_WAIT,SourceHealthRules.retryWait("90000",0));
         assertEquals(60000,SourceHealthRules.retryWait("-1",0));assertEquals(60000,SourceHealthRules.retryWait("not a date",0));
         assertEquals(1000,SourceHealthRules.retryWait("Thu, 01 Jan 1970 00:00:01 GMT",0));
+        assertEquals(900,SourceHealthRules.retryWait("Thu, 01 Jan 1970 00:00:01 GMT",100));
+        assertEquals(0,SourceHealthRules.retryWait("Thu, 01 Jan 1970 00:00:01 GMT",1000));
         assertEquals(0,SourceHealthRules.retryWait("Thu, 01 Jan 1970 00:00:01 GMT",2000));
+        assertEquals(0,SourceHealthRules.retryWait("Wed, 31 Dec 1969 23:59:59 GMT",Long.MAX_VALUE));
+        assertEquals(0,SourceHealthRules.retryWait("Wed, 31 Dec 1969 23:59:59 GMT",0));
+        assertEquals(SourceHealthRules.MAX_WAIT,SourceHealthRules.retryWait("Tue, 06 Jan 1970 00:00:00 GMT",0));
+        try{SourceHealthRules.retryWait(null,-1);fail();}catch(IllegalArgumentException expected){}
         assertEquals(60000,SourceHealthRules.retryWait("Thu, 01 Jan 1970 00:00:01 GMT junk",0));
         assertEquals(60000,SourceHealthRules.retryWait("Thu, 40 Jan 1970 00:00:01 GMT",0));
     }
