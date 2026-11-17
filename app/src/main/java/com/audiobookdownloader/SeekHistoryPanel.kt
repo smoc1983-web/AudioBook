@@ -9,6 +9,7 @@ import androidx.compose.ui.unit.sp
     val main=remember(context){context.getSharedPreferences("audiobook_downloader",0)}
     val p=remember(context){SeekHistory.preferences(context)}
     var revision by remember{mutableIntStateOf(0)}
+    var catalogRevision by remember{mutableIntStateOf(0)}
     var shown by remember(state.bookTitle,state.tracks){mutableIntStateOf(10)}
     var confirm by remember(state.bookTitle,state.tracks){mutableStateOf(false)}
     var message by remember{mutableStateOf("")}
@@ -18,7 +19,15 @@ import androidx.compose.ui.unit.sp
         onDispose{p.unregisterOnSharedPreferenceChangeListener(listener)}
     }
     val snapshot=remember(revision,state.tracks){SeekHistory.read(context)}
-    val edition=StableProgress.edition(main,state.bookTitle,state.tracks)
+    val edition=SeekHistory.edition(main,state.bookTitle,state.tracks)
+    DisposableEffect(main,edition,state.bookTitle) {
+        val listener=android.content.SharedPreferences.OnSharedPreferenceChangeListener{_,key->
+            if(key==EditionMetadata.PREFIX+edition||key==bookUrlKey(state.bookTitle))catalogRevision++
+        }
+        main.registerOnSharedPreferenceChangeListener(listener)
+        onDispose{main.unregisterOnSharedPreferenceChangeListener(listener)}
+    }
+    val chapters=remember(edition,state.tracks,catalogRevision){SeekHistory.chapters(main,state.bookTitle,state.tracks)}
     val rows=SeekHistoryRules.edition(snapshot.entries,edition)
     Text("Последние 50 перемоток на этом устройстве, отдельно по изданиям. Возврат ведёт к позиции перед перемоткой и сохраняет паузу. Автоматические переходы глав сюда не входят.",color=theme.muted,fontSize=12.sp)
     if(snapshot.error.isNotBlank()) {
@@ -34,7 +43,7 @@ import androidx.compose.ui.unit.sp
     } else {
         if(rows.isEmpty())Text("У этого издания пока нет перемоток.",color=theme.muted,fontSize=13.sp)
         rows.take(shown).forEach {point->
-            val index=SeekHistory.resolve(main,state.bookTitle,state.tracks,point)
+            val index=SeekHistoryRules.resolve(point,edition,chapters)
             val title=state.tracks.getOrNull(index)?.title ?: "Глава недоступна в текущем оглавлении"
             Text(title+" · "+formatMillis(point.from)+" → "+formatMillis(point.to),color=theme.muted,fontSize=12.sp)
             AbButton("Вернуться: "+formatMillis(point.from),theme,enabled=index>=0&&!state.isLoading){onReturn(point.id)}

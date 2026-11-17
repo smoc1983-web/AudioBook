@@ -67,4 +67,17 @@ class SeekHistoryPanelTest {
         assertEquals("corrupt original",SeekHistory.preferences(c).getString("damaged",null))
         assertTrue(SeekHistory.read(c).entries.isEmpty())
     }
+    @Test fun cachedChapterIdsRefreshWhenTheKnownCatalogueChanges() {
+        val c=Device(app);val url="https://source.example/a";val a=ChapterIdentity.edition("Book",url)
+        SeekHistory.record(c,a,ChapterIdentity.chapter(a,"A/B"),1000,10000)
+        val state=ServicePlaybackState(bookTitle="Book",tracks=listOf(ServiceTrack("A_B","/local.mp3",60000,a)),trackIndex=0)
+        compose.setContent{CompositionLocalProvider(LocalContext provides c){Column(Modifier.verticalScroll(rememberScrollState())){
+            AbSeekHistoryPanel(state,abTheme(10)){}
+        }}}
+        compose.onNodeWithText("Вернуться: "+formatMillis(1000)).assertIsNotEnabled()
+        compose.runOnIdle {
+            StableProgress.observe(c.getSharedPreferences("audiobook_downloader",0),"Book",listOf(AudioTrack("A/B",60,"https://cdn.example/a")),true,a,url)
+        }
+        compose.onNodeWithText("Вернуться: "+formatMillis(1000)).assertIsEnabled()
+    }
 }

@@ -45,8 +45,16 @@ internal object StableProgress {
         // Match a downloaded safe filename to the original chapter only when unique.
         val catalog=JSONArray(EditionMetadata.read(p,book,edition(p,book,tracks)).titles)
         val aliases=(0 until catalog.length()).map{catalog.optString(it)}.filter{safeFileName(it)==track.title}
+        return chapterId(edition(p,book,tracks),track,aliases)
+    }
+    private fun chapterId(edition:String,track:ServiceTrack,aliases:List<String>):String {
         val original=if(!isNetworkAudio(track.src)&&aliases.size==1)aliases.single() else track.title
-        return ChapterIdentity.chapter(edition(p,book,tracks),original)
+        return ChapterIdentity.chapter(edition,original)
+    }
+    internal fun chapters(p:SharedPreferences,book:String,tracks:List<ServiceTrack>):List<String> {
+        val edition=edition(p,book,tracks)
+        val aliases=EditionMetadata.read(p,book,edition).titles.groupBy{safeFileName(it)}
+        return tracks.map{chapterId(edition,it,aliases[it.title].orEmpty())}
     }
     fun save(p:SharedPreferences,book:String,tracks:List<ServiceTrack>,index:Int,position:Int) {
         if(index !in tracks.indices)return

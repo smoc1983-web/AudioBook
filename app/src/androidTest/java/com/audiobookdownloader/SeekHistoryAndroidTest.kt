@@ -172,5 +172,7 @@ class SeekHistoryAndroidTest {
         SeekHistory.record(device,edition,chapter,4321,20000)
         val point=SeekHistory.read(device).entries.single()
         assertEquals(0,SeekHistory.resolve(main,"Renamed",listOf(ServiceTrack("A/B","https://new.example",60000,edition)),point))
+        StableProgress.observe(main,"Book",listOf(AudioTrack("A/B",60,"https://cdn.example/a"),AudioTrack("A:B",60,"https://cdn.example/b")),true,edition,url)
+        assertEquals(-1,SeekHistory.resolve(main,"Book",tracks,point))
     }
 }

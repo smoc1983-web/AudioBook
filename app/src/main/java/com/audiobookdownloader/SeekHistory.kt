@@ -45,16 +45,16 @@ internal object SeekHistory {
         }catch(_:Exception){false}
     }
     fun resolve(p:SharedPreferences,book:String,tracks:List<ServiceTrack>,point:SeekHistoryRules.Entry):Int {
-        return try { resolveKnown(p,book,tracks,point) }catch(_:Exception){-1}
+        return SeekHistoryRules.resolve(point,edition(p,book,tracks),chapters(p,book,tracks))
     }
-    private fun resolveKnown(p:SharedPreferences,book:String,tracks:List<ServiceTrack>,point:SeekHistoryRules.Entry):Int {
+    fun edition(p:SharedPreferences,book:String,tracks:List<ServiceTrack>):String =
+        try{StableProgress.edition(p,book,tracks)}catch(_:Exception){""}
+    fun chapters(p:SharedPreferences,book:String,tracks:List<ServiceTrack>):List<String> = try {
         val edition=StableProgress.edition(p,book,tracks)
-        val chapters=tracks.indices.map{index->
-            if(tracks[index].editionId.isNotBlank()&&tracks[index].editionId!=edition)""
-            else StableProgress.chapter(p,book,tracks,index)
+        StableProgress.chapters(p,book,tracks).mapIndexed{index,id->
+            if(tracks[index].editionId.isNotBlank()&&tracks[index].editionId!=edition)"" else id
         }
-        return SeekHistoryRules.resolve(point,edition,chapters)
-    }
+    }catch(_:Exception){emptyList()}
     fun clearEdition(c:Context,edition:String)=synchronized(lock) {
         val old=read(c);check(old.error.isBlank()){old.error}
         preferences(c).edit().putString(KEY,encode(old.entries.filter{it.edition!=edition})).apply()
