@@ -1,0 +1,10 @@
+{
+  "stage": 7,
+  "base": "e96538799085caab34000601f913879a3e48603a",
+  "branch": "cloud/modularization-20261117",
+  "workingTreeWasClean": true,
+  "ubMode": true,
+  "sourceMain": "c8301dbf2fb558c8330d87baa67cacf307708529",
+  "publicRelease": "4.2.95",
+  "published": false
+}
