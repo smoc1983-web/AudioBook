@@ -20,6 +20,18 @@ import java.util.concurrent.atomic.AtomicBoolean
 @RunWith(AndroidJUnit4::class)
 class AudioValidationTest {
     private val context=ApplicationProvider.getApplicationContext<Context>()
+    @org.junit.Before fun legacyStoragePermissionPrecondition() {
+        if(android.os.Build.VERSION.SDK_INT in 23..28) {
+            val instrumentation=InstrumentationRegistry.getInstrumentation()
+            for(permission in listOf(android.Manifest.permission.READ_EXTERNAL_STORAGE,android.Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
+                if(context.checkSelfPermission(permission)!=android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                    val result=instrumentation.uiAutomation.executeShellCommand("pm grant ${context.packageName} $permission")
+                    ParcelFileDescriptor.AutoCloseInputStream(result).use{it.readBytes()}
+                }
+                assertEquals("Legacy public download directory requires $permission",android.content.pm.PackageManager.PERMISSION_GRANTED,context.checkSelfPermission(permission))
+            }
+        }
+    }
     private fun fixture(name:String)=InstrumentationRegistry.getInstrumentation().context.assets.open("audio-validation/$name.bin").use{it.readBytes()}
     private fun inspect(bytes:ByteArray,expected:Long=-1):AbDownloadedAudio.Result {
         val file=File.createTempFile("audio-validation-",".unusual",context.cacheDir)
