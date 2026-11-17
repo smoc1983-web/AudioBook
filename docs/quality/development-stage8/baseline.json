@@ -1,0 +1,9 @@
+{
+  "base": "eadc0d7f4bcb73a038271c0f8aed372d66d27061",
+  "branch": "cloud/development-stage8-20261117",
+  "workingTreeWasClean": true,
+  "ubMode": true,
+  "scope": "First stage 8 package: saved-book integrity and automatic metadata snapshots; remaining features tracked in roadmap",
+  "sharedFolderChoice": "Android SAF; Yandex through provider if installed/exposed; no embedded OAuth",
+  "published": false
+}
