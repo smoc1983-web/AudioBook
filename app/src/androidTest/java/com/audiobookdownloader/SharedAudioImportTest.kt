@@ -76,6 +76,8 @@ class SharedAudioImportTest {
     @Test fun unknownLengthPipeIsCopiedAndBrokenHtmlSizeOrPermissionNeverPublishesBook()=runBlocking {
         val pipe=describe(uri("pipe"));assertEquals(-1L,pipe.single().size)
         val success=import(pipe);assertFalse(success.duplicate)
+        val range=import(describe(uri("range")));val rangeFile=SharedAudioStore.library(c).single{it.editionId==range.book.edition}.files.single()
+        assertEquals(16044L,rangeFile.length());assertEquals("RIFF",String(rangeFile.readBytes().copyOfRange(0,4),Charsets.US_ASCII))
         val before=SharedAudioStore.library(c).map{it.editionId}.toSet()
         for(id in listOf("html","empty","wrong","denied")) {
             try{import(describe(uri(id)),"Invalid $id $token");fail("$id accepted")}catch(_:Exception){}
@@ -110,6 +112,33 @@ class SharedAudioImportTest {
         val again=import(rows);assertEquals(first.book.edition,again.book.edition)
         val restored=SharedAudioStore.library(c).single{it.editionId==again.book.edition}
         assertEquals(StableProgress.Resume(0,3210),StableProgress.resume(p,restored.title,restored.files.map{ServiceTrack(it.nameWithoutExtension,it.path,10000,restored.editionId)}))
+    }
+    @Test fun damagedLegacyBindingIsPreservedAndDoesNotHideCommittedAudio()=runBlocking {
+        val rows=describe(uri("bad-binding"));val first=import(rows);val key="book_local_edition_"+safeFileName(first.book.title)
+        p.edit().putInt(key,17).commit()
+        try {
+            assertEquals(first.book.edition,SharedAudioStore.library(c).single{it.editionId==first.book.edition}.editionId)
+            val duplicate=import(rows);assertTrue(duplicate.duplicate);assertFalse(duplicate.metadataSaved)
+            assertEquals(17,p.getInt(key,0))
+        }finally{p.edit().putString(key,first.book.marker).commit()}
+    }
+    @Test fun committedManifestRecoversMetadataAfterInterruptedPreferenceRegistration()=runBlocking {
+        val first=import(describe(uri("recovery")));val b=SharedAudioStore.library(c).single{it.editionId==first.book.edition}
+        val tracks=b.files.map{ServiceTrack(it.nameWithoutExtension,it.path,10000,b.editionId)};StableProgress.save(p,b.title,tracks,0,2468)
+        p.edit().remove(EditionMetadata.PREFIX+b.editionId).remove("book_local_edition_"+safeFileName(b.title)).commit()
+        val scanned=scanLibrary(c).single{it.editionId==b.editionId}
+        assertEquals(first.book.marker,p.getString("book_local_edition_"+safeFileName(b.title),""))
+        assertEquals(tracks.map{it.title},EditionMetadata.read(p,b.title,b.editionId).titles)
+        assertEquals(StableProgress.Resume(0,2468),StableProgress.resume(p,scanned.title,tracks))
+    }
+    @Test fun collectionAndQueueOnlyTitlesAreNotClaimedByAnUnrelatedImport()=runBlocking {
+        val name="Reserved $token";val shelves=loadShelves(p);val queue=loadQueue(p)
+        try {
+            saveShelves(p,shelves+Shelf("Collection $token",listOf(BookRef(name,"",""))));saveQueue(p,queue+name)
+            val first=import(describe(uri("reserved")),name)
+            assertNotEquals(name,first.book.title)
+            assertEquals(shelves+Shelf("Collection $token",listOf(BookRef(name,"",""))),loadShelves(p));assertEquals(queue+name,loadQueue(p))
+        }finally{saveShelves(p,shelves);saveQueue(p,queue)}
     }
     @Test fun titleCollisionDoesNotChangeLegacyPositionAndImportedMarkerIsBackedUp()=runBlocking {
         val title="Old $token";p.edit().putInt(bookProgressTrackKey(title),7).putLong(bookProgressPositionKey(title),9876).commit()

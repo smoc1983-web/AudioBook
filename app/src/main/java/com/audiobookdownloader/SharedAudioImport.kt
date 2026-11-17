@@ -95,7 +95,7 @@ internal object SharedAudioStore {
     private const val OWNER="Audiobook shared audio staging 1"
     private val operation=Mutex()
     private fun root(c:Context)=File(c.filesDir,"imported-audio-v1").canonicalFile.also {
-        require(it.parentFile==c.filesDir.canonicalFile);if(!it.isDirectory)check(it.mkdirs()||it.isDirectory)
+        require(it.parentFile==c.filesDir.canonicalFile)
     }
     private fun child(folder:File,name:String)=File(folder,name).also{require(it.canonicalFile==File(folder.canonicalFile,name)&&it.parentFile.canonicalFile==folder.canonicalFile)}
     private fun path(c:Context,digest:String):File {
@@ -124,10 +124,13 @@ internal object SharedAudioStore {
         return decode(file.readText(),folder.name)
     }
     fun owns(c:Context,book:LibraryBook):Boolean=try{read(c,book.folder).edition==book.editionId}catch(_:Exception){false}
-    fun importSidecars(c:Context,book:LibraryBook):Set<String> = if(owns(c,book))setOf(MANIFEST,".owner") else emptySet()
+    fun importSidecars(c:Context,book:LibraryBook):Set<String> = if(owns(c,book))setOf(".owner",MANIFEST) else emptySet()
     fun library(c:Context):List<LibraryBook> = root(c).listFiles().orEmpty().filter{it.isDirectory&&it.name.matches(Regex("[a-f0-9]{64}"))}.mapNotNull{folder->
         try {
             val record=read(c,folder)
+            val p=c.getSharedPreferences("audiobook_downloader",0)
+            val missing=try{!p.contains(EditionMetadata.PREFIX+record.edition)||p.getString("book_local_edition_"+safeFileName(record.title),"").orEmpty().isBlank()}catch(_:Exception){true}
+            if(missing)register(c,record)
             val files=record.files.map{child(folder,it.name)}.filter{it.isFile&&it.length()>0&&it.canRead()}
             if(files.isEmpty())null else LibraryBook(record.title,folder,files,editionId=record.edition)
         }catch(_:Exception){null}
@@ -168,24 +171,27 @@ internal object SharedAudioStore {
             return total to ChapterIdentity.hex(digest.digest())
         }}finally{cancel.clear()}
     }
-    private fun register(c:Context,book:ImportedAudioBook):Boolean {
+    private fun register(c:Context,book:ImportedAudioBook):Boolean {return try {
         val p=c.getSharedPreferences("audiobook_downloader",0)
+        val alias=p.getString("book_local_edition_"+safeFileName(book.title),"").orEmpty()
+        if(alias.isNotBlank()&&alias!=book.marker)return false
         val titles=book.files.map{it.name.substringBeforeLast('.')}
         val saved=EditionMetadata.change(p,book.title,book.edition){old->
             if(old.titles.isNotEmpty())old else old.copy(total=titles.size,titles=titles,revision=ChapterIdentity.revision(titles.map{ChapterIdentity.chapter(book.edition,it)}))
         }
         if(!saved)return false
-        return p.edit().putString("book_local_edition_"+safeFileName(book.title),book.marker).commit()
-    }
+        p.edit().putString("book_local_edition_"+safeFileName(book.title),book.marker).commit()
+    }catch(_:Exception){false}}
     private fun title(c:Context,requested:String,edition:String,marker:String):String {
         val p=c.getSharedPreferences("audiobook_downloader",0)
         val old=p.getString(EditionMetadata.PREFIX+edition,null)?.let{try{JSONObject(it).getString("title")}catch(_:Exception){null}}
         val base=SharedAudioRules.label(old ?: requested)
         val occupied=scanLibrary(c).filter{it.editionId!=edition}.map{AbLibraryHousekeeping.bookKey(it.title)}.toSet()
+        val reserved=(loadBookRefs(p,FAVORITES_KEY).map{it.title}+loadShelves(p).flatMap{it.books}.map{it.title}+loadQueue(p)).map{AbLibraryHousekeeping.bookKey(it)}.toSet()
         for(i in 1..10000) {
             val name=if(i==1)base else base+" (импорт $i)"
             val same=p.getString("book_local_edition_"+safeFileName(name),null)==marker
-            val legacy=p.contains(bookProgressPositionKey(name))||p.contains(bookProgressTrackKey(name))||p.contains(bookmarksKey(name))||p.getString(bookUrlKey(name),"").orEmpty().isNotBlank()||p.getString("book_local_edition_"+safeFileName(name),"").orEmpty().isNotBlank()
+            val legacy=AbLibraryHousekeeping.bookKey(name) in reserved||p.contains(bookProgressPositionKey(name))||p.contains(bookProgressTrackKey(name))||p.contains(bookmarksKey(name))||p.getString(bookUrlKey(name),"").orEmpty().isNotBlank()||p.getString("book_local_edition_"+safeFileName(name),"").orEmpty().isNotBlank()
             if(AbLibraryHousekeeping.bookKey(name) !in occupied&&(!legacy||same))return name
         }
         error("Не удалось подобрать отдельное название. Измените название книги.")
@@ -196,7 +202,8 @@ internal object SharedAudioStore {
         var stage:File?=null
         try {return withContext(Dispatchers.IO) {
             val job=currentCoroutineContext()[Job];val ensure={job?.ensureActive();cancel.check()}
-            root(c).listFiles().orEmpty().filter{it.isDirectory&&it.name.startsWith(".pending-")}.forEach{cleanStage(it)}
+            val base=root(c);check(base.isDirectory||base.mkdirs()){"Не удалось создать папку импорта. Проверьте свободное место."}
+            base.listFiles().orEmpty().filter{it.isDirectory&&it.name.startsWith(".pending-")}.forEach{cleanStage(it)}
             val pending=File(root(c),".pending-"+UUID.randomUUID());check(pending.mkdir());stage=pending
             File(pending,".owner").writeText(OWNER)
             var bytes=0L;var lastProgress=0L

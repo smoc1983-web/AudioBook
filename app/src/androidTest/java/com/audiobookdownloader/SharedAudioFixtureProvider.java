@@ -33,6 +33,15 @@ public final class SharedAudioFixtureProvider extends ContentProvider {
         }
         out.addRow(row);return out;
     }
+    @Override public AssetFileDescriptor openAssetFile(Uri uri,String mode)throws FileNotFoundException {
+        if(!"range".equals(uri.getLastPathSegment()))return super.openAssetFile(uri,mode);
+        if(!"r".equals(mode))throw new SecurityException("Read only");
+        try {
+            byte[] audio=data(uri);File f=new File(getContext().getCacheDir(),"share-range.wav");
+            try(FileOutputStream out=new FileOutputStream(f)){out.write(new byte[32]);out.write(audio);out.write(new byte[24]);}
+            return new AssetFileDescriptor(ParcelFileDescriptor.open(f,ParcelFileDescriptor.MODE_READ_ONLY),32,audio.length);
+        }catch(IOException e){throw new FileNotFoundException(e.toString());}
+    }
     @Override public ParcelFileDescriptor openFile(Uri uri,String mode)throws FileNotFoundException {
         if(!"r".equals(mode))throw new SecurityException("Read only");
         if("denied".equals(uri.getLastPathSegment()))throw new SecurityException("Fixture read denied");
