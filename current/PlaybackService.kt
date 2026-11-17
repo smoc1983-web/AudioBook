@@ -972,7 +972,9 @@ class PlaybackService : Service() {
                 try {
                     // setPlaybackParams может запустить приостановленный MediaPlayer.
                     player.playbackParams = player.playbackParams.setSpeed(playbackSpeed)
-                    if (!isPlaying) player.pause()
+                    // API23 can remain Prepared when setPlaybackParams does not
+                    // start audio; pause in Prepared asynchronously poisons the player.
+                    if (!isPlaying && player.isPlaying) player.pause()
                 } catch (_: Exception) {
                     playbackSpeed=try{PlaybackOptions.rate(player.playbackParams.speed)}catch(_:Exception){1f}
                     playbackNote="Устройство не применило выбранную скорость. Текущая скорость: ${playbackSpeed}×."

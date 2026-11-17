@@ -143,6 +143,15 @@ class SeekHistoryAndroidTest {
         assertEquals(1,SeekHistoryRules.edition(SeekHistory.read(c).entries,edition).size)
         assertTrue(StableProgress.resume(p,title,tracks).position in 2200..2500)
     }
+    @Test fun preparingAndChangingSpeedWhilePausedDoesNotPoisonLegacyPlayer()=fixture{title,file,edition->
+        start(title,listOf(ServiceTrack("01",file.path,60000,edition)))
+        p.edit().putFloat("playback_speed",1.5f).commit()
+        val paused=waitState{it.speed==1.5f&&!it.isPlaying&&!it.isLoading&&it.hasPlayer}
+        assertTrue(paused.error.isBlank())
+        controller().transportControls.play();waitState{it.isPlaying&&it.speed==1.5f}
+        pause();assertTrue(PlaybackService.state.value.error.isBlank())
+        assertTrue(SeekHistoryRules.edition(SeekHistory.read(c).entries,edition).isEmpty())
+    }
     private class Device(base:Context):ContextWrapper(base) {
         val id=UUID.randomUUID().toString()
         override fun getSharedPreferences(name:String,mode:Int)=super.getSharedPreferences("seek-test-$id-$name",mode)
