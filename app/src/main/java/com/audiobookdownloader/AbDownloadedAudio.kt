@@ -16,7 +16,7 @@ internal object AbDownloadedAudio {
     data class Result(val valid:Boolean,val error:String="",val format:String="",val stamp:String="")
     private val mutex=Mutex()
     private fun prefs(c:Context)=c.getSharedPreferences("audiobook_audio_validation_v1",0)
-    private fun stamp(fd:java.io.FileDescriptor):String {
+    internal fun stamp(fd:java.io.FileDescriptor):String {
         val s=Os.fstat(fd)
         return "${s.st_dev}:${s.st_ino}:${s.st_size}:${s.st_mtime}"
     }
