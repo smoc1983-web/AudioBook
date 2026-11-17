@@ -10,6 +10,7 @@ import java.util.UUID;
 
 /** Own private metadata snapshots only; never traverses or removes library/audio files. */
 final class ProgressSnapshotStore {
+    static final class InvalidSnapshot extends IOException { InvalidSnapshot() { super("Snapshot validation failed"); } }
     interface Writer { void write(File file) throws IOException; }
     interface Validator { boolean valid(File file) throws IOException; }
     static final class Saved {
@@ -54,7 +55,7 @@ final class ProgressSnapshotStore {
         try {
             writer.write(pending);
             try(FileOutputStream stream=new FileOutputStream(pending,true)) { stream.getFD().sync(); }
-            if(!validator.valid(pending)) throw new IOException("Snapshot validation failed");
+            if(!validator.valid(pending)) throw new InvalidSnapshot();
             File complete=new File(root,"snapshot-"+sequence+"-"+UUID.randomUUID()+".zip");
             if(!pending.renameTo(complete)) throw new IOException("Cannot publish snapshot");
             return new Saved(complete,prune(validator));

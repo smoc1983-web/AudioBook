@@ -73,6 +73,9 @@ internal object EditionMetadata {
         return Record(id,bookId=bookId,total=total,titles=titles,revision=revision,sourceUrl=source,
             completed=o.getBoolean("completed"),finished=strings(o.getJSONArray("finished")))
     }
+    internal fun validSnapshot(raw:String,id:String):Boolean = try {
+        decode(raw,JSONObject(raw).optString("title"),id).valid
+    }catch(_:Exception){false}
     private fun legacy(book:String,id:String,fields:List<Any?>):Record {
         val titles=try{strings(JSONArray(fields[0] as String))}catch(_:Exception){emptyList()}
         val revision=fields[1] as String;val total=fields[2] as Int;val completed=fields[3] as Boolean
