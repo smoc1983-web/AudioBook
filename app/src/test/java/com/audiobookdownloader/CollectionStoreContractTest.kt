@@ -46,7 +46,7 @@ class CollectionStoreContractTest {
     }
     @Test fun readsSkipUnusableEntriesWithoutRewritingLegacySnapshots() {
         val p=prefs();val shelves="""[{"n":"","b":[]},{"n":"Полка","b":[{"t":""},{"t":"Книга"}]}]"""
-        p.edit().putString(SHELVES_KEY,shelves).putString(QUEUE_KEY,"[\"\",\"Том 1\",\"  "]").apply()
+        p.edit().putString(SHELVES_KEY,shelves).putString(QUEUE_KEY,"""["","Том 1","  "]""").apply()
         assertEquals(listOf(Shelf("Полка",listOf(BookRef("Книга","","")))),loadShelves(p))
         assertEquals(listOf("Том 1"),loadQueue(p));assertEquals(shelves,p.getString(SHELVES_KEY,null))
         assertNull(bookRefFromJson(JSONObject("{\"t\":\" \"}")))
