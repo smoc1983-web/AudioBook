@@ -111,7 +111,7 @@ internal object AbDownloadedAudio {
     private fun probe(fd:java.io.FileDescriptor,signature:String):Result {
         val reader=MediaExtractor()
         return try {
-            reader.setDataSource(fd)
+            reader.setDataSource(fd,0,Os.fstat(fd).st_size)
             val index=(0 until reader.trackCount).firstOrNull {
                 reader.getTrackFormat(it).getString(MediaFormat.KEY_MIME)?.startsWith("audio/")==true
             } ?: return Result(false,"В файле не найдена поддерживаемая аудиодорожка.",stamp=signature)
