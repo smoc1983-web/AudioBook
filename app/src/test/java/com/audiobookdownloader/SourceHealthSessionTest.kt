@@ -74,7 +74,7 @@ class SourceHealthSessionTest {
         val session=SourceHealthSession(store,SourceHealthClient{error("No automatic request")},{100000})
         val first=launch(Dispatchers.Default){session.load(listOf(a))}
         assertTrue(started.await(2,java.util.concurrent.TimeUnit.SECONDS));first.cancel()
-        val reopened=launch{session.load(listOf(a))}
+        val reopened=launch(start=CoroutineStart.UNDISPATCHED){session.load(listOf(a))}
         release.countDown();withTimeout(5000){first.join();reopened.join()}
         assertFalse(session.state.value.loading);assertEquals(ok(100000),session.state.value.values[a.key])
     }
