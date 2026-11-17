@@ -43,11 +43,18 @@ class SourceHealthAndroidTest {
     @Test fun malformedFutureSchemaFractionalFieldsAndInconsistentGreenCacheAreNotTrustedOrDeleted() {
         val c=Device(app);val cache=SourceHealthCache(c);cache.put(target,ok(100000))
         val prefs=c.getSharedPreferences("source_health_v1",0);val good=prefs.getString(target.key,null)!!
-        val invalid=listOf("broken",good+" junk",JSONObject(good).put("schema",2).toString(),JSONObject(good).put("checked",100.5).toString(),
-            JSONObject(good).put("http",503).toString(),JSONObject(good).put("millis",70000).toString(),JSONObject(good).put("retry",200000).toString())
-        for(raw in invalid) {
+        fun reject(raw:String) {
             prefs.edit().putString(target.key,raw).commit();assertNull(cache.get(target));assertEquals(raw,prefs.getString(target.key,null))
         }
+        fun rejectField(key:String,value:Any) {
+            val row=JSONObject(good);row.put(key,value)
+            reject(requireNotNull(row.toString()){"Unable to construct malformed fixture: $key"})
+        }
+        // Avoid the failing complex vararg fixture construction on the API23 runtime.
+        // Every previous malformed case still reaches the same cache/original assertions.
+        reject("broken");reject(good+" junk")
+        rejectField("schema",2);rejectField("checked",100.5);rejectField("http",503)
+        rejectField("millis",70000);rejectField("retry",200000)
         cache.put(target,ok(200000));assertFalse(SourceHealthRules.fresh(cache.get(target)!!.checked,100000))
     }
     @Test fun manualSessionOnlyWritesItsCacheAndNeverChangesLibraryCheckpointsNotesOrChoices()=runBlocking {
