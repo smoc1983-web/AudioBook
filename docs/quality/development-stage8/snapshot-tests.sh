@@ -13,5 +13,5 @@ fi
 java "${args[@]}" -cp "$classes:$QUALITY_JUNIT_CLASSPATH" org.junit.runner.JUnitCore com.audiobookdownloader.ProgressSnapshotStoreTest
 if [[ -n "${QUALITY_JACOCO_CLI:-}" ]]; then
  java -jar "$QUALITY_JACOCO_CLI" report target/site/jacoco/snapshots.exec \
-  --classfiles "$classes/com/audiobookdownloader/ProgressSnapshotStore.class" --sourcefiles app/src/main/java --xml target/site/jacoco/snapshots.xml
+  --classfiles "$classes/com/audiobookdownloader/ProgressSnapshotStore.class" --sourcefiles app/src/main/java --xml target/site/jacoco/jacoco.xml
 fi
