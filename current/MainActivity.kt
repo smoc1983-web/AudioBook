@@ -11010,7 +11010,8 @@ private fun AbContinuationSettings(theme:AbTheme,onOpen:(BookRef)->Unit) {
         AbButton("Разрешить уведомления",theme){
             if(android.os.Build.VERSION.SDK_INT>=33 && context.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)!=android.content.pm.PackageManager.PERMISSION_GRANTED)
                 permission.launch(android.Manifest.permission.POST_NOTIFICATIONS)
-            else openAppNotificationSettings(context)
+            else if(!openAppNotificationSettings(context))
+                Toast.makeText(context,"Не удалось открыть настройки уведомлений. Откройте настройки приложения вручную.",Toast.LENGTH_LONG).show()
         }
     }
     AbButton("Проверить сейчас",theme,enabled=enabled){AbContinuationAlerts.checkNow(context)}
