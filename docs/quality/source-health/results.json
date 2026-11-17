@@ -1,0 +1,224 @@
+{
+  "task": "Stage8 manual source response monitor",
+  "base": "033e002a91faa1d05ff98f75374af42ef85b1027",
+  "branch": "cloud/source-health-20261117",
+  "initialTreeClean": true,
+  "testedSource": "d31a8c80003cb8f18eed44bb2dc67ab8a35aee05",
+  "ciRun": 44133946728,
+  "ciUrl": "https://github.com/smoc1983-web/AudioBook/actions/runs/44133946728",
+  "status": "success",
+  "published": false,
+  "stage8Complete": false,
+  "ubMode": true,
+  "ciResults": {
+    "jvm": {
+      "Debug": {
+        "tests": 395,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 1
+      },
+      "Release": {
+        "tests": 395,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 1
+      }
+    },
+    "native": {
+      "23": {
+        "tests": 42,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "classes": {
+          "com.audiobookdownloader.SourceHealthAndroidTest": 4,
+          "com.audiobookdownloader.SourceHealthPanelTest": 3,
+          "com.audiobookdownloader.SeekHistoryAndroidTest": 8,
+          "com.audiobookdownloader.SeekHistoryPanelTest": 3,
+          "com.audiobookdownloader.Stage8ReliabilityTest": 11,
+          "com.audiobookdownloader.Stage8ProgressFolderTest": 7,
+          "com.audiobookdownloader.Stage8FolderPanelStateTest": 1,
+          "com.audiobookdownloader.Stage8ExportStateTest": 2,
+          "com.audiobookdownloader.LibraryIdentityAndroidTest": 3
+        }
+      },
+      "36": {
+        "tests": 44,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "classes": {
+          "com.audiobookdownloader.SourceHealthAndroidTest": 4,
+          "com.audiobookdownloader.SourceHealthPanelTest": 3,
+          "com.audiobookdownloader.SeekHistoryAndroidTest": 8,
+          "com.audiobookdownloader.SeekHistoryPanelTest": 3,
+          "com.audiobookdownloader.Stage8ReliabilityTest": 11,
+          "com.audiobookdownloader.Stage8ProgressFolderTest": 7,
+          "com.audiobookdownloader.Stage8FolderPanelStateTest": 1,
+          "com.audiobookdownloader.Stage8ExportStateTest": 2,
+          "com.audiobookdownloader.LibraryIdentityAndroidTest": 3,
+          "com.audiobookdownloader.IdlePlaybackTest": 2
+        }
+      }
+    },
+    "lint": {
+      "lint-results-release.xml": {
+        "counts": {
+          "Warning": 270,
+          "Hint": 83
+        },
+        "addedCounts": {
+          "ComposableNaming": 1,
+          "UseKtx": 1
+        },
+        "added": [
+          [
+            "ComposableNaming",
+            "Warning",
+            "Composable functions with a return type should start with a lowercase letter"
+          ],
+          [
+            "UseKtx",
+            "Warning",
+            "Use the KTX extension function `SharedPreferences.edit` instead?"
+          ]
+        ],
+        "removed": []
+      },
+      "lint-results-debug.xml": {
+        "counts": {
+          "Warning": 270,
+          "Hint": 83
+        },
+        "addedCounts": {
+          "ComposableNaming": 1,
+          "UseKtx": 1
+        },
+        "added": [
+          [
+            "ComposableNaming",
+            "Warning",
+            "Composable functions with a return type should start with a lowercase letter"
+          ],
+          [
+            "UseKtx",
+            "Warning",
+            "Use the KTX extension function `SharedPreferences.edit` instead?"
+          ]
+        ],
+        "removed": []
+      }
+    }
+  },
+  "builds": {
+    "stableDebug": "passed",
+    "stableUnsignedRelease": "passed",
+    "androidTestCompile": "passed",
+    "previewDebugOriginalSigner": "passed",
+    "upgradeProbeAssembly": "passed",
+    "legacyFixtureCompile": "passed",
+    "runtimeDependencyAudit": "passed"
+  },
+  "artifacts": [
+    {
+      "id": 14351906663,
+      "name": "source-health-native-36-reports",
+      "digest": "sha256:3645ed39a17ab35a506e8a00c5b9ebf978e0af9a10e82e6acbf224c51da859dd"
+    },
+    {
+      "id": 14351792459,
+      "name": "source-health-reports",
+      "digest": "sha256:5d1a5ac2cca99a7b1fc12ccd4f083ad9499e7076c5324016bb249a3388c4522f"
+    },
+    {
+      "id": 14350254601,
+      "name": "source-health-native-23-reports",
+      "digest": "sha256:ca8276c619be305733a5cfe9d7d2660719a95ed5628189c565a76e48dc09b651"
+    }
+  ],
+  "lintBaseline": "seek-history CI44123938415:268Warning83Hint",
+  "newLint": "1 ComposableNaming (rendering controls also return SourceHealthView), 1 UseKtx SharedPreferences.edit recommendation; no Error/Fatal and no suppression",
+  "local": {
+    "javaTests": 5,
+    "initialRedFailures": 1,
+    "javaMethodCrapMax": 8,
+    "javaAnalysedInstructionCoverage": 1.0,
+    "dryerCandidatesScoped": 0,
+    "mutationInitial": "30/35",
+    "mutationRefined": "34/35",
+    "mutationFinalKilled": 35,
+    "mutationGeneratedSites": 35,
+    "kotlinToolsSupported": false,
+    "parserSourceJvmChecks": "passed",
+    "runnerClassFilterContract": "passed:9 classes/API23,10/API36 in a single nonempty Gradle argument",
+    "tokenEconomizer": "CLI status executed; observed sessions0, hooks/savings unverified"
+  },
+  "limits": {
+    "parallelChecks": 3,
+    "networkThreads": 3,
+    "networkQueue": 3,
+    "closeThreads": 1,
+    "closeQueue": 6,
+    "connectReadTimeoutMs": 4000,
+    "coroutineDeadlineMs": 10000,
+    "htmlPrefixBytes": 131072,
+    "wireBytes": 262144,
+    "cacheFreshMs": 900000,
+    "minimumRetryMs": 60000,
+    "maximumServerBackoffMs": 86400000
+  },
+  "semantics": {
+    "automaticPolling": false,
+    "onlySelectedSourcesAtStart": true,
+    "primaryPreferencesChanged": false,
+    "sourceOrderingOrFilteringChanged": false,
+    "anonymousCheckWithoutBrowserCookies": true,
+    "audioAvailabilityGuaranteed": false,
+    "bandwidthMeasured": false,
+    "cacheIncludedInBackupSaf": false,
+    "cacheWriteDurabilityAcknowledged": false,
+    "clockFutureResultsAreFresh": false,
+    "lateCancelledResultsPublished": false
+  },
+  "ciHistory": [
+    {
+      "run": 44131594987,
+      "source": "719254e1cd88015881024e6ebc019f1d8f462dd7",
+      "verify": "success",
+      "native36": "success",
+      "native23": {
+        "tests": 42,
+        "failures": 1
+      },
+      "error": "NPE in Kotlin listOf while constructing complex vararg malformed JSON fixtures before rejection assertions",
+      "correction": "sequential fixture construction; every malformed case and original-preservation assertion retained",
+      "underlyingArtOrD8CauseConfirmed": false
+    },
+    {
+      "run": 44132781446,
+      "result": "superseded/cancelled after fixture correction"
+    },
+    {
+      "run": 44133221056,
+      "result": "superseded/cancelled after serialized load and memory cooldown fix"
+    },
+    {
+      "run": 44133674635,
+      "result": "superseded/cancelled after deterministic cancelled-load handoff test"
+    }
+  ],
+  "realDeviceTested": false,
+  "actualProvidersVpnAuthCloudflareProbed": false,
+  "realTlsOfEveryProviderConfirmed": false,
+  "realDiskFailureOrRebootTested": false,
+  "batteryMemoryMeasured": false,
+  "androidInstallerTested": false,
+  "remainingStage8": [
+    "share import",
+    "multiple library roots",
+    "metadata editor",
+    "consented Wi-Fi next-volume downloads",
+    "additional filters"
+  ]
+}

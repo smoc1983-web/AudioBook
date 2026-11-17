@@ -1,3 +1,42 @@
+# Этап8 — ручной мониторинг источников проверен, не опубликован (2026-11-17)
+
+Ветка cloud/source-health-20261117 от033e002 (чистая база/fetch совпали).
+Проверенные исходникиd31a8c80003cb8f18eed44bb2dc67ab8a35aee05;
+CI44133946728 SUCCESS: Stable Debug/unsigned Release, Preview Debug/AndroidTest/
+upgradeProbe с прежним signer, fixture compile, dependency audit. JVM по395
+(394 выполнены/1 прежнийskip), native42/API23,44/API36 (86,0fail/error/skip).
+Lint0Fatal/Error,270Warning83Hint: +1ComposableNaming/+1UseKtx к предыдущему шагу;
+подавлений нет. Локальные5Java/CRAPmax8 методов/Dryer0scoped/Mutator35из35,
+parser/source/JVM и runner argument contract9/10classes пройдены; Kotlin tool gap.
+Поиск→Источники→Проверить включённые источники. Ручной анонимный GET home из
+существующего реестра; SourceHttp/NetworkAddressRules/ContinuationPolicy используются
+повторно. HTTPS443, точный источник на каждом redirect, никаких cookies/auth/browser,
+сертификаты не ослаблены. Ответ сайта не подтверждает аудио/каталог/скорость скачивания.
+Открытие только читает private source_health_v1 (без URL/секретов/тел страницы),
+проверяется выбранный на момент запуска список. 3одновременно, connect/read4с,
+UIdeadline10с,128КиБ распакованного префикса/256КиБ wire, gzip поддержан; неизвестные
+кодировки нейтрально-ошибочные. Пулы ограничены:3network+3queue,1close+6queue.
+Отмена/закрытие scoped tasks отменяет; неотменяемый DNS может ещё занимать ограниченный
+поток, UI его не ждёт. Поздняя фабрика не начинает запрос после отмены.
+Цвет+текст+время/HTTP, stale после15мин, force не обходит1мин/capped24h Retry-After.
+Нет WorkManager/новых разрешений/периодического опроса/новых зависимостей. Источники
+не выключаются/не сортируются/не скрываются; поиск/главы/аудио-CDN/updater прежние.
+Clock-future/плохой schema/числа/HTTP-status/backoff не получают ложный fresh/доверие;
+кэш сохраняет raw при чтении плохой записи и может обновляться ручной проверкой.
+load сериализован после отмены; RAM cooldown не теряется при ошибке записи/reopen.
+CI44131594987: verify+36green;23 1fail/42 при listOf vararg JSONObject fixture,
+до assertions. Линейная подготовка сохраняет все случаи; причина ART/D8 не доказана.
+Итог42/44green. Реальные сайты/VPN/аккаунты/Cloudflare на телефоне не проверены;
+TLS-всех провайдеров,реальный disk fail/process-kill/reboot,Installer,батарея/RAM — нет.
+Отчёт docs/SOURCE-HEALTH-STAGE-8.md и docs/quality/source-health/results.json.
+Source main/public4.2.95/package/version/signer/аудиофайлы/позиции/закладки не менялись.
+Этап8 НЕ завершён: далее share-import, несколько library roots, metadata editor,
+consented Wi-Fi next-volume, дополнительные фильтры. Публикация только с разрешения.
+Предыдущие история/копии/SAF/Яндекс сохранены; Яндекс только SAF writable tree,
+безOAuth; аккаунт по-прежнему не проверен. Ub-mode разрешён на текущий этап8;
+TokenEconomizer CLI без повторных вопросов: status, sessions0, hooks/экономия не доказаны.
+История ниже; рекомендации «следующее — мониторинг» уже выполнены вручную.
+
 # Этап 8 — история перемоток проверена, не опубликована (2026-11-17)
 
 Ветка cloud/seek-history-20261117 отaa3e8f3 (чистая база, удалённая совпадала).

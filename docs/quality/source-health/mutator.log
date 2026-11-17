@@ -1,0 +1,57 @@
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.AbBookTimeRules.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.AbBookTimeRules.Totals.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.AudioValidationRules.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.DiagnosticPrivacy.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.LibraryRecordRules.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.NetworkAddressRules.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.PlaybackPulseRules.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.ProgressSnapshotStore.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.QueueRecoveryRules.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.QueueSnapshotRules.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.SeekHistoryRules.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.SourceHealthRules.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.SourceHttp.edn
+KILLED    app/src/main/java/com/audiobookdownloader/SourceHealthRules.java:14 >= -> >
+KILLED    app/src/main/java/com/audiobookdownloader/SourceHealthRules.java:14 && -> ||
+KILLED    app/src/main/java/com/audiobookdownloader/SourceHealthRules.java:14 <= -> <
+KILLED    app/src/main/java/com/audiobookdownloader/SourceHealthRules.java:18 >= -> >
+KILLED    app/src/main/java/com/audiobookdownloader/SourceHealthRules.java:25 >= -> >
+KILLED    app/src/main/java/com/audiobookdownloader/SourceHealthRules.java:25 0 -> 1
+KILLED    app/src/main/java/com/audiobookdownloader/SourceHealthRules.java:25 && -> ||
+KILLED    app/src/main/java/com/audiobookdownloader/SourceHealthRules.java:25 >= -> >
+KILLED    app/src/main/java/com/audiobookdownloader/SourceHealthRules.java:25 && -> ||
+KILLED    app/src/main/java/com/audiobookdownloader/SourceHealthRules.java:25 - -> +
+KILLED    app/src/main/java/com/audiobookdownloader/SourceHealthRules.java:25 < -> <=
+KILLED    app/src/main/java/com/audiobookdownloader/SourceHealthRules.java:27 < -> <=
+KILLED    app/src/main/java/com/audiobookdownloader/SourceHealthRules.java:27 0 -> 1
+KILLED    app/src/main/java/com/audiobookdownloader/SourceHealthRules.java:27 true -> false
+KILLED    app/src/main/java/com/audiobookdownloader/SourceHealthRules.java:28 < -> <=
+KILLED    app/src/main/java/com/audiobookdownloader/SourceHealthRules.java:28 false -> true
+KILLED    app/src/main/java/com/audiobookdownloader/SourceHealthRules.java:29 - -> +
+KILLED    app/src/main/java/com/audiobookdownloader/SourceHealthRules.java:29 >= -> >
+KILLED    app/src/main/java/com/audiobookdownloader/SourceHealthRules.java:29 && -> ||
+KILLED    app/src/main/java/com/audiobookdownloader/SourceHealthRules.java:29 || -> &&
+KILLED    app/src/main/java/com/audiobookdownloader/SourceHealthRules.java:29 delete !
+KILLED    app/src/main/java/com/audiobookdownloader/SourceHealthRules.java:32 < -> <=
+KILLED    app/src/main/java/com/audiobookdownloader/SourceHealthRules.java:32 0 -> 1
+KILLED    app/src/main/java/com/audiobookdownloader/SourceHealthRules.java:33 == -> !=
+KILLED    app/src/main/java/com/audiobookdownloader/SourceHealthRules.java:33 || -> &&
+KILLED    app/src/main/java/com/audiobookdownloader/SourceHealthRules.java:36 / -> *
+KILLED    app/src/main/java/com/audiobookdownloader/SourceHealthRules.java:36 * -> /
+KILLED    app/src/main/java/com/audiobookdownloader/SourceHealthRules.java:39 false -> true
+KILLED    app/src/main/java/com/audiobookdownloader/SourceHealthRules.java:40 0 -> 1
+KILLED    app/src/main/java/com/audiobookdownloader/SourceHealthRules.java:41 == -> !=
+KILLED    app/src/main/java/com/audiobookdownloader/SourceHealthRules.java:41 || -> &&
+KILLED    app/src/main/java/com/audiobookdownloader/SourceHealthRules.java:41 != -> ==
+KILLED    app/src/main/java/com/audiobookdownloader/SourceHealthRules.java:42 0 -> 1
+KILLED    app/src/main/java/com/audiobookdownloader/SourceHealthRules.java:43 0 -> 1
+KILLED    app/src/main/java/com/audiobookdownloader/SourceHealthRules.java:43 - -> +
+Function   Namespace                                  Killed  Survived  Uncovered  Sites   Score
+------------------------------------------------------------------------------------------------
+page       com.audiobookdownloader.SourceHealthRules       0         0          0      0    n/a
+fresh      com.audiobookdownloader.SourceHealthRules       7         0          0      7 100.0%
+mayRequest com.audiobookdownloader.SourceHealthRules      10         0          0     10 100.0%
+response   com.audiobookdownloader.SourceHealthRules       4         0          0      4 100.0%
+retryWait  com.audiobookdownloader.SourceHealthRules      14         0          0     14 100.0%
+------------------------------------------------------------------------------------------------
+Total                                                     35         0          0     35  100.0%

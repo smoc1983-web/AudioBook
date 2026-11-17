@@ -1,0 +1,11 @@
+CRAP Report
+===========
+Languages: java
+
+Function                       Namespace                                   CC    Cov%     CRAP
+----------------------------------------------------------------------------------------------
+response                       com.audiobookdownloader.SourceHealthRules    8 100.0%      8.0
+retryWait                      com.audiobookdownloader.SourceHealthRules    8 100.0%      8.0
+mayRequest                     com.audiobookdownloader.SourceHealthRules    5 100.0%      5.0
+fresh                          com.audiobookdownloader.SourceHealthRules    3 100.0%      3.0
+page                           com.audiobookdownloader.SourceHealthRules    3 100.0%      3.0
