@@ -96,7 +96,13 @@ class AudioValidationTest {
         }.apply{isDaemon=true;start()}
         val dm=context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
         val jobs=mutableSetOf<Long>()
-        suspend fun await(targetBook:String=book,done:(List<QueuedChapter>)->Boolean):List<QueuedChapter> = withTimeout(60000) {
+        fun diagnostics(targetBook:String):String = AbPersistentDownloads.entries(context).filter{it.book==targetBook}.joinToString { row->
+            val android=if(row.job<=0)"none" else dm.query(DownloadManager.Query().setFilterById(row.job))?.use { q->
+                if(!q.moveToFirst())"missing" else "${q.getInt(q.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS))}/${q.getInt(q.getColumnIndexOrThrow(DownloadManager.COLUMN_REASON))}"
+            }
+            "${row.title}: ${row.state}, android=$android, error=${row.error}"
+        }+" requests="+requests.toString()
+        suspend fun await(targetBook:String=book,done:(List<QueuedChapter>)->Boolean):List<QueuedChapter> = try { withTimeout(60000) {
             while(true) {
                 AbPersistentDownloads.pump(context)
                 val rows=AbPersistentDownloads.entries(context).filter{it.book==targetBook}
@@ -105,7 +111,7 @@ class AudioValidationTest {
                 delay(300)
             }
             @Suppress("UNREACHABLE_CODE") emptyList()
-        }
+        }}catch(e:TimeoutCancellationException){throw AssertionError("Download transition timed out: "+diagnostics(targetBook),e)}
         try {
             AbPersistentDownloads.pause(context,book,true)
             val base="http://127.0.0.1:${server.localPort}"
