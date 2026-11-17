@@ -1,0 +1,389 @@
+{
+  "task": "Stage 8 first package: integrity inspection, local safety copies, manual SAF progress exchange",
+  "branch": "cloud/development-stage8-20261117",
+  "base": "eadc0d7f4bcb73a038271c0f8aed372d66d27061",
+  "stageComplete": false,
+  "published": false,
+  "physicalDeviceTested": false,
+  "actualYandexAccountTested": false,
+  "realAndroidFolderPickerGrantTested": false,
+  "scheduler24HourOrRebootTested": false,
+  "remainingFeatures": [
+    "seek history",
+    "global source health monitor",
+    "share import",
+    "multiple library roots",
+    "metadata editor",
+    "consented Wi-Fi next-volume downloads",
+    "additional filters"
+  ],
+  "manualProgressExchange": {
+    "providers": [
+      "common SAF tree",
+      "Yandex through installed writable tree provider"
+    ],
+    "automatic": false,
+    "embeddedOAuth": false,
+    "sensitiveCredentialsExported": false,
+    "limitBytes": 4194304,
+    "maxPositions": 10000
+  },
+  "localQuality": {
+    "unitTests": 11,
+    "unitPassed": 11,
+    "maxCrapJavaSnapshotStore": 5.0,
+    "dryerCandidatesScoped": 0,
+    "mutationSites": 34,
+    "mutantsKilled": 34,
+    "kotlinSupportedByQualityTools": false,
+    "parserChecks": "passed",
+    "tokenEconomizer": "CLI status executed, 0 observed sessions, savings/hooks not verified"
+  },
+  "unchanged": {
+    "sourceMain": "c8301dbf2fb558c8330d87baa67cacf307708529",
+    "publicRelease": "4.2.95",
+    "publicTag": "preview-v100095",
+    "publicTagCommit": "aade1a88688219571eaef0cef93557e8230739f6",
+    "package": true,
+    "signer": true,
+    "bookChapterIds": true,
+    "userAudioFiles": true
+  },
+  "ciHistory": [
+    {
+      "run": 44033639176,
+      "result": "native passed; JVM test fixture used host-only Files.readString/writeString, corrected without dropping assertions"
+    },
+    {
+      "run": 44034717306,
+      "result": "success"
+    },
+    {
+      "run": 44035649128,
+      "result": "success"
+    },
+    {
+      "run": 44039442441,
+      "result": "native passed; lint found isTreeUri API24, corrected with AndroidX Compat for minSDK23"
+    },
+    {
+      "run": 44041422818,
+      "result": "verify and native36 passed; native23 exposed valid AAC with unknown descriptor range and download recovery timeout"
+    },
+    {
+      "run": 44043864481,
+      "result": "verify and native36 passed; AAC fixed on23; download recovery timeout remained despite established legacy permission preconditions"
+    },
+    {
+      "run": 44045159674,
+      "result": "verify and native36 passed; API23 diagnostics confirmed Android status16/reason400 and zero loopback requests; AOSP DownloadThread enforces cleartext=false; fixed only the disposable API23 CI fixture manifest"
+    }
+  ],
+  "testedSource": "1eb342ee1a1038b80789d33f311ad02160fab626",
+  "ciRun": 44046401127,
+  "ciUrl": "https://github.com/smoc1983-web/AudioBook/actions/runs/44046401127",
+  "api23HttpFixture": {
+    "scope": "ephemeral native CI workspace only; app/src/debug manifest overlay with explicit tools:replace",
+    "trackedMainDebugReleasePolicyChanged": false,
+    "audioAssertionsOrTimeoutWeakened": false,
+    "rootCauseAosp": "https://android.googlesource.com/platform/packages/providers/DownloadProvider/+/android-6.0.1_r81/src/com/android/providers/downloads/DownloadThread.java"
+  },
+  "status": "success",
+  "ciResults": {
+    "jvm": {
+      "Debug": {
+        "tests": 369,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 1
+      },
+      "Release": {
+        "tests": 369,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 1
+      }
+    },
+    "native": {
+      "23": {
+        "tests": 28,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "36": {
+        "tests": 28,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      }
+    },
+    "lint": {
+      "lint-results-release.xml": {
+        "counts": {
+          "Warning": 265,
+          "Hint": 83
+        },
+        "addedCounts": {
+          "ApplySharedPref": 2,
+          "AutoboxingStateCreation": 7,
+          "UseKtx": 11
+        },
+        "added": [
+          [
+            "ApplySharedPref",
+            "Warning",
+            "Consider using `apply()` instead; `commit` writes its data to persistent storage immediately, whereas `apply` will handle it in the background"
+          ],
+          [
+            "ApplySharedPref",
+            "Warning",
+            "Consider using `apply()` instead; `commit` writes its data to persistent storage immediately, whereas `apply` will handle it in the background"
+          ],
+          [
+            "AutoboxingStateCreation",
+            "Hint",
+            "Prefer `mutableIntStateOf` instead of `mutableStateOf`"
+          ],
+          [
+            "AutoboxingStateCreation",
+            "Hint",
+            "Prefer `mutableIntStateOf` instead of `mutableStateOf`"
+          ],
+          [
+            "AutoboxingStateCreation",
+            "Hint",
+            "Prefer `mutableIntStateOf` instead of `mutableStateOf`"
+          ],
+          [
+            "AutoboxingStateCreation",
+            "Hint",
+            "Prefer `mutableIntStateOf` instead of `mutableStateOf`"
+          ],
+          [
+            "AutoboxingStateCreation",
+            "Hint",
+            "Prefer `mutableIntStateOf` instead of `mutableStateOf`"
+          ],
+          [
+            "AutoboxingStateCreation",
+            "Hint",
+            "Prefer `mutableIntStateOf` instead of `mutableStateOf`"
+          ],
+          [
+            "AutoboxingStateCreation",
+            "Hint",
+            "Prefer `mutableIntStateOf` instead of `mutableStateOf`"
+          ],
+          [
+            "UseKtx",
+            "Warning",
+            "Use the KTX extension function `SharedPreferences.edit` instead?"
+          ],
+          [
+            "UseKtx",
+            "Warning",
+            "Use the KTX extension function `SharedPreferences.edit` instead?"
+          ],
+          [
+            "UseKtx",
+            "Warning",
+            "Use the KTX extension function `SharedPreferences.edit` instead?"
+          ],
+          [
+            "UseKtx",
+            "Warning",
+            "Use the KTX extension function `SharedPreferences.edit` instead?"
+          ],
+          [
+            "UseKtx",
+            "Warning",
+            "Use the KTX extension function `SharedPreferences.edit` instead?"
+          ],
+          [
+            "UseKtx",
+            "Warning",
+            "Use the KTX extension function `SharedPreferences.edit` instead?"
+          ],
+          [
+            "UseKtx",
+            "Warning",
+            "Use the KTX extension function `SharedPreferences.edit` instead?"
+          ],
+          [
+            "UseKtx",
+            "Warning",
+            "Use the KTX extension function `SharedPreferences.edit` instead?"
+          ],
+          [
+            "UseKtx",
+            "Warning",
+            "Use the KTX extension function `SharedPreferences.edit` instead?"
+          ],
+          [
+            "UseKtx",
+            "Warning",
+            "Use the KTX extension function `String.toUri` instead?"
+          ],
+          [
+            "UseKtx",
+            "Warning",
+            "Use the KTX extension function `String.toUri` instead?"
+          ]
+        ],
+        "removed": []
+      },
+      "lint-results-debug.xml": {
+        "counts": {
+          "Warning": 265,
+          "Hint": 83
+        },
+        "addedCounts": {
+          "ApplySharedPref": 2,
+          "AutoboxingStateCreation": 7,
+          "UseKtx": 11
+        },
+        "added": [
+          [
+            "ApplySharedPref",
+            "Warning",
+            "Consider using `apply()` instead; `commit` writes its data to persistent storage immediately, whereas `apply` will handle it in the background"
+          ],
+          [
+            "ApplySharedPref",
+            "Warning",
+            "Consider using `apply()` instead; `commit` writes its data to persistent storage immediately, whereas `apply` will handle it in the background"
+          ],
+          [
+            "AutoboxingStateCreation",
+            "Hint",
+            "Prefer `mutableIntStateOf` instead of `mutableStateOf`"
+          ],
+          [
+            "AutoboxingStateCreation",
+            "Hint",
+            "Prefer `mutableIntStateOf` instead of `mutableStateOf`"
+          ],
+          [
+            "AutoboxingStateCreation",
+            "Hint",
+            "Prefer `mutableIntStateOf` instead of `mutableStateOf`"
+          ],
+          [
+            "AutoboxingStateCreation",
+            "Hint",
+            "Prefer `mutableIntStateOf` instead of `mutableStateOf`"
+          ],
+          [
+            "AutoboxingStateCreation",
+            "Hint",
+            "Prefer `mutableIntStateOf` instead of `mutableStateOf`"
+          ],
+          [
+            "AutoboxingStateCreation",
+            "Hint",
+            "Prefer `mutableIntStateOf` instead of `mutableStateOf`"
+          ],
+          [
+            "AutoboxingStateCreation",
+            "Hint",
+            "Prefer `mutableIntStateOf` instead of `mutableStateOf`"
+          ],
+          [
+            "UseKtx",
+            "Warning",
+            "Use the KTX extension function `SharedPreferences.edit` instead?"
+          ],
+          [
+            "UseKtx",
+            "Warning",
+            "Use the KTX extension function `SharedPreferences.edit` instead?"
+          ],
+          [
+            "UseKtx",
+            "Warning",
+            "Use the KTX extension function `SharedPreferences.edit` instead?"
+          ],
+          [
+            "UseKtx",
+            "Warning",
+            "Use the KTX extension function `SharedPreferences.edit` instead?"
+          ],
+          [
+            "UseKtx",
+            "Warning",
+            "Use the KTX extension function `SharedPreferences.edit` instead?"
+          ],
+          [
+            "UseKtx",
+            "Warning",
+            "Use the KTX extension function `SharedPreferences.edit` instead?"
+          ],
+          [
+            "UseKtx",
+            "Warning",
+            "Use the KTX extension function `SharedPreferences.edit` instead?"
+          ],
+          [
+            "UseKtx",
+            "Warning",
+            "Use the KTX extension function `SharedPreferences.edit` instead?"
+          ],
+          [
+            "UseKtx",
+            "Warning",
+            "Use the KTX extension function `SharedPreferences.edit` instead?"
+          ],
+          [
+            "UseKtx",
+            "Warning",
+            "Use the KTX extension function `String.toUri` instead?"
+          ],
+          [
+            "UseKtx",
+            "Warning",
+            "Use the KTX extension function `String.toUri` instead?"
+          ]
+        ],
+        "removed": []
+      }
+    }
+  },
+  "builds": {
+    "stableDebug": "passed",
+    "stableUnsignedRelease": "passed",
+    "androidTestCompile": "passed",
+    "previewDebugExistingSigner": "passed",
+    "upgradeProbeAssembly": "passed",
+    "legacyFixtureCompile": "passed",
+    "runtimeDependencyAudit": "passed"
+  },
+  "artifacts": [
+    {
+      "id": 14312281673,
+      "name": "development-stage8-reports",
+      "digest": "sha256:6477ff842e90f071119a427e505464d481a953c9ff8acaea25dfed2666c2a88a"
+    },
+    {
+      "id": 14311378770,
+      "name": "development-stage8-native-23-reports",
+      "digest": "sha256:619742334e80526f551acb312513df9ab2bb5313acebc95ced6e16b66dc1f954"
+    },
+    {
+      "id": 14311758052,
+      "name": "development-stage8-native-36-reports",
+      "digest": "sha256:4f1010ecab0c39bb08242d5587b7f85db97e23ee32b9abe0f6ad9947df58939d"
+    }
+  ],
+  "lintBaseline": "notification settings CI44026236216:252Warning76Hint",
+  "lintDeltaExplanation": "13 added warnings (11 UseKtx, 2 intentional result-checked commit) and 7 Int-state hints; no new Error/Fatal and no suppression",
+  "testedNativeClasses": [
+    "Stage8ReliabilityTest",
+    "Stage8ProgressFolderTest",
+    "Stage8FolderPanelStateTest",
+    "Stage8ExportStateTest",
+    "AudioValidationTest",
+    "LibraryIdentityAndroidTest"
+  ],
+  "nativeLimit": "AOSP emulators; generic debug DocumentsProvider and synthetic ActivityResultRegistry, not a real Yandex account or actual Android folder permission UI"
+}

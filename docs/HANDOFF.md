@@ -1,3 +1,38 @@
+# Этап 8 — первый пакет проверен, не опубликован (2026-11-17)
+
+Владелец разрешил этап8 и ub-mode. Ветка cloud/development-stage8-20261117,
+базаeadc0d7; проверенные исходники1eb342ee1a1038b80789d33f311ad02160fab626.
+CI44046401127 SUCCESS: Stable Debug/unsigned Release, Preview Debug/AndroidTest/
+upgradeProbe с прежним signer, fixture compile, dependency audit; по369 JVM
+(368 выполнены/1 прежнийskip), по28 native/API23,36 (56 исполнений,0fail/skip).
+Lint0Fatal/Error,265Warning83Hint: +11UseKtx,+2ApplySharedPref,+7Int-state hints
+к уведомлениям; подавлений нет, commit нужен для результата сохранения. Локально11Java,
+CRAPmax5/Dryer0scoped/Mutator34/34; Kotlin этими инструментами не покрыт.
+Реализовано: ручная локальная проверка аудиоструктуры/размера/SHA256 без удаления;
+opt-in WorkManager24h и7 исправных локальных копий metadata/progress без аудио;
+ручной обмен stable edition/chapter positions через2 SAF-подключения (общая папка,
+Яндекс). По умолчанию ничего не передаётся. Владелец выбрал Яндекс именно через
+системный выбор папки, без OAuth; client_id/пароль не спрашивать. Работает только
+если провайдер Диска предоставляет persistable writable tree; реальный аккаунт
+не проверен. Preview/confirm, channel/package/schema/IDs, fresh-local/changed-remote/
+chapter guards; нулевая и более ранняя позиция принимаются только явно.
+Автоматической облачной синхронизации нет. Внутренние копии теряются при uninstall;
+для внешнего хранения есть экспорт. Кэш приостановленного плеера очищается перед
+подтверждённым восстановлением, чтобы не затереть полученную позицию.
+API23 AAC исправлен явным диапазоном FD. Тайм-аут старого HTTP-теста подтверждён
+Android400 без запросов; только disposable API23 CI Debug manifest получает HTTP,
+обычная сетевая политика Debug/Release/main и updater не менялись. Assertions не ослаблены.
+Этап8 НЕ завершён: ещё история перемоток, глобальный мониторинг источников, share-import,
+несколько library roots, metadata editor, consented Wi-Fi next-volume, новые фильтры.
+Следующий небольшой пакет — история перемоток, затем мониторинг. Не смешивать миграции.
+Отчёт docs/DEVELOPMENT-STAGE-8.md и docs/quality/development-stage8/results.json.
+Физический телефон, реальный Yandex/DocsUI grant,24h/reboot,Installer,батарея/RAM
+не проверены. Generic DocumentsProvider и восстановление ActivityResult tested.
+Main/package/version/signer/IDs/аудиофайлы/public4.2.95 не изменены; релиза нет.
+TokenEconomizer CLI без повторных вопросов: status выполнен, sessions0, hooks/
+экономия не подтверждены. Ub-mode разрешён на продолжение того же этапа8.
+Исторические записи ниже, их «этап8 не начат» больше не актуально.
+
 # Кнопка уведомлений — исправлено, не опубликовано (2026-11-17)
 
 Владелец разрешил отдельный фикс и ub-mode. Ветка cloud/notification-settings-20261117
