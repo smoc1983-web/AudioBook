@@ -1,3 +1,25 @@
+# Кнопка уведомлений — исправлено, не опубликовано (2026-11-17)
+
+Владелец разрешил отдельный фикс и ub-mode. Ветка cloud/notification-settings-20261117
+от98ebc80; production fix975a27a, проверенные исходники42e210f323397a89865782c67a2ae36033fb5b44.
+CI44026236216 SUCCESS: Stable Debug/unsigned Release, Preview Debug/AndroidTest/
+upgradeProbe с прежним signer, fixture compile; по358 JVM(357pass/1прежнийskip),
+по5 native на API23/25/26/36(20 исполнений,0fail/skip), реальное открытие Settings
+и неизменность prefs. Lint0Fatal/Error,252Warning/76Hint: ровно2 InlinedApi
+устранены, новых диагностик нет, подавления не добавлялись. Red CI44024427787
+подтвердил API23:2fail,API36:3fail. CI44025285454: старые3OS green,36 ATD без
+Settings не подходит для UI integration; официальный docs это подтверждает.
+В42e210f только CI36 переведён на полный google_apis; assertions сохранены.
+API23–25 открывает карточку своего пакета;API26+ сначала экран уведомлений,
+при ActivityNotFound/SecurityException один fallback на карточку. При полном
+отказе понятный Toast, без молчаливого игнорирования. API33+ permission branch
+сохранена. Worker/подписки/package/version/signer/updater/пользовательские данные
+не менялись. Main/public4.2.95 прежние; этап8 и публикация не начаты.
+Отчёт docs/NOTIFICATION-SETTINGS-FIX.md, docs/quality/notification-settings/results.json.
+Физический телефон/OEM/разрешительный диалог13+/Installer не проверены.
+Crapper/Dryer/Mutator не поддерживают Kotlin; gate/score не заявлен. TokenEconomizer
+CLI status выполнен: sessions0, hooks/экономия не подтверждены. История ниже.
+
 # Этап 7 — локальный шаг проверен, не опубликован (2026-11-17)
 
 Ветка cloud/modularization-20261117 отe965387. Извлечены13 неизменных функций

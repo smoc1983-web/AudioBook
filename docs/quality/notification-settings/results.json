@@ -1,0 +1,136 @@
+{
+  "task": "Notification settings button compatibility",
+  "branch": "cloud/notification-settings-20261117",
+  "base": "98ebc80439f6285b474186fba1dcacd87e73834f",
+  "productionFixCommit": "975a27a58eb1ce2ce0e6910fc2119f04e4e62f55",
+  "testedSource": "42e210f323397a89865782c67a2ae36033fb5b44",
+  "ciRun": 44026236216,
+  "ciUrl": "https://github.com/smoc1983-web/AudioBook/actions/runs/44026236216",
+  "status": "success",
+  "ciResults": {
+    "jvm": {
+      "Debug": {
+        "tests": 358,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 1
+      },
+      "Release": {
+        "tests": 358,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 1
+      }
+    },
+    "native": {
+      "23": {
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "25": {
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "26": {
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "36": {
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      }
+    },
+    "lint": {
+      "lint-results-release.xml": {
+        "counts": {
+          "Warning": 252,
+          "Hint": 76
+        },
+        "added": [],
+        "removed": [
+          [
+            "InlinedApi",
+            "Warning",
+            "Field requires API level 26 (current min is 23): `android.provider.Settings#ACTION_APP_NOTIFICATION_SETTINGS`"
+          ],
+          [
+            "InlinedApi",
+            "Warning",
+            "Field requires API level 26 (current min is 23): `android.provider.Settings#EXTRA_APP_PACKAGE`"
+          ]
+        ]
+      },
+      "lint-results-debug.xml": {
+        "counts": {
+          "Warning": 252,
+          "Hint": 76
+        },
+        "added": [],
+        "removed": [
+          [
+            "InlinedApi",
+            "Warning",
+            "Field requires API level 26 (current min is 23): `android.provider.Settings#ACTION_APP_NOTIFICATION_SETTINGS`"
+          ],
+          [
+            "InlinedApi",
+            "Warning",
+            "Field requires API level 26 (current min is 23): `android.provider.Settings#EXTRA_APP_PACKAGE`"
+          ]
+        ]
+      }
+    }
+  },
+  "builds": {
+    "stableDebug": "passed",
+    "stableUnsignedRelease": "passed",
+    "androidTestCompile": "passed",
+    "previewDebugExistingSigner": "passed on all four jobs",
+    "upgradeProbeAssembly": "passed",
+    "legacyFixtureCompile": "passed"
+  },
+  "red": {
+    "ciRun": 44024427787,
+    "api23": {
+      "tests": 4,
+      "failures": 2
+    },
+    "api36": {
+      "tests": 4,
+      "failures": 3
+    }
+  },
+  "intermediate": {
+    "ciRun": 44025285454,
+    "api23_25_26": "five passed per API",
+    "api36Atd": "four passed; real Settings launch failed because ATD excludes Settings",
+    "officialAtdDocumentation": "https://developer.android.com/studio/test/managed-devices#atd",
+    "correction": "Only API36 CI image changed to full google_apis; assertions and production code unchanged"
+  },
+  "physicalPhoneTested": false,
+  "oemSettingsTested": false,
+  "android13PermissionDialogTested": false,
+  "android13PermissionRequestBranchChanged": false,
+  "published": false,
+  "versionPackageSignerConfigChanged": false,
+  "userDataMigration": false,
+  "qualityAnalyzers": {
+    "Crapper": "Kotlin unsupported; No source files",
+    "Dryer": "Kotlin unsupported; No source files",
+    "Mutator": "Kotlin unsupported; no mutation score claimed"
+  },
+  "tokenEconomizer": {
+    "cliStatusExecuted": true,
+    "observedSessions": 0,
+    "hooksVerified": false,
+    "tokenSavingsClaimed": false
+  }
+}
