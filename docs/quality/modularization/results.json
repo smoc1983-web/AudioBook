@@ -1,0 +1,144 @@
+{
+  "stage": 7,
+  "branch": "cloud/modularization-20261117",
+  "base": "e96538799085caab34000601f913879a3e48603a",
+  "testedSource": "7f7cf7e6d972887c7f484c4ddde76dd7e69f1137",
+  "status": "success",
+  "ciRun": 44010555019,
+  "ciUrl": "https://github.com/smoc1983-web/AudioBook/actions/runs/44010555019",
+  "baselineCi": 44008105152,
+  "extractionCi": 44008965769,
+  "extractionCommit": "dede2bb76be4a8641df084f3fc425ee48b4dcab2",
+  "toolchainCommit": "ad9d9ece7506a3b1ff4499719e80b90b4306b2a5",
+  "ciResults": {
+    "Debug": {
+      "files": 55,
+      "tests": 358,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    },
+    "Release": {
+      "files": 55,
+      "tests": 358,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    },
+    "native": {
+      "tests": 28,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "lint": {
+      "lint-results-release.xml": {
+        "counts": {
+          "Warning": 254,
+          "Hint": 76
+        },
+        "fatal": 0,
+        "errors": 0
+      },
+      "lint-results-debug.xml": {
+        "counts": {
+          "Warning": 254,
+          "Hint": 76
+        },
+        "fatal": 0,
+        "errors": 0
+      }
+    },
+    "lintChange": {
+      "oldCounts": {
+        "Warning": 78,
+        "Information": 76
+      },
+      "newCounts": {
+        "Warning": 254,
+        "Hint": 76
+      },
+      "newUseKtxRecommendations": 174,
+      "newInlinedApiWarningsInExistingNotificationSettingsAction": 2,
+      "obsoleteSdkIntReworded": 5,
+      "informationRenamedToHint": 76,
+      "afterExtractionBeforeToolUpgrade": "No added or removed diagnostics",
+      "noNewSuppressionsOrBaseline": true,
+      "notificationAction": [
+        {
+          "message": "Field requires API level 26 (current min is 23): `android.provider.Settings#ACTION_APP_NOTIFICATION_SETTINGS`",
+          "locations": [
+            {
+              "file": "/home/runner/work/AudioBook/AudioBook/app/build/generated/currentSources/MainActivity.kt",
+              "line": "11013",
+              "column": "51"
+            }
+          ]
+        },
+        {
+          "message": "Field requires API level 26 (current min is 23): `android.provider.Settings#EXTRA_APP_PACKAGE`",
+          "locations": [
+            {
+              "file": "/home/runner/work/AudioBook/AudioBook/app/build/generated/currentSources/MainActivity.kt",
+              "line": "11013",
+              "column": "120"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "builds": {
+    "stableDebug": "passed",
+    "stableUnsignedRelease": "passed",
+    "previewDebugWithExistingSigner": "passed",
+    "androidTestCompile": "passed",
+    "upgradeProbeAssembly": "passed",
+    "legacyFixtureCompileTask": "passed (UP-TO-DATE aggregate, prerequisites complete)"
+  },
+  "toolchain": {
+    "agp": "8.10.1",
+    "gradle": "8.11.1",
+    "kotlinAndComposeCompiler": "2.2.21",
+    "jdk": 17,
+    "compileSdk": 36,
+    "targetSdk": 36,
+    "minSdk": 23
+  },
+  "resolvedRuntimeModules": 68,
+  "kotlinRuntime": [
+    {
+      "name": "org.jetbrains.kotlin:kotlin-stdlib",
+      "version": "2.2.21"
+    },
+    {
+      "name": "org.jetbrains.kotlin:kotlin-stdlib-jdk7",
+      "version": "1.8.22"
+    },
+    {
+      "name": "org.jetbrains.kotlin:kotlin-stdlib-jdk8",
+      "version": "1.8.22"
+    }
+  ],
+  "qualityAnalyzers": {
+    "Crapper": "unsupported Kotlin: No source files",
+    "Dryer": "unsupported Kotlin: No source files",
+    "Mutator": "unsupported Kotlin: No source files; no mutation score claimed"
+  },
+  "physicalDeviceTested": false,
+  "published": false,
+  "packageVersionSignerConfigChanged": false,
+  "tokenEconomizer": {
+    "cliStatusExecuted": true,
+    "observedSessions": 0,
+    "hooksVerified": false,
+    "tokenSavingsClaimed": false
+  },
+  "remainingRisks": [
+    "Only first component extracted; MainActivity still large",
+    "Notification settings action uses API26 constants on API23-25 without fallback; existing code, OEM behavior untested",
+    "Kotlin2.4 future visibility errors in UpdateSession.kt (3 declarations), currently warnings",
+    "No physical device/API23-35/Windows/Installer or full-screen visual regression tests",
+    "Legacy collection-corruption behavior unchanged; no new recovery mechanism"
+  ]
+}

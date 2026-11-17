@@ -1,0 +1,40 @@
+{
+  "Debug": {
+    "files": 55,
+    "tests": 358,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1
+  },
+  "Release": {
+    "files": 55,
+    "tests": 358,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1
+  },
+  "lint": {
+    "lint-results-release.xml": {
+      "counts": {
+        "Warning": 78,
+        "Information": 76
+      },
+      "new": [],
+      "removed": []
+    },
+    "lint-results-debug.xml": {
+      "counts": {
+        "Warning": 78,
+        "Information": 76
+      },
+      "new": [],
+      "removed": []
+    }
+  },
+  "native": {
+    "tests": 28,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  }
+}

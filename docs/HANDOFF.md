@@ -1,3 +1,31 @@
+# Этап 7 — локальный шаг проверен, не опубликован (2026-11-17)
+
+Ветка cloud/modularization-20261117 отe965387. Извлечены13 неизменных функций
+коллекций/избранного/очереди и модели в LibraryCollections.kt; MainActivity -261
+строка, публичный Java/Kotlin facade и wire format сохранены. До переноса
+CI44008105152 SUCCESS, после dede2bb CI44008965769 SUCCESS без lint delta.
+Инструменты отдельным ad9d9ec: AGP8.10.1/Gradle8.11.1/Kotlin+Compose compiler2.2.21,
+JDK17/SDK36/min23 прежние, suppressUnsupportedCompileSdk удалён, pins22workflows
+и Windows launcher согласованы. Условия/команды публикации не менялись.
+Финальные исходники7f7cf7e6d972887c7f484c4ddde76dd7e69f1137,
+CI44010555019 SUCCESS: Stable Debug/unsigned Release, Preview Debug/AndroidTest/
+upgradeProbe с прежним signer, fixture compile; по358 JVM (357 выполнены,1skip),
+28native/API36. Lint0Fatal/Error,254Warning/76Hint: новый анализатор добавил174
+UseKtx рекомендаций и2 InlinedApi старого action настроек уведомлений;76Info
+переименованы в Hint,5 obsolete сообщений переформулированы. Не заявлять no-new-
+lint после смены инструмента. На API23–25 кнопка может ничего не открыть (не
+проверено на устройстве); рекомендован отдельный fallback patch. Новый Kotlin
+предупреждает о3 Release visibility объявлениях UpdateSession для будущего2.4.
+Отчёт docs/MODULARIZATION-STAGE-7.md; docs/quality/modularization/results.json.
+Runtime-граф68модулей сохранён. Физический телефон/API23–35/Windows/Installer,
+полная визуальная регрессия и измерения производительности не проверялись.
+Crapper/Dryer/Mutator не поддерживают изменённый Kotlin, gate/score не заявлен.
+TokenEconomizer CLI status: sessions0, hooks/экономия не подтверждены.
+Main/package/version/signer/public4.2.95/данные неизменны. Activity разделён лишь
+частично, legacy corruption поведение коллекций не менялось. Публикация и
+этап8 только после решения владельца; перед развитием разобрать compatibility
+замечания. Исторические записи ниже.
+
 # Этап 6 — проверен, не опубликован (2026-11-16)
 
 Ветка cloud/library-identity-20261116 отf372216; проверенные исходники
