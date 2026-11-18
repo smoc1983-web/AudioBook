@@ -121,8 +121,10 @@ class LibraryRootsTest {
   }
  }
  private fun failing(base:SharedPreferences,fail:()->Boolean):SharedPreferences {
-  return Proxy.newProxyInstance(SharedPreferences::class.java.classLoader,arrayOf(SharedPreferences::class.java)){_,m,args->
-   if(m.name!="edit")m.invoke(base,*(args?:emptyArray())) else {
+  return Proxy.newProxyInstance(SharedPreferences::class.java.classLoader,arrayOf(SharedPreferences::class.java)){proxy,m,args->
+   if(m.name=="hashCode")System.identityHashCode(proxy)
+   else if(m.name=="equals")proxy===args?.get(0)
+   else if(m.name!="edit")m.invoke(base,*(args?:emptyArray())) else {
     val edit=base.edit()
     Proxy.newProxyInstance(SharedPreferences.Editor::class.java.classLoader,arrayOf(SharedPreferences.Editor::class.java)){proxy,method,values->
      if(method.name=="commit"&&fail()){edit.commit();false} else {val result=method.invoke(edit,*(values?:emptyArray()));if(result is SharedPreferences.Editor)proxy else result}
@@ -133,6 +135,7 @@ class LibraryRootsTest {
  @Test fun failedCommitDoesNotBecomeSuccessJustBecausePreferencesMemoryChanged() {
   val a=tree(File(data,"a"));val b=tree(File(data,"b"));p.edit().putString(LibraryRoots.KEY,LibraryRoots.encode(listOf(a))).commit()
   var fail=false;val wrapped=failing(p){fail}
+  assertTrue("Preference fixture must obey reflexive equality",wrapped.equals(wrapped))
   assertEquals(listOf(a),LibraryRoots.load(wrapped).roots);fail=true;assertFalse(LibraryRoots.add(wrapped,b))
   val pending=LibraryRoots.load(wrapped);assertFalse(pending.saved);assertEquals(listOf(a),pending.roots)
   fail=false;assertEquals(listOf(a,b),LibraryRoots.load(wrapped).roots);assertTrue(LibraryRoots.load(wrapped).saved)

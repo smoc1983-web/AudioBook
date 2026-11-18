@@ -1,6 +1,7 @@
 package com.audiobookdownloader
 
 import android.content.Context
+import androidx.activity.compose.LocalActivityResultRegistryOwner
 import android.content.ContextWrapper
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.rememberScrollState
@@ -46,7 +47,7 @@ class LibraryRootsPanelTest {
   val p=c.getSharedPreferences("audiobook_downloader",0);p.edit().putString(LibraryRoots.KEY,LibraryRoots.encode(listOf(a,b))).putInt("keep_progress",3456).commit()
   val file=File(c.cacheDir,"root-panel-$id.mp3").apply{writeBytes(byteArrayOf(1,2,3))};var open by mutableStateOf(true);var syncs=0;val theme=abTheme(10)
   try {
-   compose.setContent{CompositionLocalProvider(LocalContext provides c){if(open)Column(Modifier.verticalScroll(rememberScrollState())){LibraryRootsControls({syncs++},theme.text,theme.accent,emptyMap())}}}
+   compose.setContent{val owner=requireNotNull(LocalActivityResultRegistryOwner.current);CompositionLocalProvider(LocalContext provides c,LocalActivityResultRegistryOwner provides owner){if(open)Column(Modifier.verticalScroll(rememberScrollState())){LibraryRootsControls({syncs++},theme.text,theme.accent,emptyMap())}}}
    compose.waitUntil(5000){compose.onAllNodesWithText("Отключить first").fetchSemanticsNodes().size==1}
    compose.onNodeWithText("Отключить first").performScrollTo().performClick();compose.onNodeWithText("Отключить папку?").assertExists()
    compose.onNodeWithText("Отмена").performClick();assertEquals(listOf(a,b),LibraryRoots.load(p).roots)

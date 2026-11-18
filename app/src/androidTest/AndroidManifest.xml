@@ -1,6 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
   <application>
-    <provider android:name="com.audiobookdownloader.LibraryRootsGrantProvider" android:authorities="${applicationId}.library_roots" android:exported="false" android:grantUriPermissions="true" />
+    <provider android:name="com.audiobookdownloader.LibraryRootsGrantProvider" android:authorities="${applicationId}.library_roots" android:exported="true" android:permission="android.permission.MANAGE_DOCUMENTS" android:grantUriPermissions="true" />
     <!-- Test APK is a separate UID: exercise real temporary content URI grants. -->
     <provider android:name="com.audiobookdownloader.SharedAudioFixtureProvider" android:authorities="${applicationId}.shared_audio" android:exported="false" android:grantUriPermissions="true" />
     <activity android:name="com.audiobookdownloader.SharedAudioFixtureSenderActivity" android:exported="true" android:theme="@android:style/Theme.Material.NoActionBar" />
