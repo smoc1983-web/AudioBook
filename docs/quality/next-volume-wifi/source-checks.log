@@ -285,10 +285,10 @@ PASS Manual source explicit playlist, not a single audio fragment: audio-lib.clu
 PASS Manual source explicit playlist, not a single audio fragment: knigiaudio.net
 PASS Manual source explicit playlist, not a single audio fragment: author.today
 12 source download/parser checks passed
-+ java -m jdk.compiler/com.sun.tools.javac.Main -source 8 -target 8 -Xlint:-options -d /tmp/audiobook-checks-rs25bbv0 app/src/main/java/com/SearchBookIndex.java app/src/main/java/com/LibraryRecoveryRules.java tests/SearchBookIndexTest.java tests/LibraryRecoveryRulesTest.java
-+ java -cp /tmp/audiobook-checks-rs25bbv0 SearchBookIndexTest
++ java -m jdk.compiler/com.sun.tools.javac.Main -source 8 -target 8 -Xlint:-options -d /tmp/audiobook-checks-5hv9ped1 app/src/main/java/com/SearchBookIndex.java app/src/main/java/com/LibraryRecoveryRules.java tests/SearchBookIndexTest.java tests/LibraryRecoveryRulesTest.java
++ java -cp /tmp/audiobook-checks-5hv9ped1 SearchBookIndexTest
 PASS: actual Java index identity, URL, volume, author compatibility, same-site editions, author upgrade and Unicode cases
-PASS: 40,000 insert/lookups on actual index, distinct titles and same-title/different-author stress, 0.992 s (desktop JVM, not Android)
-+ java -cp /tmp/audiobook-checks-rs25bbv0 LibraryRecoveryRulesTest
+PASS: 40,000 insert/lookups on actual index, distinct titles and same-title/different-author stress, 0.967 s (desktop JVM, not Android)
++ java -cp /tmp/audiobook-checks-5hv9ped1 LibraryRecoveryRulesTest
 PASS: 22 library recovery and audio-container rules
 All saved source/parser/JVM checks passed. Android build/device tests were not run.

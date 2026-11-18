@@ -2985,7 +2985,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                                                 )
 
                                             abRememberCatalog(prefs,BookLink(realBookTitle,currentUrl,currentCoverUrl,currentBookAuthor,
-                                                genres=abReadGenres(root.optJSONArray("genres")),cycles=abReadCycles(root.optJSONArray("cycles"),currentUrl)))
+                                                genres=abReadGenres(root.optJSONArray("genres")),cycles=abReadCycles(root.optJSONArray("cycles"))))
                                             prefs.edit()
                                                 .putString(abAuthorKey(realBookTitle), currentBookAuthor)
                                                 .putString(
@@ -6626,7 +6626,7 @@ fun parseBookLinks(
                     ),
                 author = item.optString("author", ""),
                 genres = abReadGenres(item.optJSONArray("genres")),
-                cycles = abReadCycles(item.optJSONArray("cycles"),url),
+                cycles = abReadCycles(item.optJSONArray("cycles")),
                 genreOrigin = item.optString("genreOrigin",""),
                 narrator = item.optString("narrator",item.optString("reader",""))
             )
@@ -6720,7 +6720,7 @@ fun downloadTrack(
             "$bookTitle - ${track.title}"
         )
 
-        val wifiOnly=NextVolumeRules.wifiRequired(forceWifiOnly,context.getSharedPreferences("audiobook_downloader",0).getBoolean("experience_wifi_only",false))
+        val wifiOnly=abConfigureDownloadNetwork(request,forceWifiOnly,context.getSharedPreferences("audiobook_downloader",0).getBoolean("experience_wifi_only",false))
         request.setDescription(abDownloadDescription(track.title,wifiOnly))
 
         request.setMimeType(
@@ -6732,13 +6732,6 @@ fun downloadTrack(
                 .VISIBILITY_VISIBLE_NOTIFY_COMPLETED
         )
 
-        request.setAllowedNetworkTypes(if(wifiOnly)DownloadManager.Request.NETWORK_WIFI else
-            DownloadManager.Request.NETWORK_WIFI or DownloadManager.Request.NETWORK_MOBILE)
-        request.setAllowedOverMetered(!wifiOnly)
-
-        request.setAllowedOverRoaming(
-            false
-        )
 
         // Avoid DownloadManager's concurrent mkdir race for the first chapters of a new book.
         // Scoped-storage devices may delegate directory creation to DownloadManager.
@@ -11363,7 +11356,7 @@ internal fun abDownloadEdition(ref:BookRef,root:JSONObject,url:String):AbDownloa
     val parsed=root.optJSONObject("player")?.let{parsePlayer(it)} ?: return null
     return AbDownloadEdition(ref.copy(url=url,cover=root.optString("cover").ifBlank{ref.cover}),parsed.tracks,
         EditionDownloadRules.isPreview(ref.title+" "+root.optString("title"),parsed.tracks.map{it.src}),
-        sourceTitle=root.optString("title"),sourceAuthor=root.optString("author"),sourceCycles=abReadCycles(root.optJSONArray("cycles"),url))
+        sourceTitle=root.optString("title"),sourceAuthor=root.optString("author"),sourceCycles=nextVolumeSourceCycles(root.optJSONArray("cycles"),url))
 }
 
 /** The very same controls are used in the real context menu and Android UI tests. */
@@ -12681,16 +12674,12 @@ private fun abCatalogClassifierJs(): String {
     """.trimIndent()
 }
 
-private val abCyclePolicy by lazy{ContinuationPolicy(AB_EXTRA_SOURCE_JSON)}
-
-private fun abReadCycles(array: JSONArray?,page:String=""): List<BookCycle> = (0 until (array?.length() ?: 0)).mapNotNull { index ->
+private fun abReadCycles(array: JSONArray?): List<BookCycle> = (0 until (array?.length() ?: 0)).mapNotNull { index ->
     val item=array?.optJSONObject(index) ?: return@mapNotNull null
     val title=item.optString("title").trim().take(300)
     if(!SeriesAuthorityRules.plausibleSeriesTitle(title)) return@mapNotNull null
     val order=item.optDouble("order",Double.NaN).takeIf { it.isFinite() && it>0 && it<100000 }
-    val raw=item.optString("url")
-    val sourceCycle=raw.takeIf{abCyclePolicy.book(page)&&abCyclePolicy.same(page,it)&&abCyclePolicy.series(it)}
-    BookCycle(title,supportedBookUrl(raw) ?: sourceCycle.orEmpty(),order)
+    BookCycle(title,supportedBookUrl(item.optString("url")).orEmpty(),order)
 }
 
 private fun abReadGenres(array: JSONArray?): List<String> = (0 until (array?.length() ?: 0))
@@ -12761,7 +12750,7 @@ internal fun abStoredCatalog(prefs: android.content.SharedPreferences,title: Str
         val json=JSONObject(prefs.getString(abCatalogKey(title),"{}").orEmpty())
         val stored=BookLink(title,json.optString("url"),json.optString("cover"),
             json.optString("author").ifBlank{prefs.getString(abAuthorKey(title),"").orEmpty()},
-            genres=abReadGenres(json.optJSONArray("genres")),cycles=abReadCycles(json.optJSONArray("cycles"),json.optString("url")),genreOrigin=json.optString("genreOrigin"),narrator=json.optString("narrator"))
+            genres=abReadGenres(json.optJSONArray("genres")),cycles=abReadCycles(json.optJSONArray("cycles")),genreOrigin=json.optString("genreOrigin"),narrator=json.optString("narrator"))
         stored.copy(cycles=SeriesAuthorityCache.cycles(prefs,title,stored.author,stored.cycles,stored.url))
     } catch(_:Exception) {BookLink(title,"",author=prefs.getString(abAuthorKey(title),"").orEmpty())}
 }
@@ -13874,7 +13863,7 @@ private class AbResolveGenreTask(web: WebView,private val candidate: BookLink,
             val title=cleanBookTitle(json.optString("title")).ifBlank{candidate.title}
             book=candidate.copy(title=title,url=actualUrl,coverUrl=json.optString("cover").ifBlank{candidate.coverUrl},
                 author=json.optString("author").ifBlank{candidate.author},
-                genres=abReadGenres(json.optJSONArray("genres")),cycles=abReadCycles(json.optJSONArray("cycles"),actualUrl))
+                genres=abReadGenres(json.optJSONArray("genres")),cycles=abReadCycles(json.optJSONArray("cycles")))
             mode=1
             val cached=AbPublicMetadata.cached(prefs,book)
             if(cached!=null){finish(abResolvedBook(book,cached),emptyList(),"");return@launch}

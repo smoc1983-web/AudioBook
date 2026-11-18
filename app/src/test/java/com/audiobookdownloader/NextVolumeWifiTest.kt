@@ -7,17 +7,17 @@ class NextVolumeWifiTest {
  private val policy=ContinuationPolicy(AB_EXTRA_SOURCE_JSON)
  private val root="https://akniga.org/test-book-1"
  private val target="https://akniga.org/test-book-2"
- private val cycle=BookCycle("Цикл","https://akniga.org/series/test/",1.0)
- private val seed=BookLink("Цикл. Книга 1",root,author="Иван Автор",cycles=listOf(cycle))
+ private val cycle=BookCycle("Приключения","https://akniga.org/series/test/",1.0)
+ private val seed=BookLink("Приключения. Книга 1",root,author="Иван Автор",cycles=listOf(cycle))
  private val ref=BookRef(seed.title,root,"")
- private val notice=ContinuationNotice("notice",ContinuationStore.hash(root),"Цикл. Книга 2",target,cycle.title,seed.author,1,order=2.0)
+ private val notice=ContinuationNotice("notice",ContinuationStore.hash(root),"Приключения. Книга 2",target,cycle.title,seed.author,1,order=2.0)
  private fun choice()=NextVolumeChoice(BookRef(notice.title,target,""),seed.author,cycle,2.0)
  private fun edition()=AbDownloadEdition(choice().ref,listOf(AudioTrack("01",1,"https://cdn.example.org/01.mp3")),false,sourceTitle=notice.title,sourceAuthor=seed.author,sourceCycles=listOf(cycle.copy(order=2.0)))
  @Test fun onlyAnExplicitAdjacentSourceSeriesProducesAChoice() {
   assertTrue("fixture source path must match registry",policy.book(root))
   assertEquals(listOf(choice()),nextVolumeChoices(seed,ref,listOf(notice,notice),policy))
   for(n in listOf(notice.copy(seed="foreign"),notice.copy(author="Другой автор"),notice.copy(order=3.0),notice.copy(order=null),notice.copy(format="text"),notice.copy(series="Other"),notice.copy(url="https://evil.example/book")))assertTrue(nextVolumeChoices(seed,ref,listOf(n),policy).isEmpty())
-  for(s in listOf(seed.copy(author=""),seed.copy(url=target),seed.copy(cycles=listOf(cycle.copy(url=""))),seed.copy(cycles=listOf(cycle.copy(order=null))),seed.copy(cycles=listOf(cycle,cycle.copy(order=5.0)))))assertTrue(nextVolumeChoices(s,ref,listOf(notice),policy).isEmpty())
+  for(s in listOf(seed.copy(author=""),seed.copy(cycles=listOf(cycle.copy(title="Цикл"))),seed.copy(url=target),seed.copy(cycles=listOf(cycle.copy(url=""))),seed.copy(cycles=listOf(cycle.copy(order=null))),seed.copy(cycles=listOf(cycle,cycle.copy(order=5.0)))))assertTrue(nextVolumeChoices(s,ref,listOf(notice),policy).isEmpty())
  }
  @Test fun validationRejectsChangedEditionAuthorVolumeDemoAndSegmentedAudio() {
   assertTrue(checkedNextVolume(choice(),edition(),policy).wifiOnly)

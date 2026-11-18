@@ -8,8 +8,8 @@ import org.junit.Assert.*
 
 class NextVolumeWifiPanelTest {
  @get:Rule val compose=createComposeRule()
- private val cycle=BookCycle("Цикл","https://akniga.org/series/test/",1.0)
- private val choice=NextVolumeChoice(BookRef("Цикл. Книга 2","https://akniga.org/test-book-2",""),"Иван Автор",cycle,2.0)
+ private val cycle=BookCycle("Приключения","https://akniga.org/series/test/",1.0)
+ private val choice=NextVolumeChoice(BookRef("Приключения. Книга 2","https://akniga.org/test-book-2",""),"Иван Автор",cycle,2.0)
  private fun edition(preview:Boolean=false)=AbDownloadEdition(choice.ref,listOf(AudioTrack("01",10,"https://cdn.example.org/wifi-01.mp3")),preview,sourceTitle=choice.ref.title,sourceAuthor=choice.author,sourceCycles=listOf(cycle.copy(order=2.0)))
  private fun reader(value:AbDownloadEdition?,message:String=""):@Composable (BookRef,(AbDownloadEdition?,String)->Unit)->Unit = {_,done->LaunchedEffect(value,message){done(value,message)}}
  @Test fun inspectingAndCancelDoNotDownloadOrChangePlayback() {

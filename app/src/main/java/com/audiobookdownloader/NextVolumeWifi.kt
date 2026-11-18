@@ -5,7 +5,7 @@ internal data class NextVolumeChoice(val ref:BookRef,val author:String,val cycle
 /** Only numbered source-series evidence can offer a successor; personal labels and filenames cannot. */
 internal fun nextVolumeChoices(seed:BookLink,ref:BookRef,available:List<ContinuationNotice>,policy:ContinuationPolicy):List<NextVolumeChoice> {
     if(!policy.book(ref.url)||policy.canonical(seed.url)!=policy.canonical(ref.url)||SeriesAuthorityRules.author(seed.author).isBlank())return emptyList()
-    val cycles=seed.cycles.filter{policy.series(it.url)&&policy.same(ref.url,it.url)}
+    val cycles=seed.cycles.filter{SeriesAuthorityRules.plausibleSeriesTitle(it.title)&&policy.series(it.url)&&policy.same(ref.url,it.url)}
         .distinctBy{policy.canonical(it.url) to it.order}
     val cycle=cycles.singleOrNull() ?: return emptyList()
     val order=cycle.order ?: return emptyList()
@@ -31,4 +31,27 @@ internal fun checkedNextVolume(choice:NextVolumeChoice,edition:AbDownloadEdition
     return edition.copy(ref=edition.ref.copy(title=choice.ref.title),wifiOnly=true)
 }
 
+/** Fresh evidence for this permission; the general catalogue parser keeps its existing behaviour. */
+internal fun nextVolumeSourceCycles(rows:org.json.JSONArray?,page:String):List<BookCycle> {
+    val policy=ContinuationPolicy(AB_EXTRA_SOURCE_JSON)
+    if(!policy.book(page)||rows==null||rows.length()>100)return emptyList()
+    return (0 until rows.length()).mapNotNull {index->
+        val row=rows.optJSONObject(index) ?: return@mapNotNull null
+        val title=row.optString("title");val url=row.optString("url")
+        val order=row.optDouble("order",Double.NaN)
+        if(!SeriesAuthorityRules.plausibleSeriesTitle(title)||!policy.same(page,url)||!policy.series(url)||!order.isFinite()||order<=0||order>=100000)null
+        else BookCycle(title,url,order)
+    }
+}
+
 internal fun abDownloadDescription(title:String,wifiOnly:Boolean):String="Глава $title"+if(wifiOnly)" · Только Wi-Fi" else ""
+
+/** Shared request configuration: legacy DownloadProvider hides these columns from apps. */
+internal fun abConfigureDownloadNetwork(request:android.app.DownloadManager.Request,permission:Boolean,preference:Boolean):Boolean {
+    val wifi=NextVolumeRules.wifiRequired(permission,preference)
+    request.setAllowedNetworkTypes(if(wifi)android.app.DownloadManager.Request.NETWORK_WIFI else
+        android.app.DownloadManager.Request.NETWORK_WIFI or android.app.DownloadManager.Request.NETWORK_MOBILE)
+    request.setAllowedOverMetered(!wifi)
+    request.setAllowedOverRoaming(false)
+    return wifi
+}
