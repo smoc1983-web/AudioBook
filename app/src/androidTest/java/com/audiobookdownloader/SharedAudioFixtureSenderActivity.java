@@ -6,8 +6,10 @@ import android.net.Uri;
 import java.util.ArrayList;
 
 public final class SharedAudioFixtureSenderActivity extends Activity {
+    private android.os.ResultReceiver acknowledgement;
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
+        acknowledgement=getIntent().getParcelableExtra("ack");
         String target=getIntent().getStringExtra("target");
         ArrayList<Uri> uris=getIntent().getParcelableArrayListExtra("uris");
         for(Uri uri:uris) {
@@ -23,5 +25,9 @@ public final class SharedAudioFixtureSenderActivity extends Activity {
             startActivity(out);
         }
         finish();
+    }
+    @Override public void onDestroy() {
+        super.onDestroy();
+        if(acknowledgement!=null){acknowledgement.send(0,null);acknowledgement=null;}
     }
 }

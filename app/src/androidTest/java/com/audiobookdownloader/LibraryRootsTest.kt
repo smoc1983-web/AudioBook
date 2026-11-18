@@ -96,9 +96,12 @@ class LibraryRootsTest {
  }
  private fun grant(uri:Uri,revoke:Boolean=false) {
   val pkg=InstrumentationRegistry.getInstrumentation().context.packageName
+  val completed=java.util.concurrent.CountDownLatch(1)
+  val ack=object:android.os.ResultReceiver(android.os.Handler(android.os.Looper.getMainLooper())) {override fun onReceiveResult(code:Int,data:android.os.Bundle?){completed.countDown()}}
   app.startActivity(Intent().setComponent(ComponentName(pkg,"com.audiobookdownloader.SharedAudioFixtureSenderActivity"))
-   .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK).putExtra("target",app.packageName).putParcelableArrayListExtra("uris",arrayListOf(uri)).putExtra("revoke",revoke)
+   .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_MULTIPLE_TASK).putExtra("ack",ack).putExtra("target",app.packageName).putParcelableArrayListExtra("uris",arrayListOf(uri)).putExtra("revoke",revoke)
    .putExtra("flags",Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION or Intent.FLAG_GRANT_PREFIX_URI_PERMISSION))
+  assertTrue("Grant fixture must finish the requested action before the next request",completed.await(5,java.util.concurrent.TimeUnit.SECONDS))
   val end=System.currentTimeMillis()+5000
   while(System.currentTimeMillis()<end){val allowed=app.checkUriPermission(uri,android.os.Process.myPid(),android.os.Process.myUid(),Intent.FLAG_GRANT_READ_URI_PERMISSION)==0;if(allowed!=revoke)return;Thread.sleep(25)}
   fail("Grant did not change to requested state")
@@ -115,6 +118,8 @@ class LibraryRootsTest {
    app.contentResolver.releasePersistableUriPermission(a,Intent.FLAG_GRANT_READ_URI_PERMISSION);grant(a,true)
    val report=scanLibraryReport(c);assertTrue(report.folderUnavailable);assertTrue(report.books.any{it.title=="Grant other"});assertFalse(report.books.any{it.title=="Grant read-only"})
    assertEquals(2,LibraryRoots.load(c).roots.size)
+   val readable=report.books.single{it.title=="Grant other"}.files.single()
+   assertEquals(2048,c.contentResolver.openInputStream(Uri.parse(libraryTrackSource(readable)))!!.use{it.readBytes().size})
    assertTrue(LibraryRoots.disconnect(c,b.toString()));assertTrue(app.contentResolver.persistedUriPermissions.any{it.uri==b&&it.isReadPermission})
   }finally {
    for(uri in listOf(a,b)){try{app.contentResolver.releasePersistableUriPermission(uri,Intent.FLAG_GRANT_READ_URI_PERMISSION)}catch(_:Exception){};grant(uri,true)}
