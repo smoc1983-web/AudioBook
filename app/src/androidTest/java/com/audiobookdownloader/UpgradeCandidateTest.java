@@ -66,7 +66,23 @@ public class UpgradeCandidateTest {
    UiDevice device=UiDevice.getInstance(InstrumentationRegistry.getInstrumentation());device.executeShellCommand("appops set "+c.getPackageName()+" REQUEST_INSTALL_PACKAGES allow");
    try(ActivityScenario<android.app.Activity> scenario=ActivityScenario.launch(new Intent().setClassName(c,c.getPackageName().replace(".preview","")+".PreviewUpdatesActivity"))){
     // This method runs from the actually installed old APK, using its provider and updater.
-    scenario.onActivity(a->{try{java.lang.reflect.Method launch=a.getClass().getDeclaredMethod("launchInstaller");launch.setAccessible(true);launch.invoke(a);}catch(Exception error){throw new AssertionError(error);}});
+    scenario.onActivity(a->{
+     try {
+      // Since 4.2.95 the activity receives a verified file from its session. The
+      // test has verified this private candidate above and supplies that file
+      // directly because the review artifact has no published GitHub receipt.
+      try {
+       java.lang.reflect.Field verified=a.getClass().getDeclaredField("verifiedInstallerFile");
+       verified.setAccessible(true);
+       verified.set(a,target);
+      } catch(NoSuchFieldException legacy) {
+       // Older baselines read the verified APK directly from updater.target().
+      }
+      java.lang.reflect.Method launch=a.getClass().getDeclaredMethod("launchInstaller");
+      launch.setAccessible(true);
+      launch.invoke(a);
+     }catch(Exception error){throw new AssertionError(error);}
+    });
     assertNotNull("Old updater must open Android installer",device.wait(Until.findObject(By.pkg(Pattern.compile("com\\.(?:google\\.android|android)\\.(?:packageinstaller|permissioncontroller)"))),15000));
     assertNotNull("Real newer candidate must reach Update confirmation",device.wait(Until.findObject(By.text(Pattern.compile("(?i)update|install"))),5000));
     Bundle phase=new Bundle();phase.putString("stream","OLD_UPDATER_INSTALLER_CONFIRMATION_VERIFIED\n");InstrumentationRegistry.getInstrumentation().sendStatus(2,phase);device.pressBack();
