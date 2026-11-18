@@ -1,0 +1,29 @@
+{
+  "url": "https://github.com/smoc1983-web/AudioBook/releases/tag/preview-v100097",
+  "tag": "preview-v100097",
+  "source": "1ada617b45068a0fc44a8e6b227d620131c8d87a",
+  "sha256": "2f567feb6333306e593ea02f528b084d24ad6c2d11b7dbfdce9a6b6eed5a379e",
+  "certificateSha256": "3a4cecd14bb3e983843871766909c3f07b3dc64379800f3e270e4a27d39affb7",
+  "size": 33439545,
+  "releaseId": 450105605,
+  "versionCode": 100097,
+  "apkBuildRun": 44320951915,
+  "apkArtifactId": 14435422839,
+  "workflowRun": 44324986263,
+  "workflowConclusion": "success",
+  "anonymousMetadataChecked": true,
+  "anonymousFullApkProductionProbePassedInCI": true,
+  "verifiedUpdaterVersions": [
+    "4.2.95",
+    "4.2.96"
+  ],
+  "upgradesOnEmulator": [
+    "4.2.95",
+    "4.2.96"
+  ],
+  "physicalInstallationTested": false,
+  "priorAttempt": {
+    "run": 44324780667,
+    "failure": "Missing network dependency in standalone verification before publishing"
+  }
+}
