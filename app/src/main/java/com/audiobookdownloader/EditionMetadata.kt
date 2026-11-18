@@ -12,7 +12,7 @@ internal object EditionMetadata {
         val total:Int=0,val titles:List<String> = emptyList(),val revision:String="",
         val sourceUrl:String="",val completed:Boolean=false,val finished:List<String> = emptyList(),val valid:Boolean=true)
     fun current(p:SharedPreferences,book:String)=ChapterIdentity.edition(book,p.getString(bookUrlKey(book),"").orEmpty())
-    fun local(p:SharedPreferences,book:LibraryBook)=if(book.identityAmbiguous)ChapterIdentity.edition("","library:"+book.folderUri.ifBlank{book.folder.absolutePath}) else book.editionId.ifBlank {
+    fun local(p:SharedPreferences,book:LibraryBook)=if(book.identityAmbiguous)ChapterIdentity.edition("","library:"+book.identityOrigin.ifBlank{book.folderUri}.ifBlank{book.folder.absolutePath}) else book.editionId.ifBlank {
         ChapterIdentity.edition(book.title,p.getString("book_local_edition_"+safeFileName(book.title),"").orEmpty())
     }
     private fun strings(rows:JSONArray):List<String> = (0 until rows.length()).map {i->

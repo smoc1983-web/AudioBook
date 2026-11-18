@@ -154,9 +154,10 @@ data class LibraryBook(
     val audioSizes: Map<String,Long> = emptyMap(),
     val editionId:String="",
     val chapterSources:Map<String,String> = emptyMap(),
-    val identityAmbiguous:Boolean=false
+    val identityAmbiguous:Boolean=false,
+    val identityOrigin:String=""
 ) {
-    val bookId:String by lazy(LazyThreadSafetyMode.PUBLICATION){if(editionId.isNotBlank())LibraryRecordRules.bookId(editionId) else "l3-"+ChapterIdentity.hash(folderUri.ifBlank{folder.absolutePath})}
+    val bookId:String by lazy(LazyThreadSafetyMode.PUBLICATION){if(editionId.isNotBlank())LibraryRecordRules.bookId(editionId) else "l3-"+ChapterIdentity.hash(identityOrigin.ifBlank{folderUri}.ifBlank{folder.absolutePath})}
     val audioBytes:Long get()=audioSizes.values.sum()
     val sizeKnown:Boolean get()=files.isNotEmpty() && audioSizes.size==files.size
 }
@@ -6772,7 +6773,6 @@ fun isTrackDownloaded(track: AudioTrack,bookTitle: String,index: DownloadedChapt
  * =============================================================
  */
 
-private const val LIBRARY_TREE_KEY = "library_tree_uri"
 
 /** A File keeps chapter names/order compatible; Android reads its audio through the URI. */
 class LibraryAudioFile(path: String, val audioUri: String, val sizeBytes:Long = -1L) : File(path)
@@ -6996,13 +6996,14 @@ fun hasLibraryAudioPermission(context: Context): Boolean {
 }
 
 data class LibraryScanResult(val books: List<LibraryBook>, val folderUnavailable: Boolean = false,
-    val downloadedIndex: DownloadedChapterIndex = DownloadedChapterIndex.fromLibrary(books))
+    val downloadedIndex: DownloadedChapterIndex = DownloadedChapterIndex.fromLibrary(books),
+    val rootIssues:Map<String,String> = emptyMap())
 
-private data class LibraryDocument(
+internal data class LibraryDocument(
     val uri: Uri, val name: String, val isDirectory: Boolean, val size: Long
 )
 
-private fun libraryDocuments(context: Context, tree: Uri, parent: Uri): List<LibraryDocument> {
+internal fun libraryDocuments(context: Context, tree: Uri, parent: Uri): List<LibraryDocument> {
     val children = android.provider.DocumentsContract.buildChildDocumentsUriUsingTree(
         tree, android.provider.DocumentsContract.getDocumentId(parent)
     )
@@ -7030,7 +7031,7 @@ private fun libraryDocuments(context: Context, tree: Uri, parent: Uri): List<Lib
     return result
 }
 
-private fun libraryDocumentFolder(context: Context, tree: Uri, document: Uri): File {
+internal fun libraryDocumentFolder(context: Context, tree: Uri, document: Uri): File {
     // Match primary-storage document paths to the filesystem scan, so the same book appears once.
     val id = android.provider.DocumentsContract.getDocumentId(document)
     if (tree.authority == "com.android.externalstorage.documents" && id.startsWith("primary:")) {
@@ -7039,14 +7040,14 @@ private fun libraryDocumentFolder(context: Context, tree: Uri, document: Uri): F
     if (tree.authority == "com.android.providers.downloads.documents" && id.startsWith("raw:")) {
         return File(id.removePrefix("raw:"))
     }
-    return File(context.filesDir, "library-links/${tree.toString().hashCode()}/${id.hashCode()}")
+    return File(context.filesDir, "library-links/doc-v1/"+ChapterIdentity.hash(LibraryRootRules.documentKey(document.toString())))
 }
 
-private fun sortedLibraryFiles(files: Collection<File>): List<File> = files.sortedWith(
+internal fun sortedLibraryFiles(files: Collection<File>): List<File> = files.sortedWith(
     compareBy<File> { trackSortNumber(it.nameWithoutExtension) }.thenBy { it.nameWithoutExtension }
 )
 
-private fun mergeLibraryBook(books: MutableMap<String, LibraryBook>, incoming: LibraryBook) {
+internal fun mergeLibraryBook(books: MutableMap<String, LibraryBook>, incoming: LibraryBook) {
     val key = incoming.folder.absolutePath
     val existing = books[key]
     if (existing == null) {
@@ -7140,47 +7141,10 @@ fun scanLibraryReport(context: Context? = null): LibraryScanResult {
     }catch(_:Exception){ /* Retain any books found through the other provider or SAF. */ }
 
     val treePrefs=context.getSharedPreferences("audiobook_downloader", Context.MODE_PRIVATE)
-    val savedTree=treePrefs.getString(LIBRARY_TREE_KEY, "").orEmpty()
-    val restoredTree=if(savedTree.isBlank()) try {
-        context.contentResolver.persistedUriPermissions.filter{it.isReadPermission}.map{it.uri}.singleOrNull {uri ->
-            val id=android.provider.DocumentsContract.getTreeDocumentId(uri)
-            id.substringAfterLast('/').equals(BuildConfig.LIBRARY_DIRECTORY,true)
-        }?.toString().orEmpty()
-    }catch(_:Exception){""} else ""
-    val treeText=savedTree.ifBlank{restoredTree}
-    if(savedTree.isBlank() && restoredTree.isNotBlank())treePrefs.edit().putString(LIBRARY_TREE_KEY,restoredTree).apply()
-    var folderUnavailable = false
-    if (treeText.isNotBlank()) {
-        try {
-            val tree = Uri.parse(treeText)
-            val document = android.provider.DocumentsContract.buildDocumentUriUsingTree(
-                tree, android.provider.DocumentsContract.getTreeDocumentId(tree)
-            )
-            val rootName = context.contentResolver.query(document, arrayOf(
-                android.provider.DocumentsContract.Document.COLUMN_DISPLAY_NAME
-            ), null, null, null)?.use { if (it.moveToFirst()) it.getString(0) else null }
-                ?: throw java.io.IOException("Папка недоступна")
-            val children = libraryDocuments(context, tree, document)
-            fun addFolder(uri: Uri, name: String, items: List<LibraryDocument>) {
-                val folder = libraryDocumentFolder(context, tree, uri)
-                val files = items.filter {
-                    !it.isDirectory && LibraryRecoveryRules.isAudio(it.name) && it.size != 0L
-                }.map { LibraryAudioFile(File(folder, it.name).path, it.uri.toString(),it.size) }
-                if (files.isNotEmpty()) mergeLibraryBook(books, LibraryBook(
-                    name, folder, sortedLibraryFiles(files), uri.toString(),
-                    items.filter { !it.isDirectory && it.name.substringAfterLast('.', "").lowercase() in setOf("jpg", "jpeg", "png", "webp") }
-                        .sortedWith(compareBy<LibraryDocument> { if (it.name.substringBeforeLast('.').lowercase() in setOf("cover", "folder", "front", "обложка")) 0 else 1 }.thenBy { it.name.lowercase() }).firstOrNull()
-                        ?.uri?.toString().orEmpty()
-                ))
-            }
-            // Both AudioBooks and an individual book folder can be selected.
-            addFolder(document, rootName, children)
-            children.filter { it.isDirectory }.forEach { child ->
-                try { addFolder(child.uri, child.name, libraryDocuments(context, tree, child.uri)) }
-                catch (_: Exception) { folderUnavailable = true }
-            }
-        } catch (_: Exception) { folderUnavailable = true }
-    }
+    val rootSnapshot=LibraryRoots.load(context)
+    val rootScan=scanLibraryRoots(context,rootSnapshot)
+    rootScan.books.forEach{mergeLibraryBook(books,it)}
+    val folderUnavailable=rootScan.unavailable
     val unfinished=unfinishedLibraryChapters(context)
     val completed=books.values.map {book ->
         val bookKey=safeFileName(book.title).lowercase(java.util.Locale.ROOT)
@@ -7189,7 +7153,8 @@ fun scanLibraryReport(context: Context? = null): LibraryScanResult {
         })
     }.filter{it.files.isNotEmpty()}
     val libraryTrace=JSONObject().put("audioPermission",hasLibraryAudioPermission(context))
-        .put("treeConfigured",treeText.isNotBlank()).put("folderUnavailable",folderUnavailable)
+        .put("treeConfigured",rootSnapshot.roots.isNotEmpty()).put("rootCount",rootSnapshot.roots.size)
+        .put("unavailableRootCount",rootScan.issues.size).put("folderUnavailable",folderUnavailable)
         .put("booksBeforeDownloadFilter",books.size).put("books",completed.size)
         .put("chapters",completed.sumOf{it.files.size}).put("unfinishedKeys",unfinished.size)
     context.getSharedPreferences("audiobook_diagnostics",Context.MODE_PRIVATE).edit()
@@ -7206,7 +7171,7 @@ fun scanLibraryReport(context: Context? = null): LibraryScanResult {
         val warning="Есть одноимённые папки без подтверждённого издания. Их файлы сохранены; автоматический выбор и отметка прослушивания для них отключены."
         if(treePrefs.getString(EditionMetadata.NOTICE,"")!=warning)treePrefs.edit().putString(EditionMetadata.NOTICE,warning).apply()
     }
-    return LibraryScanResult(identified,folderUnavailable)
+    return LibraryScanResult(identified,folderUnavailable,rootIssues=rootScan.issues)
 }
 
 /** A legacy title binding is ambiguous across different folders; explicit editions stay authoritative. */
@@ -7270,6 +7235,7 @@ class LibrarySyncState {
     var request by mutableStateOf(0)
     var isSyncing by mutableStateOf(true)
     var message by mutableStateOf("")
+    var rootIssues by mutableStateOf<Map<String,String>>(emptyMap())
     fun requestSync() { request++ }
 }
 
@@ -7277,6 +7243,12 @@ class LibrarySyncState {
 fun rememberLibrarySync(accessVersion: Int, page: AppPage): LibrarySyncState {
     val context = androidx.compose.ui.platform.LocalContext.current
     val state = remember { LibrarySyncState() }
+    DisposableEffect(context) {
+        val p=context.getSharedPreferences("audiobook_downloader",Context.MODE_PRIVATE)
+        val listener=android.content.SharedPreferences.OnSharedPreferenceChangeListener{_,key->if(key==LibraryRoots.KEY)state.requestSync()}
+        p.registerOnSharedPreferenceChangeListener(listener)
+        onDispose{p.unregisterOnSharedPreferenceChangeListener(listener)}
+    }
     LaunchedEffect(page) { if (page == AppPage.LIBRARY) state.requestSync() }
     LaunchedEffect(accessVersion, state.request) {
         val token = ++state.generation
@@ -7286,10 +7258,11 @@ fun rememberLibrarySync(accessVersion: Int, page: AppPage): LibrarySyncState {
             state.scanLock.lock()
             val result=try {withContext(Dispatchers.IO) {scanLibraryReport(context)}}
                 finally {state.scanLock.unlock()}
+            state.rootIssues=result.rootIssues
             state.downloadedIndex=result.downloadedIndex
             state.books.value = result.books
             state.message = when {
-                result.folderUnavailable -> "Нет доступа к выбранной папке или части её книг. Выберите папку снова."
+                result.folderUnavailable -> "Некоторые папки или книги недоступны. Остальная библиотека сохранена; проверьте список папок."
                 result.books.isEmpty() && !hasLibraryAudioPermission(context) ->
                     "Для старых файлов нужен доступ к аудио или к папке библиотеки."
                 result.books.isEmpty() -> "Проверьте папку Download/${BuildConfig.LIBRARY_DIRECTORY} или выберите папку со старыми книгами."
@@ -7310,7 +7283,7 @@ fun rememberLibrarySync(accessVersion: Int, page: AppPage): LibrarySyncState {
 @Composable
 fun LibrarySyncControls(
     syncing: Boolean, message: String, onSync: () -> Unit,
-    textColor: Color, buttonColor: Color
+    textColor: Color, buttonColor: Color,rootIssues:Map<String,String> = emptyMap()
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val prefs = remember { context.getSharedPreferences("audiobook_downloader", Context.MODE_PRIVATE) }
@@ -7319,31 +7292,6 @@ fun LibrarySyncControls(
         permissionGranted = it
         onSync()
     }
-    val folderLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
-        if (uri != null) {
-            try {
-                val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-                try { context.contentResolver.takePersistableUriPermission(uri, flags) }
-                catch (_: SecurityException) {
-                    context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                }
-                val old = prefs.getString(LIBRARY_TREE_KEY, "").orEmpty()
-                prefs.edit().putString(LIBRARY_TREE_KEY, uri.toString()).apply()
-                if (old.isNotBlank() && old != uri.toString()) {
-                    try {
-                        context.contentResolver.persistedUriPermissions.firstOrNull { it.uri.toString() == old }?.let {
-                            context.contentResolver.releasePersistableUriPermission(it.uri,
-                                (if (it.isReadPermission) Intent.FLAG_GRANT_READ_URI_PERMISSION else 0) or
-                                    (if (it.isWritePermission) Intent.FLAG_GRANT_WRITE_URI_PERMISSION else 0))
-                        }
-                    } catch (_: Exception) { }
-                }
-                onSync()
-            } catch (_: Exception) {
-                Toast.makeText(context, "Не удалось сохранить доступ к папке. Выберите её снова.", Toast.LENGTH_LONG).show()
-            }
-        }
-    }
     LaunchedEffect(syncing) { permissionGranted = hasLibraryAudioPermission(context) }
     Text(
         if (syncing) "⏳ Синхронизация…" else "🔄 СИНХРОНИЗИРОВАТЬ",
@@ -7351,16 +7299,7 @@ fun LibrarySyncControls(
         modifier = Modifier.fillMaxWidth().clickable(enabled = !syncing) { onSync() }
             .padding(vertical = 12.dp)
     )
-    Text("📂 ВЫБРАТЬ ПАПКУ БИБЛИОТЕКИ", color = buttonColor, fontSize = 14.sp,
-        fontWeight = FontWeight.Bold,
-        modifier = Modifier.fillMaxWidth().clickable(enabled = !syncing) {
-            try {
-                val saved = prefs.getString(LIBRARY_TREE_KEY, "").orEmpty()
-                folderLauncher.launch(saved.takeIf { it.isNotBlank() }?.let { Uri.parse(it) })
-            } catch (_: Exception) {
-                Toast.makeText(context, "Выбор папки недоступен на этом устройстве", Toast.LENGTH_LONG).show()
-            }
-        }.padding(vertical = 10.dp))
+    LibraryRootsControls(onSync,textColor,buttonColor,rootIssues)
     if (!permissionGranted) {
         Text("🔓 РАЗРЕШИТЬ ДОСТУП К АУДИО", color = buttonColor, fontSize = 13.sp,
             modifier = Modifier.fillMaxWidth().clickable(enabled = !syncing) {
@@ -9681,7 +9620,7 @@ private fun AbModernApp(data: AbScreenData, actions: AbActions, sync: LibrarySyn
     if(downloads) AbPersistentQueueDialog(theme,foreground) { downloads=false }
     if(libraryAccess) AbDialog("Библиотека на устройстве",theme,{libraryAccess=false}) {
         Text("Найдём сохранившиеся главы и подключим папку после переустановки.",color=theme.muted,fontSize=14.sp)
-        LibrarySyncControls(sync.isSyncing,sync.message,{sync.requestSync()},theme.muted,theme.accent)
+        LibrarySyncControls(sync.isSyncing,sync.message,{sync.requestSync()},theme.muted,theme.accent,sync.rootIssues)
         AbButton(if(data.coverRepairRunning) "Восстанавливаем обложки…" else "Восстановить обложки",theme,
             enabled=!data.coverRepairRunning && !sync.isSyncing && sync.books.value.isNotEmpty(),onClick=actions.repairCovers)
         if(data.coverRepairStatus.isNotBlank()) Text(data.coverRepairStatus,color=theme.muted,fontSize=13.sp,lineHeight=20.sp)
