@@ -63,6 +63,11 @@ class LibraryRootsTest {
   LibraryRoots.add(p,tree(parent))
   c.getSharedPreferences("audiobook_audio_validation_v1",0).edit().putString("blocked_123",AbLibraryHousekeeping.bookKey(file.parentFile!!.name)+"\u0000"+"01").commit()
   assertEquals("A different managed download must not hide the selected provider file",1,scanLibrary(c).count{it.title==file.parentFile!!.name})
+  val ownedRoot=File(data,"fake-managed-root");val folder=File(ownedRoot,"Book")
+  val owned=LibraryBook("Book",folder,listOf(File(folder,"01.mp3")))
+  val external=LibraryBook("Book",File(data,"other-root/Book"),listOf(File(data,"other-root/Book/01.mp3")))
+  val result=filterUnfinishedLibraryChapters(listOf(owned,external),ownedRoot,setOf(AbLibraryHousekeeping.bookKey("Book")+"\u0000"+"01"))
+  assertEquals(listOf(external),result) // App-managed unverified chapter stays hidden; external counterpart stays visible.
  }
  @Test fun overlappingGrantsDoNotDuplicateBooksOrChangeTheirIdentityPositionNotesOrCollections() {
   val outer=File(data,"overlap");val file=audio(outer,"Book-${c.id}");val parent=tree(outer);val child=tree(file.parentFile!!)

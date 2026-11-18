@@ -7094,6 +7094,15 @@ private fun unfinishedLibraryChapters(context:Context):Set<String> {
     return jobs.filterKeys{it in unfinished}.values.toSet()+pendingValidation
 }
 
+/** Queue ownership covers the app download directory, never a title-matching external file. */
+internal fun filterUnfinishedLibraryChapters(books:Collection<LibraryBook>,root:File,unfinished:Set<String>):List<LibraryBook> = books.map {book->
+    val managed=book.folder.absoluteFile.normalize().parentFile==root.absoluteFile.normalize()
+    if(!managed)book else {
+        val key=safeFileName(book.title).lowercase(java.util.Locale.ROOT)
+        book.copy(files=book.files.filter{key+"\u0000"+safeFileName(it.nameWithoutExtension).lowercase(java.util.Locale.ROOT) !in unfinished})
+    }
+}.filter{it.files.isNotEmpty()}
+
 /** Scans on IO; old jobs are not required to discover existing completed audio. */
 fun scanLibraryReport(context: Context? = null): LibraryScanResult {
     val books = linkedMapOf<String, LibraryBook>()
@@ -7146,12 +7155,7 @@ fun scanLibraryReport(context: Context? = null): LibraryScanResult {
     rootScan.books.forEach{mergeLibraryBook(books,it)}
     val folderUnavailable=rootScan.unavailable
     val unfinished=unfinishedLibraryChapters(context)
-    val completed=books.values.map {book ->
-        val bookKey=safeFileName(book.title).lowercase(java.util.Locale.ROOT)
-        book.copy(files=book.files.filter {file ->
-            bookKey+"\u0000"+safeFileName(file.nameWithoutExtension).lowercase(java.util.Locale.ROOT) !in unfinished
-        })
-    }.filter{it.files.isNotEmpty()}
+    val completed=filterUnfinishedLibraryChapters(books.values,root,unfinished)
     val libraryTrace=JSONObject().put("audioPermission",hasLibraryAudioPermission(context))
         .put("treeConfigured",rootSnapshot.roots.isNotEmpty()).put("rootCount",rootSnapshot.roots.size)
         .put("unavailableRootCount",rootScan.issues.size).put("folderUnavailable",folderUnavailable)
