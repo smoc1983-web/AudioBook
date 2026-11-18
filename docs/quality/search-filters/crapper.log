@@ -1,0 +1,8 @@
+CRAP Report
+===========
+Languages: java
+
+Function                       Namespace                                   CC    Cov%     CRAP
+----------------------------------------------------------------------------------------------
+matchesNarrator                com.audiobookdownloader.SearchFilterRules    2 100.0%      2.0
+Wrote /workspace/Audiobook-Workspace/.metrics/crap.edn

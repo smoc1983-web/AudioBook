@@ -1,0 +1,129 @@
+{
+  "task": "Stage 8 additional search filters",
+  "branch": "cloud/search-filters-20261118",
+  "base": "f09b2147137986f01f945f996dfe660482c5cff4",
+  "testedSource": "b081ad9470fc4a50ea3eafb685f7a953448731f2",
+  "ciRun": 44279866534,
+  "ciAttempt": 2,
+  "status": "success",
+  "published": false,
+  "deviceTested": false,
+  "api23FirstAttempt": {
+    "failures": 3,
+    "cause": "MediaPlayer.setPlaybackParams ANR in playback regression tests",
+    "rerun": "Same source and test selection passed"
+  },
+  "priorBuildFailure": {
+    "run": 44279360104,
+    "cause": "Unqualified rememberCoroutineScope in MainActivity",
+    "resolved": true
+  },
+  "local": {
+    "javaTests": 2,
+    "crap": 2,
+    "dryerCandidates": 0,
+    "mutationsKilled": 1,
+    "sourceChecks": "passed"
+  },
+  "ciResults": {
+    "jvm": {
+      "Debug": {
+        "tests": 424,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 1
+      },
+      "Release": {
+        "tests": 424,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 1
+      }
+    },
+    "native": {
+      "23": {
+        "tests": 109,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "classes": {
+          "com.audiobookdownloader.SearchFiltersTest": 3,
+          "com.audiobookdownloader.SearchEditionsTest": 6,
+          "com.audiobookdownloader.NextVolumeWifiAndroidTest": 5,
+          "com.audiobookdownloader.NextVolumeWifiPanelTest": 5,
+          "com.audiobookdownloader.BookMetadataPlaybackTest": 1,
+          "com.audiobookdownloader.BookMetadataAndroidTest": 9,
+          "com.audiobookdownloader.BookMetadataPanelTest": 5,
+          "com.audiobookdownloader.LibraryRootsTest": 9,
+          "com.audiobookdownloader.LibraryRootsPanelTest": 4,
+          "com.audiobookdownloader.LocalContinuationPlaybackTest": 3,
+          "com.audiobookdownloader.ShortAudioValidationTest": 1,
+          "com.audiobookdownloader.AudioValidationTest": 2,
+          "com.audiobookdownloader.SharedAudioImportTest": 11,
+          "com.audiobookdownloader.SharedAudioPanelTest": 3,
+          "com.audiobookdownloader.SourceHealthAndroidTest": 4,
+          "com.audiobookdownloader.SourceHealthPanelTest": 3,
+          "com.audiobookdownloader.SeekHistoryAndroidTest": 8,
+          "com.audiobookdownloader.SeekHistoryPanelTest": 3,
+          "com.audiobookdownloader.Stage8ReliabilityTest": 11,
+          "com.audiobookdownloader.Stage8ProgressFolderTest": 7,
+          "com.audiobookdownloader.Stage8FolderPanelStateTest": 1,
+          "com.audiobookdownloader.Stage8ExportStateTest": 2,
+          "com.audiobookdownloader.LibraryIdentityAndroidTest": 3
+        }
+      },
+      "36": {
+        "tests": 111,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "classes": {
+          "com.audiobookdownloader.SearchFiltersTest": 3,
+          "com.audiobookdownloader.SearchEditionsTest": 6,
+          "com.audiobookdownloader.NextVolumeWifiAndroidTest": 5,
+          "com.audiobookdownloader.NextVolumeWifiPanelTest": 5,
+          "com.audiobookdownloader.BookMetadataPlaybackTest": 1,
+          "com.audiobookdownloader.BookMetadataAndroidTest": 9,
+          "com.audiobookdownloader.BookMetadataPanelTest": 5,
+          "com.audiobookdownloader.LibraryRootsTest": 9,
+          "com.audiobookdownloader.LibraryRootsPanelTest": 4,
+          "com.audiobookdownloader.LocalContinuationPlaybackTest": 3,
+          "com.audiobookdownloader.ShortAudioValidationTest": 1,
+          "com.audiobookdownloader.AudioValidationTest": 2,
+          "com.audiobookdownloader.SharedAudioImportTest": 11,
+          "com.audiobookdownloader.SharedAudioPanelTest": 3,
+          "com.audiobookdownloader.SourceHealthAndroidTest": 4,
+          "com.audiobookdownloader.SourceHealthPanelTest": 3,
+          "com.audiobookdownloader.SeekHistoryAndroidTest": 8,
+          "com.audiobookdownloader.SeekHistoryPanelTest": 3,
+          "com.audiobookdownloader.Stage8ReliabilityTest": 11,
+          "com.audiobookdownloader.Stage8ProgressFolderTest": 7,
+          "com.audiobookdownloader.Stage8FolderPanelStateTest": 1,
+          "com.audiobookdownloader.Stage8ExportStateTest": 2,
+          "com.audiobookdownloader.LibraryIdentityAndroidTest": 3,
+          "com.audiobookdownloader.IdlePlaybackTest": 2
+        }
+      }
+    },
+    "lint": {
+      "lint-results-release.xml": {
+        "counts": {
+          "Warning": 271,
+          "Hint": 85
+        },
+        "addedCounts": {},
+        "added": [],
+        "removed": []
+      },
+      "lint-results-debug.xml": {
+        "counts": {
+          "Warning": 271,
+          "Hint": 85
+        },
+        "addedCounts": {},
+        "added": [],
+        "removed": []
+      }
+    }
+  }
+}
