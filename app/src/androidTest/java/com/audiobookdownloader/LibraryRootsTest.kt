@@ -44,6 +44,10 @@ class LibraryRootsTest {
   try{LibraryRoots.add(p,tree(File(data,"new")));fail()}catch(_:IllegalArgumentException){}
   assertEquals(malformed,p.getString(LibraryRoots.KEY,null));assertTrue(LibraryRoots.recover(p))
   assertEquals(malformed,JSONObject(p.getString("library_roots_damaged_v1","")!!).getString("value"));assertEquals(listOf(old),LibraryRoots.load(p).roots)
+  assertFalse("Stale recovery confirmation must not replace a valid configuration",LibraryRoots.recover(p))
+  val typed=c.getSharedPreferences("typed-corrupt-config",0);val members=setOf("with,comma","second")
+  typed.edit().putStringSet(LibraryRoots.KEY,members).commit();assertFalse(LibraryRoots.load(typed).valid);assertTrue(LibraryRoots.recover(typed))
+  val array=JSONObject(typed.getString("library_roots_damaged_v1","")!!).getJSONArray("value");assertEquals(members,(0 until array.length()).map{array.getString(it)}.toSet())
   p.edit().putString(LibraryRoots.KEY,"second corruption").commit();assertFalse(LibraryRoots.recover(p));assertEquals("second corruption",p.getString(LibraryRoots.KEY,null))
  }
  @Test fun independentRootsAndAnUnavailableDirectoryKeepOtherBooksAndAudioUnchanged() {

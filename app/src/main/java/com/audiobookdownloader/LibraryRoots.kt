@@ -70,8 +70,9 @@ internal object LibraryRoots {
     }
     /** User-confirmed recovery keeps the exact damaged value before rebuilding the old single folder. */
     @Synchronized internal fun recover(p:SharedPreferences):Boolean {
+        if(load(p).valid)return false // A stale confirmation must not replace a repaired configuration.
         val damaged=p.all[KEY] ?: p.all[LEGACY] ?: return false
-        val backup=JSONObject().put("type",damaged.javaClass.name).put("value",damaged.toString()).toString()
+        val backup=JSONObject().put("type",damaged.javaClass.name).put("value",if(damaged is Set<*>)JSONArray(damaged.toList()) else damaged).toString()
         // Never replace the first damaged snapshot without explicit inspection/export.
         if(p.contains(DAMAGED))return false
         val old=try{p.getString(LEGACY,"").orEmpty()}catch(_:Exception){""}

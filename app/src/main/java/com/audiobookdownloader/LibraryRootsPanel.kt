@@ -58,6 +58,7 @@ internal fun LibraryRootsControls(onSync:()->Unit,text:Color,accent:Color,issues
         try {picker.launch(null)}catch(_:Exception){error="Выбор папки недоступен на этом устройстве. Импортируйте отдельные файлы через «Поделиться»."}
     },{disconnect=it},{recovery=true})
     if(disconnect!=null)AbDialog("Отключить папку?",dialogTheme,{disconnect=null}) {
+        Text(libraryRootLabel(disconnect.orEmpty()),color=dialogTheme.muted,fontSize=13.sp)
         Text("Файлы, позиция прослушивания, закладки и коллекции не удаляются. Файлы из стандартной папки Audiobook могут остаться в библиотеке.",color=dialogTheme.text)
         LibraryRootAction("Отключить",accent){val raw=disconnect!!;disconnect=null;change{LibraryRoots.disconnect(c,raw)}}
         LibraryRootAction("Отмена",accent){disconnect=null}
