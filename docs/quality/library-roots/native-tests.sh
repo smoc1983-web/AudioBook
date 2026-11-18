@@ -13,6 +13,7 @@ mkdir -p "$report"
 collect() {
   timeout 20s adb logcat -d -v threadtime > "$report/logcat.txt" 2>&1 || true
   timeout 20s adb shell dumpsys activity top > "$report/activity.txt" 2>&1 || true
+  timeout 20s adb shell cat /data/anr/traces.txt > "$report/anr.txt" 2>&1 || true
   if [[ -d app/build/outputs/androidTest-results ]]; then cp -R app/build/outputs/androidTest-results "$report/normal"; fi
 }
 trap collect EXIT
