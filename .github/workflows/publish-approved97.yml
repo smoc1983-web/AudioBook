@@ -1,0 +1,74 @@
+name: Publish owner-approved Audiobook Preview 4.2.97
+on:
+  push:
+    branches: ['cloud/publish97-20261118']
+    paths: ['.github/workflows/publish-approved97.yml', 'scripts/publish-approved97.py']
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: audiobook-preview-release
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Android signature verification tools
+        run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "build-tools;35.0.0"'
+      - name: Fetch exact verified candidate
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh run download 44320951915 --repo "$GITHUB_REPOSITORY" --name Audiobook-Preview-4.2.97-phone-test --dir candidate
+          mkdir -p dist
+          cp candidate/dist/Audiobook-Preview-4.2.97.apk dist/Audiobook-Preview.apk
+      - name: Prepare the existing updater discovery and download probe
+        run: |
+          mkdir -p probe-classes probe-src
+          curl --silent --show-error --fail --retry 3 https://repo.maven.apache.org/maven2/org/json/json/20240303/json-20240303.jar -o probe-json.jar
+          curl --silent --show-error --fail --retry 3 https://repo.maven.apache.org/maven2/org/jsoup/jsoup/1.23.2/jsoup-1.23.2.jar -o probe-jsoup.jar
+          cat > probe-src/BuildConfig.java <<'JAVA'
+          package com.audiobookdownloader;
+          final class BuildConfig {
+              static final String APPLICATION_ID="com.audiobookdownloader.preview";
+              static final String VERSION_NAME="4.2.95";
+              static final String UPDATE_ORIGIN="https://github.com";
+              static final String UPDATE_REPOSITORY="/smoc1983-web/AudioBook";
+              static final String UPDATE_PREFIX="preview-v";
+              static final String UPDATE_APK="Audiobook-Preview.apk";
+              static final String UPDATE_METADATA="preview-update.json";
+          }
+          JAVA
+          javac -cp probe-json.jar:probe-jsoup.jar -d probe-classes probe-src/BuildConfig.java \
+            app/src/main/java/com/audiobookdownloader/{PreviewUpdateRules,PreviewUpdateHttp,GitHubReleaseCatalog}.java \
+            tools/github-update-probe/GithubUpdateProbe.java
+      - name: Verify candidate and publish complete Preview release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/publish-approved97.py
+      - name: Verify anonymous discovery and compare the full downloaded APK
+        run: |
+          for attempt in 1 2 3 4; do
+            if java -cp probe-classes:probe-json.jar:probe-jsoup.jar com.audiobookdownloader.GithubUpdateProbe public97 preview-v100097 &&
+                cmp dist/Audiobook-Preview.apk public97/Audiobook-Preview.apk; then
+              exit 0
+            fi
+            sleep 12
+          done
+          exit 1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: approved-4.2.97-publication-proof
+          path: |
+            dist/publication.json
+            dist/preview-update.json
+            public97/public-github-check.json
