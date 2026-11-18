@@ -1,0 +1,214 @@
+{
+  "task": "Stage8 multiple library roots",
+  "base": "19cb6ee512027d292e723d7955f730fb4afb9230",
+  "branch": "cloud/library-roots-20261118",
+  "initialTreeClean": true,
+  "testedSource": "b5c0ecf6964bcdb2a855b4acb5be7248da3a934c",
+  "applicationSourceAtFinalFunctionalChange": "86e1a9e35cc602a16c4c8586b60379275cdb8482",
+  "ciRun": 44229653029,
+  "ciAttempt": 2,
+  "ciUrl": "https://github.com/smoc1983-web/AudioBook/actions/runs/44229653029",
+  "status": "success",
+  "published": false,
+  "stage8Complete": false,
+  "ubMode": true,
+  "ciResults": {
+    "jvm": {
+      "Debug": {
+        "tests": 410,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 1
+      },
+      "Release": {
+        "tests": 410,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 1
+      }
+    },
+    "native": {
+      "23": {
+        "tests": 75,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "classes": {
+          "com.audiobookdownloader.LibraryRootsTest": 9,
+          "com.audiobookdownloader.LibraryRootsPanelTest": 4,
+          "com.audiobookdownloader.LocalContinuationPlaybackTest": 3,
+          "com.audiobookdownloader.ShortAudioValidationTest": 1,
+          "com.audiobookdownloader.AudioValidationTest": 2,
+          "com.audiobookdownloader.SharedAudioImportTest": 11,
+          "com.audiobookdownloader.SharedAudioPanelTest": 3,
+          "com.audiobookdownloader.SourceHealthAndroidTest": 4,
+          "com.audiobookdownloader.SourceHealthPanelTest": 3,
+          "com.audiobookdownloader.SeekHistoryAndroidTest": 8,
+          "com.audiobookdownloader.SeekHistoryPanelTest": 3,
+          "com.audiobookdownloader.Stage8ReliabilityTest": 11,
+          "com.audiobookdownloader.Stage8ProgressFolderTest": 7,
+          "com.audiobookdownloader.Stage8FolderPanelStateTest": 1,
+          "com.audiobookdownloader.Stage8ExportStateTest": 2,
+          "com.audiobookdownloader.LibraryIdentityAndroidTest": 3
+        }
+      },
+      "36": {
+        "tests": 77,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "classes": {
+          "com.audiobookdownloader.LibraryRootsTest": 9,
+          "com.audiobookdownloader.LibraryRootsPanelTest": 4,
+          "com.audiobookdownloader.LocalContinuationPlaybackTest": 3,
+          "com.audiobookdownloader.ShortAudioValidationTest": 1,
+          "com.audiobookdownloader.AudioValidationTest": 2,
+          "com.audiobookdownloader.SharedAudioImportTest": 11,
+          "com.audiobookdownloader.SharedAudioPanelTest": 3,
+          "com.audiobookdownloader.SourceHealthAndroidTest": 4,
+          "com.audiobookdownloader.SourceHealthPanelTest": 3,
+          "com.audiobookdownloader.SeekHistoryAndroidTest": 8,
+          "com.audiobookdownloader.SeekHistoryPanelTest": 3,
+          "com.audiobookdownloader.Stage8ReliabilityTest": 11,
+          "com.audiobookdownloader.Stage8ProgressFolderTest": 7,
+          "com.audiobookdownloader.Stage8FolderPanelStateTest": 1,
+          "com.audiobookdownloader.Stage8ExportStateTest": 2,
+          "com.audiobookdownloader.LibraryIdentityAndroidTest": 3,
+          "com.audiobookdownloader.IdlePlaybackTest": 2
+        }
+      }
+    },
+    "lint": {
+      "lint-results-release.xml": {
+        "counts": {
+          "Warning": 271,
+          "Hint": 84
+        },
+        "addedCounts": {
+          "AutoboxingStateCreation": 1
+        },
+        "added": [
+          [
+            "AutoboxingStateCreation",
+            "Hint",
+            "Prefer `mutableIntStateOf` instead of `mutableStateOf`"
+          ]
+        ],
+        "removed": [
+          [
+            "UseKtx",
+            "Warning",
+            "Use the KTX extension function `SharedPreferences.edit` instead?"
+          ]
+        ]
+      },
+      "lint-results-debug.xml": {
+        "counts": {
+          "Warning": 271,
+          "Hint": 84
+        },
+        "addedCounts": {
+          "AutoboxingStateCreation": 1
+        },
+        "added": [
+          [
+            "AutoboxingStateCreation",
+            "Hint",
+            "Prefer `mutableIntStateOf` instead of `mutableStateOf`"
+          ]
+        ],
+        "removed": [
+          [
+            "UseKtx",
+            "Warning",
+            "Use the KTX extension function `SharedPreferences.edit` instead?"
+          ]
+        ]
+      }
+    }
+  },
+  "builds": {
+    "stableDebug": true,
+    "stableUnsignedRelease": true,
+    "previewDebugOriginalSigner": true,
+    "previewAndroidTest": true,
+    "upgradeProbeCompiled": true,
+    "legacyFixtureCompiled": true,
+    "runtimeDependencyAudit": true
+  },
+  "local": {
+    "javaTests": 5,
+    "redFailures": 5,
+    "mutationsKilled": 39,
+    "mutationsTotal": 39,
+    "crapMax": 7,
+    "dryerScopedCandidates": 0,
+    "parserSourceJvmChecks": true,
+    "shellSyntax": true,
+    "kotlinSupportedByQualityTools": false,
+    "tokenEconomizer": "CLI status used, sessions0; automatic hook integration/savings unverified"
+  },
+  "priorRuns": [
+    {
+      "ci": 44221646895,
+      "status": "failure",
+      "reason": "API23 16/75 failures: deliberate external-download filter red, invalid test DocumentsProvider startup, proxy equals identity, test activity owner; assertions retained"
+    },
+    {
+      "ci": 44224169456,
+      "status": "failure",
+      "reason": "Bounded diagnostic run of same known failing fixtures, logs retained"
+    },
+    {
+      "ci": 44225375821,
+      "status": "failure",
+      "reason": "API36 only grant-cleanup intent race; API23 additionally timed out in existing SeekHistory ActivityScenario.close, ANR log recorded"
+    },
+    {
+      "ci": 44226686851,
+      "status": "failure",
+      "reason": "verify/API36 green; API23 root/grant checks passed, existing fixture ActivityScenario.close timed out, explicit lifecycle cleanup added"
+    },
+    {
+      "ci": 44228767587,
+      "status": "success",
+      "source": "8acdcd1ca307598a614edb250351d1c60da8c7c1",
+      "native23": 75,
+      "native36": 77
+    },
+    {
+      "ci": 44229653029,
+      "attempt": 1,
+      "reason": "verify/API23 green; native36 Maven Central HTTP429 before tests, only failed job rerun after cooldown"
+    }
+  ],
+  "invariants": {
+    "sourceMain": "c8301dbf2fb558c8330d87baa67cacf307708529",
+    "publicRelease": "preview-v100095",
+    "publicReleaseSource": "aade1a88688219571eaef0cef93557e8230739f6",
+    "packageVersionSignerUnchanged": true,
+    "downloadDestinationUnchanged": true,
+    "userFilesNotMovedOrDeleted": true,
+    "legacyKeyRetained": true,
+    "progressChapterFormatUnchanged": true,
+    "productionPlaybackServiceUnchanged": true,
+    "productionManifestUnchanged": true
+  },
+  "limitations": [
+    "No physical phone/OEM/SD/USB or actual cloud account/provider test",
+    "No real disk-full/process-kill/reboot/Installer test; failed commits simulated",
+    "Device-local origins/roots/grants intentionally not included in metadata backup",
+    "Provider query/Binder has no hard deadline; slow providers can delay scanning",
+    "Selected folder and immediate book subdirectories, no recursive network scan",
+    "Unknown same-title edition/title-only BookRef limitations remain guarded; no full identity migration",
+    "External provider changing documentId on manual move/rename is not automatically reconciled",
+    "Earlier API23 test-process ANR and idle timeout avoided by fixture lifecycle cleanup; not claimed as a production-device ANR fix",
+    "Whole historical native suite not run; selected classes/methods listed in results",
+    "No battery/RAM measurement; no APK publication"
+  ],
+  "remainingStage8": [
+    "Metadata editor",
+    "Consented Wi-Fi next-volume downloading",
+    "Additional search filters"
+  ]
+}

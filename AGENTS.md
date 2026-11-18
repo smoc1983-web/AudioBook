@@ -1,3 +1,55 @@
+# Этап8 — несколько папок библиотеки проверены, не опубликованы (2026-11-18)
+
+Ветка cloud/library-roots-20261118 от19cb6ee (чистая база/fetch совпали).
+Проверены исходникиb5c0ecf6964bcdb2a855b4acb5be7248da3a934c;
+CI44229653029 attempt2 SUCCESS: Stable Debug/unsigned Release, Preview Debug/
+AndroidTest/upgradeProbe с прежним signer, legacyFixture compile/runtime audit.
+JVM по410 (409executed/1oldLiveCatalogskip), native75/API23+77/API36 (152,0fail/
+error/skip). Lint0Fatal/Error,271Warning84Hint: −1UseKtx,+1AutoboxingStateCreation,
+без подавлений. Java5green (red5), CRAPmax7/Dryer0scoped/Mutator39из39; Kotlin
+ими не поддерживается. Parser/source/JVM/shell syntax checks green.
+Библиотека→управление доступом→Папки библиотеки: до32 treeURI. Новая папка не
+заменяет старую; read-only persistent grant допустим. Legacy library_tree_uri
+переносится добавочно и не меняется. Явное[] не восстанавливает старый grant.
+Отключение подтверждается, файлы/позиции/заметки/очередь/коллекции не удаляются,
+shared grant не отзывается (может быть нужен плееру/другим функциям). Default
+Download/LIBRARY_DIRECTORY и Share-копии остаются отдельными источниками.
+Место загрузок и реальная структура папок прежние; обход прежней глубины:
+выбранная папка + непосредственные папки книг. Ошибки per-root, остальные
+доступные книги сохраняются. No recursive/cloud client/OAuth added.
+Doc authority+opaqueID/SHA dedup перекрытых grants; 32bit-hash collision paths
+исправлены. First observed URI в audiobook_library_origins_v1 и identityOrigin
+сохраняют старый bookId/ambiguous-edition при смене только grant, actual URI для
+чтения/удаления актуальная. Origin batch commit/first-writer, corrupt raw preserved.
+Root list bad JSON не сбрасывается: подтверждённый snapshot raw/type и recover;
+первый damaged snapshot не перезаписывается. Failed commit не признаёт RAM за
+сохранение, last-committed корни/pending/nonce обеспечивают безопасный повтор.
+Root settings/grants/origin-map не экспортируются в backup; diagnostics — counts,
+не URI/имена папок. Chapter/progress format/IDs не менялись. Title-only BookRef/
+unknown same-title ограничения прежней модели остаются; не угадывать издание.
+Исправлен actual red: title-only unfinished filter скрывал чужую внешнюю главу;
+теперь только own download folders incl canonical aliases. Owned unverified глава
+остаётся скрытой; реальный private symlink проверен. Production updater/manifest/
+PlaybackService/package/version/signer не изменены, файлов пользователя не касались.
+Native fixture fixes: test DocProvider exported+MANAGE_DOCUMENTS, явный registry
+owner для ContextWrapper, reflexive proxy, grant ack after onDestroy/own task.
+API23 старый Seek fixture timeout/ANR в waitForIdle→Scenario.close: cleanup до
+ожидания idle, все body assertions прежние. Это не доказанный фикс real-device
+ANR. CI44228767587 тоже green75/77; финал повторил с diagnostic capture безANR.
+Последний native36 attempt1 остановлен Maven429 до тестов; только job rerungreen.
+Physical phone/OEM/SD/USB/live cloud providers, diskfull/processkill/reboot,
+Installer/батарея/RAM не проверялись; failed commits моделировались. Binder/query
+провайдер может задержать весь scan, harddeadline в приложении нет. Не путать
+120s/test+8min/run guards CI с пользовательскими тайм-аутами. Весь исторический
+native suite не запускался, фильтры/классы перечислены в results/report.
+Отчёт docs/LIBRARY-ROOTS-STAGE-8.md и docs/quality/library-roots/results.json.
+Source main c8301dbf2fb558c8330d87baa67cacf307708529/public4.2.95 прежние.
+Этап8 НЕ завершён: дальше metadata editor, consented Wi-Fi next-volume, filters.
+Публикация отдельно с разрешения. Ub-mode одобрен для текущего этапа8;
+TokenEconomizer CLI без повторных вопросов, status sessions0, hooks/savings не
+подтверждены. Предыдущие история/мониторинг/Share/копии/SAF/Яндекс сохранены.
+Историческое «далее несколько папок» ниже уже выполнено.
+
 # Этап8 — импорт аудио через «Поделиться» проверен, не опубликован (2026-11-17)
 
 Ветка cloud/share-import-20261117 от3c37db9 (чистая база/fetch совпали).

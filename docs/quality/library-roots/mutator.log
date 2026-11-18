@@ -1,0 +1,67 @@
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.AbBookTimeRules.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.AbBookTimeRules.Totals.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.AudioValidationRules.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.DiagnosticPrivacy.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.LibraryRecordRules.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.LibraryRootRules.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.NetworkAddressRules.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.PlaybackPulseRules.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.ProgressSnapshotStore.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.QueueRecoveryRules.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.QueueSnapshotRules.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.SeekHistoryRules.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.SharedAudioRules.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.SourceHealthRules.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.SourceHttp.edn
+KILLED    app/src/main/java/com/audiobookdownloader/LibraryRootRules.java:14 == -> !=
+KILLED    app/src/main/java/com/audiobookdownloader/LibraryRootRules.java:15 delete -
+KILLED    app/src/main/java/com/audiobookdownloader/LibraryRootRules.java:15 1 -> 0
+KILLED    app/src/main/java/com/audiobookdownloader/LibraryRootRules.java:16 delete !
+KILLED    app/src/main/java/com/audiobookdownloader/LibraryRootRules.java:17 == -> !=
+KILLED    app/src/main/java/com/audiobookdownloader/LibraryRootRules.java:17 && -> ||
+KILLED    app/src/main/java/com/audiobookdownloader/LibraryRootRules.java:17 == -> !=
+KILLED    app/src/main/java/com/audiobookdownloader/LibraryRootRules.java:18 delete !
+KILLED    app/src/main/java/com/audiobookdownloader/LibraryRootRules.java:19 + -> -
+KILLED    app/src/main/java/com/audiobookdownloader/LibraryRootRules.java:19 + -> -
+KILLED    app/src/main/java/com/audiobookdownloader/LibraryRootRules.java:23 == -> !=
+KILLED    app/src/main/java/com/audiobookdownloader/LibraryRootRules.java:23 || -> &&
+KILLED    app/src/main/java/com/audiobookdownloader/LibraryRootRules.java:23 > -> >=
+KILLED    app/src/main/java/com/audiobookdownloader/LibraryRootRules.java:27 && -> ||
+KILLED    app/src/main/java/com/audiobookdownloader/LibraryRootRules.java:27 != -> ==
+KILLED    app/src/main/java/com/audiobookdownloader/LibraryRootRules.java:27 && -> ||
+KILLED    app/src/main/java/com/audiobookdownloader/LibraryRootRules.java:27 && -> ||
+KILLED    app/src/main/java/com/audiobookdownloader/LibraryRootRules.java:27 == -> !=
+KILLED    app/src/main/java/com/audiobookdownloader/LibraryRootRules.java:27 && -> ||
+KILLED    app/src/main/java/com/audiobookdownloader/LibraryRootRules.java:27 == -> !=
+KILLED    app/src/main/java/com/audiobookdownloader/LibraryRootRules.java:30 != -> ==
+KILLED    app/src/main/java/com/audiobookdownloader/LibraryRootRules.java:30 && -> ||
+KILLED    app/src/main/java/com/audiobookdownloader/LibraryRootRules.java:30 != -> ==
+KILLED    app/src/main/java/com/audiobookdownloader/LibraryRootRules.java:30 false -> true
+KILLED    app/src/main/java/com/audiobookdownloader/LibraryRootRules.java:31 delete !
+KILLED    app/src/main/java/com/audiobookdownloader/LibraryRootRules.java:31 1 -> 0
+KILLED    app/src/main/java/com/audiobookdownloader/LibraryRootRules.java:31 false -> true
+KILLED    app/src/main/java/com/audiobookdownloader/LibraryRootRules.java:32 == -> !=
+KILLED    app/src/main/java/com/audiobookdownloader/LibraryRootRules.java:32 || -> &&
+KILLED    app/src/main/java/com/audiobookdownloader/LibraryRootRules.java:35 delete !
+KILLED    app/src/main/java/com/audiobookdownloader/LibraryRootRules.java:35 && -> ||
+KILLED    app/src/main/java/com/audiobookdownloader/LibraryRootRules.java:35 == -> !=
+KILLED    app/src/main/java/com/audiobookdownloader/LibraryRootRules.java:35 || -> &&
+KILLED    app/src/main/java/com/audiobookdownloader/LibraryRootRules.java:35 delete !
+KILLED    app/src/main/java/com/audiobookdownloader/LibraryRootRules.java:38 + -> -
+KILLED    app/src/main/java/com/audiobookdownloader/LibraryRootRules.java:38 1 -> 0
+KILLED    app/src/main/java/com/audiobookdownloader/LibraryRootRules.java:40 0 -> 1
+KILLED    app/src/main/java/com/audiobookdownloader/LibraryRootRules.java:40 < -> <=
+KILLED    app/src/main/java/com/audiobookdownloader/LibraryRootRules.java:47 >= -> >
+Function    Namespace                                 Killed  Survived  Uncovered  Sites   Score
+------------------------------------------------------------------------------------------------
+documentKey com.audiobookdownloader.LibraryRootRules       0         0          0      0    n/a
+treeKey     com.audiobookdownloader.LibraryRootRules       0         0          0      0    n/a
+add         com.audiobookdownloader.LibraryRootRules       1         0          0      1 100.0%
+base        com.audiobookdownloader.LibraryRootRules       7         0          0      7 100.0%
+decode      com.audiobookdownloader.LibraryRootRules       4         0          0      4 100.0%
+ids         com.audiobookdownloader.LibraryRootRules       5         0          0      5 100.0%
+key         com.audiobookdownloader.LibraryRootRules      10         0          0     10 100.0%
+parse       com.audiobookdownloader.LibraryRootRules       3         0          0      3 100.0%
+shape       com.audiobookdownloader.LibraryRootRules       9         0          0      9 100.0%
+------------------------------------------------------------------------------------------------
+Total                                                     39         0          0     39  100.0%

@@ -1,0 +1,16 @@
+CRAP Report
+===========
+Languages: java
+
+Function                       Namespace                                  CC    Cov%     CRAP
+---------------------------------------------------------------------------------------------
+key                            com.audiobookdownloader.LibraryRootRules    7 100.0%      7.0
+add                            com.audiobookdownloader.LibraryRootRules    5 100.0%      5.0
+base                           com.audiobookdownloader.LibraryRootRules    5 100.0%      5.0
+shape                          com.audiobookdownloader.LibraryRootRules    5 100.0%      5.0
+decode                         com.audiobookdownloader.LibraryRootRules    4 100.0%      4.0
+parse                          com.audiobookdownloader.LibraryRootRules    4 100.0%      4.0
+ids                            com.audiobookdownloader.LibraryRootRules    3 100.0%      3.0
+documentKey                    com.audiobookdownloader.LibraryRootRules    1 100.0%      1.0
+treeKey                        com.audiobookdownloader.LibraryRootRules    1 100.0%      1.0
+Wrote /workspace/Audiobook-Workspace/.metrics/crap.edn
