@@ -1,0 +1,210 @@
+{
+  "task": "Stage8 consented next volume over Wi-Fi",
+  "branch": "cloud/next-volume-wifi-20261118",
+  "base": "b3bef0ba028c4a141f4c0b101563322c9bb62847",
+  "initialTreeClean": true,
+  "testedSource": "84a8c51f3a4c8305a955ad6b21e62be472efb674",
+  "ciRun": 44260567581,
+  "ciAttempt": 1,
+  "ciUrl": "https://github.com/smoc1983-web/AudioBook/actions/runs/44260567581",
+  "status": "success",
+  "jobs": {
+    "verify": 134652606771,
+    "native23": 134652607043,
+    "native36": 134652607021
+  },
+  "artifacts": {
+    "verify": 14408791204,
+    "native23": 14407789628,
+    "native36": 14407643681
+  },
+  "published": false,
+  "stage8Complete": false,
+  "ubMode": true,
+  "ciResults": {
+    "jvm": {
+      "Debug": {
+        "tests": 422,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 1
+      },
+      "Release": {
+        "tests": 422,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 1
+      }
+    },
+    "native": {
+      "23": {
+        "tests": 100,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "classes": {
+          "com.audiobookdownloader.NextVolumeWifiAndroidTest": 5,
+          "com.audiobookdownloader.NextVolumeWifiPanelTest": 5,
+          "com.audiobookdownloader.BookMetadataPlaybackTest": 1,
+          "com.audiobookdownloader.BookMetadataAndroidTest": 9,
+          "com.audiobookdownloader.BookMetadataPanelTest": 5,
+          "com.audiobookdownloader.LibraryRootsTest": 9,
+          "com.audiobookdownloader.LibraryRootsPanelTest": 4,
+          "com.audiobookdownloader.LocalContinuationPlaybackTest": 3,
+          "com.audiobookdownloader.ShortAudioValidationTest": 1,
+          "com.audiobookdownloader.AudioValidationTest": 2,
+          "com.audiobookdownloader.SharedAudioImportTest": 11,
+          "com.audiobookdownloader.SharedAudioPanelTest": 3,
+          "com.audiobookdownloader.SourceHealthAndroidTest": 4,
+          "com.audiobookdownloader.SourceHealthPanelTest": 3,
+          "com.audiobookdownloader.SeekHistoryAndroidTest": 8,
+          "com.audiobookdownloader.SeekHistoryPanelTest": 3,
+          "com.audiobookdownloader.Stage8ReliabilityTest": 11,
+          "com.audiobookdownloader.Stage8ProgressFolderTest": 7,
+          "com.audiobookdownloader.Stage8FolderPanelStateTest": 1,
+          "com.audiobookdownloader.Stage8ExportStateTest": 2,
+          "com.audiobookdownloader.LibraryIdentityAndroidTest": 3
+        }
+      },
+      "36": {
+        "tests": 102,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "classes": {
+          "com.audiobookdownloader.NextVolumeWifiAndroidTest": 5,
+          "com.audiobookdownloader.NextVolumeWifiPanelTest": 5,
+          "com.audiobookdownloader.BookMetadataPlaybackTest": 1,
+          "com.audiobookdownloader.BookMetadataAndroidTest": 9,
+          "com.audiobookdownloader.BookMetadataPanelTest": 5,
+          "com.audiobookdownloader.LibraryRootsTest": 9,
+          "com.audiobookdownloader.LibraryRootsPanelTest": 4,
+          "com.audiobookdownloader.LocalContinuationPlaybackTest": 3,
+          "com.audiobookdownloader.ShortAudioValidationTest": 1,
+          "com.audiobookdownloader.AudioValidationTest": 2,
+          "com.audiobookdownloader.SharedAudioImportTest": 11,
+          "com.audiobookdownloader.SharedAudioPanelTest": 3,
+          "com.audiobookdownloader.SourceHealthAndroidTest": 4,
+          "com.audiobookdownloader.SourceHealthPanelTest": 3,
+          "com.audiobookdownloader.SeekHistoryAndroidTest": 8,
+          "com.audiobookdownloader.SeekHistoryPanelTest": 3,
+          "com.audiobookdownloader.Stage8ReliabilityTest": 11,
+          "com.audiobookdownloader.Stage8ProgressFolderTest": 7,
+          "com.audiobookdownloader.Stage8FolderPanelStateTest": 1,
+          "com.audiobookdownloader.Stage8ExportStateTest": 2,
+          "com.audiobookdownloader.LibraryIdentityAndroidTest": 3,
+          "com.audiobookdownloader.IdlePlaybackTest": 2
+        }
+      }
+    },
+    "lint": {
+      "lint-results-release.xml": {
+        "counts": {
+          "Warning": 271,
+          "Hint": 85
+        },
+        "addedCounts": {},
+        "added": [],
+        "removed": []
+      },
+      "lint-results-debug.xml": {
+        "counts": {
+          "Warning": 271,
+          "Hint": 85
+        },
+        "addedCounts": {},
+        "added": [],
+        "removed": []
+      }
+    }
+  },
+  "builds": {
+    "stableDebug": true,
+    "stableUnsignedRelease": true,
+    "previewDebugExistingSigner": true,
+    "previewAndroidTest": true,
+    "upgradeProbeCompiled": true,
+    "legacyFixtureCompiled": true,
+    "runtimeDependencyAudit": true,
+    "lintDebug": true,
+    "lintRelease": true
+  },
+  "oldSkippedJvmTest": "com.audiobookdownloader.LiveCatalogTest.liveSourcesSearchResolveDownloadAndDecode",
+  "newJvmTestsPassedPerVariant": 7,
+  "newNativeTestsPassedPerApi": 10,
+  "nativeTotal": 202,
+  "local": {
+    "androidSdkAvailable": false,
+    "gradleAvailable": false,
+    "javaRulesTests": 3,
+    "red": "compiler rejected missing production NextVolumeRules before implementation",
+    "jacocoMethodLineCoveragePercent": 100,
+    "crapMax": 5,
+    "dryerCandidatesAtThreshold08": 0,
+    "mutationKilled": 15,
+    "mutationTotal": 15,
+    "kotlinSupportedByTheseQualityTools": false,
+    "sourceParserDesktopJvmChecks": "passed"
+  },
+  "diagnosticRuns": [
+    {
+      "run": 44259122302,
+      "source": "a9b5e8e769ed62645201cfbaf2c0466148116e9e",
+      "jvmDebug": {
+        "tests": 422,
+        "failed": 1,
+        "skipped": 1
+      },
+      "reason": "New parser fixture used service-only series name Цикл; changed to real title Приключения and explicitly reject service-only labels",
+      "native23": {
+        "tests": 100,
+        "failed": 2,
+        "skipped": 0
+      },
+      "native36": {
+        "tests": 102,
+        "failed": 0,
+        "skipped": 0
+      },
+      "nativeReason": "Android23 provider refuses private network columns. Shared actual Request configuration serialization and public actual-job description now asserted there; API36 retains actual provider queries. No skips or production weakening."
+    }
+  ],
+  "preserved": {
+    "canonicalBookEditionChapterIds": true,
+    "userFilesAndProgressBookmarksCollectionsQueue": true,
+    "packageVersionSigningConfiguration": true,
+    "sourceMain": "c8301dbf2fb558c8330d87baa67cacf307708529",
+    "publicPreviewTag": "preview-v100095",
+    "generalCatalogueCycleParserUnchanged": true,
+    "playbackServiceWidgetsUpdaterManifestDependenciesUnchanged": true
+  },
+  "scope": {
+    "permission": "One explicitly selected numbered N+1 edition, no automatic chain",
+    "evidence": "Cached seed URL plus same-source author/direct series/whole order; fresh page title/author/series/order/URL rechecked before consent and cached evidence rechecked before queue",
+    "metadataNetwork": "Current connection, may be mobile; audio Wi-Fi restriction is separate",
+    "audioNetwork": "DownloadManager Wi-Fi mask only, metered and roaming disallowed; persisted per row and recovered mapping",
+    "default": "No download without explicit confirmation",
+    "demoSegmentedMissingOrDuplicateChapters": "Rejected before enqueue",
+    "queueRecovery": "Optional bool missing=false, malformed type rejected. Retry keeps restriction. Active unproven non-Wi-Fi job not adopted, existing active manual job not relabelled/removed. Atomic paired job mapping retains policy. Existing verified-file reuse and cancellation preserved.",
+    "api23NetworkEvidence": "Android Request.toContentValues serialized shared real configuration plus actual enqueued public description; private job network mask unavailable on this OS",
+    "api36NetworkEvidence": "Actual DownloadProvider stored mask/metered/roaming settings for real direct and queue-pump jobs",
+    "recreation": "Does not resubmit successful consent"
+  },
+  "limits": [
+    "No physical phone/OEM/mobile-to-Wi-Fi/VPN/reboot/processkill/powerloss/diskfull/installer checks",
+    "No live-site validation in new UI; fixed source evidence and existing parser regression checks only",
+    "One-volume plan only; source current collection/cache and unambiguous numbered successor required",
+    "No artificial guarantee of full edition from chapter count/size; source may not explicitly mark all samples",
+    "Signed URLs may expire while waiting; existing bounded link refresh not supported for all sources",
+    "Existing CONNECTED worker 2.5s polling/8min retry behaviour unchanged and can perform extra work while awaiting Wi-Fi; scheduling optimization separate",
+    "No battery/RAM savings measured",
+    "Selected native classes only, not historical full suite"
+  ],
+  "tokenEconomizer": {
+    "cliUsed": true,
+    "sessions": 0,
+    "hookIntegrationVerified": false,
+    "tokenSavingsMeasured": false
+  },
+  "next": "Additional search filters as a separate package after confirmation"
+}

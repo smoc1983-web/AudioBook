@@ -1,3 +1,39 @@
+# Этап8 — следующий том по Wi-Fi проверен, не опубликован (2026-11-18)
+
+Ветка cloud/next-volume-wifi-20261118 от чистой b3bef0b (remote/fetch совпали).
+Проверены84a8c51f3a4c8305a955ad6b21e62be472efb674;
+CI44260567581 all3jobs SUCCESS: Stable Debug/unsigned Release, Preview Debug/
+AndroidTest existing signer, upgradeProbe+legacyFixture compile/runtime audit.
+JVM по422 (421executed+1unchanged LiveCatalogTest skip),0errors; native100/API23+
+102/API36 (202,0failure/error/skip),10new/API. Lint0Fatal/Error,271Warning85Hint,
+без новых замечаний или suppress. Java3green observedred/CRAP5/Dryer0 scoped/
+Mutator15of15 actual; Kotlin gap. Source/parser/JVM checks passed; localSDK absent.
+Docs NEXT-VOLUME-WIFI-STAGE-8.md + quality/next-volume-wifi/results.json/WORK-LOG.md.
+Player→Series→Следующий том по Wi-Fi: один выбранный source N+1, author/series/
+whole order/seed URL, fresh title/author/series/order/page URL and playlist checks.
+Список из continuation cache коллекции; при отсутствии evidence кнопка disabled,
+обновить источник/проверить продолжения. Personal labels/filenames не evidence;
+нет auto chain/автовыбора narration или нового background crawler. Fresh metadata
+на текущем соединении (может быть mobile); audio только nonmetered Wi-Fi/no roaming.
+wifiOnly bool в queued row/defaultfalse/strict type/retry retained; DM request config
+в одном helper. Recovery mapping download_wifi_only_<id> atomic с job mapping;
+не брать active job без собственного Wi-Fi marker, complete reuse проверяется.
+Manual active downloads не relabel/delete. IDs/files/progress/player не меняются.
+Обычный catalog cycle parser прежний; fresh permission evidence отдельный pure
+same-source series parser. Java signatures/constructors сохранены @JvmOverloads.
+API36 actual system job mask/metered/roaming proved. API23 provider hides private
+columns: Android Request.toContentValues shared-config serialization + public
+actual-job description asserted; direct API23 stored mask не утверждать.
+Ранний CI44259122302: JVM invalid placeholder «Цикл»,23private projection2fail;
+fixtures/guards и platform-appropriate test fixed, no skipped/weakened assertions.
+Остальной native scope сохранён, не весь historical suite. Physical phone/OEM/
+network switch/VPN/reboot/processkill/Installer/diskfull/powerloss/live newUI sites
+не проверены. Existing worker CONNECTED/poll2.5s/8min unchanged, extra waiting work
+possible; scheduling optimization отдельна, battery/RAM savings не измерялись.
+Main c8301db/public preview-v100095/version/package/signer same. Не публиковать.
+Этап8 ещё не завершён; далее search filters после подтверждения. Ub-mode stage8
+одобрен; TokenEconomizer CLI без повторных вопросов, sessions0/hooks unverified.
+
 # Этап8 — редактор сведений проверен, не опубликован (2026-11-18)
 
 Ветка cloud/book-metadata-20261118 от чистой e437897 (fetch подтверждён).
