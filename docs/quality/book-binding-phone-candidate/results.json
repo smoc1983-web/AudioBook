@@ -1,0 +1,71 @@
+{
+  "apk": "Audiobook-Preview-4.2.97.apk",
+  "sha256": "2f567feb6333306e593ea02f528b084d24ad6c2d11b7dbfdce9a6b6eed5a379e",
+  "bytes": 33439545,
+  "versionCode": 100097,
+  "versionName": "4.2.97",
+  "branch": "cloud/book-binding-phone-candidate-20261118",
+  "sourceCommit": "1ada617b45068a0fc44a8e6b227d620131c8d87a",
+  "run": 44320951915,
+  "artifactId": 14435422839,
+  "artifactUrl": "https://github.com/smoc1983-web/AudioBook/actions/runs/44320951915/artifacts/14435422839",
+  "retentionDays": 14,
+  "published": false,
+  "physicalPhoneTested": false,
+  "releaseJvm": {
+    "tests": 426,
+    "errors": 0,
+    "failures": 0,
+    "skipped": 1
+  },
+  "releaseLint": {
+    "Warning": 274,
+    "Hint": 85
+  },
+  "upgrades": {
+    "95": {
+      "baselineCode": 100095,
+      "newCode": 100097,
+      "oldUpdaterAcceptedNewApk": true,
+      "oldUpdaterOpenedSystemConfirmation": true,
+      "systemConfirmationCancelledForHostReplacement": true,
+      "releaseBaselineSeededBySameSignedInstrumentation": true,
+      "standalonePlatformProbe": true,
+      "probeHasNoAppImplementationCopies": true,
+      "probeNeedsNoNewRuntimeBridge": true,
+      "androidPackageReplacementSucceeded": true,
+      "label": "Audiobook",
+      "settingsCollectionFolderAndPrivateFilePreserved": true,
+      "certificateUnchanged": true,
+      "installationMethod": "adb install -r in disposable emulator; user will confirm installer on phone",
+      "actualInAppNetworkDownloadTested": false,
+      "physicalPhone": false,
+      "newBuildType": "release",
+      "debuggable": false,
+      "privateAudioFileChecksumPreserved": true,
+      "googlePlayProtectVerdictTested": false
+    },
+    "96": {
+      "baselineCode": 100096,
+      "newCode": 100097,
+      "oldUpdaterAcceptedNewApk": true,
+      "oldUpdaterOpenedSystemConfirmation": true,
+      "systemConfirmationCancelledForHostReplacement": true,
+      "releaseBaselineSeededBySameSignedInstrumentation": true,
+      "standalonePlatformProbe": true,
+      "probeHasNoAppImplementationCopies": true,
+      "probeNeedsNoNewRuntimeBridge": true,
+      "androidPackageReplacementSucceeded": true,
+      "label": "Audiobook",
+      "settingsCollectionFolderAndPrivateFilePreserved": true,
+      "certificateUnchanged": true,
+      "installationMethod": "adb install -r in disposable emulator; user will confirm installer on phone",
+      "actualInAppNetworkDownloadTested": false,
+      "physicalPhone": false,
+      "newBuildType": "release",
+      "debuggable": false,
+      "privateAudioFileChecksumPreserved": true,
+      "googlePlayProtectVerdictTested": false
+    }
+  }
+}
