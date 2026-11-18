@@ -48,7 +48,7 @@ class LocalContinuationPlaybackTest {
         context.getSharedPreferences("preview_updates",0).edit().putBoolean("auto",false).commit()
         try {ActivityScenario.launch(MainActivity::class.java).use {
             assertTrue("Next volume must be discovered by real SAF scan",scanLibrary(context).any{it.title==next})
-            check(first,next,firstFile)
+            try{check(first,next,firstFile)}finally{finishPlaybackFixture(context)}
         }}finally {
             PlaybackService.stop(context,true)
             context.stopService(Intent(context,PlaybackService::class.java))

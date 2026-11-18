@@ -53,7 +53,7 @@ class SeekHistoryAndroidTest {
         c.getSharedPreferences("preview_updates",0).edit().putBoolean("auto",false).commit()
         if(android.os.Build.VERSION.SDK_INT>=33)android.os.ParcelFileDescriptor.AutoCloseInputStream(instrumentation.uiAutomation.executeShellCommand(
             "pm grant ${c.packageName} android.permission.POST_NOTIFICATIONS")).use{it.readBytes()}
-        try{ActivityScenario.launch(MainActivity::class.java).use{check(title,file,edition)}}
+        try{ActivityScenario.launch(MainActivity::class.java).use{try{check(title,file,edition)}finally{finishPlaybackFixture(c)}}}
         finally {
             PlaybackService.stop(c,true);waitState{!it.hasSelection&&!it.isPlaying}
             c.stopService(Intent(c,PlaybackService::class.java));instrumentation.waitForIdleSync()
