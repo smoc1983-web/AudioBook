@@ -87,6 +87,25 @@ class BookMetadataAndroidTest {
    assertEquals(before,p.all)
   }finally{archive.delete()}
  }
+ @Test fun displayReadsDoNotWaitForDiskCommitOrExposePendingFields() {
+  val c=context();val backing=c.getSharedPreferences("audiobook_downloader",0);val b=book(c)
+  val entered=java.util.concurrent.CountDownLatch(1);val release=java.util.concurrent.CountDownLatch(1)
+  val pool=java.util.concurrent.Executors.newFixedThreadPool(2)
+  val p=Proxy.newProxyInstance(SharedPreferences::class.java.classLoader,arrayOf(SharedPreferences::class.java)){proxy,m,args->
+   when(m.name){"equals"->proxy===args?.get(0);"hashCode"->System.identityHashCode(proxy);"edit"->{val e=backing.edit()
+    Proxy.newProxyInstance(SharedPreferences.Editor::class.java.classLoader,arrayOf(SharedPreferences.Editor::class.java)){editor,method,values->
+     if(method.name=="commit"){val saved=e.commit();entered.countDown();check(release.await(10,java.util.concurrent.TimeUnit.SECONDS));saved}
+     else{val result=method.invoke(e,*(values?:emptyArray()));if(result is SharedPreferences.Editor)editor else result}}
+   };else->m.invoke(backing,*(args?:emptyArray()))}
+  } as SharedPreferences
+  try {
+   val save=pool.submit<Boolean>{BookMetadata.save(p,b.bookId,null,custom)}
+   assertTrue(entered.await(5,java.util.concurrent.TimeUnit.SECONDS))
+   val display=pool.submit<BookDisplay>{BookMetadata.local(p,b)}
+   assertEquals("Original",display.get(2,java.util.concurrent.TimeUnit.SECONDS).title)
+   release.countDown();assertTrue(save.get(5,java.util.concurrent.TimeUnit.SECONDS));assertEquals(custom,BookMetadata.local(p,b))
+  }finally{release.countDown();pool.shutdownNow()}
+ }
  @Test fun failedCommitDoesNotExposeUnconfirmedFieldsAndRetryCanSucceed() {
   val c=context();val baseP=c.getSharedPreferences("audiobook_downloader",0);val b=book(c);var failing=true
   val p=Proxy.newProxyInstance(SharedPreferences::class.java.classLoader,arrayOf(SharedPreferences::class.java)){proxy,m,args->

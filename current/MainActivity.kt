@@ -1812,6 +1812,8 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
         if (state.error.isNotBlank()) status = state.error
     }
 
+    val metadataRevision by BookMetadata.revision.collectAsState()
+    LaunchedEffect(metadataRevision){userDataVersion++}
     DisposableEffect(prefs) {
         val listener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
             if(key=="glass_theme")appSkin=abReadGlassSkin(prefs)
@@ -10313,7 +10315,7 @@ private fun AbLibraryScreen(data: AbScreenData,actions: AbActions,sync: LibraryS
         data.playback.bookTitle,data.playback.trackIndex) {
         val selected=when(tab){1->localRefs;2->favorites;3->recent;4->queue.map{bookRefFor(prefs,it)};else->all}
             .distinctBy{bookRefIdentity(it)}
-            .filter {ref->val display=BookMetadata.ref(prefs,ref,abFindLocal(books,ref.title,ref.editionId));listOf(display.title,display.author,display.narrator,display.series).any{it.contains(filter,true)}}
+            .filter {ref->val display=BookMetadata.ref(prefs,ref,abFindLocal(books,ref.title,ref.editionId));listOf(ref.title,display.title,display.author,display.narrator,display.series).any{it.contains(filter,true)}}
         when {
             sort==1 && tab!=4 -> selected.sortedBy{BookMetadata.ref(prefs,it,abFindLocal(books,it.title,it.editionId)).title.lowercase()}
             // Persisted progress changes every few seconds. Do not reorder rows every player tick.

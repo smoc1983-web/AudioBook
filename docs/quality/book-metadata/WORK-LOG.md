@@ -10,3 +10,5 @@
 - Kept personal series as a label rather than false evidence for network continuation discovery. Added source narrator persistence separately from user overrides.
 - Added backup allowlist/validation for overrides; URI grants, damaged recovery snapshots and credentials remain excluded.
 - Added codec and Android store/UI preservation, wrong-edition, concurrent edit, corrupt record and failed-commit tests. Results pending until actual execution.
+- Review found display reads could wait on the metadata monitor while IO commit ran. Separated the writer lock from short read/cache locks; pending writes retain the last confirmed display. A completion StateFlow refreshes UI/session even if the preference event arrived before commit finished. Added a bounded blocking-commit regression.
+- CI44244375391 compiled production Preview but rejected a nullable MediaMetadata access in the new native test before instrumentation. Corrected the test with requireNotNull after its existing metadata-ready wait; no assertion removed. Reverification includes the nonblocking-write follow-up.

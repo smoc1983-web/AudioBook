@@ -4,6 +4,8 @@ import android.content.SharedPreferences
 import org.json.JSONObject
 import org.json.JSONTokener
 import java.util.WeakHashMap
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 internal data class BookDisplay(val title:String,val author:String="",val narrator:String="",val series:String="",val volume:String="") {
     val seriesLabel:String get()=series+if(volume.isBlank())"" else " · Том $volume"
@@ -13,7 +15,10 @@ internal data class BookMetadataSnapshot(val raw:Any?,val display:BookDisplay?,v
 /** Only an explicit stable identity selects an override; a title is never a lookup key. */
 internal object BookMetadata {
     const val PREFIX="book_metadata_override_v1_"
-    private data class Pending(val before:Any?,val attempted:Any?)
+    private data class Pending(val before:Any?,val attempted:Any?,val writing:Boolean=false)
+    private val writer=Any()
+    private val changes=MutableStateFlow(0L)
+    val revision=changes.asStateFlow()
     private val pending=WeakHashMap<SharedPreferences,MutableMap<String,Pending>>()
     private data class CachedSource(val owner:SharedPreferences,val fingerprint:List<String?>,val display:BookDisplay)
     private val sources=linkedMapOf<String,CachedSource>()
@@ -41,7 +46,7 @@ internal object BookMetadata {
         require(BookMetadataRules.validId(id))
         val actual=try{p.getString(PREFIX+id,null)}catch(_:ClassCastException){p.all[PREFIX+id]}
         val failed=pending[p]?.get(id)
-        val raw=if(failed!=null&&failed.attempted==actual)failed.before else {pending[p]?.remove(id);actual}
+        val raw=if(failed!=null&&(failed.writing||failed.attempted==actual))failed.before else {pending[p]?.remove(id);actual}
         if(raw==null)return BookMetadataSnapshot(null,null)
         return try {
             val text=raw as String;val key=id+text
@@ -53,7 +58,7 @@ internal object BookMetadata {
         }catch(_:Exception){BookMetadataSnapshot(raw,null,true)}
     }
     /** Compare-and-set prevents an open editor overwriting an intervening restore/edit. Call on IO. */
-    @Synchronized fun save(p:SharedPreferences,id:String,expected:Any?,value:BookDisplay?):Boolean {
+    fun save(p:SharedPreferences,id:String,expected:Any?,value:BookDisplay?):Boolean = synchronized(writer) {
         val before=snapshot(p,id)
         require(before.raw==expected){"Сведения уже изменились. Закройте и откройте редактор заново."}
         require(!before.damaged||value==null){"Сначала восстановите исходные сведения"}
@@ -64,9 +69,15 @@ internal object BookMetadata {
             if(!p.contains(key))editor.putString(key,JSONObject().put("type",before.raw?.javaClass?.name).put("raw",before.raw.toString()).toString())
         }
         if(raw==null)editor.remove(PREFIX+id) else editor.putString(PREFIX+id,raw)
-        val saved=editor.commit()
-        if(saved)pending[p]?.remove(id) else pending.getOrPut(p){mutableMapOf()}[id]=Pending(before.raw,raw)
-        return saved
+        synchronized(this){pending.getOrPut(p){mutableMapOf()}[id]=Pending(before.raw,raw,true)}
+        var saved=false
+        try {saved=editor.commit();saved}
+        finally {
+            synchronized(this) {
+                if(saved)pending[p]?.remove(id) else pending.getOrPut(p){mutableMapOf()}[id]=Pending(before.raw,raw)
+                changes.value=changes.value+1
+            }
+        }
     }
     @Synchronized fun source(p:SharedPreferences,title:String):BookDisplay {
         val fingerprint=listOf(p.getString(abCatalogKey(title),null),p.getString(abAuthorKey(title),null))
@@ -85,10 +96,13 @@ internal object BookMetadata {
     fun playback(p:SharedPreferences,title:String,tracks:List<ServiceTrack>):BookDisplay {
         val ids=tracks.map{it.metadataId}.filter{it.isNotEmpty()}.distinct()
         // Mixed identities must not borrow the first book's display metadata.
-        val id=if(ids.size==1&&tracks.all{it.metadataId==ids.single()})ids.single() else ""
-        if(id.isNotEmpty())return display(p,title,id)
-        if(ids.isNotEmpty())return source(p,title)
         val editions=tracks.map{it.editionId}.distinct()
-        return if(editions.size==1&&editions.single().isNotBlank())display(p,title,LibraryRecordRules.bookId(editions.single())) else source(p,title)
+        val id=when {
+            ids.size==1&&tracks.all{it.metadataId==ids.single()}->ids.single()
+            ids.isEmpty()&&editions.size==1&&editions.single().isNotBlank()->LibraryRecordRules.bookId(editions.single())
+            else->""
+        }
+        if(BookMetadataRules.validId(id))snapshot(p,id).display?.let{return it}
+        return source(p,title).copy(title=AbMediaPresentation.bookTitle(title))
     }
 }

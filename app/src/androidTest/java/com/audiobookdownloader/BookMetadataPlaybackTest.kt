@@ -44,7 +44,7 @@ class BookMetadataPlaybackTest {
     assertEquals(before.bookTitle,after.bookTitle);assertEquals(before.tracks,after.tracks);assertEquals(before.trackIndex,after.trackIndex)
     assertEquals(before.positionMs,after.positionMs);assertFalse(after.isPlaying);assertFalse(after.isLoading);assertEquals(before.speed,after.speed);assertTrue(after.sleepSeconds>0)
     i.runOnMainSync{assertSame(service,instanceField.get(null));assertSame(player,playerField.get(service))}
-    assertEquals("Личный автор",session!!.controller.metadata.getString(MediaMetadata.METADATA_KEY_AUTHOR))
+    assertEquals("Личный автор",requireNotNull(session!!.controller.metadata).getString(MediaMetadata.METADATA_KEY_AUTHOR))
     assertEquals("Личное название",BookMetadata.playback(p,name,AbBookProgress.playlist(p,name)).title)
    }finally{finishPlaybackFixture(c)}}
   }finally{PlaybackService.stop(c,true);c.stopService(Intent(c,PlaybackService::class.java));f.delete();p.edit().remove(BookMetadata.PREFIX+book.bookId).commit()}

@@ -33,6 +33,7 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
@@ -450,6 +451,13 @@ class PlaybackService : Service() {
         trace("Восстановлен сохранённый плейлист")
         publish(refreshNotification=false)
         playbackPrefs.registerOnSharedPreferenceChangeListener(preferenceListener)
+        refreshScope.launch {
+            var observed=BookMetadata.revision.value
+            BookMetadata.revision.collect {revision->
+                if(revision!=observed&&!stopped){publish();AbGlassWidgets.metadataChanged(applicationContext)}
+                observed=revision
+            }
+        }
         if (Build.VERSION.SDK_INT >= 33) {
             registerReceiver(noisyReceiver, IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY),
                 Context.RECEIVER_NOT_EXPORTED)

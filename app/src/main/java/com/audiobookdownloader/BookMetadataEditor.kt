@@ -12,6 +12,7 @@ import kotlinx.coroutines.*
 internal fun abBookDisplay(ref:BookRef,local:LibraryBook?):BookDisplay {
     val c=LocalContext.current.applicationContext
     val p=remember(c){c.getSharedPreferences("audiobook_downloader",0)}
+    val savedRevision by BookMetadata.revision.collectAsState()
     var revision by remember{mutableStateOf(0)}
     DisposableEffect(p) {
         val listener=SharedPreferences.OnSharedPreferenceChangeListener{_,key->
@@ -20,7 +21,7 @@ internal fun abBookDisplay(ref:BookRef,local:LibraryBook?):BookDisplay {
         p.registerOnSharedPreferenceChangeListener(listener)
         onDispose{p.unregisterOnSharedPreferenceChangeListener(listener)}
     }
-    return remember(ref,local,revision){BookMetadata.ref(p,ref,local)}
+    return remember(ref,local,revision,savedRevision){BookMetadata.ref(p,ref,local)}
 }
 
 @Composable
