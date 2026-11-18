@@ -9700,7 +9700,24 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
     var enabledSources by remember {mutableStateOf(AbBookSources.enabled(prefs).toSet())}
     val sourceContext=androidx.compose.ui.platform.LocalContext.current
     val listState=data.searchListState
+    val filterScope = rememberCoroutineScope()
+    var showFilters by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+    var narratorFilter by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf("") }
+    var seriesOnly by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+    var localOnly by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+    val activeFilters = listOf(hidePreviews, narratorFilter.isNotEmpty(), seriesOnly, localOnly).count { it }
     var shownResults by androidx.compose.runtime.saveable.rememberSaveable(data.query,data.genre,data.cycle?.url) {mutableStateOf(AB_RESULTS_PAGE)}
+    fun applyFilters(narrator: String, series: Boolean, local: Boolean, hideDemo: Boolean) {
+        narratorFilter = narrator.trim().take(100).takeIf { SearchBookIndex.normal(it).isNotEmpty() }.orEmpty()
+        seriesOnly = series
+        localOnly = local
+        if (hidePreviews != hideDemo) {
+            hidePreviews = hideDemo
+            prefs.edit().putBoolean("search_hide_previews", hideDemo).apply()
+        }
+        shownResults = AB_RESULTS_PAGE
+        filterScope.launch { listState.scrollToItem(0) }
+    }
     val visibleCount=if(data.genre.isNotBlank())data.genreVisibleCount.coerceIn(AB_GENRE_PAGE,AB_SEARCH_LIMIT)
         else maxOf(shownResults,data.searchRestoreIndex+AB_RESULTS_PAGE).coerceAtMost(AB_SEARCH_LIMIT)
     val detail=remember(data.onlineBook,data.pageTitle,prefs,data.version) {
@@ -9711,9 +9728,10 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
     // Playback ticks and lazy-list recycling must not reparse every book's reference metadata.
     val seriesRevision=remember(prefs,data.version) {prefs.getInt("book_series_revision",0)}
     val prepared by androidx.compose.runtime.produceState<List<AbSearchRow>?>(null,
-        data.results,books,seriesRevision,data.cycle,data.cycleBrowsing,data.query,data.genre,hidePreviews) {
+        data.results,books,seriesRevision,data.cycle,data.cycleBrowsing,data.query,data.genre,hidePreviews,narratorFilter,seriesOnly,localOnly) {
         value=AbSearchRows.prepare(data.results,books,prefs,data.cycle.takeIf{data.cycleBrowsing},
-            query=if(data.genre.isBlank()&&!data.cycleBrowsing)data.query else "",hidePreviews=hidePreviews)
+            query=if(data.genre.isBlank()&&!data.cycleBrowsing)data.query else "",hidePreviews=hidePreviews,
+            narrator=narratorFilter,seriesOnly=seriesOnly,localOnly=localOnly)
     }
     val resultBooks=prepared.orEmpty()
     val visibleResults=remember(resultBooks,visibleCount) {resultBooks.take(visibleCount)}
@@ -9744,16 +9762,14 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
             Text(if(data.searchSource.isBlank())"Режим: включённые источники" else "Режим: только ${data.searchSource}",
                 color=theme.muted,fontSize=11.sp,modifier=Modifier.padding(top=5.dp))
         }
-        if(data.searchActive) item(key="preview-filter") {
-            Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
-                Text("Скрывать демо",color=theme.text,fontSize=13.sp,modifier=Modifier.weight(1f))
-                androidx.compose.material3.Switch(checked=hidePreviews,onCheckedChange={value->
-                    hidePreviews=value;prefs.edit().putBoolean("search_hide_previews",value).apply()
-                },modifier=Modifier.semantics{contentDescription="Скрывать ознакомительные фрагменты"})
+        if (data.searchActive || data.cycleBrowsing || data.genre.isNotBlank()) item(key="preview-filter") {
+            AbButton(if (activeFilters == 0) "Фильтры поиска" else "Фильтры поиска · $activeFilters",theme) {
+                showFilters = true
             }
-            Text("Только подтверждённые фрагменты. Размер и число глав не доказывают полноту книги.",color=theme.muted,fontSize=11.sp)
-            if(hidePreviews&&data.results.isNotEmpty()&&resultBooks.isEmpty())
-                Text("Нет отображаемых книг. Проверьте запрос или отключите фильтр демо.",color=theme.muted,fontSize=12.sp)
+            if (activeFilters > 0 && resultBooks.isEmpty() && data.results.isNotEmpty() && !data.searching) {
+                Text("В загруженных результатах нет книг по этим фильтрам.",color=theme.muted,fontSize=12.sp)
+                AbButton("Сбросить фильтры",theme) { applyFilters("", false, false, false) }
+            }
         }
         if(seriesStatus.isNotBlank()) item {Text(seriesStatus,color=theme.muted,fontSize=11.sp)}
         if(data.searching) item { Row(verticalAlignment=Alignment.CenterVertically) {
@@ -9838,6 +9854,11 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
     }
     } // Cover requests wait for this list to stop scrolling.
     manualSource?.let { (name,url) -> AbManualSourceBrowser(name,url,data,actions,theme){manualSource=null} }
+    if (showFilters) AbSearchFilterDialog(narratorFilter, seriesOnly, localOnly, hidePreviews, theme,
+        dismiss = { showFilters = false }) { narrator, series, local, hideDemo ->
+        applyFilters(narrator, series, local, hideDemo)
+        showFilters = false
+    }
     if(showSources) AbDialog("Источники поиска",theme,{showSources=false}) {
         val healthTargets=remember{abSourceHealthTargets()}
         val health=AbSourceHealthControls(healthTargets,enabledSources,theme)
