@@ -9700,7 +9700,7 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
     var enabledSources by remember {mutableStateOf(AbBookSources.enabled(prefs).toSet())}
     val sourceContext=androidx.compose.ui.platform.LocalContext.current
     val listState=data.searchListState
-    val filterScope = rememberCoroutineScope()
+    val filterScope = androidx.compose.runtime.rememberCoroutineScope()
     var showFilters by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
     var narratorFilter by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf("") }
     var seriesOnly by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
