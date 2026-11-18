@@ -1,0 +1,8 @@
+# Stage8 multi-root library work log, 2026-11-18
+
+- Clean/fetched source base19cb6ee512027d292e723d7955f730fb4afb9230; source main c8301dbf2fb558c8330d87baa67cacf307708529 unchanged. New cloud/library-roots-20261118 branch; no release/version/signer changes.
+- Read approved ub-mode and AGENTS. TokenEconomizer CLI status executed, sessions0, hooks/savings unverified; no repeated question for the same stage8.
+- Inspected actual one-root scanner/settings, provider deletion, book/edition IDs and backup allowlist. Existing picker overwrites library_tree_uri and releases the old grant; replace only that configuration flow, not download destination or public-folder discovery.
+- Java contract red: five failures on empty stubs (content/tree identity, unsafe URI boundaries, overlap identity, idempotent add,32-root limit). Implemented pure URI/ordered-add rules, five green. Add isolated codec/migration/provider/UI regression tests before production commit.
+- Additive schema1 root list keeps legacy key exactly; explicit empty authoritative. Damaged raw requires explicit snapshot/recovery, no silent clear. Failed commit retains last committed roots and a retry marker, not false success from preferences RAM.
+- Extracted SAF scan into a small component. Existing one-level directory semantics retained. Stable opaque authority/document identity deduplicates overlapping grants and hashCode-collision folders. First document-URI origin preserves existing book/progress identity when only the grant changes; actual read/delete URI uses current grant. Origin writes batched per scan, failed persistence does not publish newly unrecorded origins.
