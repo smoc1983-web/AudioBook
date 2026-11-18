@@ -1,7 +1,7 @@
 name: Verify stage 8 multiple library roots
 on:
   push:
-    branches: ['cloud/library-roots-20261117']
+    branches: ['cloud/library-roots-20261118']
     paths: ['.github/workflows/library-roots.yml', 'current/**', 'app/**', 'build.gradle.kts', 'gradle.properties', 'tools/tests/queue*', 'docs/quality/library-roots/*.sh']
 permissions:
   contents: read
