@@ -1,3 +1,16 @@
-<inset xmlns:android="http://schemas.android.com/apk/res/android" android:inset="18.5%">
-    <bitmap android:src="@drawable/ab_launcher_crescent_art" android:gravity="fill" android:filter="true" />
-</inset>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <group android:pivotX="54" android:pivotY="54" android:scaleX="0.84" android:scaleY="0.84">
+        <path android:fillColor="#5F3522"
+            android:pathData="M37,23H72Q78,23 78,29V77Q78,83 72,83H37Q31,83 31,77V29Q31,23 37,23Z"/>
+        <path android:fillColor="#EFD6AD"
+            android:pathData="M38,65H74V77Q74,79 70,79H38Q34,79 34,75V69Q34,65 38,65Z"/>
+        <path android:fillColor="#B36835"
+            android:pathData="M39,23H72Q78,23 78,29V70Q78,74 73,74H39Q35,74 35,70V28Q35,23 39,23Z"/>
+        <path android:fillColor="#F3CB8B"
+            android:pathData="M43,30H72V32H43ZM43,65H72V67H43ZM49,47H66V49H49Z"/>
+        <path android:fillColor="#FFCF71"
+            android:pathData="M57,75H64V88L60.5,85L57,88Z"/>
+    </group>
+</vector>

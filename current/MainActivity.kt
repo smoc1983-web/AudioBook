@@ -80,6 +80,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.draw.paint
 import androidx.compose.ui.layout.ContentScale
@@ -108,15 +109,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.Animatable
 
 data class BookLink(
     val title: String,
@@ -295,6 +292,18 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun showStartup(recover: Boolean,error: Throwable?=null) {
+        if (!recover) {
+            val theme = bookLaunchTheme(this)
+            val size = (96 * resources.displayMetrics.density).toInt()
+            setContentView(android.widget.FrameLayout(this).apply {
+                setBackgroundColor(theme.background.toArgb())
+                addView(android.widget.ImageView(context).apply {
+                    setImageResource(R.drawable.ab_launcher_foreground)
+                    contentDescription = AB_PRODUCT_NAME
+                }, android.widget.FrameLayout.LayoutParams(size, size, android.view.Gravity.CENTER))
+            })
+            return
+        }
         val panel=android.widget.LinearLayout(this).apply {
             orientation=android.widget.LinearLayout.VERTICAL
             setBackgroundColor(android.graphics.Color.rgb(7,20,37))
@@ -307,23 +316,19 @@ class MainActivity : ComponentActivity() {
             setPadding(0,10,0,10)
         }
         panel.addView(label(AB_PRODUCT_NAME,26f))
-        panel.addView(label(if(recover)
-            "Не удалось открыть главный экран. Отчёт об ошибке и обновления доступны прямо здесь."
-            else "Запускаем приложение…",16f))
-        if(recover) {
-            if(error!=null)panel.addView(label(error.javaClass.simpleName+": "+error.message.orEmpty().take(500),13f))
-            fun button(value: String,click:()->Unit)=android.widget.Button(this).apply {
-                text=value
-                setOnClickListener{click()}
-                panel.addView(this,android.widget.LinearLayout.LayoutParams(
-                    android.view.ViewGroup.LayoutParams.MATCH_PARENT,android.view.ViewGroup.LayoutParams.WRAP_CONTENT))
-            }
-            button("Открыть без фоновой загрузки"){startApp(true)}
-            button("Повторить обычный запуск"){startApp(false)}
-            button("Диагностика и отчёт TXT"){showStartupReport()}
-            button("Обновления "+AB_PRODUCT_NAME) {
-                startActivity(Intent(this,PreviewUpdatesActivity::class.java))
-            }
+        panel.addView(label("Не удалось открыть главный экран. Отчёт об ошибке и обновления доступны прямо здесь.",16f))
+        if(error!=null)panel.addView(label(error.javaClass.simpleName+": "+error.message.orEmpty().take(500),13f))
+        fun button(value: String,click:()->Unit)=android.widget.Button(this).apply {
+            text=value
+            setOnClickListener{click()}
+            panel.addView(this,android.widget.LinearLayout.LayoutParams(
+                android.view.ViewGroup.LayoutParams.MATCH_PARENT,android.view.ViewGroup.LayoutParams.WRAP_CONTENT))
+        }
+        button("Открыть без фоновой загрузки"){startApp(true)}
+        button("Повторить обычный запуск"){startApp(false)}
+        button("Диагностика и отчёт TXT"){showStartupReport()}
+        button("Обновления "+AB_PRODUCT_NAME) {
+            startActivity(Intent(this,PreviewUpdatesActivity::class.java))
         }
         setContentView(android.widget.ScrollView(this).apply {
             isFillViewport=true
@@ -401,247 +406,17 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-// The splash is presentation only; the current application and its lifecycle inputs stay intact.
 @Composable
 private fun AudioBookRoot(libraryAccessVersion:Int,foreground:Boolean,browserGeneration:Int,
     automaticCatalogs:Boolean,showIntro:Boolean,onAppVisible:@Composable ()->Unit) {
-    var showSplash by remember {mutableStateOf(showIntro)}
-    if(showSplash) {
-        AudioBookSplashScreen(onFinished={showSplash=false})
-    } else {
+    var showSplash by remember { mutableStateOf(showIntro) }
+    Box(Modifier.fillMaxSize()) {
         AudioBookApp(libraryAccessVersion,foreground,browserGeneration,automaticCatalogs)
         onAppVisible()
-    }
-}
-
-@SuppressLint("DiscouragedApi")
-@Composable
-private fun AudioBookSplashLogo(modifier:Modifier) {
-    // Resolve app_icon if present; otherwise use the installed launcher icon, including adaptive icons.
-    // A runtime resource lookup avoids adding an undeclared R.drawable.app_icon dependency.
-    androidx.compose.ui.viewinterop.AndroidView(
-        modifier=modifier,
-        factory={context ->
-            android.widget.ImageView(context).apply {
-                scaleType=android.widget.ImageView.ScaleType.CENTER_CROP
-                contentDescription=AB_PRODUCT_NAME
-                val icon=runCatching {
-                    val resource=context.resources.getIdentifier("app_icon","drawable",context.packageName)
-                    if(resource!=0)context.getDrawable(resource)
-                    else context.packageManager.getApplicationIcon(context.applicationInfo)
-                }.getOrNull() ?: context.packageManager.defaultActivityIcon
-                setImageDrawable(icon)
-            }
-        }
-    )
-}
-
-@Composable
-private fun AudioBookSplashScreen(
-    onFinished: () -> Unit
-) {
-    val logoScale = remember {
-        Animatable(0.72f)
-    }
-
-    val logoAlpha = remember {
-        Animatable(0f)
-    }
-
-    val titleAlpha = remember {
-        Animatable(0f)
-    }
-
-    val glowAlpha = remember {
-        Animatable(0f)
-    }
-
-    val progress = remember {
-        Animatable(0f)
-    }
-
-    LaunchedEffect(Unit) {
-        logoAlpha.animateTo(
-            targetValue = 1f,
-            animationSpec = tween(
-                durationMillis = 420
-            )
-        )
-
-        logoScale.animateTo(
-            targetValue = 1.05f,
-            animationSpec = tween(
-                durationMillis = 520
-            )
-        )
-
-        logoScale.animateTo(
-            targetValue = 1f,
-            animationSpec = tween(
-                durationMillis = 180
-            )
-        )
-
-        glowAlpha.animateTo(
-            targetValue = 0.9f,
-            animationSpec = tween(
-                durationMillis = 260
-            )
-        )
-
-        titleAlpha.animateTo(
-            targetValue = 1f,
-            animationSpec = tween(
-                durationMillis = 350
-            )
-        )
-
-        progress.animateTo(
-            targetValue = 1f,
-            animationSpec = tween(
-                durationMillis = 650,
-                easing = LinearEasing
-            )
-        )
-
-        delay(180)
-
-        logoAlpha.animateTo(
-            targetValue = 0f,
-            animationSpec = tween(
-                durationMillis = 220
-            )
-        )
-
-        onFinished()
-    }
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    listOf(
-                        Color(0xFF020816),
-                        Color(0xFF061A38),
-                        Color(0xFF020713)
-                    )
-                )
-            ),
-        contentAlignment = Alignment.Center
-    ) {
-        Box(
-            modifier = Modifier
-                .size(250.dp)
-                .scale(
-                    0.90f + (glowAlpha.value * 0.15f)
-                )
-                .alpha(
-                    glowAlpha.value * 0.22f
-                )
-                .background(
-                    Brush.radialGradient(
-                        listOf(
-                            Color(0xFF27B8FF),
-                            Color(0x333188FF),
-                            Color.Transparent
-                        )
-                    ),
-                    RoundedCornerShape(140.dp)
-                )
-        )
-
-        Column(
-            modifier = Modifier
-                .alpha(logoAlpha.value),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            AudioBookSplashLogo(
-                modifier = Modifier
-                    .size(170.dp)
-                    .scale(logoScale.value)
-                    .clip(
-                        RoundedCornerShape(38.dp)
-                    )
-            )
-
-            Spacer(
-                modifier = Modifier.height(22.dp)
-            )
-
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.alpha(
-                    titleAlpha.value
-                )
-            ) {
-                Text(
-                    text = "Audio",
-                    color = Color.White,
-                    fontSize = 35.sp,
-                    fontWeight = FontWeight.Bold
-                )
-
-                Text(
-                    text = "book",
-                    color = Color(0xFFFFC85A),
-                    fontSize = 35.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-
-            Spacer(
-                modifier = Modifier.height(30.dp)
-            )
-
-            Box(
-                modifier = Modifier
-                    .width(230.dp)
-                    .height(6.dp)
-                    .clip(
-                        RoundedCornerShape(20.dp)
-                    )
-                    .background(
-                        Color(0x3347BFFF)
-                    )
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(
-                            progress.value
-                                .coerceIn(
-                                    0f,
-                                    1f
-                                )
-                        )
-                        .height(6.dp)
-                        .clip(
-                            RoundedCornerShape(20.dp)
-                        )
-                        .background(
-                            Brush.horizontalGradient(
-                                listOf(
-                                    Color(0xFF31D9FF),
-                                    Color(0xFF2688FF),
-                                    Color(0xFFFFC85A)
-                                )
-                            )
-                        )
-                )
-            }
-
-            Spacer(
-                modifier = Modifier.height(13.dp)
-            )
-
-            Text(
-                text = "Слушай. Открывай. Погружайся.",
-                color = Color(0xFFB8CAE8),
-                fontSize = 14.sp,
-                modifier = Modifier.alpha(
-                    titleAlpha.value
-                )
-            )
+        if (showSplash) {
+            val context = androidx.compose.ui.platform.LocalContext.current
+            val theme = remember(context) { bookLaunchTheme(context) }
+            BookBindingSplash(theme) { showSplash = false }
         }
     }
 }
