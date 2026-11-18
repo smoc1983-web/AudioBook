@@ -22,7 +22,7 @@ internal object AbBookProgress {
         if(p.getString("widget_book","")!=book)return emptyList()
         val rows=array(p.getString("widget_playlist","[]"))
         return (0 until rows.length()).mapNotNull {i->rows.optJSONObject(i)?.let {
-            ServiceTrack(it.optString("t"),it.optString("s"),it.optInt("d"),it.optString("e"))
+            ServiceTrack(it.optString("t"),it.optString("s"),it.optInt("d"),it.optString("e"),it.optString("m"))
         }}
     }
     private data class Catalog(val raw:String,val revision:String?,val titles:List<String>,val members:Set<String>,val valid:Boolean)

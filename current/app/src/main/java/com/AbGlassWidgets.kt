@@ -278,7 +278,8 @@ internal object AbGlassWidgets {
         val views=RemoteViews(context.packageName,layout)
         views.setImageViewBitmap(R.id.ab_widget_background,AbWidgetArt.background(palette,width,height))
         views.setImageViewBitmap(R.id.ab_widget_cover,AbWidgetArt.cover(context,state.title,palette,kind==1))
-        views.setTextViewText(R.id.ab_widget_title,if(state.selected)state.title else "Audiobook")
+        val display=BookMetadata.playback(context.getSharedPreferences("audiobook_downloader",0),state.title,state.tracks)
+        views.setTextViewText(R.id.ab_widget_title,if(state.selected)display.title else "Audiobook")
         val timing=AbBookProgress.calculate(context.getSharedPreferences("audiobook_downloader",0),state.title,
             state.tracks,state.index,state.position,state.duration)
         val progressText=AbBookProgress.description(timing)
@@ -287,7 +288,7 @@ internal object AbGlassWidgets {
         views.setTextViewText(R.id.ab_widget_chapter,chapter)
         views.setTextColor(R.id.ab_widget_title,palette.text)
         views.setTextColor(R.id.ab_widget_chapter,palette.muted)
-        views.setContentDescription(R.id.ab_widget_root,if(state.selected)"${state.title}. $chapter. $progressText" else "Audiobook. Выберите книгу в приложении")
+        views.setContentDescription(R.id.ab_widget_root,if(state.selected)"${display.title}. $chapter. $progressText" else "Audiobook. Выберите книгу в приложении")
         val open=openPending(context,id,AbWidgetRoutes.PLAYER)
         views.setOnClickPendingIntent(R.id.ab_widget_title,open)
         views.setOnClickPendingIntent(R.id.ab_widget_cover,open)

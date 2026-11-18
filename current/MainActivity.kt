@@ -1691,10 +1691,10 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
     }
 
     fun startLibraryTrack(
-        bookTitle: String, files: List<File>, index: Int, restorePosition: Boolean,editionId:String=""
+        bookTitle: String, files: List<File>, index: Int, restorePosition: Boolean,editionId:String="",metadataId:String=""
     ) {
         if (index !in files.indices) return
-        val tracks=StableProgress.localTracks(prefs,bookTitle,files,editionId)
+        val tracks=StableProgress.localTracks(prefs,bookTitle,files,editionId,metadataId)
         val resume=StableProgress.resume(prefs,bookTitle,tracks)
         val position=if(restorePosition && resume.index==index)resume.position else 0
         try {
@@ -2030,7 +2030,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                 libraryBook.title,
                 libraryBook.files,
                 savedTrack,
-                autoPlay,libraryBook.editionId
+                autoPlay,libraryBook.editionId,libraryBook.bookId
             )
 
             appPage =
@@ -9094,7 +9094,7 @@ private fun AbThemeBackdrop(theme: AbTheme, uri: String?, modifier: Modifier = M
     }
 }
 
-private fun abAuthorKey(title: String) = "book_author_" + safeFileName(title)
+internal fun abAuthorKey(title: String) = "book_author_" + safeFileName(title)
 
 private fun abFindLocal(books: List<LibraryBook>, title: String,editionId:String=""): LibraryBook? =
     findDownloadedBook(books,title,editionId)
@@ -9372,13 +9372,14 @@ internal fun AbProgress(value: Float, theme: AbTheme, modifier: Modifier=Modifie
 @Composable
 internal fun AbBookRow(ref: BookRef, local: LibraryBook?, subtitle: String, theme: AbTheme,
     progress: AbBookTimeRules.Result?=null, playing: Boolean=false, onClick: ()->Unit, onMenu: ()->Unit) {
+    val display=abBookDisplay(ref,local)
     Row(Modifier.fillMaxWidth().abGlass(theme,18,raised=true)
         .clickable(onClick=onClick).padding(10.dp),verticalAlignment=Alignment.CenterVertically) {
         AbCover(ref.title,local,ref,theme,Modifier.width(66.dp).height(94.dp))
         Column(Modifier.weight(1f).padding(horizontal=13.dp),verticalArrangement=Arrangement.spacedBy(6.dp)) {
-            Text(ref.title,color=theme.text,fontSize=15.sp,fontWeight=FontWeight.SemiBold,
+            Text(display.title,color=theme.text,fontSize=15.sp,fontWeight=FontWeight.SemiBold,
                 maxLines=2,overflow=TextOverflow.Ellipsis)
-            if(subtitle.isNotBlank()) Text(subtitle,color=theme.muted,fontSize=12.sp,maxLines=2,overflow=TextOverflow.Ellipsis)
+            if(subtitle.isNotBlank()||display.author.isNotBlank()) Text(display.author.ifBlank{subtitle},color=theme.muted,fontSize=12.sp,maxLines=2,overflow=TextOverflow.Ellipsis)
             if(local!=null)Text(abLocalSize(local),color=theme.muted,fontSize=11.sp)
             if(progress!=null) Row(verticalAlignment=Alignment.CenterVertically) {
                 AbProgress(progress.progress,theme,Modifier.weight(1f).semantics{contentDescription=AbBookProgress.description(progress)})
@@ -9393,12 +9394,13 @@ internal fun AbBookRow(ref: BookRef, local: LibraryBook?, subtitle: String, them
 @Composable
 private fun AbPoster(ref: BookRef, local: LibraryBook?, theme: AbTheme, progress: AbBookTimeRules.Result?,
     modifier: Modifier=Modifier, onClick: ()->Unit) {
+    val display=abBookDisplay(ref,local)
     Column(modifier.abGlass(theme,15)
         .padding(7.dp),verticalArrangement=Arrangement.spacedBy(7.dp)) {
         AbCover(ref.title,local,ref,theme,Modifier.fillMaxWidth().aspectRatio(.70f))
-        Text(ref.title,color=theme.text,fontSize=12.sp,fontWeight=FontWeight.Medium,
+        Text(display.title,color=theme.text,fontSize=12.sp,fontWeight=FontWeight.Medium,
             maxLines=2,modifier=Modifier.fillMaxWidth().heightIn(min=44.dp)
-                .semantics{contentDescription="Слушать: ${ref.title}";role=androidx.compose.ui.semantics.Role.Button}
+                .semantics{contentDescription="Слушать: ${display.title}";role=androidx.compose.ui.semantics.Role.Button}
                 .clickable(onClick=onClick).padding(vertical=4.dp),overflow=TextOverflow.Ellipsis)
         if(local!=null)Text(abLocalSize(local),color=theme.muted,fontSize=10.sp,maxLines=2)
         if(progress!=null) {
@@ -9461,7 +9463,7 @@ internal fun AbBookDescriptionDialog(ref:BookRef,local:LibraryBook?,theme:AbThem
             AbButton("Закрыть описание",theme,onClick=dismiss)
         }
     }) {
-        Text(ref.title,color=theme.text,fontSize=18.sp,fontWeight=FontWeight.SemiBold)
+        Text(BookMetadata.ref(prefs,ref,local).title,color=theme.text,fontSize=18.sp,fontWeight=FontWeight.SemiBold)
         description?.let {book ->
             if(book.author.isNotBlank())Text(book.author,color=theme.muted,fontSize=13.sp)
             androidx.compose.foundation.text.selection.SelectionContainer {
@@ -9474,7 +9476,7 @@ internal fun AbBookDescriptionDialog(ref:BookRef,local:LibraryBook?,theme:AbThem
 }
 
 @Composable
-private fun AbTextField(value: String, hint: String, theme: AbTheme, onChange: (String)->Unit,
+internal fun AbTextField(value: String, hint: String, theme: AbTheme, onChange: (String)->Unit,
     submit: (() -> Unit)? = null, multiline:Boolean=false, numeric:Boolean=false) {
     Row(Modifier.fillMaxWidth().abGlass(theme,17,field=true)
         .padding(start=14.dp,end=if(submit==null)14.dp else 6.dp,
@@ -9486,7 +9488,7 @@ private fun AbTextField(value: String, hint: String, theme: AbTheme, onChange: (
                 androidx.compose.ui.text.input.KeyboardType.Number else androidx.compose.ui.text.input.KeyboardType.Text,imeAction=if(submit!=null)
                 androidx.compose.ui.text.input.ImeAction.Search else androidx.compose.ui.text.input.ImeAction.Done),
             keyboardActions=androidx.compose.foundation.text.KeyboardActions(onSearch={submit?.invoke()}),
-            modifier=Modifier.weight(1f),
+            modifier=Modifier.weight(1f).semantics{contentDescription=hint},
             decorationBox={ field ->
                 Box {
                     if(value.isEmpty()) Text(hint,color=theme.muted,fontSize=14.sp,maxLines=1,overflow=TextOverflow.Ellipsis)
@@ -9671,7 +9673,7 @@ private fun AbMiniPlayer(data: AbScreenData,actions: AbActions,books: List<Libra
         Row(Modifier.padding(8.dp),verticalAlignment=Alignment.CenterVertically) {
             AbCover(ref.title,abFindLocal(books,ref.title),ref,theme,Modifier.size(47.dp))
             Column(Modifier.weight(1f).padding(horizontal=12.dp)) {
-                Text(state.bookTitle,color=theme.text,fontSize=13.sp,fontWeight=FontWeight.SemiBold,maxLines=1,overflow=TextOverflow.Ellipsis)
+                Text(BookMetadata.playback(prefs,state.bookTitle,state.tracks).title,color=theme.text,fontSize=13.sp,fontWeight=FontWeight.SemiBold,maxLines=1,overflow=TextOverflow.Ellipsis)
                 Text(if(state.isLoading) "Загрузка главы…" else "${AbBookProgress.label(timing)} · Глава ${state.trackIndex+1} · ${state.tracks.getOrNull(state.trackIndex)?.title.orEmpty()}",
                     color=theme.muted,fontSize=11.sp,maxLines=1,overflow=TextOverflow.Ellipsis)
             }
@@ -10311,9 +10313,9 @@ private fun AbLibraryScreen(data: AbScreenData,actions: AbActions,sync: LibraryS
         data.playback.bookTitle,data.playback.trackIndex) {
         val selected=when(tab){1->localRefs;2->favorites;3->recent;4->queue.map{bookRefFor(prefs,it)};else->all}
             .distinctBy{bookRefIdentity(it)}
-            .filter {it.title.contains(filter,true) || abStoredCatalog(prefs,it.title).author.contains(filter,true)}
+            .filter {ref->val display=BookMetadata.ref(prefs,ref,abFindLocal(books,ref.title,ref.editionId));listOf(display.title,display.author,display.narrator,display.series).any{it.contains(filter,true)}}
         when {
-            sort==1 && tab!=4 -> selected.sortedBy{it.title.lowercase()}
+            sort==1 && tab!=4 -> selected.sortedBy{BookMetadata.ref(prefs,it,abFindLocal(books,it.title,it.editionId)).title.lowercase()}
             // Persisted progress changes every few seconds. Do not reorder rows every player tick.
             sort==2 && tab!=4 -> selected.sortedByDescending{ref->
                 findDownloadedBook(books,ref.title,ref.editionId)?.let {AbBookProgress.library(prefs,it,data.playback,durationCache).progress} ?: 0f
@@ -10422,7 +10424,7 @@ private fun AbLibraryScreen(data: AbScreenData,actions: AbActions,sync: LibraryS
         }
         else if(tab!=5 && tab!=6) itemsIndexed(refs,key={_,ref->bookRefIdentity(ref)}) {_,ref ->
             val local=abFindLocal(books,ref.title,ref.editionId)
-            val author=prefs.getString(abAuthorKey(ref.title),"").orEmpty()
+            val author=BookMetadata.ref(prefs,ref,local).author
             AbBookRow(ref,local,if(author.isNotBlank()) author else if(local!=null) "${local.files.size} глав · На устройстве" else "Онлайн",
                 theme,local?.let{AbBookProgress.library(prefs,it,data.playback,durationCache)},onClick={actions.openRef(ref)},onMenu={onMenu(ref)})
             if(tab==4) {
@@ -10795,13 +10797,16 @@ private fun AbPlayerScreen(data: AbScreenData,actions: AbActions,books: List<Lib
 private fun AbPlayerIdentity(data:AbScreenData,prefs:android.content.SharedPreferences,ref:BookRef,
     theme:AbTheme,onShelf:(BookRef)->Unit,onSeries:()->Unit) {
     val title=data.playback.bookTitle
-    val author=remember(prefs,title,data.version){prefs.getString(abAuthorKey(title),"").orEmpty()}
+    val display=BookMetadata.playback(prefs,title,data.playback.tracks)
+    val author=display.author
     val shelves=prefs.getString(SHELVES_KEY,"[]")
     val collected=remember(prefs,title,shelves){loadShelves(prefs).any{shelf->shelf.books.any{it.title.equals(title,true)}}}
     Column(Modifier.fillMaxWidth(),horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(3.dp)) {
-        Text(title,color=theme.text,fontSize=21.sp,fontWeight=FontWeight.SemiBold,maxLines=2,
+        Text(display.title,color=theme.text,fontSize=21.sp,fontWeight=FontWeight.SemiBold,maxLines=2,
             overflow=TextOverflow.Ellipsis,textAlign=androidx.compose.ui.text.style.TextAlign.Center)
         if(author.isNotBlank())Text(author,color=theme.accent,fontSize=13.sp,maxLines=1,overflow=TextOverflow.Ellipsis)
+        if(display.narrator.isNotBlank())Text("Читает: ${display.narrator}",color=theme.muted,fontSize=12.sp,maxLines=1,overflow=TextOverflow.Ellipsis)
+        if(display.series.isNotBlank())Text(display.seriesLabel,color=theme.muted,fontSize=12.sp,maxLines=1,overflow=TextOverflow.Ellipsis)
         Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(10.dp)) {
             AbButton(if(collected)"В коллекции" else "В коллекцию",theme,Modifier.weight(1f)) {onShelf(ref)}
             AbButton("Продолжения",theme,Modifier.weight(1f).semantics{contentDescription="Продолжения серии"},onClick=onSeries)
@@ -11583,6 +11588,8 @@ private fun AbBookMenu(ref: BookRef,local: LibraryBook?,prefs: android.content.S
     theme: AbTheme,actions: AbActions,version: Int,index:DownloadedChapterIndex,
     downloads:List<AbDownloadItem>,onShelf:()->Unit,dismiss:()->Unit) {
     val context=androidx.compose.ui.platform.LocalContext.current
+    var editMetadata by remember(local?.bookId){mutableStateOf(false)}
+    if(editMetadata&&local!=null) {BookMetadataEditor(local,prefs,theme){editMetadata=false};return}
     var confirmDelete by remember(ref.title){mutableStateOf(false)}
     var moreActions by remember(ref.title){mutableStateOf(false)}
     var deleting by remember(ref.title){mutableStateOf(false)}
@@ -11593,7 +11600,8 @@ private fun AbBookMenu(ref: BookRef,local: LibraryBook?,prefs: android.content.S
     val canDelete=local?.files?.isNotEmpty()==true
     val deleteTarget=local ?: LibraryBook(ref.title,File(libraryRoot(),safeFileName(ref.title)),emptyList())
     AbDialog(if(confirmDelete&&canDelete) "Удалить книгу?" else "Действия с книгой",theme,{if(!deleting)dismiss()}) {
-        Text(ref.title,color=theme.text,fontSize=17.sp,fontWeight=FontWeight.SemiBold)
+        val display=BookMetadata.ref(prefs,ref,local)
+        Text(display.title,color=theme.text,fontSize=17.sp,fontWeight=FontWeight.SemiBold)
         if(local!=null)Text("На устройстве: ${local.files.size} глав · "+abLocalSize(local),color=theme.muted,fontSize=12.sp)
         if(confirmDelete&&canDelete) {
             Text("Будут удалены скачанные главы и служебные файлы этой книги. Коллекции, закладки и другие документы сохранятся. Отменить удаление нельзя.",color=theme.muted,fontSize=14.sp)
@@ -11614,6 +11622,7 @@ private fun AbBookMenu(ref: BookRef,local: LibraryBook?,prefs: android.content.S
         } else {
             AbButton("Слушать книгу",theme,primary=true){dismiss();actions.openRef(ref)}
             AbMenuEditionDownload(ref,local,index,downloads,theme,actions.downloadEdition)
+            if(local!=null&&!local.identityAmbiguous)AbButton("Изменить сведения",theme){editMetadata=true}
             AbButton("Добавить в коллекцию",theme,onClick=onShelf)
             loadShelves(prefs).filter{it.books.any{book->bookRefIdentity(book)==bookRefIdentity(ref)}}.forEach{collection ->
                 AbButton("Убрать из коллекции «${collection.name}»",theme){abRemoveShelfBook(prefs,collection.name,ref)}
@@ -12737,20 +12746,20 @@ internal fun abMergeCycles(first: List<BookCycle>,second: List<BookCycle>): List
     return result
 }
 
-private fun abCatalogKey(title: String) = "book_catalog_"+safeFileName(cleanBookTitle(title))
+internal fun abCatalogKey(title: String) = "book_catalog_"+safeFileName(cleanBookTitle(title))
 
 internal fun abStoredCatalog(prefs: android.content.SharedPreferences,title: String): BookLink {
     return try {
         val json=JSONObject(prefs.getString(abCatalogKey(title),"{}").orEmpty())
         val stored=BookLink(title,json.optString("url"),json.optString("cover"),
             json.optString("author").ifBlank{prefs.getString(abAuthorKey(title),"").orEmpty()},
-            genres=abReadGenres(json.optJSONArray("genres")),cycles=abReadCycles(json.optJSONArray("cycles")),genreOrigin=json.optString("genreOrigin"))
+            genres=abReadGenres(json.optJSONArray("genres")),cycles=abReadCycles(json.optJSONArray("cycles")),genreOrigin=json.optString("genreOrigin"),narrator=json.optString("narrator"))
         stored.copy(cycles=SeriesAuthorityCache.cycles(prefs,title,stored.author,stored.cycles,stored.url))
     } catch(_:Exception) {BookLink(title,"",author=prefs.getString(abAuthorKey(title),"").orEmpty())}
 }
 
 internal fun abRememberCatalog(prefs: android.content.SharedPreferences,book: BookLink) {
-    if(book.title.isBlank() || (book.genres.isEmpty() && book.cycles.isEmpty() && book.author.isBlank())) return
+    if(book.title.isBlank() || (book.genres.isEmpty() && book.cycles.isEmpty() && book.author.isBlank() && book.narrator.isBlank())) return
     val old=abStoredCatalog(prefs,book.title)
     // Do not combine identically named works with explicitly different authors.
     val compatible=old.author.isBlank() || book.author.isBlank() || old.author.equals(book.author,true)
@@ -12762,6 +12771,7 @@ internal fun abRememberCatalog(prefs: android.content.SharedPreferences,book: Bo
     val cycles=SeriesAuthorityCache.cycles(prefs,book.title,book.author.ifBlank{old.author},mergedCycles,book.url)
     val json=JSONObject().put("title",book.title).put("url",book.url.ifBlank{old.url})
         .put("cover",book.coverUrl.ifBlank{old.coverUrl}).put("author",book.author.ifBlank{old.author})
+        .put("narrator",book.narrator.ifBlank{if(compatible)old.narrator else ""})
         .put("genreOrigin",book.genreOrigin.ifBlank{if(book.genres.isEmpty() || keepExternal) old.genreOrigin else ""})
         .put("genres",JSONArray(genres)).put("cycles",JSONArray().apply {
             cycles.forEach {put(JSONObject().put("title",it.title).put("url",it.url).put("order",it.order ?: JSONObject.NULL))}

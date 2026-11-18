@@ -1,0 +1,8 @@
+TokenEconomizer -- smoc1983-web/audiobook (codex)
+  repository   /workspace/Audiobook-Workspace, identified by its origin remote (github.com/smoc1983-web/audiobook)
+  state        /home/agent/.tokeneconomizer/repos/audiobook-a06a2d925d/codex
+  config       microskills=off toolprune=auto loopguard=nudge repomap=off mode=auto shadow=False
+  sessions     0 folded, 0 effective tokens, plugin overhead 0 (0.0%)
+  microskills  0 fact(s) injected at session start (0 sessions learned from)
+  toolprune    0 sessions (0 prompts) observed, catalog: none yet; proposed capabilities: -; applied: -
+  loopguard    envelope not learned yet (0 ended-green turns); 0 redirect(s), 0 still-stuck notice(s) over 0 turns

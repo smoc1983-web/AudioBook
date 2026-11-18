@@ -38,7 +38,7 @@ import org.json.JSONObject
 import java.io.File
 import java.util.concurrent.Executors
 
-data class ServiceTrack(val title: String, val src: String, val durationMs: Int = 0, val editionId:String = "")
+data class ServiceTrack(val title: String, val src: String, val durationMs: Int = 0, val editionId:String = "",val metadataId:String="")
 
 data class ServicePlaybackState(
     val bookTitle: String = "",
@@ -116,7 +116,7 @@ class PlaybackService : Service() {
             (0 until array.length()).mapNotNull {index ->
                 val item=array.optJSONObject(index) ?: return@mapNotNull null
                 val src=item.optString("s")
-                if(src.isBlank())null else ServiceTrack(item.optString("t"),src,item.optInt("d",0),item.optString("e"))
+                if(src.isBlank())null else ServiceTrack(item.optString("t"),src,item.optInt("d",0),item.optString("e"),item.optString("m"))
             }
 
         suspend fun restoreScreenState(context:Context) {
@@ -164,7 +164,7 @@ class PlaybackService : Service() {
             selectionRevision.incrementAndGet()
             val playlist = JSONArray()
             tracks.forEach { playlist.put(JSONObject().put("t", it.title)
-                .put("s", it.src).put("d", it.durationMs).put("e",it.editionId)) }
+                .put("s", it.src).put("d", it.durationMs).put("e",it.editionId).put("m",it.metadataId)) }
             val request = JSONObject().put("book", bookTitle).put("source", sourceType)
                 .put("tracks", playlist).put("index", index).put("position", positionMs)
             // Большой плейлист не передаётся через Binder (лимит размера Intent).
@@ -376,6 +376,9 @@ class PlaybackService : Service() {
             key == EQ_GLOBAL_KEY || key == eqBookKey(bookTitle) || key == "sleep_shake") {
             handler.post { if (!stopped) { applySettings(); publish() } }
         }
+        if(key?.startsWith(BookMetadata.PREFIX)==true) {
+            handler.post {if(!stopped){publish();AbGlassWidgets.metadataChanged(applicationContext)}}
+        }
         if(key?.startsWith("book_chapter_duration_")==true && !isPlaying && !stopped) {
             handler.removeCallbacks(widgetMetadataRefresh)
             handler.postDelayed(widgetMetadataRefresh,100L)
@@ -579,7 +582,7 @@ class PlaybackService : Service() {
 
     private fun persistPlaylist() {
         val array = JSONArray()
-        playlist.forEach { array.put(JSONObject().put("t", it.title).put("s", it.src).put("d", it.durationMs).put("e",it.editionId)) }
+        playlist.forEach { array.put(JSONObject().put("t", it.title).put("s", it.src).put("d", it.durationMs).put("e",it.editionId).put("m",it.metadataId)) }
         val cover = File(File(File(Environment.getExternalStoragePublicDirectory(
             Environment.DIRECTORY_DOWNLOADS), BuildConfig.LIBRARY_DIRECTORY), safeFileName(bookTitle)), "cover.jpg")
         playbackPrefs.edit().putString("widget_playlist", array.toString())
@@ -919,7 +922,7 @@ class PlaybackService : Service() {
                 saveQueue(playbackPrefs, queue.filter { it != nextBook.title })
                 bookTitle = nextBook.title
                 sourceType = "local"
-                playlist = StableProgress.localTracks(playbackPrefs,bookTitle,nextBook.files,nextBook.editionId)
+                playlist = StableProgress.localTracks(playbackPrefs,bookTitle,nextBook.files,nextBook.editionId,nextBook.bookId)
                 val resume=StableProgress.resume(playbackPrefs,bookTitle,playlist)
                 val index=resume.index
                 val position=resume.position
@@ -1218,16 +1221,19 @@ class PlaybackService : Service() {
         if(errorMessage.isNotBlank())sessionState.setErrorMessage(errorMessage)
         mediaSession.setPlaybackState(sessionState.build())
         val cover = loadCoverCached()
-        val title=AbMediaPresentation.bookTitle(bookTitle)
+        val display=BookMetadata.playback(playbackPrefs,bookTitle,playlist)
+        val title=display.title
         val chapter=AbMediaPresentation.chapter(trackIndex,playlist.size,trackTitle)
-        val key = "$title|$chapter|$durationMs|$coverBook"
+        val key = "$title|${display.author}|${display.narrator}|$chapter|$durationMs|$coverBook"
         if (key != metadataKey) {
             metadataKey = key
             val metadata = MediaMetadata.Builder().putString(MediaMetadata.METADATA_KEY_TITLE, title)
                 .putString(MediaMetadata.METADATA_KEY_DISPLAY_TITLE,title)
                 .putString(MediaMetadata.METADATA_KEY_DISPLAY_SUBTITLE,chapter)
                 .putString(MediaMetadata.METADATA_KEY_ALBUM, title)
-                .putString(MediaMetadata.METADATA_KEY_ARTIST, chapter)
+                .putString(MediaMetadata.METADATA_KEY_ARTIST, display.author.ifBlank{chapter})
+                .putString(MediaMetadata.METADATA_KEY_AUTHOR,display.author)
+                .putString(MediaMetadata.METADATA_KEY_WRITER,display.narrator)
                 .putLong(MediaMetadata.METADATA_KEY_DURATION, durationMs.toLong())
             if (cover != null) {
                 metadata.putBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART, cover)
@@ -1298,7 +1304,7 @@ class PlaybackService : Service() {
 
         return builder
             .setSmallIcon(R.drawable.ab_notification_book)
-            .setContentTitle(AbMediaPresentation.bookTitle(bookTitle))
+            .setContentTitle(BookMetadata.playback(playbackPrefs,bookTitle,playlist).title)
             .setContentText(AbMediaPresentation.chapter(trackIndex,playlist.size,trackTitle))
             .setLargeIcon(loadCoverCached())
             .setContentIntent(openApp)

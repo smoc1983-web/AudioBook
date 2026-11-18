@@ -21,7 +21,7 @@ internal object LibraryBackup {
     private val floats=setOf("playback_speed","appearance_dim","appearance_card_opacity","appearance_text_scale")
     private fun type(key:String):String?=when {
         key.startsWith("book_cover_revision_")->"long"
-        key in strings||listOf("book_identity_v3_","book_url_","book_cover_","book_author_","bookmarks_","eq_book_","book_progress_identity_","book_edition_revision_","book_chapter_titles_","book_local_edition_","book_completed_chapters_").any{key.startsWith(it)}->"string"
+        key in strings||listOf(BookMetadata.PREFIX,"book_identity_v3_","book_url_","book_cover_","book_author_","bookmarks_","eq_book_","book_progress_identity_","book_edition_revision_","book_chapter_titles_","book_local_edition_","book_completed_chapters_").any{key.startsWith(it)}->"string"
         key in ints||key.startsWith("book_progress_")||key.startsWith("book_total_")||key.startsWith("book_duration_")||key.startsWith("book_chapter_duration_")->"int"
         key in flags||key.startsWith("book_completed_")||key.startsWith("experience_collapsed_")->"boolean"
         key in floats||key.startsWith("book_speed_")->"float"
@@ -91,6 +91,7 @@ internal object LibraryBackup {
             val value:Any=when(expected) {
                 "string"->row.getString("value").also {
                     require(it.length<=1024*1024)
+                    if(key.startsWith(BookMetadata.PREFIX))BookMetadata.decode(key.removePrefix(BookMetadata.PREFIX),it)
                     if(key in setOf(FAVORITES_KEY,SHELVES_KEY,QUEUE_KEY)||key.startsWith("bookmarks_")) {
                         val array=JSONArray(it);require(array.length()<=10000)
                         fun validateBook(book:JSONObject){require(book.getString("t").isNotBlank()&&book.getString("t").length<=512);require(book.optString("u").length<=8192&&book.optString("c").length<=8192)}

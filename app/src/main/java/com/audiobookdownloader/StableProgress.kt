@@ -61,13 +61,13 @@ internal object StableProgress {
         p.edit().putString(key(p,book,tracks),JSONObject().put("chapter",chapter(p,book,tracks,index))
             .put("position",position.coerceAtLeast(0)).toString()).apply()
     }
-    fun localTracks(p:SharedPreferences,book:String,files:List<java.io.File>,editionId:String=""):List<ServiceTrack> {
+    fun localTracks(p:SharedPreferences,book:String,files:List<java.io.File>,editionId:String="",metadataId:String=""):List<ServiceTrack> {
         val localId=editionId.ifBlank{ChapterIdentity.edition(book,p.getString("book_local_edition_"+safeFileName(book),"").orEmpty())}
         val catalog=JSONArray(EditionMetadata.read(p,book,localId).titles)
         val titles=(0 until catalog.length()).map{catalog.optString(it)}
         return files.map {file->
             val aliases=titles.filter{safeFileName(it)==file.nameWithoutExtension}
-            ServiceTrack(if(aliases.size==1)aliases.single() else file.nameWithoutExtension,libraryTrackSource(file),editionId=localId)
+            ServiceTrack(if(aliases.size==1)aliases.single() else file.nameWithoutExtension,libraryTrackSource(file),editionId=localId,metadataId=metadataId)
         }
     }
     fun completed(p:SharedPreferences,book:String,tracks:List<ServiceTrack>) {

@@ -1,0 +1,42 @@
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.AbBookTimeRules.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.AbBookTimeRules.Totals.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.AudioValidationRules.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.BookMetadataRules.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.DiagnosticPrivacy.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.LibraryRecordRules.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.LibraryRootRules.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.NetworkAddressRules.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.PlaybackPulseRules.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.ProgressSnapshotStore.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.QueueRecoveryRules.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.QueueSnapshotRules.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.SeekHistoryRules.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.SharedAudioRules.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.SourceHealthRules.edn
+Wrote /workspace/Audiobook-Workspace/.metrics/mutate/com.audiobookdownloader.SourceHttp.edn
+KILLED    app/src/main/java/com/audiobookdownloader/BookMetadataRules.java:7 != -> ==
+KILLED    app/src/main/java/com/audiobookdownloader/BookMetadataRules.java:7 && -> ||
+KILLED    app/src/main/java/com/audiobookdownloader/BookMetadataRules.java:10 == -> !=
+KILLED    app/src/main/java/com/audiobookdownloader/BookMetadataRules.java:10 || -> &&
+KILLED    app/src/main/java/com/audiobookdownloader/BookMetadataRules.java:10 > -> >=
+KILLED    app/src/main/java/com/audiobookdownloader/BookMetadataRules.java:10 false -> true
+KILLED    app/src/main/java/com/audiobookdownloader/BookMetadataRules.java:11 && -> ||
+KILLED    app/src/main/java/com/audiobookdownloader/BookMetadataRules.java:11 false -> true
+KILLED    app/src/main/java/com/audiobookdownloader/BookMetadataRules.java:12 0 -> 1
+KILLED    app/src/main/java/com/audiobookdownloader/BookMetadataRules.java:12 < -> <=
+KILLED    app/src/main/java/com/audiobookdownloader/BookMetadataRules.java:12 false -> true
+KILLED    app/src/main/java/com/audiobookdownloader/BookMetadataRules.java:13 true -> false
+KILLED    app/src/main/java/com/audiobookdownloader/BookMetadataRules.java:16 == -> !=
+KILLED    app/src/main/java/com/audiobookdownloader/BookMetadataRules.java:16 false -> true
+KILLED    app/src/main/java/com/audiobookdownloader/BookMetadataRules.java:17 true -> false
+KILLED    app/src/main/java/com/audiobookdownloader/BookMetadataRules.java:18 delete !
+KILLED    app/src/main/java/com/audiobookdownloader/BookMetadataRules.java:18 false -> true
+KILLED    app/src/main/java/com/audiobookdownloader/BookMetadataRules.java:19 > -> >=
+KILLED    app/src/main/java/com/audiobookdownloader/BookMetadataRules.java:19 0 -> 1
+Function    Namespace                                  Killed  Survived  Uncovered  Sites   Score
+-------------------------------------------------------------------------------------------------
+validId     com.audiobookdownloader.BookMetadataRules       2         0          0      2 100.0%
+validText   com.audiobookdownloader.BookMetadataRules      10         0          0     10 100.0%
+validVolume com.audiobookdownloader.BookMetadataRules       7         0          0      7 100.0%
+-------------------------------------------------------------------------------------------------
+Total                                                      19         0          0     19  100.0%

@@ -1,0 +1,4 @@
+error: file not found: app/src/main/java/com/audiobookdownloader/BookMetadataRules.java
+Usage: javac <options> <source files>
+use --help for a list of possible options
+warning: [options] system modules path not set in conjunction with -source 17
