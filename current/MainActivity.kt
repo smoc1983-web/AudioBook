@@ -7096,7 +7096,8 @@ private fun unfinishedLibraryChapters(context:Context):Set<String> {
 
 /** Queue ownership covers the app download directory, never a title-matching external file. */
 internal fun filterUnfinishedLibraryChapters(books:Collection<LibraryBook>,root:File,unfinished:Set<String>):List<LibraryBook> = books.map {book->
-    val managed=book.folder.absoluteFile.normalize().parentFile==root.absoluteFile.normalize()
+    val direct=book.folder.absoluteFile.normalize().parentFile==root.absoluteFile.normalize()
+    val managed=direct || try{book.folder.canonicalFile.parentFile==root.canonicalFile}catch(_:Exception){false}
     if(!managed)book else {
         val key=safeFileName(book.title).lowercase(java.util.Locale.ROOT)
         book.copy(files=book.files.filter{key+"\u0000"+safeFileName(it.nameWithoutExtension).lowercase(java.util.Locale.ROOT) !in unfinished})

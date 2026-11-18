@@ -68,6 +68,12 @@ class LibraryRootsTest {
   val external=LibraryBook("Book",File(data,"other-root/Book"),listOf(File(data,"other-root/Book/01.mp3")))
   val result=filterUnfinishedLibraryChapters(listOf(owned,external),ownedRoot,setOf(AbLibraryHousekeeping.bookKey("Book")+"\u0000"+"01"))
   assertEquals(listOf(external),result) // App-managed unverified chapter stays hidden; external counterpart stays visible.
+  check(folder.mkdirs());val alias=File(data,"managed-alias")
+  android.system.Os.symlink(ownedRoot.path,alias.path)
+  try {
+   val aliasFolder=File(alias,"Book");val sameOwned=owned.copy(folder=aliasFolder,files=listOf(File(aliasFolder,"01.mp3")))
+   assertTrue("A filesystem alias must not bypass unfinished-file filtering",filterUnfinishedLibraryChapters(listOf(sameOwned),ownedRoot,setOf(AbLibraryHousekeeping.bookKey("Book")+"\u0000"+"01")).isEmpty())
+  }finally{alias.delete()}
  }
  @Test fun overlappingGrantsDoNotDuplicateBooksOrChangeTheirIdentityPositionNotesOrCollections() {
   val outer=File(data,"overlap");val file=audio(outer,"Book-${c.id}");val parent=tree(outer);val child=tree(file.parentFile!!)
