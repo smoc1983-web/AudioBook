@@ -58,8 +58,17 @@ CI44244375391 собрал production Preview, но остановился до 
 nullable MediaMetadata в новом тесте; исправлено requireNotNull после ожидания
 готовых metadata. CI44245370148 обнаружил Java-совместимость старого конструктора
 ServiceTrack; она сохранена через @JvmOverloads, прежние тесты не изменены.
-Повторная проверка новых исходников и итоговые счётчики — в
-`docs/quality/book-metadata/results.json` после завершения CI.
+Финальные исходники `59a99b35f9135cbd5d36c4cbd4d3df86297d3936` проверены в
+[CI44245919053](https://github.com/smoc1983-web/AudioBook/actions/runs/44245919053): все три задания SUCCESS. Native: 90/API23 и 92/API36, без failure/error/skip. Среди них
+15 новых проверок на каждой API: 9 storage/backup, 5 UI/saved-state и 1 реальный
+MediaPlayer/MediaSession. Остальные — выбранные прежние регрессии импорта, файлов,
+прогресса, очереди, папок, мониторинга и восстановления. По XML: JVM Debug и Release — по 415 тестов (414 выполнены, 1 прежний
+LiveCatalogTest пропущен), 0 ошибок. Stable Debug/unsigned Release, Preview Debug/
+AndroidTest, upgradeProbe и legacyFixture компилируются; runtime dependency audit
+пройден. Lint Debug/Release: 0 Fatal/Error, 271 Warning и 85 Hint. К предыдущей
+базе добавлен только 1 AutoboxingStateCreation Hint, подавлений нет. Подробнее —
+`docs/quality/book-metadata/results.json`. Установка/upgradeProbe на устройстве
+в этом пакете не выполнялись.
 
 ## Файлы
 

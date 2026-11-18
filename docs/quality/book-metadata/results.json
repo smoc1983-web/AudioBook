@@ -1,0 +1,221 @@
+{
+  "task": "Stage8 book metadata editor",
+  "branch": "cloud/book-metadata-20261118",
+  "base": "e4378972dee3055ce17e472a7fa19d0802375120",
+  "initialTreeClean": true,
+  "testedSource": "59a99b35f9135cbd5d36c4cbd4d3df86297d3936",
+  "ciRun": 44245919053,
+  "ciAttempt": 1,
+  "ciUrl": "https://github.com/smoc1983-web/AudioBook/actions/runs/44245919053",
+  "status": "success",
+  "jobs": {
+    "verify": 134604714916,
+    "native23": 134604715433,
+    "native36": 134604715525
+  },
+  "published": false,
+  "stage8Complete": false,
+  "ubMode": true,
+  "ciResults": {
+    "jvm": {
+      "Debug": {
+        "tests": 415,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 1
+      },
+      "Release": {
+        "tests": 415,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 1
+      }
+    },
+    "native": {
+      "23": {
+        "tests": 90,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "classes": {
+          "com.audiobookdownloader.BookMetadataPlaybackTest": 1,
+          "com.audiobookdownloader.BookMetadataAndroidTest": 9,
+          "com.audiobookdownloader.BookMetadataPanelTest": 5,
+          "com.audiobookdownloader.LibraryRootsTest": 9,
+          "com.audiobookdownloader.LibraryRootsPanelTest": 4,
+          "com.audiobookdownloader.LocalContinuationPlaybackTest": 3,
+          "com.audiobookdownloader.ShortAudioValidationTest": 1,
+          "com.audiobookdownloader.AudioValidationTest": 2,
+          "com.audiobookdownloader.SharedAudioImportTest": 11,
+          "com.audiobookdownloader.SharedAudioPanelTest": 3,
+          "com.audiobookdownloader.SourceHealthAndroidTest": 4,
+          "com.audiobookdownloader.SourceHealthPanelTest": 3,
+          "com.audiobookdownloader.SeekHistoryAndroidTest": 8,
+          "com.audiobookdownloader.SeekHistoryPanelTest": 3,
+          "com.audiobookdownloader.Stage8ReliabilityTest": 11,
+          "com.audiobookdownloader.Stage8ProgressFolderTest": 7,
+          "com.audiobookdownloader.Stage8FolderPanelStateTest": 1,
+          "com.audiobookdownloader.Stage8ExportStateTest": 2,
+          "com.audiobookdownloader.LibraryIdentityAndroidTest": 3
+        }
+      },
+      "36": {
+        "tests": 92,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "classes": {
+          "com.audiobookdownloader.BookMetadataPlaybackTest": 1,
+          "com.audiobookdownloader.BookMetadataAndroidTest": 9,
+          "com.audiobookdownloader.BookMetadataPanelTest": 5,
+          "com.audiobookdownloader.LibraryRootsTest": 9,
+          "com.audiobookdownloader.LibraryRootsPanelTest": 4,
+          "com.audiobookdownloader.LocalContinuationPlaybackTest": 3,
+          "com.audiobookdownloader.ShortAudioValidationTest": 1,
+          "com.audiobookdownloader.AudioValidationTest": 2,
+          "com.audiobookdownloader.SharedAudioImportTest": 11,
+          "com.audiobookdownloader.SharedAudioPanelTest": 3,
+          "com.audiobookdownloader.SourceHealthAndroidTest": 4,
+          "com.audiobookdownloader.SourceHealthPanelTest": 3,
+          "com.audiobookdownloader.SeekHistoryAndroidTest": 8,
+          "com.audiobookdownloader.SeekHistoryPanelTest": 3,
+          "com.audiobookdownloader.Stage8ReliabilityTest": 11,
+          "com.audiobookdownloader.Stage8ProgressFolderTest": 7,
+          "com.audiobookdownloader.Stage8FolderPanelStateTest": 1,
+          "com.audiobookdownloader.Stage8ExportStateTest": 2,
+          "com.audiobookdownloader.LibraryIdentityAndroidTest": 3,
+          "com.audiobookdownloader.IdlePlaybackTest": 2
+        }
+      }
+    },
+    "lint": {
+      "lint-results-release.xml": {
+        "counts": {
+          "Warning": 271,
+          "Hint": 85
+        },
+        "addedCounts": {
+          "AutoboxingStateCreation": 1
+        },
+        "added": [
+          [
+            "AutoboxingStateCreation",
+            "Hint",
+            "Prefer `mutableIntStateOf` instead of `mutableStateOf`"
+          ]
+        ],
+        "removed": []
+      },
+      "lint-results-debug.xml": {
+        "counts": {
+          "Warning": 271,
+          "Hint": 85
+        },
+        "addedCounts": {
+          "AutoboxingStateCreation": 1
+        },
+        "added": [
+          [
+            "AutoboxingStateCreation",
+            "Hint",
+            "Prefer `mutableIntStateOf` instead of `mutableStateOf`"
+          ]
+        ],
+        "removed": []
+      }
+    }
+  },
+  "builds": {
+    "stableDebug": true,
+    "stableUnsignedRelease": true,
+    "previewDebugExistingSigner": true,
+    "previewAndroidTest": true,
+    "upgradeProbeCompiled": true,
+    "legacyFixtureCompiled": true,
+    "runtimeDependencyAudit": true,
+    "lintDebug": true,
+    "lintRelease": true
+  },
+  "oldSkippedJvmTest": "com.audiobookdownloader.LiveCatalogTest.liveSourcesSearchResolveDownloadAndDecode",
+  "newJvmTestsPassedPerVariant": 5,
+  "newNativeTestsPassedPerApi": 15,
+  "nativeTotal": 182,
+  "local": {
+    "androidSdkAvailable": false,
+    "gradleAvailable": false,
+    "javaRulesTests": 3,
+    "red": "compiler rejected missing production BookMetadataRules before implementation",
+    "jacocoMethodLineCoveragePercent": 100,
+    "crapMax": 7,
+    "dryerCandidatesAtThreshold08": 0,
+    "mutationKilled": 19,
+    "mutationTotal": 19,
+    "kotlinSupportedByTheseQualityTools": false,
+    "sourceParserDesktopJvmChecks": "passed"
+  },
+  "diagnosticRuns": [
+    {
+      "run": 44244375391,
+      "issue": "nullable MediaMetadata in new native test; fixed requireNotNull after metadata-ready wait",
+      "instrumentationStarted": false
+    },
+    {
+      "run": 44244928317,
+      "conclusion": "cancelled",
+      "reason": "superseded by review changes"
+    },
+    {
+      "run": 44245370148,
+      "issue": "existing Java four-argument ServiceTrack callers failed compilation; old constructor restored with @JvmOverloads",
+      "conclusion": "cancelled after failed native compile, superseded",
+      "instrumentationStarted": false
+    }
+  ],
+  "preserved": {
+    "canonicalTitles": true,
+    "bookEditionChapterIds": true,
+    "userFilesAndFolders": true,
+    "progressBookmarksNotesCollectionsQueue": true,
+    "packageVersionSigningConfiguration": true,
+    "sourceMain": "c8301dbf2fb558c8330d87baa67cacf307708529",
+    "publicPreviewTag": "preview-v100095"
+  },
+  "scope": {
+    "localUnambiguousBookEditor": true,
+    "fields": [
+      "display title",
+      "author",
+      "narrator",
+      "personal series label",
+      "volume"
+    ],
+    "sourceMetadataSeparate": true,
+    "personalSeriesRegrouping": false,
+    "sourceRefreshDoesNotOverwrite": true,
+    "corruptResetSnapshot": true,
+    "failedCommitConfirmedView": true,
+    "ioWriterSeparateFromReadLock": true,
+    "savedDraftRejectsInterveningEdit": true,
+    "backupIncludesValidatedOverrides": true,
+    "safYandexProgressExchangeIncludesMetadata": false,
+    "oldPlaylistsCompatible": true,
+    "unknownOldLocalPlaylistRequiresReopenForMetadataIdentity": true
+  },
+  "limitations": [
+    "No physical phone/OEM/real installer checks",
+    "No measured battery/RAM/startup claims",
+    "Failed and blocked commits simulated; actual disk full/power loss/process kill not exercised",
+    "Unknown l3 identity is location-bound and not guessed across devices/paths",
+    "Old title-only BookRef/collection ambiguities remain",
+    "Personal series is a label, not evidence for official continuation lookup or automatic grouping",
+    "Source series presentation cache may lag authority-only changes until catalog refresh/restart",
+    "Selected native suite only; see script/classes in counts"
+  ],
+  "tokenEconomizer": {
+    "cliUsed": true,
+    "sessions": 0,
+    "hookIntegrationVerified": false,
+    "tokenSavingsMeasured": false
+  },
+  "next": "Consented Wi-Fi next-volume downloads as a separate package, then additional search filters"
+}

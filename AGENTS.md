@@ -1,3 +1,39 @@
+# Этап8 — редактор сведений проверен, не опубликован (2026-11-18)
+
+Ветка cloud/book-metadata-20261118 от чистой e437897 (fetch подтверждён).
+Проверены исходники59a99b35f9135cbd5d36c4cbd4d3df86297d3936;
+CI44245919053 all3jobs SUCCESS: Stable Debug/unsigned Release, Preview Debug/
+AndroidTest/existing signer, upgradeProbe+legacyFixture compile, runtime audit.
+JVM по415 (414executed/1oldLiveCatalogskip); native90/API23+92/API36 (182,0failure/
+error/skip), в т.ч.15newmetadata cases/API:9storage/backup+5UI/savedstate+1player.
+Lint0Fatal/Error,271Warning85Hint: +1AutoboxingStateCreation Hint к базе, без suppress.
+Java3green/red absent class, CRAPmax7/Dryer0 scoped/Mutator19/19 actual; Kotlin gap.
+Source/parser/desktopJVM/shell checks green; локально нет SDK/Gradle.
+См. docs/BOOK-METADATA-STAGE-8.md и docs/quality/book-metadata/results.json/worklog.
+Меню однозначной local book→Изменить сведения: display title/author/narrator,
+personal series/volume. JSON book_metadata_override_v1_<bookId> отдельно от source.
+Canonical title/IDs/файлы/прогресс/закладки/очередь/коллекции прежние. Source narrator
+сохраняется. Редактор не переименовывает папки и не создаёт false series evidence.
+ServiceTrack optional metadataId=m; старый Java4arg ctor сохранён @JvmOverloads.
+Старые плейлисты читаются; неизвестная старая local playlist требует reopen для
+l3-binding, не угадывать по title. Personal series label, не grouping/continuation.
+Снимок редактора сохраняется при recreation; stale edits rejected. Corrupt raw/type
+snapshot before explicit reset, pending confirmed-view, IO writer lock отдельно
+от чтения, StateFlow refresh без restart/seek/pause/speed change (native verified).
+Library filter/sort и titles/player/mini/media/widget используют display values;
+контекстные chapter/volume subtitles сохранены. Кэш bounded, no RAM/battery claims.
+Backup allowlist+schema validation; SAF/Яндекс обмен progress-only. l3 по прежнему
+location-bound: не угадывать binding на иных путях/устройствах. Title-only BookRef/
+collection ambiguities прежние. Источник series cache может ждать catalog refresh.
+Ранние CI:44244375391 nullable new-test Metadata;44245370148 Java ctor regression;
+обе причины исправлены, старые assertions сохранены.44244928317 superseded cancelled.
+Physical phone/OEM/Installer, actual diskfull/powerloss/processkill не проверены;
+failed/blocked commits моделировались. Native selected suite, не весь historical.
+Main c8301db/public preview-v100095/package/version/signer прежние. Не публиковать.
+Этап8 ещё не завершён: далее consented Wi-Fi next volume, дополнительные фильтры,
+только отдельным пакетом после подтверждения. Ub-mode уже разрешён для этапа8;
+TokenEconomizer CLI без повторных вопросов: sessions0/hooks/savings unverified.
+
 # Этап8 — несколько папок библиотеки проверены, не опубликованы (2026-11-18)
 
 Ветка cloud/library-roots-20261118 от19cb6ee (чистая база/fetch совпали).
