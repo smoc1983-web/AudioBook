@@ -5,6 +5,8 @@ import org.junit.*;import org.junit.runner.RunWith;import static org.junit.Asser
 /** Opt-in second pass: executes against the actually installed old/new APKs in a disposable emulator. */
 @RunWith(AndroidJUnit4.class)
 public class UpgradeCandidateTest {
+ private static final String BOOKMARK_KEY = "bookmarks_UpgradeProbe";
+ private static final String BOOKMARK = "[{\"t\":0,\"n\":\"Chapter 1\",\"p\":54321,\"c\":1,\"label\":\"Upgrade bookmark\",\"note\":\"Keep this note\"}]";
  private static Class<?> targetClass(Context context,String name)throws Exception{
   return Class.forName("com.audiobookdownloader."+name,true,context.getClassLoader());
  }
@@ -31,6 +33,7 @@ public class UpgradeCandidateTest {
   assertNotNull(marker);assertTrue(marker.matches("upgrade-[0-9a-f-]+"));
   c.getSharedPreferences("audiobook_downloader",0).edit().putString("upgrade_marker",marker)
    .putInt("player_last_position",54321).putString("library_tree_uri","content://com.android.externalstorage.documents/tree/primary%3ADownload%2FAudioBooks")
+    .putString(BOOKMARK_KEY,BOOKMARK)
    .putString("shelves_v1","[{\"n\":\"Проверка обновления\",\"b\":[]}]").commit();
   String[] names={"marker.txt","audio.wav","candidate.apk"};
   File[] targets={new File(c.getFilesDir(),"upgrade-marker.txt"),new File(c.getFilesDir(),"upgrade-audio.wav"),new File(c.getCacheDir(),"upgrade-candidate.apk")};
@@ -94,5 +97,13 @@ public class UpgradeCandidateTest {
    new PermissionSurfaceTest().installedPlayerHasNoScreenReaderOrPrivilegedTransferComponents();
   }
   assertEquals(marker,prefs.getString("upgrade_marker",""));assertTrue(hasShelf(c,prefs,"Проверка обновления"));
+  assertEquals(BOOKMARK,prefs.getString(BOOKMARK_KEY,""));
+  java.lang.reflect.Method loadBookmarks=targetClass(c,"BookmarkStoreKt")
+      .getMethod("loadBookmarks",android.content.SharedPreferences.class,String.class,String.class);
+  java.util.List<?> bookmarks=(java.util.List<?>)loadBookmarks.invoke(null,prefs,"UpgradeProbe","");
+  assertEquals(1,bookmarks.size());
+  Object bookmark=bookmarks.get(0);
+  assertEquals(54321,bookmark.getClass().getMethod("getPosition").invoke(bookmark));
+  assertEquals("Keep this note",bookmark.getClass().getMethod("getNote").invoke(bookmark));
  }
 }
