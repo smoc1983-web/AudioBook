@@ -8,6 +8,13 @@ tests=com.audiobookdownloader.LibraryRootsTest,com.audiobookdownloader.LibraryRo
 if [[ "$api" -ge 29 ]]; then tests="$tests,com.audiobookdownloader.IdlePlaybackTest"; fi
 [[ -n "$tests" ]]
 echo "Selected native test classes: $tests"
-gradle :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class="$tests" --max-workers=2 --console=plain
-mkdir -p app/build/reports/library-roots-native
-cp -R app/build/outputs/androidTest-results app/build/reports/library-roots-native/normal
+report=app/build/reports/library-roots-native
+mkdir -p "$report"
+collect() {
+  timeout 20s adb logcat -d -v threadtime > "$report/logcat.txt" 2>&1 || true
+  timeout 20s adb shell dumpsys activity top > "$report/activity.txt" 2>&1 || true
+  if [[ -d app/build/outputs/androidTest-results ]]; then cp -R app/build/outputs/androidTest-results "$report/normal"; fi
+}
+trap collect EXIT
+# Bound a stuck test without treating it as passed. Preserve all class/method filters.
+timeout --signal=TERM --kill-after=15s 8m gradle :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class="$tests" -Pandroid.testInstrumentationRunnerArguments.timeout_msec=120000 --max-workers=2 --console=plain
