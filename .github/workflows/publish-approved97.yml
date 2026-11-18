@@ -32,10 +32,10 @@ jobs:
           cp candidate/dist/Audiobook-Preview-4.2.97.apk dist/Audiobook-Preview.apk
       - name: Prepare the existing updater discovery and download probe
         run: |
-          mkdir -p probe-classes probe-src
+          mkdir -p probe-classes/95 probe-classes/96 probe-src/95 probe-src/96
           curl --silent --show-error --fail --retry 3 https://repo.maven.apache.org/maven2/org/json/json/20240303/json-20240303.jar -o probe-json.jar
           curl --silent --show-error --fail --retry 3 https://repo.maven.apache.org/maven2/org/jsoup/jsoup/1.23.2/jsoup-1.23.2.jar -o probe-jsoup.jar
-          cat > probe-src/BuildConfig.java <<'JAVA'
+          cat > probe-src/95/BuildConfig.java <<'JAVA'
           package com.audiobookdownloader;
           final class BuildConfig {
               static final String APPLICATION_ID="com.audiobookdownloader.preview";
@@ -47,8 +47,16 @@ jobs:
               static final String UPDATE_METADATA="preview-update.json";
           }
           JAVA
-          javac -cp probe-json.jar:probe-jsoup.jar -d probe-classes probe-src/BuildConfig.java \
-            app/src/main/java/com/audiobookdownloader/{PreviewUpdateRules,PreviewUpdateHttp,GitHubReleaseCatalog}.java \
+          git fetch --no-tags origin refs/tags/preview-v100095
+          test "$(git rev-parse FETCH_HEAD)" = aade1a88688219571eaef0cef93557e8230739f6
+          for name in PreviewUpdateRules PreviewUpdateHttp GitHubReleaseCatalog; do
+            git show "FETCH_HEAD:app/src/main/java/com/audiobookdownloader/$name.java" > "probe-src/95/$name.java"
+          done
+          javac -cp probe-json.jar:probe-jsoup.jar -d probe-classes/95 probe-src/95/*.java \
+            tools/github-update-probe/GithubUpdateProbe.java
+          sed 's/VERSION_NAME="4.2.95"/VERSION_NAME="4.2.96"/' probe-src/95/BuildConfig.java > probe-src/96/BuildConfig.java
+          javac -cp probe-json.jar:probe-jsoup.jar -d probe-classes/96 probe-src/96/BuildConfig.java \
+            app/src/main/java/com/audiobookdownloader/{PreviewUpdateRules,PreviewUpdateHttp,GitHubReleaseCatalog,NetworkAddressRules}.java \
             tools/github-update-probe/GithubUpdateProbe.java
       - name: Verify candidate and publish complete Preview release
         env:
@@ -56,14 +64,18 @@ jobs:
         run: python3 scripts/publish-approved97.py
       - name: Verify anonymous discovery and compare the full downloaded APK
         run: |
-          for attempt in 1 2 3 4; do
-            if java -cp probe-classes:probe-json.jar:probe-jsoup.jar com.audiobookdownloader.GithubUpdateProbe public97 preview-v100097 &&
-                cmp dist/Audiobook-Preview.apk public97/Audiobook-Preview.apk; then
-              exit 0
-            fi
-            sleep 12
+          for version in 95 96; do
+            verified=false
+            for attempt in 1 2 3 4; do
+              if java -cp "probe-classes/$version:probe-json.jar:probe-jsoup.jar" com.audiobookdownloader.GithubUpdateProbe "public97/$version" preview-v100097 &&
+                  cmp dist/Audiobook-Preview.apk "public97/$version/Audiobook-Preview.apk"; then
+                verified=true
+                break
+              fi
+              sleep 12
+            done
+            test "$verified" = true
           done
-          exit 1
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -71,4 +83,5 @@ jobs:
           path: |
             dist/publication.json
             dist/preview-update.json
-            public97/public-github-check.json
+            public97/95/public-github-check.json
+            public97/96/public-github-check.json
