@@ -13,10 +13,10 @@ import java.util.concurrent.TimeUnit
 internal data class QueuedChapter(val key:String,val book:String,val title:String,val src:String,
     val duration:Int=0,val job:Long=0,val state:String="queued",val bytes:Long=0,val total:Long=-1,
     val error:String="",val editionUrl:String="",val initialSrc:String=src,val refreshAttempts:Int=0,
-    val transientAttempts:Int=0,val retryAt:Long=0) {
+    val transientAttempts:Int=0,val retryAt:Long=0,val wifiOnly:Boolean=false) {
     fun json()=JSONObject().put("key",key).put("book",book).put("title",title).put("src",src)
         .put("duration",duration).put("job",job).put("state",state).put("bytes",bytes).put("total",total).put("error",error).put("editionUrl",editionUrl)
-        .apply {if(initialSrc!=src)put("initialSrc",initialSrc);if(refreshAttempts>0)put("refreshAttempts",refreshAttempts);if(transientAttempts>0)put("transientAttempts",transientAttempts);if(retryAt>0)put("retryAt",retryAt)}
+        .apply {if(initialSrc!=src)put("initialSrc",initialSrc);if(refreshAttempts>0)put("refreshAttempts",refreshAttempts);if(transientAttempts>0)put("transientAttempts",transientAttempts);if(retryAt>0)put("retryAt",retryAt);if(wifiOnly)put("wifiOnly",true)}
 }
 internal fun abDownloadObservation(row:QueuedChapter,status:Int?,downloaded:Long,total:Long,
     providerAvailable:Boolean=true):QueuedChapter {
@@ -74,7 +74,7 @@ internal object AbPersistentDownloads {
         val rows=linkedMapOf<String,QueuedChapter>();val jobs=mutableMapOf<Long,String>()
         for(i in 0 until a.length()) {
             val o=a.getJSONObject(i)
-            val row=QueuedChapter(o.getString("key"),o.getString("book"),o.getString("title"),o.getString("src"),o.optInt("duration"),o.optLong("job"),o.optString("state","queued"),o.optLong("bytes"),o.optLong("total",-1),o.optString("error"),o.optString("editionUrl"),o.optString("initialSrc",o.getString("src")),o.optInt("refreshAttempts"),o.optInt("transientAttempts"),o.optLong("retryAt"))
+            val row=QueuedChapter(o.getString("key"),o.getString("book"),o.getString("title"),o.getString("src"),o.optInt("duration"),o.optLong("job"),o.optString("state","queued"),o.optLong("bytes"),o.optLong("total",-1),o.optString("error"),o.optString("editionUrl"),o.optString("initialSrc",o.getString("src")),o.optInt("refreshAttempts"),o.optInt("transientAttempts"),o.optLong("retryAt"),if(o.has("wifiOnly")){require(o.get("wifiOnly") is Boolean);o.getBoolean("wifiOnly")}else false)
             require((row.key==legacyKey(row.book,row.title)||row.key==key(row.book,row.title,row.initialSrc,row.editionUrl))&&
                 isNetworkAudio(row.src)&&isNetworkAudio(row.initialSrc)&&row.refreshAttempts in 0..1&&
                 (row.src==row.initialSrc||ChapterRefreshRules.sameResource(row.initialSrc,row.src))&&
@@ -114,6 +114,7 @@ internal object AbPersistentDownloads {
         val rows=entries(c).toMutableList()
         for(edition in editions) {
             val book=edition.ref.title;val tracks=edition.tracks
+            require(!edition.wifiOnly||rows.none{it.book==book&&!it.wifiOnly&&it.state in listOf("active","verifying")}){"Эта книга уже загружается с прежними сетевыми настройками. Новая загрузка не создана."}
             require(!edition.preview&&!EditionDownloadRules.isPreview(book,tracks.map{it.src})){"Источник передал ознакомительный фрагмент"}
             require(tracks.none{EditionDownloadRules.isSegmented(it.src)}){"Источник передал поток HLS/DASH. Скачивание этого формата пока не поддерживается; выберите другое издание."}
             require(book.isNotBlank()&&book.length<=512&&tracks.size<=3000&&edition.ref.url.length<=8192)
@@ -122,8 +123,8 @@ internal object AbPersistentDownloads {
                 val id=key(book,t.title,t.src,edition.ref.url)
                 val at=rows.indexOfFirst{it.key==id || it.book==book&&it.title==t.title&&it.src==t.src&&it.editionUrl==edition.ref.url}
                 val previous=rows.getOrNull(at)
-                val row=previous?.copy(duration=t.duration,state="queued",error="",refreshAttempts=0,transientAttempts=0,retryAt=0)
-                    ?: QueuedChapter(id,book,t.title,t.src,t.duration,editionUrl=edition.ref.url)
+                val row=previous?.copy(duration=t.duration,state="queued",error="",refreshAttempts=0,transientAttempts=0,retryAt=0,wifiOnly=previous.wifiOnly||edition.wifiOnly)
+                    ?: QueuedChapter(id,book,t.title,t.src,t.duration,editionUrl=edition.ref.url,wifiOnly=edition.wifiOnly)
                 if(at<0)rows.add(row) else if(rows[at].state in listOf("queued","error","cancelled","complete"))rows[at]=row
             }
         }
@@ -155,7 +156,7 @@ internal object AbPersistentDownloads {
                 if(done) {
                     if(!AbDownloadedAudio.unchangedRejected(c,row.job) || !removeOwnedFailedJob(c,dm,row))completed.add(row.key)
                 } else dm.remove(row.job)
-                main(c).edit().remove("download_job_"+row.job).commit()
+                main(c).edit().remove("download_job_"+row.job).remove("download_wifi_only_"+row.job).commit()
             }
         }
         write(c,rows.map{if(it.key in completed)it.copy(state=if(AbDownloadedAudio.verified(c,it.job))"complete" else "verifying") else if(it.book==book&&(chapter==null||it.key==chapter)&&it.state!="complete")it.copy(state="cancelled",job=0) else it})
@@ -175,16 +176,21 @@ internal object AbPersistentDownloads {
         // Existing Android jobs from older releases are adopted without deleting/restarting them.
         synchronized(lock) {
             val rows=entries(c).toMutableList()
-            for((k,v) in main(c).all)if(k.startsWith("download_job_")&&v is String) {
+            val mappings=main(c).all
+            for((k,v) in mappings)if(k.startsWith("download_job_")&&v is String) {
                 val id=k.removePrefix("download_job_").toLongOrNull()?:continue;val p=v.split("|||",limit=3)
-                if(p.size==3&&isNetworkAudio(p[2])&&rows.none{it.job==id || it.book==p[1]&&it.title==p[0]&&it.src==p[2]})rows.add(QueuedChapter(key(p[1],p[0],p[2]),p[1],p[0],p[2],job=id,state="active"))
+                if(p.size==3&&isNetworkAudio(p[2])&&rows.none{it.job==id || it.book==p[1]&&it.title==p[0]&&it.src==p[2]}) {
+                    val wifi=mappings["download_wifi_only_"+id]
+                    require(wifi==null||wifi is Boolean){"Повреждены сетевые параметры прежней загрузки. Записи сохранены."}
+                    rows.add(QueuedChapter(key(p[1],p[0],p[2]),p[1],p[0],p[2],job=id,state="active",wifiOnly=wifi==true))
+                }
             }
             write(c,rows)
         }
         if(entries(c).any{it.state in listOf("active","verifying","queued")})schedule(c)
     }
     fun retainRejected(c:Context):Boolean=try{restore(c);true}catch(_:Exception){false}
-    private fun pendingAndroidJob(dm:DownloadManager,row:QueuedChapter):Long? {
+    private fun pendingAndroidJob(dm:DownloadManager,row:QueuedChapter):Pair<Long,Boolean>? {
         // Recover the crash window after system enqueue and before persisting its returned ID.
         return dm.query(DownloadManager.Query().setFilterByStatus(DownloadManager.STATUS_PENDING or DownloadManager.STATUS_RUNNING or DownloadManager.STATUS_PAUSED or DownloadManager.STATUS_SUCCESSFUL))?.use{q->
             val title=q.getColumnIndexOrThrow(DownloadManager.COLUMN_TITLE)
@@ -192,10 +198,11 @@ internal object AbPersistentDownloads {
             val id=q.getColumnIndexOrThrow(DownloadManager.COLUMN_ID)
             val status=q.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS)
             val local=q.getColumnIndexOrThrow(DownloadManager.COLUMN_LOCAL_URI)
-            var found:Long?=null
+            var found:Pair<Long,Boolean>?=null
             while(q.moveToNext())if(q.getString(title)==row.book+" - "+row.title&&q.getString(uri)==row.src) {
                 if(q.getInt(status)==DownloadManager.STATUS_SUCCESSFUL&&!matchesDestination(row,q.getString(local)))continue
-                found=q.getLong(id);break
+                val proof=q.getString(q.getColumnIndexOrThrow(DownloadManager.COLUMN_DESCRIPTION))==abDownloadDescription(row.title,true)
+                found=q.getLong(id) to NextVolumeRules.mayAdopt(row.wifiOnly,q.getInt(status)==DownloadManager.STATUS_SUCCESSFUL,proof);break
             }
             found
         }
@@ -247,7 +254,7 @@ internal object AbPersistentDownloads {
         if(!failed)return false
         // Only this exact owned HTTP-failed or validator-rejected job may be retried; verified files are preserved.
         if(dm.remove(row.job)<=0)return false
-        main(c).edit().remove("download_job_"+row.job).apply()
+        main(c).edit().remove("download_job_"+row.job).remove("download_wifi_only_"+row.job).apply()
         return true
     }
     private suspend fun refreshExpired(c:Context,dm:DownloadManager,row:QueuedChapter,reason:Int):Boolean {
@@ -340,7 +347,7 @@ internal object AbPersistentDownloads {
                 }
             }
         }
-        for(row in entries(c).filter{it.job>0&&it.state in listOf("complete","error")})main(c).edit().remove("download_job_"+row.job).apply()
+        for(row in entries(c).filter{it.job>0&&it.state in listOf("complete","error")})main(c).edit().remove("download_job_"+row.job).remove("download_wifi_only_"+row.job).apply()
         if(finished){main(c).edit().putLong("experience_library_revision",System.currentTimeMillis()).apply();AbLibraryHousekeeping.request(c)}
         synchronized(lock){
             val now=System.currentTimeMillis()
@@ -391,14 +398,19 @@ internal object AbPersistentDownloads {
                     val ownership="destination_owner_"+ChapterIdentity.hash(destination(row))
                     val owner=prefs(c).getString(ownership,null)
                     val exists=index.contains(row.book,row.title)
-                    val adopted=pendingAndroidJob(dm,row)
+                    val observedJob=pendingAndroidJob(dm,row)
+                    if(observedJob?.second==false) {
+                        update(c,row.key){it.copy(state="error",error="Для прежнего задания не подтверждён режим Wi-Fi. Оно сохранено; отмените его вручную перед новой загрузкой.")}
+                        return@synchronized
+                    }
+                    val adopted=observedJob?.first
                     val jobClaimed=adopted!=null && entries(c).any{it.key!=row.key&&it.job==adopted}
                     val colliding=entries(c).any{it.key!=row.key && destination(it)==destination(row) && (it.state in listOf("active","verifying") || it.state=="complete" && exists)}
                     if(colliding || jobClaimed || owner!=null && owner!=row.key && (exists||adopted!=null)) {
                         update(c,row.key){it.copy(state="error",error="Другое издание использует тот же файл. Прежняя глава сохранена; выберите отдельную папку или удалите прежнее издание.")}
                     } else if(adopted!=null) {
                         check(prefs(c).edit().putString(ownership,row.key).putString("destination_source_"+ChapterIdentity.hash(destination(row)),row.src).commit())
-                        main(c).edit().putString("download_job_"+adopted,row.title+"|||"+row.book+"|||"+row.src).commit()
+                        main(c).edit().putString("download_job_"+adopted,row.title+"|||"+row.book+"|||"+row.src).putBoolean("download_wifi_only_"+adopted,row.wifiOnly).commit()
                         update(c,row.key){it.copy(job=adopted,state="active",error="")}
                     } else if(exists) {
                         // Legacy files have no provable source: do not label another edition complete.
@@ -415,9 +427,9 @@ internal object AbPersistentDownloads {
                             }
                             main(c).edit().putString(localKey,row.editionUrl).commit()
                         }
-                        val id=downloadTrack(c,track,row.book,index)
+                        val id=downloadTrack(c,track,row.book,index,current.wifiOnly)
                         if(id!=null) {
-                            main(c).edit().putString("download_job_"+id,row.title+"|||"+row.book+"|||"+row.src).commit()
+                            main(c).edit().putString("download_job_"+id,row.title+"|||"+row.book+"|||"+row.src).putBoolean("download_wifi_only_"+id,row.wifiOnly).commit()
                             update(c,row.key){it.copy(job=id,state="active",bytes=0,total=-1,error="",retryAt=0)}
                         } else update(c,row.key){it.copy(state="error",error="Не удалось начать загрузку. Проверьте разрешения и свободное место.")}
                     }

@@ -2985,7 +2985,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                                                 )
 
                                             abRememberCatalog(prefs,BookLink(realBookTitle,currentUrl,currentCoverUrl,currentBookAuthor,
-                                                genres=abReadGenres(root.optJSONArray("genres")),cycles=abReadCycles(root.optJSONArray("cycles"))))
+                                                genres=abReadGenres(root.optJSONArray("genres")),cycles=abReadCycles(root.optJSONArray("cycles"),currentUrl)))
                                             prefs.edit()
                                                 .putString(abAuthorKey(realBookTitle), currentBookAuthor)
                                                 .putString(
@@ -6626,7 +6626,7 @@ fun parseBookLinks(
                     ),
                 author = item.optString("author", ""),
                 genres = abReadGenres(item.optJSONArray("genres")),
-                cycles = abReadCycles(item.optJSONArray("cycles")),
+                cycles = abReadCycles(item.optJSONArray("cycles"),url),
                 genreOrigin = item.optString("genreOrigin",""),
                 narrator = item.optString("narrator",item.optString("reader",""))
             )
@@ -6671,11 +6671,13 @@ fun PlayerChapterSelector(
     }
 }
 
+@JvmOverloads
 fun downloadTrack(
     context: Context,
     track: AudioTrack,
     bookTitle: String,
-    downloadedIndex: DownloadedChapterIndex
+    downloadedIndex: DownloadedChapterIndex,
+    forceWifiOnly:Boolean=false
 ): Long? {
 
     if (
@@ -6718,9 +6720,8 @@ fun downloadTrack(
             "$bookTitle - ${track.title}"
         )
 
-        request.setDescription(
-            "Глава ${track.title}"
-        )
+        val wifiOnly=NextVolumeRules.wifiRequired(forceWifiOnly,context.getSharedPreferences("audiobook_downloader",0).getBoolean("experience_wifi_only",false))
+        request.setDescription(abDownloadDescription(track.title,wifiOnly))
 
         request.setMimeType(
             "audio/mpeg"
@@ -6731,7 +6732,6 @@ fun downloadTrack(
                 .VISIBILITY_VISIBLE_NOTIFY_COMPLETED
         )
 
-        val wifiOnly=context.getSharedPreferences("audiobook_downloader",0).getBoolean("experience_wifi_only",false)
         request.setAllowedNetworkTypes(if(wifiOnly)DownloadManager.Request.NETWORK_WIFI else
             DownloadManager.Request.NETWORK_WIFI or DownloadManager.Request.NETWORK_MOBILE)
         request.setAllowedOverMetered(!wifiOnly)
@@ -11356,12 +11356,14 @@ internal fun AbOptions(labels: List<String>,selected: Int,theme: AbTheme,enabled
     }
 }
 
-internal data class AbDownloadEdition(val ref:BookRef,val tracks:List<AudioTrack>,val preview:Boolean)
+internal data class AbDownloadEdition @JvmOverloads constructor(val ref:BookRef,val tracks:List<AudioTrack>,val preview:Boolean,
+    val wifiOnly:Boolean=false,val sourceTitle:String="",val sourceAuthor:String="",val sourceCycles:List<BookCycle> = emptyList())
 
 internal fun abDownloadEdition(ref:BookRef,root:JSONObject,url:String):AbDownloadEdition? {
     val parsed=root.optJSONObject("player")?.let{parsePlayer(it)} ?: return null
     return AbDownloadEdition(ref.copy(url=url,cover=root.optString("cover").ifBlank{ref.cover}),parsed.tracks,
-        EditionDownloadRules.isPreview(ref.title+" "+root.optString("title"),parsed.tracks.map{it.src}))
+        EditionDownloadRules.isPreview(ref.title+" "+root.optString("title"),parsed.tracks.map{it.src}),
+        sourceTitle=root.optString("title"),sourceAuthor=root.optString("author"),sourceCycles=abReadCycles(root.optJSONArray("cycles"),url))
 }
 
 /** The very same controls are used in the real context menu and Android UI tests. */
@@ -12679,12 +12681,16 @@ private fun abCatalogClassifierJs(): String {
     """.trimIndent()
 }
 
-private fun abReadCycles(array: JSONArray?): List<BookCycle> = (0 until (array?.length() ?: 0)).mapNotNull { index ->
+private val abCyclePolicy by lazy{ContinuationPolicy(AB_EXTRA_SOURCE_JSON)}
+
+private fun abReadCycles(array: JSONArray?,page:String=""): List<BookCycle> = (0 until (array?.length() ?: 0)).mapNotNull { index ->
     val item=array?.optJSONObject(index) ?: return@mapNotNull null
     val title=item.optString("title").trim().take(300)
     if(!SeriesAuthorityRules.plausibleSeriesTitle(title)) return@mapNotNull null
     val order=item.optDouble("order",Double.NaN).takeIf { it.isFinite() && it>0 && it<100000 }
-    BookCycle(title,supportedBookUrl(item.optString("url")).orEmpty(),order)
+    val raw=item.optString("url")
+    val sourceCycle=raw.takeIf{abCyclePolicy.book(page)&&abCyclePolicy.same(page,it)&&abCyclePolicy.series(it)}
+    BookCycle(title,supportedBookUrl(raw) ?: sourceCycle.orEmpty(),order)
 }
 
 private fun abReadGenres(array: JSONArray?): List<String> = (0 until (array?.length() ?: 0))
@@ -12755,7 +12761,7 @@ internal fun abStoredCatalog(prefs: android.content.SharedPreferences,title: Str
         val json=JSONObject(prefs.getString(abCatalogKey(title),"{}").orEmpty())
         val stored=BookLink(title,json.optString("url"),json.optString("cover"),
             json.optString("author").ifBlank{prefs.getString(abAuthorKey(title),"").orEmpty()},
-            genres=abReadGenres(json.optJSONArray("genres")),cycles=abReadCycles(json.optJSONArray("cycles")),genreOrigin=json.optString("genreOrigin"),narrator=json.optString("narrator"))
+            genres=abReadGenres(json.optJSONArray("genres")),cycles=abReadCycles(json.optJSONArray("cycles"),json.optString("url")),genreOrigin=json.optString("genreOrigin"),narrator=json.optString("narrator"))
         stored.copy(cycles=SeriesAuthorityCache.cycles(prefs,title,stored.author,stored.cycles,stored.url))
     } catch(_:Exception) {BookLink(title,"",author=prefs.getString(abAuthorKey(title),"").orEmpty())}
 }
@@ -12938,6 +12944,7 @@ private fun AbPlayerSeries(metadata:BookLink,ref:BookRef,books:List<LibraryBook>
     AbSeriesBlock(metadata.cycles,theme,actions)
     if(metadata.cycles.isEmpty()&&progress.isBlank())Text("Серия пока не подтверждена. Выполните сверку справочников или посмотрите книги с похожим названием выше.",color=theme.muted,fontSize=12.sp)
     AbOfficialSeriesPanel(metadata.title,metadata.author,prefs,theme,autoRefresh=local.none{it.title!=metadata.title})
+    NextVolumeWifiControls(metadata,ref,prefs,theme,actions.downloadBatch)
     AbButton("Обновить сведения аудиоисточника",theme){retry++}
     val available=remember(continuationRevision,metadata.title){val seedIds=continuationStore.seeds().filter{SeriesAuthorityRules.title(it.title)==SeriesAuthorityRules.title(ref.title)}.map{it.id}.toSet()
         continuationStore.available().filter{it.seed in seedIds&&it.url.isNotBlank()}.distinctBy{it.url}}
@@ -13867,7 +13874,7 @@ private class AbResolveGenreTask(web: WebView,private val candidate: BookLink,
             val title=cleanBookTitle(json.optString("title")).ifBlank{candidate.title}
             book=candidate.copy(title=title,url=actualUrl,coverUrl=json.optString("cover").ifBlank{candidate.coverUrl},
                 author=json.optString("author").ifBlank{candidate.author},
-                genres=abReadGenres(json.optJSONArray("genres")),cycles=abReadCycles(json.optJSONArray("cycles")))
+                genres=abReadGenres(json.optJSONArray("genres")),cycles=abReadCycles(json.optJSONArray("cycles"),actualUrl))
             mode=1
             val cached=AbPublicMetadata.cached(prefs,book)
             if(cached!=null){finish(abResolvedBook(book,cached),emptyList(),"");return@launch}
