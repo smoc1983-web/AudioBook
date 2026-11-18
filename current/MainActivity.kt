@@ -9381,7 +9381,7 @@ internal fun AbBookRow(ref: BookRef, local: LibraryBook?, subtitle: String, them
         Column(Modifier.weight(1f).padding(horizontal=13.dp),verticalArrangement=Arrangement.spacedBy(6.dp)) {
             Text(display.title,color=theme.text,fontSize=15.sp,fontWeight=FontWeight.SemiBold,
                 maxLines=2,overflow=TextOverflow.Ellipsis)
-            if(subtitle.isNotBlank()||display.author.isNotBlank()) Text(display.author.ifBlank{subtitle},color=theme.muted,fontSize=12.sp,maxLines=2,overflow=TextOverflow.Ellipsis)
+            if(subtitle.isNotBlank()) Text(subtitle,color=theme.muted,fontSize=12.sp,maxLines=2,overflow=TextOverflow.Ellipsis)
             if(local!=null)Text(abLocalSize(local),color=theme.muted,fontSize=11.sp)
             if(progress!=null) Row(verticalAlignment=Alignment.CenterVertically) {
                 AbProgress(progress.progress,theme,Modifier.weight(1f).semantics{contentDescription=AbBookProgress.description(progress)})

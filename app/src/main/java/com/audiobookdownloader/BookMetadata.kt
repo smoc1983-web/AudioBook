@@ -49,7 +49,7 @@ internal object BookMetadata {
         val raw=if(failed!=null&&(failed.writing||failed.attempted==actual))failed.before else {pending[p]?.remove(id);actual}
         if(raw==null)return BookMetadataSnapshot(null,null)
         return try {
-            val text=raw as String;val key=id+text
+            val text=raw as String;require(text.length<=8192);val key=id+text
             val display=decoded[key] ?: decode(id,text).also {
                 if(decoded.size>=64)decoded.remove(decoded.keys.first())
                 decoded[key]=it
@@ -80,13 +80,14 @@ internal object BookMetadata {
         }
     }
     @Synchronized fun source(p:SharedPreferences,title:String):BookDisplay {
-        val fingerprint=listOf(p.getString(abCatalogKey(title),null),p.getString(abAuthorKey(title),null))
+        fun stored(key:String)=try{p.getString(key,null)}catch(_:ClassCastException){null}
+        val fingerprint=listOf(stored(abCatalogKey(title)),stored(abAuthorKey(title)))
         sources[title]?.takeIf{it.owner===p&&it.fingerprint==fingerprint}?.let{return it.display}
-        val catalog=abStoredCatalog(p,title)
+        val catalog=try{abStoredCatalog(p,title)}catch(_:Exception){BookLink(title,"")}
         val display=BookDisplay(title,catalog.author,catalog.narrator,catalog.cycles.firstOrNull()?.title.orEmpty(),
             catalog.cycles.firstOrNull()?.order?.let{if(it%1.0==0.0)it.toLong().toString() else it.toString()}.orEmpty())
         if(sources.size>=64)sources.remove(sources.keys.first())
-        sources[title]=CachedSource(p,fingerprint,display)
+        if(fingerprint.sumOf{it?.length ?: 0}<=65536)sources[title]=CachedSource(p,fingerprint,display)
         return display
     }
     fun local(p:SharedPreferences,book:LibraryBook):BookDisplay=display(p,book.title,book.bookId)

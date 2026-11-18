@@ -16,6 +16,11 @@ class BookMetadataAndroidTest {
  private fun context():Context {val name="metadata-"+UUID.randomUUID();return object:ContextWrapper(base){override fun getApplicationContext():Context=this;override fun getSharedPreferences(n:String,m:Int)=super.getSharedPreferences("$name-$n",m)}}
  private val custom=BookDisplay("Моё название","Мой автор","Мой чтец","Моя серия","2")
  private fun book(c:Context,title:String="Original",edition:String="")=LibraryBook(title,File(c.cacheDir,UUID.randomUUID().toString()),emptyList(),editionId=edition)
+ @Test fun damagedSourceMetadataFallsBackWithoutRewritingIt() {
+  val c=context();val p=c.getSharedPreferences("audiobook_downloader",0);val b=book(c)
+  p.edit().putInt(abCatalogKey(b.title),17).putInt(abAuthorKey(b.title),18).commit();val before=p.all.toMap()
+  assertEquals("Original",BookMetadata.local(p,b).title);assertEquals(before,p.all)
+ }
  @Test fun editAndResetPreserveFilesCheckpointsBookmarksCollectionsAndOriginalIdentity() {
   val c=context();val p=c.getSharedPreferences("audiobook_downloader",0)
   val folder=File(c.cacheDir,"metadata-"+UUID.randomUUID()).apply{mkdirs()};val audio=File(folder,"01.mp3").apply{writeBytes(byteArrayOf(1,2,3))}
