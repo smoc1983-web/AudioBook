@@ -1,0 +1,54 @@
+{
+  "task": "Book binding launcher and themed opener",
+  "branch": "cloud/book-binding-launch-20261118",
+  "base": "5459df5a5b52afeaf7906455cc92bd5ed6e62df6",
+  "testedSource": "527921ed32b78440ae23670b3780b604b0cc6446",
+  "ciRun": 44317495474,
+  "status": "success",
+  "releasePublished": false,
+  "physicalPhoneTested": false,
+  "animationMillis": 250,
+  "jvm": {
+    "Debug": {
+      "tests": 426,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 1
+    },
+    "Release": {
+      "tests": 426,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 1
+    }
+  },
+  "native": {
+    "23": {
+      "tests": 2,
+      "failures": 0,
+      "evidence": "instrumentation job log"
+    },
+    "36": {
+      "tests": 2,
+      "failures": 0,
+      "evidence": "XML"
+    }
+  },
+  "lint": {
+    "lint-results-release.xml": {
+      "Warning": 274,
+      "Hint": 85
+    },
+    "lint-results-debug.xml": {
+      "Warning": 274,
+      "Hint": 85
+    }
+  },
+  "local": {
+    "javaTests": 2,
+    "crapMax": 1,
+    "dryerCandidates": 0,
+    "mutationsKilled": 2,
+    "sourceChecks": "passed"
+  }
+}

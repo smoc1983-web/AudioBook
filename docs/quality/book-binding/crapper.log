@@ -1,0 +1,9 @@
+CRAP Report
+===========
+Languages: java
+
+Function                       Namespace                             CC    Cov%     CRAP
+----------------------------------------------------------------------------------------
+coverLift                      com.audiobookdownloader.BookOpening    1 100.0%      1.0
+coverWidth                     com.audiobookdownloader.BookOpening    1 100.0%      1.0
+Wrote /workspace/Audiobook-Workspace/.metrics/crap.edn
