@@ -1,0 +1,46 @@
+{
+  "branch": "cloud/stage8-phone-candidate-20261118",
+  "sourceCommit": "decd47cd98cdc23f1b436ae9c1a6d2f6fe9cb054",
+  "run": 44287342156,
+  "artifact": 14420780320,
+  "artifactUrl": "https://github.com/smoc1983-web/AudioBook/actions/runs/44287342156/artifacts/14420780320",
+  "artifactRetentionDays": 14,
+  "published": false,
+  "apk": "Audiobook-Preview-4.2.96.apk",
+  "bytes": 33432404,
+  "sha256": "d790f671cb8c3333e257a6abcafdb07ff8abd5635eb3d04c90d745e4b4cf8f6a",
+  "releaseJvm": {
+    "tests": 424,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1
+  },
+  "releaseLint": {
+    "Warning": 271,
+    "Hint": 85
+  },
+  "android36": {
+    "baselineCode": 100095,
+    "newCode": 100096,
+    "oldUpdaterAcceptedNewApk": true,
+    "oldUpdaterOpenedSystemConfirmation": true,
+    "systemConfirmationCancelledForHostReplacement": true,
+    "releaseBaselineSeededBySameSignedInstrumentation": true,
+    "standalonePlatformProbe": true,
+    "probeHasNoAppImplementationCopies": true,
+    "probeNeedsNoNewRuntimeBridge": true,
+    "androidPackageReplacementSucceeded": true,
+    "label": "Audiobook",
+    "settingsCollectionFolderAndPrivateFilePreserved": true,
+    "certificateUnchanged": true,
+    "installationMethod": "adb install -r in disposable emulator; user will confirm installer on phone",
+    "actualInAppNetworkDownloadTested": false,
+    "physicalPhone": false,
+    "newBuildType": "release",
+    "debuggable": false,
+    "privateAudioFileChecksumPreserved": true,
+    "googlePlayProtectVerdictTested": false
+  },
+  "fixtureBookmarkAndNoteReadableAfterUpgrade": true,
+  "phoneChecklist": "STAGE-8-PHONE-TEST.md"
+}
