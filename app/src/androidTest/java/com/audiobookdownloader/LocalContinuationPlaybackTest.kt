@@ -40,7 +40,9 @@ class LocalContinuationPlaybackTest {
         val firstFile=wav(File(context.cacheDir,"$id.wav"),2)
         wav(File(nextFolder,"01.wav"),15)
         val tree=DocumentsContract.buildTreeDocumentUri(context.packageName+".deletion-fixture","root")
-        prefs.edit().putString("library_tree_uri",tree.toString()).putInt(bookTotalKey(next),1)
+        val previousRoots=prefs.getString(LibraryRoots.KEY,null)
+        val previousTree=prefs.getString("library_tree_uri",null)
+        prefs.edit().putString(LibraryRoots.KEY,LibraryRoots.encode(listOf(tree.toString()))).putString("library_tree_uri",tree.toString()).putInt(bookTotalKey(next),1)
             .putFloat("playback_speed",1f).putBoolean("sleep_sched_enabled",false)
             .putInt("release_notes_seen_code",BuildConfig.VERSION_CODE).commit()
         context.getSharedPreferences("preview_updates",0).edit().putBoolean("auto",false).commit()
@@ -51,7 +53,7 @@ class LocalContinuationPlaybackTest {
             PlaybackService.stop(context,true)
             context.stopService(Intent(context,PlaybackService::class.java))
             nextFolder.deleteRecursively();firstFile.delete()
-            prefs.edit().remove("library_tree_uri").remove(bookTotalKey(next)).commit()
+            prefs.edit().putString(LibraryRoots.KEY,previousRoots).putString("library_tree_uri",previousTree).remove(bookTotalKey(next)).commit()
             saveQueue(prefs,emptyList())
         }
     }

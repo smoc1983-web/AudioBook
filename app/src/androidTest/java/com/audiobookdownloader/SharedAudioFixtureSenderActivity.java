@@ -10,7 +10,10 @@ public final class SharedAudioFixtureSenderActivity extends Activity {
         super.onCreate(state);
         String target=getIntent().getStringExtra("target");
         ArrayList<Uri> uris=getIntent().getParcelableArrayListExtra("uris");
-        for(Uri uri:uris)grantUriPermission(target,uri,Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        for(Uri uri:uris) {
+            if(getIntent().getBooleanExtra("revoke",false))revokeUriPermission(uri,Intent.FLAG_GRANT_READ_URI_PERMISSION|Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+            else grantUriPermission(target,uri,getIntent().getIntExtra("flags",Intent.FLAG_GRANT_READ_URI_PERMISSION));
+        }
         if(getIntent().getBooleanExtra("send",false)) {
             Intent out=new Intent(uris.size()==1?Intent.ACTION_SEND:Intent.ACTION_SEND_MULTIPLE).setType("audio/*")
               .setComponent(new ComponentName(target,"com.audiobookdownloader.SharedAudioImportActivity"))

@@ -6,7 +6,8 @@ import java.util.*;
 public class LibraryRootRulesTest {
  @Test public void onlyBoundedRealContentTreeUrisAreAccepted() {
   assertEquals("provider\u0000primary:Books",LibraryRootRules.treeKey("content://provider/tree/primary%3ABooks"));
-  for(String s:new String[]{null,"","file:///Books","https://provider/tree/x","content://user@provider/tree/x","content://provider:80/tree/x","content://provider/tree/x?token=secret","content://provider/tree/x#fragment","content://provider/document/x","content://provider/tree/","content://provider/tree/x/extra","content://provider/tree/%00","content://provider/tree/%ZZ","content://provider/tree/root/document/","content://provider/tree//document/child"})assertEquals(String.valueOf(s),"",LibraryRootRules.treeKey(s));
+  for(String s:new String[]{null,"","file:///Books","https://provider/tree/x","content://user@provider/tree/x","content://provider:80/tree/x","content://provider/tree/x?token=secret","content://provider/tree/x#fragment","content://provider/document/x","content://provider/tree/","content://provider/tree/x/extra","content://provider/tree/root/","content://provider/tree/root/document/child/extra","content://provider/tree/%00","content://provider/tree/%ZZ","content://provider/tree/root/document/","content://provider/tree//document/child"})assertEquals(String.valueOf(s),"",LibraryRootRules.treeKey(s));
+  String prefix="content://provider/tree/";assertFalse(LibraryRootRules.treeKey(prefix+String.join("",Collections.nCopies(8192-prefix.length(),"x"))).isEmpty());
   assertEquals("",LibraryRootRules.treeKey("content://provider/tree/"+String.join("",Collections.nCopies(8192,"x"))));
  }
  @Test public void encodedAliasesIdentifyOneTreeButRawPathsDoNotEscapeTheTreeSegment() {
