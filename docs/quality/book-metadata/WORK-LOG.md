@@ -14,3 +14,6 @@
 - CI44244375391 compiled production Preview but rejected a nullable MediaMetadata access in the new native test before instrumentation. Corrected the test with requireNotNull after its existing metadata-ready wait; no assertion removed. Reverification includes the nonblocking-write follow-up.
 - Bounded raw display/cache allocations and made wrong-typed legacy source metadata fall back without rewriting it; added regression. Prepared user-facing report with explicit l3 portability and old-playlist limits.
 - Kept contextual row subtitles (chapter/volume/collection hints) intact while using display titles; the main library supplies the edited author explicitly. No unrelated menu or layout redesign.
+- Superseded CI44244928317 cancelled after final review changes to avoid concurrent redundant builds. Final source a597827 is being verified by CI44245370148; no success claimed before reports.
+- CI44245370148 production Kotlin compiled; Android-test Java compilation exposed existing four-argument ServiceTrack callers. Preserved their constructor with @JvmOverloads rather than changing/removing old tests.
+- Preserved the editor's original expected raw snapshot with rememberSaveable. Added saved-instance-state regression: a restored draft must reject overwriting an intervening metadata edit.

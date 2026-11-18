@@ -28,6 +28,7 @@ internal fun abBookDisplay(ref:BookRef,local:LibraryBook?):BookDisplay {
 internal fun BookMetadataEditor(book:LibraryBook,p:SharedPreferences,theme:AbTheme,dismiss:()->Unit) {
     val c=LocalContext.current.applicationContext
     val initial=remember(book.bookId){BookMetadata.snapshot(p,book.bookId)}
+    val expectedRaw by rememberSaveable(book.bookId){mutableStateOf(initial.raw)}
     val original=remember(book.bookId){BookMetadata.source(p,book.title)}
     val shown=initial.display ?: original
     var title by rememberSaveable(book.bookId){mutableStateOf(shown.title)}
@@ -44,7 +45,7 @@ internal fun BookMetadataEditor(book:LibraryBook,p:SharedPreferences,theme:AbThe
         busy=true;error=""
         scope.launch {
             try {
-                val saved=withContext(Dispatchers.IO){BookMetadata.save(p,book.bookId,initial.raw,value)}
+                val saved=withContext(Dispatchers.IO){BookMetadata.save(p,book.bookId,expectedRaw,value)}
                 if(saved){AbGlassWidgets.metadataChanged(c);dismiss()}
                 else error="Не удалось сохранить сведения. Проверьте свободное место и повторите попытку."
             }catch(cancel:CancellationException){throw cancel}

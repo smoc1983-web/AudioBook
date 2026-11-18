@@ -39,7 +39,7 @@ import org.json.JSONObject
 import java.io.File
 import java.util.concurrent.Executors
 
-data class ServiceTrack(val title: String, val src: String, val durationMs: Int = 0, val editionId:String = "",val metadataId:String="")
+data class ServiceTrack @JvmOverloads constructor(val title: String, val src: String, val durationMs: Int = 0, val editionId:String = "",val metadataId:String="")
 
 data class ServicePlaybackState(
     val bookTitle: String = "",

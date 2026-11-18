@@ -5,6 +5,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.test.core.app.ApplicationProvider
 import org.junit.*
 import org.junit.Assert.*
@@ -47,5 +48,19 @@ class BookMetadataPanelTest {
   compose.onNodeWithText("Сохранить сведения").performClick()
   compose.waitUntil(5000){compose.onAllNodesWithText("Номер тома: положительное число",substring=true).fetchSemanticsNodes().isNotEmpty()}
   assertEquals(0,closed());assertNull(BookMetadata.snapshot(p,b.bookId).raw)
+ }
+ @Test fun restoredDraftCannotOverwriteAnInterveningEdit() {
+  val c=ApplicationProvider.getApplicationContext<Context>();val p=c.getSharedPreferences("metadata-rotation-"+UUID.randomUUID(),0)
+  val book=LibraryBook("Original",File(c.cacheDir,UUID.randomUUID().toString()),emptyList())
+  BookMetadata.save(p,book.bookId,null,BookDisplay("Initial"));val original=BookMetadata.snapshot(p,book.bookId).raw
+  val restore=StateRestorationTester(compose);var closes=0
+  restore.setContent{BookMetadataEditor(book,p,abTheme(10)){closes++}}
+  compose.onNodeWithContentDescription("Название книги").performTextReplacement("Draft")
+  BookMetadata.save(p,book.bookId,original,BookDisplay("Newer edit"))
+  restore.emulateSavedInstanceStateRestore()
+  compose.onNodeWithContentDescription("Название книги").assertTextEquals("Draft")
+  compose.onNodeWithText("Сохранить сведения").performClick()
+  compose.waitUntil(5000){compose.onAllNodesWithText("Сведения уже изменились",substring=true).fetchSemanticsNodes().isNotEmpty()}
+  assertEquals(0,closes);assertEquals("Newer edit",BookMetadata.local(p,book).title)
  }
 }
