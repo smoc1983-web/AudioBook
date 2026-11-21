@@ -8800,7 +8800,7 @@ internal fun abReadGlassSkin(prefs: android.content.SharedPreferences): Int {
 }
 
 /** Bright edge lighting stays away from the central text area; brushes are cached per size. */
-private fun Modifier.abGlass(theme: AbTheme, radius: Int = 18, field: Boolean = false,
+internal fun Modifier.abGlass(theme: AbTheme, radius: Int = 18, field: Boolean = false,
     selected: Boolean = false, primary: Boolean = false, raised: Boolean = false,
     opaque: Boolean = false): Modifier {
     val shape=RoundedCornerShape(radius.dp)
@@ -9049,7 +9049,7 @@ private fun AbGenreAction(label: String, theme: AbTheme, icon: AbIcon, onClick: 
 }
 
 @Composable
-private fun AbChips(labels: List<String>, selected: Int, theme: AbTheme, onSelect: (Int)->Unit) {
+internal fun AbChips(labels: List<String>, selected: Int, theme: AbTheme, onSelect: (Int)->Unit) {
     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
         horizontalArrangement=Arrangement.spacedBy(7.dp)) {
         labels.forEachIndexed { index,label ->
@@ -9510,6 +9510,13 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
     }
     val resultBooks=prepared.orEmpty()
     val visibleResults=remember(resultBooks,visibleCount) {resultBooks.take(visibleCount)}
+    val searchHome=prepared!=null && !data.searchActive && data.onlineBook==null &&
+        resultBooks.isEmpty() && !data.searching && !data.cycleBrowsing
+    val foreground=LocalAbVisible.current
+    val rankings=remember(sourceContext.applicationContext) { BookRankings(sourceContext.applicationContext) }
+    LaunchedEffect(searchHome,foreground,rankings) {
+        if (searchHome && foreground) rankings.collectBestsellers().collect {}
+    }
     // Keep the lazy list unmeasured until its first snapshot is ready, so a restored position
     // is not clamped to an empty header-only list while background preparation finishes.
     if(prepared==null) Box(Modifier.fillMaxSize(),contentAlignment=Alignment.Center) {
@@ -9591,7 +9598,7 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
             AbButton(if(data.searching) "Загружаем…" else "Загрузить еще",theme,primary=true,
                 enabled=!data.searching,onClick=actions.moreGenre)
         }
-        if(!data.searchActive && data.onlineBook==null && resultBooks.isEmpty() && !data.searching && !data.cycleBrowsing) {
+        if(searchHome) {
             item {
                 AbHeading("Жанры",theme)
                 var moreGenres by remember {mutableStateOf(false)}
@@ -9623,6 +9630,7 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
                         Modifier.width(115.dp)) {actions.openRef(ref)} }
                 }
             }
+            item(key="book-rankings") { AbBookRankings(rankings,theme,foreground) }
             item(key="discoveries") {AbDiscoveries(catalogue,actions,theme,catalogueRequested,onLoadCatalogue,
                 if(data.searchSource.isBlank())AbBookSources.enabled(prefs) else listOf(data.searchSource))}
         }

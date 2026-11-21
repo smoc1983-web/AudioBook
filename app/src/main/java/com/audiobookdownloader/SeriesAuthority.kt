@@ -63,12 +63,14 @@ internal object SeriesAuthorityCache {
 
 internal fun interface SeriesAuthorityFetcher { suspend fun html(address:String):String }
 internal class SeriesAuthorityHttp:SeriesAuthorityFetcher {
-    override suspend fun html(address:String):String=withContext(Dispatchers.IO) {
+    override suspend fun html(address:String):String = html(address, { true })
+
+    suspend fun html(address:String, acceptsAddress:(String)->Boolean, budgetMillis:Long=9000L):String=withContext(Dispatchers.IO) {
         val provider=SeriesAuthorityRules.provider(address);require(provider.isNotBlank())
-        val deadline=android.os.SystemClock.elapsedRealtime()+9000L
+        val deadline=android.os.SystemClock.elapsedRealtime()+budgetMillis
         var next=address
         repeat(3) {
-            currentCoroutineContext().ensureActive();require(SeriesAuthorityRules.provider(next)==provider)
+            currentCoroutineContext().ensureActive();require(SeriesAuthorityRules.provider(next)==provider && acceptsAddress(next))
             val c=NetworkAddressRules.checked(next).openConnection() as HttpURLConnection
             try {
                 c.instanceFollowRedirects=false;c.connectTimeout=4000;c.readTimeout=4000
