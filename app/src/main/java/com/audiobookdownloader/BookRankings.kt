@@ -124,7 +124,7 @@ internal class BookRankings(context: Context) {
             Daily(row.getLong("day"), List(items.length()) { book ->
                 val item = items.getJSONObject(book)
                 Book(item.getString("id"), item.getString("title"), item.getString("author"),
-                    item.getString("url"), item.getString("cover"))
+                    item.getString("url"), item.getString("cover"), item.optBoolean("textEdition"))
             })
         }
     } catch (_: Exception) {
@@ -135,7 +135,7 @@ internal class BookRankings(context: Context) {
         val data = JSONArray(rows.map { day ->
             JSONObject().put("day", day.day).put("books", JSONArray(day.books.map { book ->
                 JSONObject().put("id", book.id).put("title", book.title).put("author", book.author)
-                    .put("url", book.url).put("cover", book.cover)
+                    .put("url", book.url).put("cover", book.cover).put("textEdition", book.textEdition)
             }))
         }).toString().toByteArray(Charsets.UTF_8)
         if (data.size > MAX_BYTES) return false

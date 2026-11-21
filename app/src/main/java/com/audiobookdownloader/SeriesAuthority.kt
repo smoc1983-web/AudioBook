@@ -96,7 +96,7 @@ internal class SeriesAuthorityHttp:SeriesAuthorityFetcher {
                     }
                     val body=String(out.toByteArray(),Charsets.UTF_8)
                     // A streamed response must contain usable identity and membership before it can verify anything.
-                    require(body.contains("</h1>",true)||body.contains("book-row-content")||body.contains("art__wrapper")){"Справочник не вернул метаданные"}
+                    require(body.contains("</h1>",true)||body.contains("book-row-content")||body.contains("work-row-content")||body.contains("art__wrapper")){"Справочник не вернул метаданные"}
                     return@withContext body
                 }
             }finally{c.disconnect()}

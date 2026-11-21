@@ -22,21 +22,35 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class CollectionSeriesTest {
     @get:Rule val compose=createComposeRule()
-    @Test(timeout=30000) fun continuationButtonExpandsInlineWithoutOpeningPlayerAndCanCollapse() {
+    @Test(timeout=30000) fun bookMenuHasThreeActionsAndDoesNotOpenPlayer() {
         val ref=BookRef("Отель Перекресток","","")
-        var expanded by mutableStateOf(false);var opens=0;var menus=0
+        var expanded by mutableStateOf(false)
+        var showMenu by mutableStateOf(false)
+        var opens=0
+        var downloads=0
+        var removals=0
         val before=PlaybackService.state.value
         compose.setContent {Column {
-            AbCollectionBookCard(ref,null,abTheme(2),expanded,{opens++},{menus++},{expanded=!expanded})
+            AbCollectionBookCard(ref,null,abTheme(2),{opens++},{showMenu=true})
+            if(showMenu)AbCollectionBookMenu(ref,abTheme(2),expanded,{downloads++},{removals++},
+                {expanded=!expanded},{showMenu=false})
             if(expanded) androidx.compose.material3.Text("Отель Перекресток. Том 2")
         }}
+        compose.onNodeWithText("Продолжения").assertDoesNotExist()
+        val menu=compose.onNodeWithContentDescription("Действия: Отель Перекресток")
+        menu.performClick()
+        compose.onNodeWithText("Скачать книгу").performClick()
+        assertEquals(1,downloads);assertEquals(0,opens)
+        menu.performClick()
+        compose.onNodeWithText("Убрать из коллекции").performClick()
+        assertEquals(1,removals);assertEquals(0,opens)
+        menu.performClick()
         compose.onNodeWithText("Продолжения").performClick()
         compose.onNodeWithText("Отель Перекресток. Том 2").assertIsDisplayed()
-        assertEquals(0,opens);assertEquals(before,PlaybackService.state.value)
-        compose.onNodeWithText("Скрыть").performClick()
+        menu.performClick()
+        compose.onNodeWithText("Скрыть продолжения").performClick()
         compose.onNodeWithText("Отель Перекресток. Том 2").assertDoesNotExist()
-        compose.onNodeWithContentDescription("Действия: Отель Перекресток").performClick()
-        assertEquals(1,menus);assertEquals(0,opens)
+        assertEquals(before,PlaybackService.state.value)
         compose.onNodeWithText("Отель Перекресток",substring=false).performClick()
         assertEquals(1,opens)
     }
@@ -78,7 +92,8 @@ class CollectionSeriesTest {
                 AbCollectionShelf(Shelf("Отель",listOf(ref)),books,prefs,0,abTheme(2),{opens++},{},{},{},{},{})
             }}
             compose.onNodeWithText("Официальное продолжение").assertDoesNotExist()
-            compose.onNodeWithText("Продолжения").performScrollTo().performClick()
+            compose.onNodeWithContentDescription("Действия: $title").performScrollTo().performClick()
+            compose.onNodeWithText("Продолжения").performClick()
             compose.waitUntil(5000){compose.onAllNodesWithText("Официальное продолжение").fetchSemanticsNodes().size==1}
             compose.onNodeWithText(next+" · на устройстве").performScrollTo().assertIsDisplayed()
             compose.onNodeWithText("Книга из аудиоисточника").performScrollTo().assertIsDisplayed()
@@ -90,8 +105,8 @@ class CollectionSeriesTest {
             compose.onNodeWithText("Однофамилец").assertDoesNotExist()
             compose.onNodeWithText("Чужая книга · на устройстве").assertDoesNotExist()
             assertEquals(0,opens);assertEquals(before,PlaybackService.state.value)
-            compose.onNodeWithTag("collection-scroll").performScrollToNode(hasText("Скрыть"))
-            compose.onNodeWithText("Скрыть").performClick()
+            compose.onNodeWithContentDescription("Действия: $title").performScrollTo().performClick()
+            compose.onNodeWithText("Скрыть продолжения").performClick()
             compose.onNodeWithText("Официальное продолжение").assertDoesNotExist()
         } finally {
             prefs.edit().clear().commit()

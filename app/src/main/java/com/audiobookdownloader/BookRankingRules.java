@@ -49,7 +49,14 @@ final class BookRankingRules {
     static final class Book {
         final String id, title, author, url, cover;
 
+        final boolean textEdition;
+
         Book(String id, String title, String author, String url, String cover) {
+            this(id, title, author, url, cover, false);
+        }
+
+        Book(String id, String title, String author, String url, String cover, boolean textEdition) {
+            this.textEdition = textEdition;
             this.id = id;
             this.title = title;
             this.author = author;
@@ -83,12 +90,14 @@ final class BookRankingRules {
     static List<Book> parse(Feed feed, String html) {
         Element document = Jsoup.parse(html, feed.address);
         boolean authorToday = !feed.authorPeriod.isEmpty();
-        if (authorToday && !confirmedPeriod(document, feed.authorPeriod)) return Collections.emptyList();
-        Elements cards = document.select(authorToday ? ".book-row:not(.placement, .placement *)"
+        boolean mobile = authorToday && confirmedMobilePeriod(document, feed);
+        if (authorToday && !mobile && !confirmedPeriod(document, feed.authorPeriod)) return Collections.emptyList();
+        Elements cards = document.select(mobile ? ".list-block.media-list a.work-row[href]"
+            : authorToday ? ".book-row:not(.placement, .placement *)"
             : "[data-testid=collection__content--wrapper] [data-testid=art__wrapper]");
         Map<String, Book> entries = new LinkedHashMap<>();
         for (Element card : cards) {
-            Book book = parseCard(card, authorToday);
+            Book book = mobile ? parseMobileCard(card) : parseCard(card, authorToday);
             if (book != null) entries.putIfAbsent(book.id, book);
             if (entries.size() == LIMIT) break;
         }
@@ -101,22 +110,49 @@ final class BookRankingRules {
             && period.equals(controls.get(1).text());
     }
 
+    private static boolean confirmedMobilePeriod(Element document, Feed feed) {
+        boolean popularity = document.select(".chip-list .chip-label").eachText().contains("Порядок: по популярности");
+        Element nextPage = document.selectFirst(".pagination a[rel=next][href]");
+        return popularity && nextPage != null && samePeriod(nextPage.absUrl("href"), feed);
+    }
+
+    private static boolean samePeriod(String address, Feed feed) {
+        URI page = officialUri(address);
+        if (page == null || !"author.today".equals(page.getHost()) || !"/work/genre".equals(page.getPath())) return false;
+        String query = page.getRawQuery();
+        if (query == null) return false;
+        List<String> periods = new ArrayList<>();
+        for (String part : query.split("&")) if (part.startsWith("rp=")) periods.add(part);
+        return periods.equals(Collections.singletonList(URI.create(feed.address).getRawQuery()));
+    }
+
+    private static Book parseMobileCard(Element card) {
+        return book(true, card.select(".work-title").text(), card.select(".work-author").text(),
+            card.absUrl("href"), card.select(".work-cover img.cover-image, .work-cover img.ebook-cover-image").first(),
+            isTextEdition(card));
+    }
+
+    private static boolean isTextEdition(Element card) {
+        return card.selectFirst("img.ebook-cover-image, [params*=EBook]") != null;
+    }
+
     private static Book parseCard(Element card, boolean authorToday) {
         Element title = card.selectFirst(authorToday ? ".book-title > a[href]" : "[data-testid=art__title][href]");
         if (title == null) return null;
         return book(authorToday, title.text(),
             card.select(authorToday ? ".book-author" : "[data-testid=art__authorName--link]").text(),
-            title.absUrl("href"), card.select(authorToday ? ".book-cover img" : "[data-testid=art__cover] img").first());
+            title.absUrl("href"), card.select(authorToday ? ".book-cover img" : "[data-testid=art__cover] img").first(),
+            authorToday && isTextEdition(card));
     }
 
-    private static Book book(boolean authorToday, String title, String author, String url, Element image) {
+    private static Book book(boolean authorToday, String title, String author, String url, Element image, boolean textEdition) {
         if (title.isEmpty() || title.length() > 300 || author.length() > 300) return null;
         URI uri = officialUri(url);
         String host = authorToday ? "author.today" : "www.litres.ru";
         if (uri == null || !host.equals(uri.getHost())) return null;
         Matcher id = (authorToday ? AUTHOR_WORK : LITRES_AUDIO).matcher(uri.getRawPath());
         if (!id.matches()) return null;
-        return new Book(id.group(1), title, author, editionUrl(uri, authorToday), coverUrl(image));
+        return new Book(id.group(1), title, author, editionUrl(uri, authorToday), coverUrl(image), textEdition);
     }
 
     private static String editionUrl(URI uri, boolean authorToday) {
@@ -126,7 +162,7 @@ final class BookRankingRules {
 
     private static String coverUrl(Element image) {
         if (image == null) return "";
-        String url = image.absUrl("src");
+        String url = image.hasAttr("data-src") ? image.absUrl("data-src") : image.absUrl("src");
         URI uri = officialUri(url);
         if (uri == null || url.length() > 700) return "";
         String host = uri.getHost();

@@ -76,6 +76,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -933,6 +934,7 @@ private class AbAppUiState(prefs: android.content.SharedPreferences) {
     var unifiedQuery by mutableStateOf("")
     var unifiedSearchId by mutableStateOf(0)
     var searchReports by mutableStateOf<Map<String, SiteSearchResult>>(emptyMap())
+    var rankedSearch by mutableStateOf<BookRankingRules.Book?>(null)
     var detectedCycle by mutableStateOf<BookCycle?>(null)
     var selectedCycle by mutableStateOf<BookCycle?>(null)
     var cycleBrowsing by mutableStateOf(false)
@@ -1942,7 +1944,8 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
         status = "Загружаю все книги цикла…"
     }
 
-    fun startCommonBookSearch() {
+    fun startCommonBookSearch(ranked:BookRankingRules.Book?=null) {
+        rankedSearch=ranked
         cancelSearchMerges()
         val query = searchText.trim()
         if(query.isBlank()) {
@@ -2132,7 +2135,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
         bookOpenId++
         resumeAfterLoad=false
         unifiedSearchId++;cycleRequestId++;genreRequestId++;loadId++
-        unifiedQuery="";currentUrl="";cycleLoading=false;cycleBrowsing=false
+        unifiedQuery="";rankedSearch=null;currentUrl="";cycleLoading=false;cycleBrowsing=false
         selectedCycle=null;detectedCycle=null
         selectedGenre="";selectedNativeGenre=null;genreQuery="";genrePending=emptySet();genreNext=emptyMap()
         genrePages=emptyMap();genreReports=emptyMap();genreVisited=emptyMap()
@@ -2453,6 +2456,11 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
         retryBook = {bookOpening?.let{openWebsiteBook(it.book,it.sourceUrl)}},
         query = { searchText = it },
         search = { runModernSearch() },
+        searchRanked = { book ->
+            searchText=book.title
+            startCommonBookSearch(book)
+            appPage=AppPage.SEARCH
+        },
         searchScope = {selectSearchSource(it)},
         genre = {openGenre(it,if(it==selectedGenre) searchText.trim() else "",if(it==selectedGenre) selectedNativeGenre else null)},
         nativeGenre = {openGenre(it.title,native=it)},
@@ -2609,6 +2617,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                 val requestId = unifiedSearchId
                 val requestSources=unifiedSources.toList()
                 val requestQuery=unifiedQuery
+                val ranked=rankedSearch
                 UnifiedBookSearch(unifiedQuery, prefs,requestSources) { site, report ->
                     if (requestId == unifiedSearchId && unifiedQuery.isNotBlank()) {
                         val limited=report.copy(books=report.books.take(AB_SEARCH_LIMIT))
@@ -2622,13 +2631,22 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                             try {
                                 val merged=withContext(Dispatchers.Default) {
                                     val context=kotlinx.coroutines.currentCoroutineContext()
-                                    AbGlobalBookResults.prepare(reports,requestSources,requestQuery,AB_SEARCH_LIMIT,checkActive={context.ensureActive()})
+                                    val result=AbGlobalBookResults.prepare(reports,requestSources,requestQuery,AB_SEARCH_LIMIT,checkActive={context.ensureActive()})
+                                    if(ranked==null) result else result.mapNotNull{rankedAudioResult(prefs,ranked,it)}
                                 }
                                 if(version!=unifiedMergeVersion || requestId!=unifiedSearchId || unifiedQuery.isBlank())return@launch
                                 bookLinks=merged
                                 status=(if(requestSources.size==1)requestSources.first()+": " else "Общий поиск: ")+unifiedSearchStatus(reports,merged.size,requestSources)+
                                     if(merged.size>=AB_SEARCH_LIMIT) ". Показаны первые $AB_SEARCH_LIMIT книг; уточните запрос." else ""
-                                if(requestSources.all{it in reports})unifiedQuery=""
+                                if(requestSources.all{it in reports}) {
+                                    if(ranked!=null && merged.isEmpty()) {
+                                        val local=libraryBooks.any { it.files.isNotEmpty() &&
+                                            SeriesAuthorityRules.sameTitle(ranked.title,it.title,"") }
+                                        rankedAudioStatus(ranked,local,requestSources.isNotEmpty() &&
+                                            requestSources.all{reports[it]?.error.isNullOrBlank()})?.let {status=it}
+                                    }
+                                    unifiedQuery=""
+                                }
                             }finally{if(version==unifiedMergeVersion)unifiedMerging=false}
                         }
                     }
@@ -8898,6 +8916,7 @@ private data class AbActions(
     val retryBook: () -> Unit,
     val query: (String) -> Unit,
     val search: () -> Unit,
+    val searchRanked: (BookRankingRules.Book) -> Unit,
     val searchScope: (String) -> Unit,
     val genre: (String) -> Unit,
     val nativeGenre: (AbNativeGenre) -> Unit,
@@ -9090,7 +9109,8 @@ private fun AbCover(title: String, local: LibraryBook?, remote: BookRef?, theme:
     }
     var descriptionOpen by androidx.compose.runtime.saveable.rememberSaveable(title){mutableStateOf(false)}
     if(descriptionOpen)AbUnifiedBookDialog(BookRef(title,page,cover),local,theme){descriptionOpen=false}
-    val edge=if(widgetBook) 960 else 320
+    var coverPixels by remember { mutableIntStateOf(0) }
+    val edge=CoverRequestRules.edge(coverPixels,widgetBook)
     val audio=local?.files?.firstOrNull()?.let{libraryTrackSource(it)}.orEmpty()
     val savedRevision=remember(prefs,title,dataRevision) {prefs.getLong("book_cover_revision_"+safeFileName(title),0L)}
     val request=remember(title,uri,path,cover,page,edge,local?.coverRevision,audio,savedRevision) {
@@ -9098,8 +9118,8 @@ private fun AbCover(title: String, local: LibraryBook?, remote: BookRef?, theme:
     }
     var bitmap by remember(request) {mutableStateOf(AbCoverStore.peek(request))}
     val scrollState=LocalAbCoverScrollState.current
-    LaunchedEffect(request,visible) {
-        if(!visible)return@LaunchedEffect
+    LaunchedEffect(request,visible,coverPixels>0) {
+        if(!visible || coverPixels<=0)return@LaunchedEffect
         if(bitmap==null && scrollState!=null) {
             androidx.compose.runtime.snapshotFlow {scrollState.isScrollInProgress}.first{!it}
             delay(100L)
@@ -9117,13 +9137,14 @@ private fun AbCover(title: String, local: LibraryBook?, remote: BookRef?, theme:
             } catch(_:Exception) { }
         }
     }
-    Box(modifier.clip(RoundedCornerShape(13.dp))
+    Box(modifier.onSizeChanged { coverPixels=maxOf(it.width,it.height) }.clip(RoundedCornerShape(13.dp))
         .semantics{contentDescription="Описание: $title";role=androidx.compose.ui.semantics.Role.Button}
         .clickable(enabled=title.isNotBlank()){descriptionOpen=true}.background(Brush.verticalGradient(
         listOf(theme.field,theme.accent.copy(alpha=.14f)))),contentAlignment=Alignment.Center) {
         val image=bitmap
         if(image!=null) Image(image.asImageBitmap(),contentDescription="Обложка: $title",
-            contentScale=ContentScale.Fit,modifier=Modifier.fillMaxSize())
+            contentScale=ContentScale.Fit,modifier=Modifier.fillMaxSize(),
+            filterQuality=androidx.compose.ui.graphics.FilterQuality.Medium)
         else Column(horizontalAlignment=Alignment.CenterHorizontally) {
             AbIcon(AbIcon.BOOKS,theme.accent,Modifier.size(34.dp))
             Spacer(Modifier.height(8.dp))
@@ -9376,8 +9397,7 @@ private fun AbModernApp(data: AbScreenData, actions: AbActions, sync: LibrarySyn
                         onLoadCatalogue={catalogue=emptyMap();catalogueRequested=true})
                     AppPage.LIBRARY -> AbLibraryScreen(data,actions,sync,prefs,theme,
                         onMenu={menuBook=it},onAccess={libraryAccess=true})
-                    AppPage.COLLECTIONS -> AbCollectionsScreen(data,actions,sync.books.value,prefs,theme,
-                        onMenu={menuBook=it})
+                    AppPage.COLLECTIONS -> AbCollectionsScreen(data,actions,sync.books.value,prefs,theme)
                     AppPage.PLAYER -> AbPlayerScreen(data,actions,sync.books.value,prefs,theme,
                         onSettings={settings=it},onMenu={menuBook=it},onShelf={shelfBook=it})
                 }
@@ -9630,7 +9650,7 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
                         Modifier.width(115.dp)) {actions.openRef(ref)} }
                 }
             }
-            item(key="book-rankings") { AbBookRankings(rankings,theme,foreground) }
+            item(key="book-rankings") { AbBookRankings(rankings,theme,foreground,actions.searchRanked) }
             item(key="discoveries") {AbDiscoveries(catalogue,actions,theme,catalogueRequested,onLoadCatalogue,
                 if(data.searchSource.isBlank())AbBookSources.enabled(prefs) else listOf(data.searchSource))}
         }
@@ -10086,61 +10106,39 @@ private fun AbLibraryScreen(data: AbScreenData,actions: AbActions,sync: LibraryS
     var filter by androidx.compose.runtime.saveable.rememberSaveable {mutableStateOf("")}
     var sort by androidx.compose.runtime.saveable.rememberSaveable {mutableStateOf(0)}
     val context=androidx.compose.ui.platform.LocalContext.current
-    var editingBookmark by remember {mutableStateOf<Pair<String,Bookmark>?>(null)}
-    var bookmarkVersion by remember(prefs){mutableStateOf(0)}
-    DisposableEffect(prefs) {
-        val listener=android.content.SharedPreferences.OnSharedPreferenceChangeListener {_,key->
-            if(key==null || key.startsWith("bookmarks_"))bookmarkVersion++
-        }
-        prefs.registerOnSharedPreferenceChangeListener(listener)
-        onDispose{prefs.unregisterOnSharedPreferenceChangeListener(listener)}
-    }
     val books=sync.books.value
-    val favorites=remember(prefs,data.version) {loadBookRefs(prefs,FAVORITES_KEY)}
-    val recent=remember(prefs,data.version) {getListeningHistory(prefs).map{bookRefFor(prefs,it)}}
-    val queue=remember(prefs,data.version) {loadQueue(prefs)}
+    val collected=remember(prefs,data.version) {loadShelves(prefs).flatMap{it.books}.distinctBy{bookRefIdentity(it)}}
     val localRefs=remember(books,prefs,data.version) {books.map{bookRefFor(prefs,it.title,it.editionId)}}
-    val all=remember(localRefs,favorites,recent,prefs,data.version) {
-        (localRefs+favorites+loadShelves(prefs).flatMap{it.books}+recent).distinctBy{bookRefIdentity(it)}
-    }
-    var bookmarkRows by remember(prefs){mutableStateOf(emptyList<Pair<String,Bookmark>>())}
-    LaunchedEffect(tab,bookmarkVersion,all) {
-        bookmarkRows=if(tab==6) kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO){allBookmarks(prefs,all.map{it.title})} else emptyList()
-    }
-    val visibleBookmarks=bookmarkRows.filter{(book,mark)->listOf(book,mark.label,mark.note,mark.trackTitle).any{it.contains(filter,true)}}
-    val refs=remember(tab,filter,sort,all,localRefs,favorites,recent,queue,data.version,
+    val all=remember(localRefs,collected) {(localRefs+collected).distinctBy{bookRefIdentity(it)}}
+    val selectedTab=tab.coerceIn(0,2)
+    val refs=remember(selectedTab,filter,sort,all,localRefs,collected,books,data.version,
         data.playback.bookTitle,data.playback.trackIndex) {
-        val selected=when(tab){1->localRefs;2->favorites;3->recent;4->queue.map{bookRefFor(prefs,it)};else->all}
+        val selected=when(selectedTab){1->localRefs;2->collected;else->all}
             .distinctBy{bookRefIdentity(it)}
             .filter {ref->val display=BookMetadata.ref(prefs,ref,abFindLocal(books,ref.title,ref.editionId));listOf(ref.title,display.title,display.author,display.narrator,display.series).any{it.contains(filter,true)}}
-        when {
-            sort==1 && tab!=4 -> selected.sortedBy{BookMetadata.ref(prefs,it,abFindLocal(books,it.title,it.editionId)).title.lowercase()}
-            // Persisted progress changes every few seconds. Do not reorder rows every player tick.
-            sort==2 && tab!=4 -> selected.sortedByDescending{ref->
+        when(sort) {
+            1 -> selected.sortedBy{BookMetadata.ref(prefs,it,abFindLocal(books,it.title,it.editionId)).title.lowercase()}
+            2 -> selected.sortedByDescending{ref->
                 findDownloadedBook(books,ref.title,ref.editionId)?.let {AbBookProgress.library(prefs,it,data.playback,durationCache).progress} ?: 0f
             }
             else -> selected
         }
     }
-    val seriesGroups=remember(tab,all,prefs,data.version,filter) {if(tab==5) abLibrarySeries(all,prefs,filter) else emptyList()}
     val gridRows=remember(refs) {refs.chunked(2)}
     LazyColumn(Modifier.fillMaxSize(),contentPadding=PaddingValues(20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
         item {
             Row(verticalAlignment=Alignment.CenterVertically) {
                 Text("Моя библиотека",color=theme.text,fontSize=25.sp,fontWeight=FontWeight.Bold,modifier=Modifier.weight(1f))
-                AbIconButton(if(grid) AbIcon.BOOKS else AbIcon.COLLECTIONS,"Сменить вид библиотеки",theme,enabled=tab<4,onClick={grid=!grid;prefs.edit().putBoolean("experience_library_grid",grid).apply()})
+                AbIconButton(if(grid) AbIcon.BOOKS else AbIcon.COLLECTIONS,"Сменить вид библиотеки",theme,onClick={grid=!grid;prefs.edit().putBoolean("experience_library_grid",grid).apply()})
                 AbIconButton(AbIcon.SYNC,"Синхронизация библиотеки",theme,onClick=onAccess)
             }
             Spacer(Modifier.height(12.dp))
-            AbChips(listOf("Все · ${all.size}","Скачанные · ${books.size}","Избранное","Недавние","Очередь","Серии","Закладки"),tab,theme){tab=it}
+            AbChips(listOf("Все · ${all.size}","На устройстве · ${localRefs.size}","В коллекциях · ${collected.size}"),selectedTab,theme){tab=it}
         }
         item {
             AbTextField(filter,"Найти в библиотеке",theme,{filter=it})
             Spacer(Modifier.height(12.dp))
-            if(tab<4) AbChips(listOf("По умолчанию","А–Я","Прогресс"),sort,theme){sort=it}
-            else if(tab==4) Text("Книги будут играть в этом порядке",color=theme.muted,fontSize=12.sp)
-            else if(tab==6) Text("Закладки всех книг. Для перехода к моменту откройте нужную книгу в плеере.",color=theme.muted,fontSize=12.sp)
-            else Text("Группировка по данным сайтов. Откройте старые книги на сайте, чтобы получить сведения о серии.",color=theme.muted,fontSize=12.sp)
+            AbChips(listOf("По умолчанию","А–Я","Прогресс"),sort,theme){sort=it}
         }
         item {
             Row(Modifier.fillMaxWidth().abGlass(theme,17).clickable{actions.navigate(AppPage.SEARCH)}
@@ -10156,55 +10154,14 @@ private fun AbLibraryScreen(data: AbScreenData,actions: AbActions,sync: LibraryS
             AbButton("Импортировать файлы",theme){context.startActivity(Intent(context,SharedAudioImportActivity::class.java))}
             if(sync.isSyncing) Text("Синхронизация библиотеки…",color=theme.muted,fontSize=12.sp,modifier=Modifier.padding(top=10.dp))
         }
-        val continueRef=recent.firstOrNull{ref->books.any{it.title==ref.title} || ref.url.isNotBlank()}?.let {ref->
-            if(data.playback.bookTitle==ref.title&&data.playback.hasSelection)bookRefFor(prefs,ref.title,data.playback.tracks.firstOrNull()?.editionId.orEmpty()) else ref
-        }
-        if(tab==0 && filter.isBlank() && continueRef!=null) item {
-            AbHeading("Продолжить слушать",theme)
-            val local=abFindLocal(books,continueRef.title,continueRef.editionId)
-            val chapter=prefs.getInt(bookProgressTrackKey(continueRef.title),0)+1
-            AbBookRow(continueRef,local,if(local!=null) "Глава $chapter из ${local.files.size}" else "Онлайн",
-                theme,local?.let{AbBookProgress.library(prefs,it,data.playback,durationCache)},true,
-                {actions.openRef(continueRef)},{onMenu(continueRef)})
-        }
-        item {AbHeading(when(tab){1->"На устройстве";2->"Избранное";3->"История";4->"Очередь";5->"Серии в библиотеке";6->"Все закладки";else->"Все книги"},theme,
-            if(tab==6) "${visibleBookmarks.size}" else if(tab==5) "${seriesGroups.size}" else "${refs.size}")}
-        if(tab==5 && seriesGroups.isEmpty()) item {
-            Text("Сведения о сериях ещё не получены. Они сохраняются при поиске и открытии книги на сайте.",color=theme.muted,fontSize=13.sp)
-        }
-        if(tab==5) seriesGroups.forEach {group ->
-            item(key="series-header:"+group.key) {
-                AbHeading(group.cycle.title,theme,"${group.books.size} книг")
-                if(group.cycle.url.isNotBlank()) AbButton("Вся серия · ${bookSiteName(group.cycle.url)}",theme){actions.cycle(group.cycle)}
-            }
-            // Each volume is a lazy row, including series with hundreds of books.
-            items(group.books,key={"series-book:"+group.key+":"+it.first.title}) {entry ->
-                val local=abFindLocal(books,entry.first.title)
-                AbBookRow(entry.first,local,abVolumeLabel(entry.second),theme,
-                    local?.let{AbBookProgress.library(prefs,it,data.playback,durationCache)},onClick={actions.openRef(entry.first)},onMenu={onMenu(entry.first)})
-            }
-        }
-        if(tab==6) {
-            if(visibleBookmarks.isEmpty())item{Text("Закладок пока нет. Сохраните нужный момент в плеере.",color=theme.muted)}
-            items(visibleBookmarks,key={it.first+":"+it.second.editionId+":"+it.second.id}) {(book,mark)->
-                AbBookmarkRow(book,mark,theme,{
-                    if(mark.editionId.isNotBlank()&&data.playback.tracks.any{it.editionId==mark.editionId} || mark.editionId.isBlank()&&data.playback.bookTitle==book) {
-                        val at=resolveBookmark(mark,data.playback.tracks)
-                        if(at>=0){PlaybackService.selectChapter(context,at,mark.position);actions.navigate(AppPage.PLAYER)}
-                        else Toast.makeText(context,"Глава закладки не найдена. Обновите книгу.",Toast.LENGTH_SHORT).show()
-                    }else actions.openRef(bookRefFor(prefs,book,mark.editionId))
-                },{editingBookmark=book to mark},{removeBookmark(prefs,book,mark)})
-            }
-        }
-        if(refs.isEmpty() && tab!=5 && tab!=6) item {
+        if(refs.isEmpty()) item {
             Text(if(sync.isSyncing) "Ищем сохранённые главы…" else if(filter.isNotBlank()) "Книги не найдены"
-                else if(tab==2) "Добавляйте любимые книги через меню карточки."
-                else "Здесь появятся ваши книги. Найдите новую или подключите папку со скачанными главами.",
+                else "Здесь будут книги с устройства и из ваших коллекций.",
                 color=theme.muted,fontSize=14.sp,lineHeight=21.sp)
             Spacer(Modifier.height(12.dp))
             AbButton("Подключить папку",theme,onClick=onAccess)
         }
-        if(grid && tab<4) items(gridRows,key={bookRefIdentity(it.first())}) {row ->
+        if(grid) items(gridRows,key={bookRefIdentity(it.first())}) {row ->
             Row(horizontalArrangement=Arrangement.spacedBy(12.dp)) {
                 row.forEach {ref ->
                     val local=abFindLocal(books,ref.title,ref.editionId)
@@ -10221,92 +10178,93 @@ private fun AbLibraryScreen(data: AbScreenData,actions: AbActions,sync: LibraryS
                 if(row.size==1) Spacer(Modifier.weight(1f))
             }
         }
-        else if(tab!=5 && tab!=6) itemsIndexed(refs,key={_,ref->bookRefIdentity(ref)}) {_,ref ->
+        else itemsIndexed(refs,key={_,ref->bookRefIdentity(ref)}) {_,ref ->
             val local=abFindLocal(books,ref.title,ref.editionId)
             val author=BookMetadata.ref(prefs,ref,local).author
             AbBookRow(ref,local,if(author.isNotBlank()) author else if(local!=null) "${local.files.size} глав · На устройстве" else "Онлайн",
                 theme,local?.let{AbBookProgress.library(prefs,it,data.playback,durationCache)},onClick={actions.openRef(ref)},onMenu={onMenu(ref)})
-            if(tab==4) {
-                val index=queue.indexOf(ref.title)
-                Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
-                    AbIconButton(AbIcon.UP,"Выше в очереди",theme,enabled=index>0) {
-                        val moved=queue.toMutableList();java.util.Collections.swap(moved,index,index-1);saveQueue(prefs,moved)
-                    }
-                    AbIconButton(AbIcon.DOWN,"Ниже в очереди",theme,enabled=index>=0 && index<queue.lastIndex) {
-                        val moved=queue.toMutableList();java.util.Collections.swap(moved,index,index+1);saveQueue(prefs,moved)
-                    }
-                    AbIconButton(AbIcon.CLOSE,"Убрать из очереди",theme) {saveQueue(prefs,queue.filter{it!=ref.title})}
-                }
-            }
         }
     }
-    editingBookmark?.let{(book,mark)->AbBookmarkEditor(book,mark,prefs,theme){editingBookmark=null}}
-
 }
 
 internal fun abRemoveShelfBook(prefs:android.content.SharedPreferences,name:String,ref:BookRef) {
-    saveShelves(prefs,loadShelves(prefs).map{if(it.name==name)it.copy(books=it.books.filterNot{book->book.title==ref.title}) else it})
+    val identity=bookRefIdentity(ref)
+    saveShelves(prefs,loadShelves(prefs).map {
+        if(it.name==name) it.copy(books=it.books.filterNot{book->bookRefIdentity(book)==identity}) else it
+    })
 }
 
-/** Only the requested book loads series data; scrolling closed cards performs no reference requests. */
 @Composable
-internal fun AbCollectionBookCard(ref:BookRef,local:LibraryBook?,theme:AbTheme,expanded:Boolean,
-    onOpen:()->Unit,onMenu:()->Unit,onContinuations:()->Unit) {
-    Column(Modifier.width(152.dp),verticalArrangement=Arrangement.spacedBy(4.dp)) {
-        Box {
-            AbPoster(ref,local,theme,null,Modifier.fillMaxWidth(),onOpen)
-            AbIconButton(AbIcon.MORE,"Действия: ${ref.title}",theme,
-                Modifier.align(Alignment.TopEnd).padding(7.dp).abGlass(theme,16,opaque=true),onClick=onMenu)
-        }
-        AbButton(if(expanded) "Скрыть" else "Продолжения",theme,onClick=onContinuations)
+internal fun AbCollectionBookCard(ref:BookRef,local:LibraryBook?,theme:AbTheme,
+    onOpen:()->Unit,onMenu:()->Unit) {
+    Box(Modifier.width(152.dp)) {
+        AbPoster(ref,local,theme,null,Modifier.fillMaxWidth(),onOpen)
+        AbIconButton(AbIcon.MORE,"Действия: ${ref.title}",theme,
+            Modifier.align(Alignment.TopEnd).padding(7.dp).abGlass(theme,16,opaque=true),onClick=onMenu)
+    }
+}
+
+@Composable
+internal fun AbCollectionBookMenu(ref:BookRef,theme:AbTheme,expanded:Boolean,onDownload:()->Unit,
+    onRemove:()->Unit,onContinuations:()->Unit,dismiss:()->Unit) {
+    AbDialog(ref.title,theme,dismiss) {
+        AbButton("Скачать книгу",theme){dismiss();onDownload()}
+        AbButton("Убрать из коллекции",theme){dismiss();onRemove()}
+        AbButton(if(expanded) "Скрыть продолжения" else "Продолжения",theme){dismiss();onContinuations()}
     }
 }
 
 @Composable
 internal fun AbCollectionShelf(shelf:Shelf,books:List<LibraryBook>,prefs:android.content.SharedPreferences,
-    version:Int,theme:AbTheme,onOpen:(BookRef)->Unit,onMenu:(BookRef)->Unit,onSelect:()->Unit,
+    version:Int,theme:AbTheme,onOpen:(BookRef)->Unit,onBookDownload:(BookRef)->Unit,onSelect:()->Unit,
     onDownload:()->Unit,onRename:()->Unit,onDelete:()->Unit) {
     var expanded by androidx.compose.runtime.saveable.rememberSaveable(shelf.name){mutableStateOf<String?>(null)}
     var menu by remember(shelf.name){mutableStateOf(false)}
+    var menuBook by remember(shelf.name){mutableStateOf<BookRef?>(null)}
     var collapsed by androidx.compose.runtime.saveable.rememberSaveable(shelf.name){mutableStateOf(prefs.getBoolean("experience_collapsed_"+shelf.name,false))}
     val listMode=prefs.getBoolean("experience_collection_list",true)
-    val chosen=shelf.books.firstOrNull{it.title==expanded}
+    val chosen=shelf.books.firstOrNull{bookRefIdentity(it)==expanded}
     Column(Modifier.fillMaxWidth().abGlass(theme,18).padding(14.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
         Row(verticalAlignment=Alignment.CenterVertically) {
             Column(Modifier.weight(1f).clickable(onClick=onSelect).padding(vertical=8.dp)) {
                 Text(shelf.name,color=theme.text,fontSize=18.sp,fontWeight=FontWeight.SemiBold)
-                Text("Книг: ${shelf.books.size} · открыть коллекцию",color=theme.muted,fontSize=12.sp)
+                Text("Книг: ${shelf.books.size}",color=theme.muted,fontSize=12.sp)
             }
             AbIconButton(AbIcon.MORE,"Меню коллекции: ${shelf.name}",theme){menu=true}
         }
-        AbButton(if(collapsed)"Развернуть коллекцию" else "Свернуть коллекцию",theme){
-            collapsed=!collapsed;prefs.edit().putBoolean("experience_collapsed_"+shelf.name,collapsed).apply()}
         if(!collapsed && shelf.books.isNotEmpty()) {
             AbButton("Скачать книги",theme,onClick=onDownload)
             if(listMode) {
                 shelf.books.take(3).forEach {ref ->
-                    AbBookRow(ref,abFindLocal(books,ref.title,ref.editionId),"В коллекции",theme,onClick={onOpen(ref)},onMenu={onMenu(ref)})
-                    AbButton("Скачать книгу или главы",theme){onMenu(ref)}
-                    AbButton("Убрать из коллекции",theme){abRemoveShelfBook(prefs,shelf.name,ref)}
-                    AbButton(if(expanded==ref.title)"Скрыть продолжения" else "Продолжения",theme){expanded=if(expanded==ref.title)null else ref.title}
+                    AbBookRow(ref,abFindLocal(books,ref.title,ref.editionId),"",theme,onClick={onOpen(ref)},onMenu={menuBook=ref})
                 }
                 if(shelf.books.size>3)AbButton("Все книги · ${shelf.books.size}",theme,onClick=onSelect)
             } else androidx.compose.foundation.lazy.LazyRow(Modifier.semantics{contentDescription="Книги коллекции: ${shelf.name}"},horizontalArrangement=Arrangement.spacedBy(9.dp)) {
-                itemsIndexed(shelf.books,key={i,ref->"$i:${ref.title}"}) {_,ref ->
-                    AbCollectionBookCard(ref,abFindLocal(books,ref.title,ref.editionId),theme,chosen?.title==ref.title,
-                        {onOpen(ref)},{onMenu(ref)},{expanded=if(expanded==ref.title)null else ref.title})
+                itemsIndexed(shelf.books,key={i,ref->"$i:${bookRefIdentity(ref)}"}) {_,ref ->
+                    AbCollectionBookCard(ref,abFindLocal(books,ref.title,ref.editionId),theme,
+                        {onOpen(ref)},{menuBook=ref})
                 }
             }
         }
-        if(!collapsed && chosen!=null)key(chosen.title,chosen.url) {
+        if(!collapsed && chosen!=null)key(bookRefIdentity(chosen)) {
             AbCollectionContinuations(chosen,books,prefs,version,theme,onOpen)
         }
     }
+    menuBook?.let { ref ->
+        val identity=bookRefIdentity(ref)
+        AbCollectionBookMenu(ref,theme,expanded==identity,{onBookDownload(ref)},
+            {abRemoveShelfBook(prefs,shelf.name,ref)},
+            {expanded=if(expanded==identity)null else identity},{menuBook=null})
+    }
     if(menu)AbDialog("Коллекция «${shelf.name}»",theme,{menu=false}) {
         AbButton("Открыть коллекцию",theme){menu=false;onSelect()}
+        if(shelf.books.isNotEmpty())AbButton(if(collapsed)"Развернуть коллекцию" else "Свернуть коллекцию",theme){
+            menu=false
+            collapsed=!collapsed
+            prefs.edit().putBoolean("experience_collapsed_"+shelf.name,collapsed).apply()
+        }
         AbButton("Переименовать",theme){menu=false;onRename()}
         AbButton("Удалить коллекцию",theme){menu=false;onDelete()}
-        Text("Удаление коллекции не удаляет скачанные книги.",color=theme.muted,fontSize=12.sp)
     }
 }
 
@@ -10364,7 +10322,7 @@ internal fun AbCollectionContinuations(ref:BookRef,books:List<LibraryBook>,prefs
 
 @Composable
 private fun AbCollectionsScreen(data: AbScreenData,actions: AbActions,books: List<LibraryBook>,
-    prefs: android.content.SharedPreferences,theme: AbTheme,onMenu:(BookRef)->Unit) {
+    prefs: android.content.SharedPreferences,theme: AbTheme) {
     val context=androidx.compose.ui.platform.LocalContext.current
     var continuationSettings by remember {mutableStateOf(false)}
     var management by remember {mutableStateOf(false)}
@@ -10389,9 +10347,10 @@ private fun AbCollectionsScreen(data: AbScreenData,actions: AbActions,books: Lis
                     modifier=Modifier.weight(1f))
                 AbIconButton(AbIcon.MORE,"Управление коллекциями",theme) {management=true}
             }
-            Text("Нажмите «Продолжения» у книги, чтобы посмотреть другие тома здесь.",color=theme.muted,fontSize=13.sp,modifier=Modifier.padding(top=8.dp))
-            AbChips(listOf("Список","Обложки"),if(prefs.getBoolean("experience_collection_list",true))0 else 1,theme){prefs.edit().putBoolean("experience_collection_list",it==0).apply()}
-            AbButton("Новая коллекция",theme) {name="";oldName=null;editing=true}
+            if(selected==null) {
+                AbChips(listOf("Список","Обложки"),if(prefs.getBoolean("experience_collection_list",true))0 else 1,theme){prefs.edit().putBoolean("experience_collection_list",it==0).apply()}
+                AbButton("Новая коллекция",theme) {name="";oldName=null;editing=true}
+            }
             if(selected!=null && selected.books.isNotEmpty())AbButton("Скачать книги",theme){downloadBooks=selected.books.toList()}
 
         }
@@ -10400,18 +10359,19 @@ private fun AbCollectionsScreen(data: AbScreenData,actions: AbActions,books: Lis
                 Text("Коллекций пока нет. Нажмите «Новая коллекция», затем добавьте книги через меню карточки.",color=theme.muted,fontSize=14.sp)
             }
             itemsIndexed(shelves,key={_,shelf->shelf.name}) {_,shelf ->
-                AbCollectionShelf(shelf,books,prefs,data.version,theme,actions.openRef,onMenu,
+                AbCollectionShelf(shelf,books,prefs,data.version,theme,actions.openRef,{downloadBooks=listOf(it)},
                     {selectedShelf=shelf.name},{downloadBooks=shelf.books.toList()},
                     {oldName=shelf.name;name=shelf.name;editing=true},{deleting=shelf.name})
             }
         } else {
-            itemsIndexed(selected.books,key={index,ref->"$index:${ref.title}"}) {_,ref ->
-                var expanded by androidx.compose.runtime.saveable.rememberSaveable(selected.name,ref.title){mutableStateOf(false)}
-                AbBookRow(ref,abFindLocal(books,ref.title),"В коллекции",theme,
-                    onClick={actions.openRef(ref)},onMenu={onMenu(ref)})
-                AbButton(if(expanded) "Скрыть продолжения" else "Продолжения",theme){expanded=!expanded}
+            itemsIndexed(selected.books,key={index,ref->"$index:${bookRefIdentity(ref)}"}) {_,ref ->
+                var expanded by androidx.compose.runtime.saveable.rememberSaveable(selected.name,bookRefIdentity(ref)){mutableStateOf(false)}
+                var showMenu by remember{mutableStateOf(false)}
+                AbBookRow(ref,abFindLocal(books,ref.title,ref.editionId),"",theme,
+                    onClick={actions.openRef(ref)},onMenu={showMenu=true})
+                if(showMenu)AbCollectionBookMenu(ref,theme,expanded,{downloadBooks=listOf(ref)},
+                    {abRemoveShelfBook(prefs,selected.name,ref)},{expanded=!expanded},{showMenu=false})
                 if(expanded)AbCollectionContinuations(ref,books,prefs,data.version,theme,actions.openRef)
-                AbButton("Убрать из этой коллекции",theme){abRemoveShelfBook(prefs,selected.name,ref)}
             }
             if(selected.books.isEmpty()) item {
                 Text("Добавьте книги через меню карточки → «Добавить в коллекцию».",color=theme.muted,fontSize=14.sp)
@@ -11618,10 +11578,15 @@ internal object AbCoverStore {
                         decode(edge) {if(path.startsWith("content://")) context.contentResolver.openInputStream(Uri.parse(path)) else File(path).inputStream()}
                     else null
                 } else null
-                val embedded = if(file==null && saved==null && legacy==null && audio.isNotBlank()) embedded(context,audio,edge) else null
-                val ref = if(file==null && saved==null && legacy==null && embedded==null)
-                    abRecoverCoverRef(context,title,direct,page,folder) else BookRef(title,page,direct)
-                val bitmap = file ?: saved ?: legacy ?: embedded ?: remote(context,ref.cover,ref.url,edge)
+                val embedded = if(file==null && saved==null && audio.isNotBlank()) embedded(context,audio,edge) else null
+                val retained=file ?: saved ?: embedded ?: legacy
+                val canImprove=retained!=null && file==null && embedded==null && edge>=720 &&
+                    maxOf(retained.width,retained.height)<edge*3/4 && (direct.isNotBlank() || page.isNotBlank())
+                val bitmap=if(retained!=null && !canImprove) retained else {
+                    val ref=abRecoverCoverRef(context,title,direct,page,folder)
+                    val fetched=remote(context,ref.cover,ref.url,edge)
+                    listOfNotNull(retained,fetched).maxByOrNull{ maxOf(it.width,it.height) }
+                }
                 kotlinx.coroutines.currentCoroutineContext().ensureActive()
                 // A downloaded book keeps its cover outside the disposable search cache.
                 if(bitmap!=null && audio.isNotBlank() && title.isNotBlank() && !durable(context,title).exists())
@@ -11755,16 +11720,23 @@ internal object AbCoverStore {
             if (bitmap != null && page.isNotBlank()) saved.edit().putString(page, url).apply()
             return bitmap
         }
-        attempt(direct)?.let { return it }
-        if (page.isBlank()) return null
-        attempt(saved.getString(page, "").orEmpty())?.let { return it }
-        val cached = synchronized(searchCoverUrlCache) { searchCoverUrlCache[page].orEmpty() }
-        attempt(cached)?.let { return it }
-        // A dead thumbnail must not prevent trying the actual book page.
+        var best:android.graphics.Bitmap?=null
+        suspend fun adequate(raw:String):Boolean {
+            val url=address(raw,page)
+            val candidate=attempt(CoverRequestRules.sharper(url,edge)) ?: attempt(url) ?: return false
+            val pixels=maxOf(candidate.width,candidate.height)
+            if(best?.let { pixels>maxOf(it.width,it.height) }!=false)best=candidate
+            return edge<720 || pixels>=edge*3/4
+        }
+        if(adequate(direct) || page.isBlank())return best
+        if(adequate(saved.getString(page,"").orEmpty()))return best
+        val cached=synchronized(searchCoverUrlCache){searchCoverUrlCache[page].orEmpty()}
+        if(adequate(cached))return best
         kotlinx.coroutines.currentCoroutineContext().ensureActive()
-        val found = findCoverUrlFromBookPage(page)
-        if (found.isNotBlank()) synchronized(searchCoverUrlCache) { searchCoverUrlCache[page] = found }
-        return attempt(found)
+        val found=findCoverUrlFromBookPage(page)
+        if(found.isNotBlank())synchronized(searchCoverUrlCache){searchCoverUrlCache[page]=found}
+        adequate(found)
+        return best
     }
 
     private fun fetch(context: Context, url: String, page: String, edge: Int,checkActive:()->Unit): android.graphics.Bitmap? {
@@ -12519,26 +12491,6 @@ private fun abGenreCatalogJs(name: String,root: String,nativeCategory:Boolean=fa
         return JSON.stringify(result);
     })();
     """.trimIndent()
-}
-
-private data class AbLibrarySeries(val key: String,val cycle: BookCycle,val books: List<Pair<BookRef,BookCycle>>)
-
-private fun abLibrarySeries(refs: List<BookRef>,prefs: android.content.SharedPreferences,filter: String): List<AbLibrarySeries> {
-    val groups=linkedMapOf<String,MutableList<Pair<BookRef,BookCycle>>>()
-    refs.forEach {ref ->
-        val metadata=abStoredCatalog(prefs,ref.title)
-        metadata.cycles.forEach cycleLoop@ {cycle ->
-            if(filter.isNotBlank() && !cycle.title.contains(filter,true) && !ref.title.contains(filter,true) &&
-                !metadata.author.contains(filter,true)) return@cycleLoop
-            val key=(if(cycle.referenceUrl.isNotBlank()) SeriesAuthorityRules.series(cycle.title)+"|"+SeriesAuthorityRules.author(metadata.author) else cycle.url).ifBlank {cycle.title.lowercase(java.util.Locale.ROOT)+"|"+metadata.author.lowercase(java.util.Locale.ROOT)}
-                .substringBefore('#').trimEnd('/')
-            groups.getOrPut(key){mutableListOf()}.add(ref to cycle)
-        }
-    }
-    return groups.map { (key,entries) ->
-        val ordered=entries.distinctBy{it.first.title}.sortedBy{it.second.order ?: Double.MAX_VALUE}
-        AbLibrarySeries(key,ordered.first().second,ordered)
-    }.sortedBy{it.cycle.title.lowercase(java.util.Locale.ROOT)}
 }
 
 internal fun abMergeCycles(first: List<BookCycle>,second: List<BookCycle>): List<BookCycle> {

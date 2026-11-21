@@ -30,6 +30,23 @@ public class BookRankingRulesTest {
         assertTrue(parse(Feed.AUTHOR_YEAR, list.replace("по популярности", "по просмотрам")).isEmpty());
     }
 
+    @Test public void mobileAuthorChartUsesLazyImagesAndRequiresMatchingPagination() {
+        String mobile = "<div class='chip-list'><span class='chip-label'>Порядок: по популярности</span></div>"
+            + "<div class='list-block media-list'><a class='work-row' href='/work/51'>"
+            + "<h4 class='work-title'>Книга</h4><div class='work-author'>Автор</div>"
+            + "<div class='work-cover'><img class='ebook-cover-image' src='data:image/gif;base64,abc'"
+            + " data-src='https://cm.author.today/content/cover.jpg?width=153&amp;height=200&amp;rmode=max'></div></a></div>"
+            + "<ul class='pagination'><li><a href='/work/genre?rp=week&amp;page=2' rel='next'>2</a></li></ul>";
+        List<Book> books = parse(Feed.AUTHOR_WEEK, mobile);
+        assertEquals(1, books.size());
+        assertEquals("https://author.today/work/51", books.get(0).url);
+        assertTrue(books.get(0).cover.contains("width=153"));
+        assertTrue(books.get(0).textEdition);
+        assertTrue(parse(Feed.AUTHOR_MONTH, mobile).isEmpty());
+        assertTrue(parse(Feed.AUTHOR_WEEK, mobile.replace("по популярности", "по просмотрам")).isEmpty());
+        assertTrue(parse(Feed.AUTHOR_WEEK, mobile.replace("/work/genre?", "https://example.org/work/genre?")).isEmpty());
+    }
+
     @Test public void litresUsesCollectionCardsAndAudioEditionId() {
         String first = "<article data-testid='art__wrapper'><a data-testid='art__title'"
             + " href='/audiobook/book-123/?ref=home'>Аудиокнига</a><a data-testid='art__authorName--link'>Автор</a>"

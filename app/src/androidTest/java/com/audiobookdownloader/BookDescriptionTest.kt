@@ -27,7 +27,7 @@ class BookDescriptionTest {
     @Test(timeout=30000) fun coverOpensDescriptionWithoutPlayerAndTitleStillOpensBook() {
         var opens=0;var menus=0
         val before=PlaybackService.state.value
-        compose.setContent {AbCollectionBookCard(BookRef("Книга без источника","",""),null,abTheme(2),false,{opens++},{menus++},{})}
+        compose.setContent {AbCollectionBookCard(BookRef("Книга без источника","",""),null,abTheme(2),{opens++},{menus++})}
         compose.onNodeWithContentDescription("Описание: Книга без источника").performClick()
         compose.onNodeWithText("Описание книги").assertIsDisplayed()
         compose.waitUntil(5000){compose.onAllNodesWithText("Для этой книги не сохранена ссылка",substring=true).fetchSemanticsNodes().isNotEmpty()}
@@ -40,7 +40,7 @@ class BookDescriptionTest {
     @Test(timeout=30000) fun resolvingSourceWhileDescriptionIsOpenDoesNotDismissTheDialog() {
         var chosen by mutableStateOf(BookRef("Описание при восстановлении ссылки","",""))
         val before=PlaybackService.state.value
-        compose.setContent {AbCollectionBookCard(chosen,null,abTheme(2),false,{},{},{})}
+        compose.setContent {AbCollectionBookCard(chosen,null,abTheme(2),{},{})}
         compose.onNodeWithContentDescription("Описание: Описание при восстановлении ссылки").performClick()
         compose.onNodeWithText("Описание книги").assertIsDisplayed()
         // Source recovery can update the parent ref after the dialog has opened.

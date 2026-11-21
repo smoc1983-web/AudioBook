@@ -1,9 +1,5 @@
 package com.audiobookdownloader
 
-import android.content.ActivityNotFoundException
-import android.content.Intent
-import android.net.Uri
-import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -31,6 +27,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -46,7 +43,7 @@ import java.time.format.DateTimeFormatter
 private val rankingDateFormat = DateTimeFormatter.ofPattern("dd.MM.yyyy")
 
 @Composable
-internal fun AbBookRankings(repository: BookRankings, theme: AbTheme, visible: Boolean) {
+internal fun AbBookRankings(repository: BookRankings, theme: AbTheme, visible: Boolean, search: (Book) -> Unit) {
     var source by rememberSaveable { mutableStateOf(0) }
     var period by rememberSaveable { mutableStateOf(BookRankingPeriod.WEEK) }
     val feed = when {
@@ -60,7 +57,6 @@ internal fun AbBookRankings(repository: BookRankings, theme: AbTheme, visible: B
         if (visible) repository.chart(feed, period, retry > 0).collect { chart = it }
     }
 
-    val context = LocalContext.current
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         AbHeading("Топ книг", theme)
         AbChips(BookRankingPeriod.entries.map { it.label }, period.ordinal, theme) {
@@ -81,13 +77,7 @@ internal fun AbBookRankings(repository: BookRankings, theme: AbTheme, visible: B
 
         if (chart.books.isNotEmpty()) LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             itemsIndexed(chart.books, key = { _, book -> book.url }) { index, book ->
-                AbRankingCard(index + 1, book, theme, visible) {
-                    try {
-                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(book.url)))
-                    } catch (_: ActivityNotFoundException) {
-                        Toast.makeText(context, "Браузер не найден", Toast.LENGTH_SHORT).show()
-                    }
-                }
+                AbRankingCard(index + 1, book, theme, visible) { search(book) }
             }
         }
 
@@ -103,18 +93,20 @@ internal fun AbBookRankings(repository: BookRankings, theme: AbTheme, visible: B
 @Composable
 private fun AbRankingCard(rank: Int, book: Book, theme: AbTheme, visible: Boolean, open: () -> Unit) {
     val context = LocalContext.current.applicationContext
-    val imageKey = "book-ranking:${book.cover}"
+    val edge = CoverRequestRules.edge(with(LocalDensity.current) { 150.dp.roundToPx() }, false)
+    val coverUrl = CoverRequestRules.sharper(book.cover, edge)
+    val imageKey = "book-ranking:$edge:$coverUrl"
     var cover by remember(imageKey) { mutableStateOf(AbCoverStore.peek(imageKey)) }
     LaunchedEffect(imageKey, visible) {
         if (visible && book.cover.isNotEmpty() && cover == null) {
             cover = withContext(Dispatchers.IO) {
-                AbCoverStore.load(context, imageKey, "", "", book.cover, "", 320)
+                AbCoverStore.load(context, imageKey, "", "", book.cover, "", edge)
             }
         }
     }
     Column(
         Modifier.width(124.dp).abGlass(theme, 15).clickable(
-            role = Role.Button, onClickLabel = "Открыть на сайте", onClick = open
+            role = Role.Button, onClickLabel = "Найти аудиокнигу", onClick = open
         ).padding(8.dp), verticalArrangement = Arrangement.spacedBy(5.dp)
     ) {
         Text(rank.toString(), color = theme.accent, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
@@ -122,7 +114,8 @@ private fun AbRankingCard(rank: Int, book: Book, theme: AbTheme, visible: Boolea
             .background(theme.field), contentAlignment = Alignment.Center) {
             val image = cover
             if (image != null) Image(image.asImageBitmap(), contentDescription = null,
-                modifier = Modifier.fillMaxWidth(), contentScale = ContentScale.Fit)
+                modifier = Modifier.fillMaxWidth(), contentScale = ContentScale.Fit,
+                filterQuality=androidx.compose.ui.graphics.FilterQuality.Medium)
             else Text(book.title.take(1).uppercase(), color = theme.muted, fontSize = 22.sp)
         }
         Text(book.title, color = theme.text, fontSize = 13.sp, fontWeight = FontWeight.Medium,

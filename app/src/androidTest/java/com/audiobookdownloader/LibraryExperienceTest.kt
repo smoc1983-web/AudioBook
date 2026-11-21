@@ -192,7 +192,14 @@ class LibraryExperienceTest {
         val prefs=context.getSharedPreferences("compact-shelf-test",0);prefs.edit().clear().putBoolean("experience_collection_list",true).commit()
         var opens=0
         compose.setContent{AbCollectionShelf(Shelf("Короткая полка",listOf(BookRef("Книга","",""))),emptyList(),prefs,0,abTheme(10),{opens++},{},{},{},{},{})}
-        compose.onNodeWithText("Свернуть коллекцию").performClick();compose.onNodeWithText("Развернуть коллекцию").assertIsDisplayed();assertEquals(0,opens)
-        compose.onNodeWithText("Развернуть коллекцию").performClick();compose.onNodeWithText("Продолжения").assertIsDisplayed();prefs.edit().clear().commit()
+        val menu=compose.onNodeWithContentDescription("Меню коллекции: Короткая полка")
+        menu.performClick()
+        compose.onNodeWithText("Свернуть коллекцию").performClick()
+        compose.onNodeWithText("Книга").assertDoesNotExist()
+        assertEquals(0,opens)
+        menu.performClick()
+        compose.onNodeWithText("Развернуть коллекцию").performClick()
+        compose.onNodeWithText("Книга").assertIsDisplayed()
+        prefs.edit().clear().commit()
     }
 }
