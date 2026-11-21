@@ -11,6 +11,7 @@ import java.net.URL
 import java.net.URLEncoder
 import java.io.ByteArrayOutputStream
 import java.security.MessageDigest
+import java.util.zip.GZIPInputStream
 
 internal data class SeriesEvidence(val title:String,val author:String,val series:String,val seriesUrl:String,
     val bookUrl:String,val provider:String,val order:Double?,val parent:String="",val checked:Long=System.currentTimeMillis())
@@ -65,7 +66,8 @@ internal fun interface SeriesAuthorityFetcher { suspend fun html(address:String)
 internal class SeriesAuthorityHttp:SeriesAuthorityFetcher {
     override suspend fun html(address:String):String = html(address, { true })
 
-    suspend fun html(address:String, acceptsAddress:(String)->Boolean, budgetMillis:Long=9000L):String=withContext(Dispatchers.IO) {
+    suspend fun html(address:String, acceptsAddress:(String)->Boolean, budgetMillis:Long=9000L,
+        compressed:Boolean=false):String=withContext(Dispatchers.IO) {
         val provider=SeriesAuthorityRules.provider(address);require(provider.isNotBlank())
         val deadline=android.os.SystemClock.elapsedRealtime()+budgetMillis
         var next=address
@@ -75,16 +77,21 @@ internal class SeriesAuthorityHttp:SeriesAuthorityFetcher {
             try {
                 c.instanceFollowRedirects=false;c.connectTimeout=4000;c.readTimeout=4000
                 c.setRequestProperty("User-Agent","Mozilla/5.0 (Linux; Android) Audiobook-Metadata/1.0")
-                c.setRequestProperty("Accept-Language","ru-RU,ru;q=0.9");c.setRequestProperty("Accept-Encoding","identity")
+                c.setRequestProperty("Accept-Language","ru-RU,ru;q=0.9")
+                c.setRequestProperty("Accept-Encoding",if(compressed) "gzip" else "identity")
                 val code=c.responseCode
                 if(code in listOf(301,302,303,307,308)){next=NetworkAddressRules.redirect(URL(next),c.getHeaderField("Location")).toString()}
                 else {
                     require(code==200){"Справочник недоступен (HTTP $code)"}
-                    val out=ByteArrayOutputStream();c.inputStream.use{input->
-                        val buffer=ByteArray(8192)
-                        while(true){currentCoroutineContext().ensureActive();val n=input.read(buffer);if(n<0)break
-                            require(out.size()+n<=3*1024*1024){"Слишком большая страница справочника"};out.write(buffer,0,n)
-                            if(android.os.SystemClock.elapsedRealtime()>deadline)throw java.io.IOException("Время загрузки справочника истекло; неполный ответ отброшен")
+                    val out=ByteArrayOutputStream()
+                    c.inputStream.use { raw ->
+                        val decoded=if(c.contentEncoding.equals("gzip",true)) GZIPInputStream(raw) else raw
+                        decoded.use { input ->
+                            val buffer=ByteArray(8192)
+                            while(true){currentCoroutineContext().ensureActive();val n=input.read(buffer);if(n<0)break
+                                require(out.size()+n<=3*1024*1024){"Слишком большая страница справочника"};out.write(buffer,0,n)
+                                if(android.os.SystemClock.elapsedRealtime()>deadline)throw java.io.IOException("Время загрузки справочника истекло; неполный ответ отброшен")
+                            }
                         }
                     }
                     val body=String(out.toByteArray(),Charsets.UTF_8)

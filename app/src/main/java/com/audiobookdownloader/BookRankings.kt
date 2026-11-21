@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
@@ -40,23 +41,30 @@ internal class BookRankings(context: Context) {
     // Browsing data can be evicted by Android. Keep the rolling charts in app-private files.
     private val history = File(context.applicationContext.filesDir, "book-chart-history-v1")
 
-    fun collectBestsellers(): Flow<BookRankingView> =
-        chart(Feed.LITRES_BESTSELLERS, BookRankingPeriod.YEAR)
+    suspend fun collectBestsellers() {
+        val feed = Feed.LITRES_BESTSELLERS
+        update(feed, todayUtc(), store(feed), retry = false)
+    }
 
     fun chart(feed: Feed, period: BookRankingPeriod, retry: Boolean = false): Flow<BookRankingView> = flow {
         val store = store(feed)
-        val today = LocalDate.now(ZoneOffset.UTC).toEpochDay()
+        val today = todayUtc()
         val cached = locks[feed.ordinal].withLock { read(store) }
         if (cached.any { it.day == today }) {
             emit(view(feed, period, today, cached))
             return@flow
         }
         emit(view(feed, period, today, cached).copy(loading = true))
-        val refresh = fetchLocks[feed.ordinal].withLock {
-            refresh(feed, today, store, retry)
-        }
+        val refresh = update(feed, today, store, retry)
         emit(view(feed, period, today, refresh.first).copy(unavailable = refresh.second))
     }.flowOn(Dispatchers.IO)
+
+    private fun todayUtc(): Long = LocalDate.now(ZoneOffset.UTC).toEpochDay()
+
+    private suspend fun update(feed: Feed, today: Long, store: AtomicFile, retry: Boolean):
+        Pair<List<Daily>, Boolean> = withContext(Dispatchers.IO) {
+        fetchLocks[feed.ordinal].withLock { refresh(feed, today, store, retry) }
+    }
 
     private suspend fun refresh(feed: Feed, today: Long, store: AtomicFile, retry: Boolean):
         Pair<List<Daily>, Boolean> {
@@ -67,7 +75,8 @@ internal class BookRankings(context: Context) {
         if (previousFailure != null && SystemClock.elapsedRealtime() - previousFailure < cooldown)
             return cached to true
         val books = try {
-            val html = SeriesAuthorityHttp().html(feed.address, feed::accepts, budgetMillis = 20_000L)
+            val html = SeriesAuthorityHttp().html(feed.address, feed::accepts,
+                budgetMillis = 40_000L, compressed = true)
             BookRankingRules.parse(feed, html).also { check(it.isNotEmpty()) }
         } catch (error: CancellationException) {
             throw error

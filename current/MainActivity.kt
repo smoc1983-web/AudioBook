@@ -9515,7 +9515,7 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
     val foreground=LocalAbVisible.current
     val rankings=remember(sourceContext.applicationContext) { BookRankings(sourceContext.applicationContext) }
     LaunchedEffect(searchHome,foreground,rankings) {
-        if (searchHome && foreground) rankings.collectBestsellers().collect {}
+        if (searchHome && foreground) rankings.collectBestsellers()
     }
     // Keep the lazy list unmeasured until its first snapshot is ready, so a restored position
     // is not clamped to an empty header-only list while background preparation finishes.
