@@ -70,6 +70,49 @@ public class BookRankingRulesTest {
             parse(Feed.AUTHOR_MONTH, settings + row.replace("/work/154", "/work/154/#details")).get(0).url);
     }
 
+    @Test public void optionalCoverCannotInvalidateAnEditionOrLoadAnUnknownHost() {
+        String card = "<div data-testid='collection__content--wrapper'><div data-testid='art__wrapper'>"
+            + "<a data-testid='art__title' href='/audiobook/book-123/'>Книга</a>"
+            + "<a data-testid='art__cover'><img src='%s'></a></div></div>";
+        String cdn = "https://cdn.litres.ru/";
+        String longest = cdn + "a".repeat(700 - cdn.length());
+        for (String permitted : Arrays.asList(longest, "https://www.litres.ru/pub/c/cover/123.jpg",
+                "https://cdn2.litres.ru/pub/c/cover/123.jpg")) {
+            assertEquals(permitted, parse(Feed.LITRES_WEEK, String.format(card, permitted)).get(0).cover);
+        }
+        for (String unusable : Arrays.asList(longest + "a", "http://cdn.litres.ru/123", "https://example.com/123")) {
+            assertEquals("", parse(Feed.LITRES_WEEK, String.format(card, unusable)).get(0).cover);
+        }
+    }
+
+    @Test public void validatedBoundsKeepNormalBooksAndRejectDamagedRows() {
+        String settings = "<div class='panel-sort-order'><a data-toggle='dropdown'>по популярности</a>"
+            + "<a data-toggle='dropdown'>месяц</a></div>";
+        String title = "a".repeat(300);
+        String author = "b".repeat(300);
+        String maxUrl = "https://author.today/work/154?" + "x".repeat(970);
+        String valid = row("154", title).replace("Автор", author);
+        assertEquals(1_000, maxUrl.length());
+        assertEquals(title, parse(Feed.AUTHOR_MONTH, settings + valid.replace("/work/154", maxUrl)).get(0).title);
+        assertTrue(parse(Feed.AUTHOR_MONTH, settings + valid.replace("/work/154", maxUrl + "x")).isEmpty());
+        assertTrue(parse(Feed.AUTHOR_MONTH, settings + valid.replace(title, title + "x")).isEmpty());
+        assertTrue(parse(Feed.AUTHOR_MONTH, settings + valid.replace(author, author + "x")).isEmpty());
+        assertTrue(parse(Feed.AUTHOR_MONTH, settings + valid.replace("/work/154", "/work/154?x=%0a")).isEmpty());
+    }
+
+    @Test public void evenTheLastRankContributesOnePointPerDay() {
+        Book first = new Book("a", "A", "", "", "");
+        Book second = new Book("b", "B", "", "", "");
+        List<Book> lastPlace = IntStream.rangeClosed(1, 19)
+            .mapToObj(id -> new Book(Integer.toString(id), "Книга " + id, "", "", ""))
+            .collect(Collectors.toList());
+        lastPlace.add(first);
+        List<Daily> days = Arrays.asList(new Daily(100, Arrays.asList(second, first)),
+            new Daily(99, lastPlace), new Daily(98, lastPlace));
+        List<Book> ranked = observe(100, 30, days).books;
+        assertTrue(ranked.indexOf(first) < ranked.indexOf(second));
+    }
+
     @Test public void redirectMustPreserveOriginChartAndPeriod() {
         assertTrue(Feed.AUTHOR_WEEK.accepts(Feed.AUTHOR_WEEK.address));
         assertFalse(Feed.AUTHOR_WEEK.accepts("https://author.today/work/genre"));
@@ -93,6 +136,8 @@ public class BookRankingRulesTest {
         assertEquals(100, result.latestDay);
         assertEquals(Arrays.asList(b, c, a), result.books);
         assertEquals(4, observe(100, 365, history).days);
-        assertTrue(observe(1000, 30, history).books.isEmpty());
+        Observed empty = observe(1000, 30, history);
+        assertTrue(empty.books.isEmpty());
+        assertEquals(0, empty.latestDay);
     }
 }
