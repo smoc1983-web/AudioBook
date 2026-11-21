@@ -7,7 +7,7 @@ internal fun rankedAudioResult(prefs:SharedPreferences, wanted:BookRankingRules.
     if (!SeriesAuthorityRules.sameTitle(wanted.title,title,"") &&
         candidate.cycles.none { SeriesAuthorityRules.sameTitle(wanted.title,title,it.title) }) return null
     if (wanted.author.isNotBlank() && candidate.author.isNotBlank() &&
-        !SeriesAuthorityRules.sameAuthor(wanted.author, candidate.author.split(',', ';'))) return null
+        wanted.author.split(',', ';').none { SeriesAuthorityRules.sameAuthor(it, candidate.author.split(',', ';')) }) return null
     val editions = AbSourceAvailability.withoutPreviews(prefs,candidate) ?: return null
     val audio = bookSources(editions).filter { source ->
         val official = SeriesAuthorityRules.provider(source.url)

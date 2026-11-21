@@ -77,7 +77,7 @@ jobs:
           emulator-boot-timeout: 300
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -memory 2048 -cores 2
           script: |
-            GITHUB_RUN_NUMBER="$PREVIEW_CANDIDATE_NUMBER" gradle :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.audiobookdownloader.CompactPlayerTest,com.audiobookdownloader.CollectionSeriesTest --max-workers=2 --console=plain
+            GITHUB_RUN_NUMBER="$PREVIEW_CANDIDATE_NUMBER" gradle :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.audiobookdownloader.CompactPlayerTest,com.audiobookdownloader.CollectionSeriesTest,com.audiobookdownloader.RankedAudioSearchTest --max-workers=2 --console=plain
             GITHUB_RUN_NUMBER="$PREVIEW_CANDIDATE_NUMBER" python3 scripts/test-preview-upgrade.py
       - name: Verify the signed APK and build updater metadata
         env:

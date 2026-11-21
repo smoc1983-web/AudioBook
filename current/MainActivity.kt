@@ -1952,8 +1952,8 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
             status="Введите название книги, автора или ссылку"
             return
         }
-        val directUrl=supportedBookUrl(query)
-        if(directUrl==null && (query.startsWith("http://",true) || query.startsWith("https://",true))) {
+        val directUrl=if(ranked==null)supportedBookUrl(query) else null
+        if(ranked==null && directUrl==null && (query.startsWith("http://",true) || query.startsWith("https://",true))) {
             status="Поддерживаются ссылки на сайты из раздела «Источники»"
             return
         }
@@ -2425,7 +2425,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
             ?.hideSoftInputFromWindow(keyboardView.windowToken, 0)
         val text=searchText.trim()
         if(selectedGenre.isNotBlank() && !text.startsWith("http",true) && supportedBookUrl(text)==null)
-            openGenre(selectedGenre,text,selectedNativeGenre) else startCommonBookSearch()
+            openGenre(selectedGenre,text,selectedNativeGenre) else startCommonBookSearch(rankedSearch?.takeIf{it.title==text})
     }
 
     suspend fun enqueueEditions(editions:List<AbDownloadEdition>,recordTotal:Boolean=true) {
