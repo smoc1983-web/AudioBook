@@ -65,7 +65,7 @@ public class CompactPlayerTest {
         if(Build.VERSION.SDK_INT<29)device.executeShellCommand("cp "+new File(context.getExternalFilesDir("test-evidence"),name).getAbsolutePath()+" /sdcard/Download/"+name);
         int pixel=image[0].getPixel(image[0].getWidth()/20,image[0].getHeight()/2);image[0].recycle();return pixel;
     }
-    @Test(timeout=180000) public void selectedThemesKeepCoverAndAllPrimaryActionsOnScreen() throws Exception {
+    @Test(timeout=180000) public void largeCoverAndFivePlayerActionsFitWithoutExtraPanels() throws Exception {
         Configurator.getInstance().setWaitForIdleTimeout(500);device.wakeUp();device.executeShellCommand("wm dismiss-keyguard");
         String read=Build.VERSION.SDK_INT>=33?"android.permission.READ_MEDIA_AUDIO":"android.permission.READ_EXTERNAL_STORAGE";
         device.executeShellCommand("pm grant "+context.getPackageName()+" "+read);
@@ -86,15 +86,19 @@ public class CompactPlayerTest {
                 prefs.edit().putInt("glass_theme",skin).commit();scenario.recreate();
                 click(By.text("Плеер"));
                 Rect cover=bounds(By.desc("Описание: Проверка нового плеера"));
-                Rect title=bounds(By.text("Проверка нового плеера"));
                 int color=snapshot(scenario,skin);
-                assertTrue("Cover must precede the title",cover.bottom<=title.top);
-                assertTrue("Cover is too small: "+cover+" in "+device.getDisplayWidth()+"×"+device.getDisplayHeight(),cover.height()+1>=device.getDisplayHeight()/6);
-                Rect collection=bounds(By.text("В коллекцию"));
-                Rect series=bounds(By.text("Продолжения"));
-                assertTrue("Collection and series actions must share one row",Math.abs(collection.centerY()-series.centerY())<collection.height()/2);
+                Rect previous=bounds(By.desc("Предыдущая глава"));
+                Rect next=bounds(By.desc("Следующая глава"));
+                Rect chapters=bounds(By.text("Главы"));
+                assertTrue("The cover should fill the main area: "+cover,cover.height()>=device.getDisplayHeight()/2);
+                assertTrue("Playback controls belong between cover and actions",cover.bottom<=previous.top && next.bottom<=chapters.top);
                 for(String label:new String[]{"Главы","Закладки","Очередь","Таймер","Скорость"})control(By.text(label));
-                control(By.desc("Позиция воспроизведения в главе"));control(By.textContains("До конца книги:"));
+                for(BySelector extra:new BySelector[]{By.text("Сейчас играет"),By.text("В коллекцию"),By.text("Продолжения"),
+                    By.desc("Настройки плеера"),By.desc("Позиция воспроизведения в главе"),By.textContains("До конца книги:")})
+                    assertFalse("An extra control is on the player: "+extra,device.hasObject(extra));
+                click(By.text("Главы"));
+                control(By.desc("Позиция воспроизведения в главе"));
+                click(By.text("О книге"));control(By.text("Сведения о книге"));
                 click(By.desc("Продолжения серии"));control(By.text("Серия книги"));click(By.desc("Закрыть"));
                 click(By.text("Закладки"));control(By.text("Закладки книги"));click(By.text("Добавить закладку"));assertFalse(BookmarkStoreKt.loadBookmarks(prefs,"Проверка нового плеера").isEmpty());click(By.desc("Закрыть"));
                 if(!device.wait(Until.gone(By.text("Закладки книги")),5000))throw unavailable(By.text("Закладки книги"));
@@ -107,6 +111,8 @@ public class CompactPlayerTest {
             click(By.text("Главы"));control(By.text("Главы книги"));click(By.desc("Закрыть"));
             click(By.text("Таймер"));control(By.text("Таймер сна"));click(By.desc("Закрыть"));
             assertTrue(device.wait(Until.gone(By.text("Таймер сна")),5000));
+            click(By.text("Очередь"));control(By.text("Очередь прослушивания"));click(By.desc("Закрыть"));
+            click(By.text("Скорость"));control(By.text("Скорость воспроизведения"));click(By.desc("Закрыть"));
             snapshot(scenario,150);
         } finally {PlaybackService.Companion.stop(context,true,null);context.stopService(new android.content.Intent(context,PlaybackService.class));audio.delete();prefs.edit().clear().commit();updates.edit().putBoolean("auto",autoUpdates).commit();}
     }
