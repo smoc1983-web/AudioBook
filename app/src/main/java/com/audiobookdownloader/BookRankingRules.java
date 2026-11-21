@@ -85,7 +85,7 @@ final class BookRankingRules {
         boolean authorToday = !feed.authorPeriod.isEmpty();
         if (authorToday && !confirmedPeriod(document, feed.authorPeriod)) return Collections.emptyList();
         Elements cards = document.select(authorToday ? ".book-row:not(.placement, .placement *)"
-            : "main [data-testid=collection__content--wrapper] [data-testid=art__wrapper]");
+            : "[data-testid=collection__content--wrapper] [data-testid=art__wrapper]");
         Map<String, Book> entries = new LinkedHashMap<>();
         for (Element card : cards) {
             Book book = parseCard(card, authorToday);
@@ -110,14 +110,18 @@ final class BookRankingRules {
     }
 
     private static Book book(boolean authorToday, String title, String author, String url, Element image) {
+        if (title.isEmpty() || title.length() > 300 || author.length() > 300) return null;
         URI uri = officialUri(url);
-        if (uri == null || title.isEmpty() || title.length() > 300 || author.length() > 300) return null;
         String host = authorToday ? "author.today" : "www.litres.ru";
-        if (!host.equals(uri.getHost())) return null;
+        if (uri == null || !host.equals(uri.getHost())) return null;
         Matcher id = (authorToday ? AUTHOR_WORK : LITRES_AUDIO).matcher(uri.getRawPath());
         if (!id.matches()) return null;
-        String path = authorToday ? "/work/" + id.group(1) : uri.getRawPath().replaceFirst("/?$", "/");
-        return new Book(id.group(1), title, author, "https://" + host + path, coverUrl(image));
+        return new Book(id.group(1), title, author, editionUrl(uri, authorToday), coverUrl(image));
+    }
+
+    private static String editionUrl(URI uri, boolean authorToday) {
+        String path = uri.getRawPath().replaceFirst("/$", "");
+        return "https://" + uri.getHost() + path + (authorToday ? "" : "/");
     }
 
     private static String coverUrl(Element image) {
@@ -127,7 +131,7 @@ final class BookRankingRules {
         if (uri == null || url.length() > 700) return "";
         String host = uri.getHost();
         return host.equals("cm.author.today") || host.equals("www.litres.ru")
-            || host.matches("(?:cdn|cv)[0-9]+\\.litres\\.ru") ? url : "";
+            || host.matches("(?:cdn|cv)[0-9]*\\.litres\\.ru") ? url : "";
     }
 
     private static URI officialUri(String url) {
