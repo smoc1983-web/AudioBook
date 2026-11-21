@@ -13,6 +13,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -89,15 +90,23 @@ final class BookRankingRules {
 
     static List<Book> parse(Feed feed, String html) {
         Element document = Jsoup.parse(html, feed.address);
-        boolean authorToday = !feed.authorPeriod.isEmpty();
-        boolean mobile = authorToday && confirmedMobilePeriod(document, feed);
-        if (authorToday && !mobile && !confirmedPeriod(document, feed.authorPeriod)) return Collections.emptyList();
-        Elements cards = document.select(mobile ? ".list-block.media-list a.work-row[href]"
-            : authorToday ? ".book-row:not(.placement, .placement *)"
-            : "[data-testid=collection__content--wrapper] [data-testid=art__wrapper]");
+        if (feed.authorPeriod.isEmpty()) {
+            return rankedCards(document.select("[data-testid=collection__content--wrapper] [data-testid=art__wrapper]"),
+                card -> parseCard(card, false));
+        }
+        if (confirmedMobilePeriod(document, feed)) {
+            return rankedCards(document.select(".list-block.media-list a.work-row[href]"), BookRankingRules::parseMobileCard);
+        }
+        if (confirmedPeriod(document, feed.authorPeriod)) {
+            return rankedCards(document.select(".book-row:not(.placement, .placement *)"), card -> parseCard(card, true));
+        }
+        return Collections.emptyList();
+    }
+
+    private static List<Book> rankedCards(Elements cards, Function<Element, Book> parse) {
         Map<String, Book> entries = new LinkedHashMap<>();
         for (Element card : cards) {
-            Book book = mobile ? parseMobileCard(card) : parseCard(card, authorToday);
+            Book book = parse.apply(card);
             if (book != null) entries.putIfAbsent(book.id, book);
             if (entries.size() == LIMIT) break;
         }

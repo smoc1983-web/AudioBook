@@ -117,6 +117,20 @@ class CollectionSeriesTest {
             restore.commit()
         }
     }
+    @Test fun removingOneEditionDoesNotRemoveAnotherOrChangeOtherCollections() {
+        val context=ApplicationProvider.getApplicationContext<Context>()
+        val prefs=context.getSharedPreferences("collection-remove-edition-fixture",0)
+        val first=BookRef("Город","https://bookinfo.net/author/one/city","")
+        val second=BookRef("Город","https://bookinfo.net/author/two/city","")
+        try {
+            saveShelves(prefs,listOf(Shelf("Первая",listOf(first,second)),Shelf("Вторая",listOf(first))))
+            abRemoveShelfBook(prefs,"Первая",first)
+            assertEquals(listOf(Shelf("Первая",listOf(second)),Shelf("Вторая",listOf(first))),loadShelves(prefs))
+        } finally {
+            prefs.edit().clear().commit()
+        }
+    }
+
     @Test(timeout=30000) fun collectionMenuUsesNamedActionsWithoutDeletingAudioOrOpeningPlayer() {
         val context=ApplicationProvider.getApplicationContext<Context>()
         val prefs=context.getSharedPreferences("collection-menu-test",0)
