@@ -4,6 +4,7 @@ import json
 import os
 import re
 import subprocess
+import time
 import zipfile
 from pathlib import Path
 
@@ -81,6 +82,13 @@ def validate_assets(release, files, complete=False):
     return names
 
 
+def matching_release(tag):
+    releases = api("releases?per_page=100")
+    candidates = [release for release in releases if release["tag_name"] == tag]
+    assert len(candidates) <= 1
+    return candidates[0] if candidates else None
+
+
 def publish(root, version, source, manifest, files):
     tag = f"preview-v{code(version)}"
     refs = api("git/matching-refs/tags/preview-v")
@@ -90,16 +98,19 @@ def publish(root, version, source, manifest, files):
             assert ref["object"]["sha"] == source
         elif re.fullmatch(r"preview-v[1-9][0-9]*", name):
             assert int(name.removeprefix("preview-v")) < code(version)
-    releases = api("releases?per_page=100")
-    exact = [release for release in releases if release["tag_name"] == tag]
-    if not exact:
+    release = matching_release(tag)
+    if release is None:
         assert not any(ref["ref"] == f"refs/tags/{tag}" for ref in refs)
         notes = root / "release-notes.md"
         notes.write_text("\n".join(f"- {line}" for line in manifest["changes"]) + "\n", encoding="utf-8")
         gh("release", "create", tag, "--repo", REPOSITORY, "--target", source, "--draft", "--prerelease",
            "--title", f"Audiobook {version}", "--notes-file", str(notes))
-        exact = [release for release in api("releases?per_page=100") if release["tag_name"] == tag]
-    release, = exact
+        for _ in range(6):
+            release = matching_release(tag)
+            if release is not None:
+                break
+            time.sleep(2)
+        assert release is not None, "The new draft is not yet visible in the release list"
     assert release["target_commitish"] == source and release["prerelease"]
     if release["draft"]:
         uploaded = validate_assets(release, files)
