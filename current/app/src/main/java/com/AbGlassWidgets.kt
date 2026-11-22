@@ -110,9 +110,9 @@ private val abWidgetPalettes = listOf(
 private data class AbWidgetSnapshot(val title: String = "", val chapter: String = "", val index: Int = -1,
     val count: Int = 0, val position: Int = 0, val duration: Int = 0,
     val playing: Boolean = false, val loading: Boolean = false, val sleep: Int = 0,
-    val chapterTimer: Boolean = false, val tracks: List<ServiceTrack> = emptyList()) {
+    val chapterTimer: Boolean = false, val tracks: List<ServiceTrack> = emptyList(), val speed: Float = 1f) {
     val selected: Boolean get() = title.isNotBlank() && index in 0 until count
-    val transition: String get() = "$title|$chapter|$index|$count|$duration|$playing|$loading|${sleep>0}|$chapterTimer"
+    val transition: String get() = "$title|$chapter|$index|$count|$duration|$playing|$loading|${sleep>0}|$chapterTimer|$speed"
 }
 
 /** No independent service, alarms, network requests or polling while playback is paused. */
@@ -138,7 +138,7 @@ internal object AbGlassWidgets {
     fun publish(context: Context, state: ServicePlaybackState,periodic:Boolean=false) {
         val track = state.tracks.getOrNull(state.trackIndex)
         val snapshot = AbWidgetSnapshot(state.bookTitle,track?.title.orEmpty(),state.trackIndex,state.tracks.size,
-            state.positionMs,state.durationMs,state.isPlaying,state.isLoading,state.sleepSeconds,state.sleepChapterTarget.isNotBlank(),state.tracks)
+            state.positionMs,state.durationMs,state.isPlaying,state.isLoading,state.sleepSeconds,state.sleepChapterTarget.isNotBlank(),state.tracks,state.speed)
         latest = snapshot
         val now = SystemClock.elapsedRealtime()
         synchronized(lock) {
@@ -224,7 +224,7 @@ internal object AbGlassWidgets {
         if(live.hasSelection || latest?.selected==false && live.bookTitle.isNotBlank()) {
             val track=live.tracks.getOrNull(live.trackIndex)
             return AbWidgetSnapshot(live.bookTitle,track?.title.orEmpty(),live.trackIndex,live.tracks.size,
-                live.positionMs,live.durationMs,live.isPlaying,live.isLoading,live.sleepSeconds,live.sleepChapterTarget.isNotBlank(),live.tracks)
+                live.positionMs,live.durationMs,live.isPlaying,live.isLoading,live.sleepSeconds,live.sleepChapterTarget.isNotBlank(),live.tracks,live.speed)
         }
         val prefs=context.getSharedPreferences("audiobook_downloader",Context.MODE_PRIVATE)
         val title=prefs.getString("widget_book","").orEmpty()
@@ -237,7 +237,7 @@ internal object AbGlassWidgets {
         return AbWidgetSnapshot(title,prefs.getString("widget_track","").orEmpty(),
             prefs.getInt("widget_track_index",0).coerceIn(0,(resolvedCount-1).coerceAtLeast(0)),resolvedCount,
             prefs.getInt("widget_position",0).coerceAtLeast(0),prefs.getInt("widget_duration",0).coerceAtLeast(0),
-            tracks=AbBookProgress.playlist(prefs,title))
+            tracks=AbBookProgress.playlist(prefs,title),speed=AbBookProgress.savedSpeed(prefs,title))
         // A saved playlist is always shown paused after process death, never as still playing.
     }
 
@@ -281,10 +281,10 @@ internal object AbGlassWidgets {
         val display=BookMetadata.playback(context.getSharedPreferences("audiobook_downloader",0),state.title,state.tracks)
         views.setTextViewText(R.id.ab_widget_title,if(state.selected)display.title else "Audiobook")
         val timing=AbBookProgress.calculate(context.getSharedPreferences("audiobook_downloader",0),state.title,
-            state.tracks,state.index,state.position,state.duration)
+            state.tracks,state.index,state.position,state.duration,state.speed)
         val progressText=AbBookProgress.description(timing)
         val chapter=if(!state.selected)"Выберите книгу" else if(state.loading)"Загрузка главы…" else
-            AbMediaPresentation.chapter(state.index,state.count,if(kind==0)"" else state.chapter)+" · "+AbBookProgress.label(timing)
+            AbMediaPresentation.chapter(state.index,state.count,if(kind==0)"" else state.chapter)+" · "+(AbBookProgress.remainingLabel(timing) ?: AbBookProgress.label(timing))
         views.setTextViewText(R.id.ab_widget_chapter,chapter)
         views.setTextColor(R.id.ab_widget_title,palette.text)
         views.setTextColor(R.id.ab_widget_chapter,palette.muted)

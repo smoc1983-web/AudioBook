@@ -5,6 +5,13 @@ import org.json.JSONArray
 
 /** Read-only presentation of the existing checkpoint. Never writes a listening position. */
 internal object AbBookProgress {
+    fun savedSpeed(prefs: SharedPreferences, title: String): Float = PlaybackOptions.rate(
+        prefs.getFloat("book_speed_" + safeFileName(title), prefs.getFloat("playback_speed", 1f))
+    )
+
+    fun remainingLabel(result: AbBookTimeRules.Result): String? =
+        result.remainingMs.takeIf { it > 0 }?.let { "Осталось " + AbBookTimeRules.time(it) }
+
     private fun edition(p:SharedPreferences,book:String,tracks:List<ServiceTrack>) =
         tracks.firstOrNull()?.editionId?.takeIf{it.isNotBlank()}
             ?: ChapterIdentity.edition(book,p.getString(bookUrlKey(book),"").orEmpty())

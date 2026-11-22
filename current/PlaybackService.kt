@@ -139,6 +139,7 @@ class PlaybackService : Service() {
                         tracks=tracks,trackIndex=prefs.getInt("widget_track_index",0).coerceIn(0,tracks.lastIndex),
                         positionMs=prefs.getInt("widget_position",0).coerceAtLeast(0),
                         durationMs=prefs.getInt("widget_duration",0).coerceAtLeast(0),
+                        speed=AbBookProgress.savedSpeed(prefs,prefs.getString("widget_book","").orEmpty()),
                         playbackNote="Последняя книга сохранена. Нажмите «Продолжить».")
                 }catch(_:Exception){null}
             }
@@ -975,8 +976,7 @@ class PlaybackService : Service() {
     }
 
     private fun applySettings() {
-        playbackSpeed = playbackPrefs.getFloat("book_speed_" + safeFileName(bookTitle),
-            playbackPrefs.getFloat("playback_speed", 1f)).let { PlaybackOptions.rate(it) }
+        playbackSpeed = AbBookProgress.savedSpeed(playbackPrefs,bookTitle)
         val player = mediaPlayer
         if (player != null && !isLoading) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {

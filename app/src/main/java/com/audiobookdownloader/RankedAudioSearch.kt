@@ -24,3 +24,22 @@ internal fun rankedAudioStatus(book:BookRankingRules.Book, local:Boolean, comple
     book.textEdition -> "На Author.Today есть текстовая версия. Часть источников аудио не ответила."
     else -> null
 }
+
+internal data class NarrationLookup(val ref:BookRef,val author:String,val voice:String) {
+    private val publisher = bookSiteName(ref.url).takeUnless { it == "Открыть" }
+    private val host = android.net.Uri.parse(ref.url).host.orEmpty().lowercase()
+        .removePrefix("www.").removePrefix("mob.").removePrefix("m.")
+
+    fun match(prefs:SharedPreferences, candidate:BookLink):BookLink? {
+        if(voice.isBlank() || SearchEditionIdentity.voiceKey(candidate.title,candidate.narrator)!=voice)return null
+        if(author.isNotBlank() && candidate.author.isBlank())return null
+        val book=rankedAudioResult(prefs,BookRankingRules.Book("",ref.title,author,ref.url,ref.cover),candidate) ?: return null
+        val alternatives=book.sources.filter { source ->
+            val candidateHost=android.net.Uri.parse(source.url).host.orEmpty().lowercase()
+                .removePrefix("www.").removePrefix("mob.").removePrefix("m.")
+            candidateHost.isNotBlank() && candidateHost!=host && bookSiteName(source.url)!=publisher
+        }
+        val first=alternatives.firstOrNull() ?: return null
+        return book.copy(url=first.url,coverUrl=first.coverUrl.ifBlank{book.coverUrl},sources=alternatives)
+    }
+}

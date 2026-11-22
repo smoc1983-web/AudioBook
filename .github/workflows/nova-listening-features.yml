@@ -1,0 +1,53 @@
+name: Verify Audiobook listening features
+on:
+  push:
+    branches: ['cloud/nova-302g-audiobook-20261122']
+    paths: ['.github/workflows/nova-listening-features.yml', 'app/**', 'current/**']
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+      - name: SDK
+        run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;35.0.0"'
+      - name: Source and parser checks
+        run: |
+          python -m pip install Pillow
+          python tools/run_checks.py
+      - name: Build and lint the local Android variants
+        run: |
+          gradle :app:testDebugUnitTest :app:testReleaseUnitTest :app:assembleDebug :app:assembleRelease :app:assembleDebugAndroidTest :app:lintRelease :app:auditRuntimeDependencies --max-workers=2 --console=plain
+          python3 scripts/check-android-lint.py app/build/reports/lint-results-release.xml
+      - name: Emulator access
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 36
+          target: aosp_atd
+          arch: x86_64
+          profile: pixel_6
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -memory 2048 -cores 2
+          script: gradle :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.audiobookdownloader.NovaListeningFeaturesTest,com.audiobookdownloader.BookProgressWidgetTest,com.audiobookdownloader.CompactPlayerTest --max-workers=2 --console=plain
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: listening-features-test-reports
+          path: |
+            app/build/test-results/
+            app/build/outputs/androidTest-results/
+            app/build/reports/

@@ -29,14 +29,14 @@ class BookProgressWidgetTest {
         StableProgress.observe(p,title,tracks.map{AudioTrack(it.title,it.durationMs,it.src)},true)
         tracks.forEach{AbBookProgress.remember(p,title,it,it.durationMs)}
         StableProgress.save(p,title,tracks,1,1740000)
-        p.edit().putString("widget_book",title).putString("widget_track","02")
+        p.edit().putFloat("book_speed_"+safeFileName(title),2f).putString("widget_book",title).putString("widget_track","02")
             .putInt("widget_track_count",2).putInt("widget_track_index",1)
             .putInt("widget_position",1740000).putInt("widget_duration",3540000)
             .putString("widget_playlist",JSONArray(tracks.map{JSONObject().put("t",it.title).put("s",it.src).put("e",edition)}).toString()).commit()
         val checkpoint=p.getString("book_progress_identity_"+edition,null)
         val local=LibraryBook(title,File("/unused"),tracks.map{File(it.src)})
         assertEquals(.5f,AbBookProgress.library(p,local,ServicePlaybackState()).progress,.00001f)
-        renderAndCheck("50%","Прогресс книги: 50%")
+        renderAndCheck("Осталось 15:00","Прогресс книги: 50%")
         assertEquals(checkpoint,p.getString("book_progress_identity_"+edition,null))
         assertEquals(StableProgress.Resume(1,1740000),StableProgress.resume(p,title,tracks))
 

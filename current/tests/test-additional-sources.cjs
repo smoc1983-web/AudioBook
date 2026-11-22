@@ -43,5 +43,11 @@ test('Rights-holder removal and blocked book return no playable substitute',()=>
 test('Challenge never returns cached recommendations as search results',()=>{const c=sources[2],r=run(catalog,'<title>Проверка соединения</title><main>Подтвердите что вы человек</main>',c.home);assert.equal(r.blocked,true);assert.deepEqual(r.links,[]);});
 test('External Baza TXT is a descriptor, then resolves all twenty chapters',()=>{const c=sources.find(x=>x.id==='baza-knig'),r=run('JSON.stringify(('+reader+')())',fixture('baza-knig-player.html'),page(c));assert.equal(r.playlist.length,0);assert(r.playlistUrl.endsWith('.pl.txt'));const script=load('online-playlist-template.js').replace('__CONTENT__',JSON.stringify(fixture('baza-playlist.json'))).replace('__BASE__',JSON.stringify(r.playlistUrl));const resolved=run(script,'',page(c));assert.equal(resolved.playlist.length,20);});
 test('Akniga only reads the current book audio, ignoring restored or advertising tracks',()=>{const c=sources.find(x=>x.id==='akniga'),html='<h1>Шинель</h1><article data-bid="75884"></article><div class="jpl" data-bid="999"><audio src="https://cdn.invalid/old.mp3"></audio></div><div class="jpl" data-bid="75884"><audio src="https://cdn.invalid/current.mp3"></audio></div>';const r=run('JSON.stringify(('+reader+')())',html,page(c));assert.equal(r.playlist.length,1);assert.equal(r.playlist[0].src,'https://cdn.invalid/current.mp3');});
+test('Life takes the largest declared book cover and ignores recommended images',()=>{
+ const url='https://audiokniga.life/fantastika/123-test.html';
+ const html='<article><aside><img src="/recommended.jpg"></aside><img src="/placeholder.png" data-srcset="/s.jpg 160w, /l.jpg 640w"><h1>Тестовая книга</h1></article>';
+ const detail=JSON.parse(makeDocument(html,url).evaluate(`JSON.stringify((${extra}).detail())`));
+ assert.equal(detail.cover,'https://audiokniga.life/l.jpg');
+});
 test('Search refuses login and third-party forms',()=>{const c=sources[0],doc=makeDocument('<form action="https://evil.invalid/search"><input name="q"></form><form action="/login"><input name="q"><input type="password"></form>',c.home);assert.equal(doc.evaluate(`(${extra}).search('test')`),'SEARCH_NOT_FOUND');});
 console.log(`PASS: ${passed} additional-source fixtures (recorded HTML and parser behaviour; no live audio playback assertion)`);

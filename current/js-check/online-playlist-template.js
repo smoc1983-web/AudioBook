@@ -529,7 +529,26 @@
         var reader=root.querySelector('[itemprop="readBy"],a[rel="performer"],a[href*="/reader/"],a[href*="/performer/"],a[href*="/readers/"],a[href*="/read/"]');
         return {author:author,narrator:text(reader),genres:genres,cycles:[]};
     }
-    function cover(root){var nodes=root.querySelectorAll('img');for(var i=0;i<nodes.length;i++){var n=nodes[i],src=address(n.getAttribute('data-src')||n.getAttribute('data-original')||n.getAttribute('src'));if(src&&!/placeholder|favicon|logo|poster\.png/i.test(src))return src;}return '';}
+    function validCover(value){var src=address(value);return src&&!/placeholder|favicon|logo|poster\.png/i.test(src)?src:'';}
+    function responsiveCover(image) {
+        var srcset=image.getAttribute('data-srcset')||image.getAttribute('srcset')||'',best='',score=0;
+        srcset.split(',').slice(0,24).forEach(function(row){
+            var fields=row.trim().split(/\s+/),weight=/^(\d{1,4})(w|x)$/.exec(fields[1]||'');
+            var src=validCover(fields[0]),size=weight?Number(weight[1])*(weight[2]==='x'?320:1):1;
+            if(src&&size>score){best=src;score=size;}
+        });
+        return best;
+    }
+    function cover(root){
+        var nodes=root.querySelectorAll('img'),life=current&&current.id==='audiokniga-life';
+        for(var i=0;i<nodes.length;i++){
+            var n=nodes[i];if(life&&excluded(n))continue;
+            var src=life?responsiveCover(n):'';
+            src=src||validCover(n.getAttribute('data-src')||n.getAttribute('data-original')||n.getAttribute('src'));
+            if(src)return src;
+        }
+        return '';
+    }
     function title(value,author){var s=String(value||'').replace(/^\s*(?:слушать\s+)?аудиокниг[ау]\s*/i,'').trim();if(author){var n=s.toLowerCase(),a=author.toLowerCase();if(n.indexOf(a)===0)s=s.slice(author.length).replace(/^\s*[-–—:,]\s*/,'');}return s;}
     function catalog(){
         var result={links:[],cycle:null,cycles:[],genres:[],nextUrls:[],hasNextButton:false,title:text(document.querySelector('h1')),isCyclePage:false,noResults:false,blocked:blocked()},seen=Object.create(null);
@@ -561,7 +580,7 @@
         var schema=document.querySelectorAll('script[type="application/ld+json"]');
         function walk(o,d){if(!o||d>6)return;if(Array.isArray(o)){o.slice(0,100).forEach(function(x){walk(x,d+1);});return;}if(typeof o!=='object')return;if(/^(?:Book|Audiobook)$/.test(String(o['@type']||''))){if(o.name)name=o.name;if(o.author){var a=Array.isArray(o.author)?o.author[0]:o.author;if(typeof a==='string')info.author=a;else if(a.name)info.author=a.name;}if(!image&&o.image)image=address(typeof o.image==='string'?o.image:o.image.url);}if(o['@graph'])walk(o['@graph'],d+1);}
         for(var i=0;i<schema.length&&i<30;i++)try{walk(JSON.parse(schema[i].textContent),0);}catch(e){}
-        info.title=title(name||document.title,info.author);info.cover=image||cover(scope);info.error=unavailable();
+        info.title=title(name||document.title,info.author);info.cover=current&&current.id==='audiokniga-life'?cover(scope)||validCover(image):image||cover(scope);info.error=unavailable();
         // Uknig places its Playerjs initializer outside .book-details. Inspect explicit player scripts too.
         var trial=/get_mp3_trial\/|ознакомительный фрагмент|фрагмент аудиокниги/i.test(scope.innerHTML||''),scripts=document.scripts||[];
         for(var si=0;si<scripts.length&&si<160&&!trial;si++){var script=scripts[si],value=String(script.text||script.textContent||'');
