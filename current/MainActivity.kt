@@ -10516,7 +10516,7 @@ private fun AbPlayerScreen(data: AbScreenData,actions: AbActions,books: List<Lib
             }
             if(state.error.isNotBlank())Text(state.error,color=theme.error,fontSize=12.sp,maxLines=2)
             AbPlayerTransport(state,prefs,theme)
-            AbPlayerTools(state,prefs,theme,panel,{panel=it},onSettings)
+            AbPlayerTools(state,prefs.getString(AbListeningFeatures.TOOLS,null),theme,panel,{panel=it},onSettings)
         }
     }
 
@@ -10622,9 +10622,8 @@ private fun AbPlayerScreen(data: AbScreenData,actions: AbActions,books: List<Lib
 }
 
 @Composable
-private fun AbPlayerTools(state:ServicePlaybackState,prefs:android.content.SharedPreferences,theme:AbTheme,
+private fun AbPlayerTools(state:ServicePlaybackState,raw:String?,theme:AbTheme,
     panel:AbPlayerPanel?,open:(AbPlayerPanel)->Unit,onSettings:(AbSettingsSection)->Unit) {
-    val raw=prefs.getString(AbListeningFeatures.TOOLS,null)
     val tools=remember(raw) {AbListeningFeatures.parseTools(raw).filter{it.visible}}
     if(tools.isEmpty())return
     Row(Modifier.fillMaxWidth().abGlass(theme,16),horizontalArrangement=Arrangement.SpaceEvenly) {

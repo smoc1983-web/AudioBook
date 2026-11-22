@@ -283,8 +283,13 @@ internal object AbGlassWidgets {
         val timing=AbBookProgress.calculate(context.getSharedPreferences("audiobook_downloader",0),state.title,
             state.tracks,state.index,state.position,state.duration,state.speed)
         val progressText=AbBookProgress.description(timing)
-        val chapter=if(!state.selected)"Выберите книгу" else if(state.loading)"Загрузка главы…" else
-            AbMediaPresentation.chapter(state.index,state.count,if(kind==0)"" else state.chapter)+" · "+(AbBookProgress.remainingLabel(timing) ?: AbBookProgress.label(timing))
+        val trackLabel=AbMediaPresentation.chapter(state.index,state.count,if(kind==0)"" else state.chapter)
+        val chapter=when {
+            !state.selected -> "Выберите книгу"
+            state.loading -> "Загрузка главы…"
+            else -> AbBookProgress.remainingLabel(timing)?.let { "$it · $trackLabel" }
+                ?: "$trackLabel · ${AbBookProgress.label(timing)}"
+        }
         views.setTextViewText(R.id.ab_widget_chapter,chapter)
         views.setTextColor(R.id.ab_widget_title,palette.text)
         views.setTextColor(R.id.ab_widget_chapter,palette.muted)
