@@ -580,6 +580,7 @@ class PlaybackService : Service() {
             }
             sourceType = if(playbackPrefs.getString("widget_source_type","local")=="online")"online" else "local"
             bookTitle = playbackPrefs.getString("widget_book", "Аудиокнига").orEmpty().ifBlank{"Аудиокнига"}
+            playbackSpeed = AbBookProgress.savedSpeed(playbackPrefs,bookTitle)
             trackIndex = playbackPrefs.getInt("widget_track_index", 0)
                 .coerceIn(0, playlist.lastIndex.coerceAtLeast(0))
             trackTitle = playlist.getOrNull(trackIndex)?.title ?: "Глава"
