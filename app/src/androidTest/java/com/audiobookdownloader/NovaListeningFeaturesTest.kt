@@ -29,6 +29,15 @@ class NovaListeningFeaturesTest {
         } finally {prefs.edit().clear().commit()}
     }
 
+    @Test fun shelfCoverStackOpensShelfAsOneAction() {
+        val shelf=Shelf("Моя полка",listOf(BookRef("Первая книга","",""),BookRef("Вторая книга","","")))
+        var opened=0
+        compose.setContent { AbLibraryShelfStack(shelf,abTheme(2),false){ opened++ } }
+        compose.onNodeWithText("Моя полка").performClick()
+        compose.runOnIdle { assertEquals(1,opened) }
+        compose.onNodeWithContentDescription("Описание: Первая книга").assertDoesNotExist()
+    }
+
     @Test fun otherSourceMustMatchWorkAndNarrator() {
         val ref=BookRef("Книга 3","https://bookinfo.net/author/test/book-3","")
         val lookup=NarrationLookup(ref,"Василий Автор",SearchEditionIdentity.voiceKey(ref.title,"Иван Чтец"))

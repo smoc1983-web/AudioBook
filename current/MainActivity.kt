@@ -10251,7 +10251,7 @@ private fun AbLibraryScreen(data: AbScreenData,actions: AbActions,sync: LibraryS
 }
 
 @Composable
-private fun AbLibraryShelfStack(shelf:Shelf,theme:AbTheme,selected:Boolean,open:()->Unit) {
+internal fun AbLibraryShelfStack(shelf:Shelf,theme:AbTheme,selected:Boolean,open:()->Unit) {
     Column(Modifier.width(120.dp).abGlass(theme,14,selected=selected).clickable(onClick=open)
         .padding(8.dp),horizontalAlignment=Alignment.CenterHorizontally) {
         Box(Modifier.width(96.dp).height(68.dp),contentAlignment=Alignment.CenterStart) {
