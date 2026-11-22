@@ -1,0 +1,82 @@
+name: Publish verified Audiobook Preview 4.2.100
+on:
+  push:
+    branches: ['cloud/publish100-20261122']
+    paths: ['.github/workflows/publish-preview100.yml', 'scripts/publish-verified-preview.py']
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: audiobook-preview-release
+  cancel-in-progress: false
+env:
+  APPROVED_VERSION: '4.2.100'
+  APPROVED_BASELINE: '4.2.99'
+  APPROVED_SOURCE: 'f9a3efe31db266aea66100092e2157a887577b9f'
+  APPROVED_RUN: '44983744201'
+  APPROVED_ARTIFACT: '14738309230'
+  APPROVED_APK_SHA: 'ac959a3b5b78993a94f6306fc605906f73d653cf3f0058065c95f4f05852d99b'
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Android signing verification tools
+        run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "build-tools;35.0.0"'
+      - name: Download the verified candidate
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run download "$APPROVED_RUN" --repo "$GITHUB_REPOSITORY" --name "Audiobook-Preview-$APPROVED_VERSION-candidate" --dir candidate
+      - name: Compile the production updater probe from Preview 4.2.99
+        run: |
+          mkdir -p probe-classes probe-src
+          curl --silent --show-error --fail --retry 3 https://repo.maven.apache.org/maven2/org/json/json/20240303/json-20240303.jar -o probe-json.jar
+          curl --silent --show-error --fail --retry 3 https://repo.maven.apache.org/maven2/org/jsoup/jsoup/1.23.2/jsoup-1.23.2.jar -o probe-jsoup.jar
+          cat > probe-src/BuildConfig.java <<'JAVA'
+          package com.audiobookdownloader;
+          final class BuildConfig {
+              static final String APPLICATION_ID="com.audiobookdownloader.preview";
+              static final String VERSION_NAME="4.2.99";
+              static final String UPDATE_ORIGIN="https://github.com";
+              static final String UPDATE_REPOSITORY="/smoc1983-web/AudioBook";
+              static final String UPDATE_PREFIX="preview-v";
+              static final String UPDATE_APK="Audiobook-Preview.apk";
+              static final String UPDATE_METADATA="preview-update.json";
+          }
+          JAVA
+          git fetch --no-tags origin refs/tags/preview-v100099
+          test "$(git rev-parse FETCH_HEAD)" = 998ac3a2c4a752ab528f6036bfc9014fbd9c5494
+          for name in PreviewUpdateRules PreviewUpdateHttp GitHubReleaseCatalog NetworkAddressRules; do
+            git show "FETCH_HEAD:app/src/main/java/com/audiobookdownloader/$name.java" > "probe-src/$name.java"
+          done
+          javac -cp probe-json.jar:probe-jsoup.jar -d probe-classes probe-src/*.java tools/github-update-probe/GithubUpdateProbe.java
+      - name: Verify and publish the approved Preview candidate
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/publish-verified-preview.py
+      - name: Detect the published update anonymously with the installed updater
+        run: |
+          for attempt in 1 2 3 4; do
+            if java -cp probe-classes:probe-json.jar:probe-jsoup.jar com.audiobookdownloader.GithubUpdateProbe public100 preview-v100100 &&
+                cmp candidate/dist/Audiobook-Preview.apk public100/Audiobook-Preview.apk; then
+              exit 0
+            fi
+            sleep 12
+          done
+          exit 1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: verified-4.2.100-publication
+          path: |
+            candidate/dist/publication.json
+            candidate/dist/preview-update.json
+            candidate/startup-evidence/installed-upgrade.json
+            public100/public-github-check.json
