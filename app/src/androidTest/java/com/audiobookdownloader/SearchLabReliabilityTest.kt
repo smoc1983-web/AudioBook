@@ -1,6 +1,7 @@
 package com.audiobookdownloader
 
 import android.app.NotificationManager
+import android.content.Context
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.compose.ui.test.*
@@ -29,12 +30,16 @@ class SearchLabReliabilityTest {
 
     @get:Rule val compose=createAndroidComposeRule<MainActivity>()
 
-    @Test fun typingKeepsTheSameFocusedSearchField() {
+    private fun searchField():SemanticsNodeInteraction {
         val description="Название, автор или ссылка"
-        val field=compose.onNodeWithContentDescription(description)
         compose.waitUntil(timeoutMillis=15000) {
             compose.onAllNodesWithContentDescription(description).fetchSemanticsNodes().isNotEmpty()
         }
+        return compose.onNodeWithContentDescription(description)
+    }
+
+    @Test fun typingKeepsTheSameFocusedSearchField() {
+        val field=searchField()
         field.performClick().assertIsFocused()
         field.performTextInput("файролл.")
         field.assertIsFocused()
@@ -43,6 +48,7 @@ class SearchLabReliabilityTest {
     }
 
     @Test fun aSearchBrowserStillRepliesWhileTheActivityIsStopped() {
+        searchField().assertIsDisplayed()
         val ready=CountDownLatch(1)
         val reply=CountDownLatch(1)
         val response=AtomicReference<String>()
@@ -51,7 +57,7 @@ class SearchLabReliabilityTest {
         var token=0L
         compose.activityRule.scenario.onActivity { activity ->
             token=SearchTransferService.begin(activity)
-            notifications=activity.getSystemService(NotificationManager::class.java)
+            notifications=activity.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             worker=checkNotNull(abCreateBrowser(activity,{},keepSearch=true) {
                 settings.javaScriptEnabled=true
                 webViewClient=object:WebViewClient() {

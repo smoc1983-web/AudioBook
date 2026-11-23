@@ -70,14 +70,19 @@ final class SearchLabSources {
             if (link == null || link.text().isBlank()) continue;
             String address = link.absUrl("href");
             if (!poleBookUrl(address) || !seen.add(address)) continue;
-            Element cover = card.selectFirst("img.cover");
-            String image = cover == null ? "" : cover.absUrl("data-original");
-            URI coverUrl = https(image);
             books.add(new PoleBook(link.text(), address, label(card, ".book-author a[href], a[href^=/authors/]"),
-                label(card, ".book-reader a[href]"), coverUrl != null && pole(coverUrl.getHost()) ? image : ""));
+                label(card, ".book-reader a[href]"), poleCover(card)));
             if (books.size() >= 200) break;
         }
         return books;
+    }
+
+    private static String poleCover(Element card) {
+        Element cover = card.selectFirst("img.cover");
+        if (cover == null) return "";
+        String image = cover.absUrl("data-original");
+        URI address = https(image);
+        return address != null && pole(address.getHost()) ? image : "";
     }
 
     private static String label(Element card, String selector) {
