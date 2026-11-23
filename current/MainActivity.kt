@@ -9957,8 +9957,11 @@ internal fun AbSearchResultCard(row:AbSearchRow,theme:AbTheme,onOpen:(BookLink,S
             row.book.cycles.firstOrNull()?.let{cycle->
                 Text("${cycle.title} · ${abVolumeLabel(cycle)}",color=theme.accent,fontSize=12.sp)
             }
-            Text(if(slot.availability==AbChapterAvailability.PREVIEW) "Найден только ознакомительный фрагмент"
-                else "Аудио в проверенных источниках не найдено",color=theme.muted,fontSize=12.sp)
+            Text(when {
+                slot.externalAudioUrl.isNotBlank() -> "В приложении главы не найдены. Есть аудиоиздание в справочнике."
+                slot.availability==AbChapterAvailability.PREVIEW -> "Найден только ознакомительный фрагмент"
+                else -> "Аудио в проверенных источниках не найдено"
+            },color=theme.muted,fontSize=12.sp)
             AbSearchLabOfficialLinks(slot,theme)
         }
         return
