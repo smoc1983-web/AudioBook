@@ -8,23 +8,23 @@ android {
     compileSdk=36
     defaultConfig {
         applicationId=when {
-            searchLab -> "com.audiobookdownloader.searchlab"
+            searchLab -> "com.audiobookdownloader.searchseries"
             stableChannel -> "com.audiobookdownloader"
             else -> "com.audiobookdownloader.preview"
         }
         minSdk=23;targetSdk=36
         versionCode=100000+(System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull() ?: 0)
-        versionName=if(searchLab) "4.2.100-test."+(System.getenv("GITHUB_RUN_NUMBER") ?: "local") else "4.2."+(System.getenv("GITHUB_RUN_NUMBER") ?: "local")
+        versionName=if(searchLab) "4.2.100-series."+(System.getenv("GITHUB_RUN_NUMBER") ?: "local") else "4.2."+(System.getenv("GITHUB_RUN_NUMBER") ?: "local")
         buildConfigField("boolean","SEARCH_LAB",searchLab.toString())
-        val label=if(searchLab) "Audiobook Test" else "Audiobook"
+        val label=if(searchLab) "Audiobook Test — Серии" else "Audiobook"
         buildConfigField("String","PRODUCT_NAME","\"$label\"")
         buildConfigField("String","UPDATE_ORIGIN","\"https://github.com\"")
         buildConfigField("String","UPDATE_REPOSITORY","\"/smoc1983-web/AudioBook\"")
         buildConfigField("String","UPDATE_PREFIX",if(searchLab) "\"searchlab-v\"" else if(stableChannel) "\"stable-v\"" else "\"preview-v\"")
-        buildConfigField("String","UPDATE_APK",if(searchLab) "\"Audiobook-Test.apk\"" else if(stableChannel) "\"Audiobook.apk\"" else "\"Audiobook-Preview.apk\"")
+        buildConfigField("String","UPDATE_APK",if(searchLab) "\"Audiobook-Series-Test.apk\"" else if(stableChannel) "\"Audiobook.apk\"" else "\"Audiobook-Preview.apk\"")
         buildConfigField("String","UPDATE_METADATA",if(searchLab) "\"searchlab-update.json\"" else if(stableChannel) "\"stable-update.json\"" else "\"preview-update.json\"")
         resValue("string","app_name",label)
-        buildConfigField("String","LIBRARY_DIRECTORY",if(searchLab) "\"AudioBooks-SearchLab\"" else if(stableChannel) "\"AudioBooks\"" else "\"AudioBooks-Preview\"")
+        buildConfigField("String","LIBRARY_DIRECTORY",if(searchLab) "\"AudioBooks-SeriesTest\"" else if(stableChannel) "\"AudioBooks\"" else "\"AudioBooks-Preview\"")
         testInstrumentationRunner="androidx.test.runner.AndroidJUnitRunner"
     }
     buildFeatures { compose=true;buildConfig=true }

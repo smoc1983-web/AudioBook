@@ -16,8 +16,8 @@ class SearchLabSmokeTest {
 
     @Test fun testPackageShowsTelegramAndDirectDownloadAction() {
         val context = ApplicationProvider.getApplicationContext<Context>()
-        assertEquals("com.audiobookdownloader.searchlab", context.packageName)
-        assertEquals("AudioBooks-SearchLab", BuildConfig.LIBRARY_DIRECTORY)
+        assertEquals("com.audiobookdownloader.searchseries", context.packageName)
+        assertEquals("AudioBooks-SeriesTest", BuildConfig.LIBRARY_DIRECTORY)
         val telegram = BookLink("Тайный сыск царя Гороха", "https://t.me/BookFan2/1552",
             author = "Андрей Белянин", description = "Описание из Telegram")
         val audio = BookLink("Полная книга", "https://poleknig.com/books/42", author = "Автор")

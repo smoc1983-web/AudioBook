@@ -27,6 +27,12 @@ public class OfficialSeriesParserTest {
   assertEquals("planned",mobilePage(mobileCard("весь текст","<span class='preorder'>Анонс</span>")).books.get(0).status);
   assertEquals("planned",mobilePage(mobileCard("весь текст","Предзаказ")).books.get(0).status);
  }
+ @Test public void desktopBookDetailsRecognizePublishedTextAndLitresAudioFilterIsExact(){
+  var book=mobilePage(mobileCard(null,"<div class='book-details'>Размер: 400 087 зн., 10,00 а.л. весь текст</div>")).books.get(0);
+  assertEquals("text",book.format);assertEquals("published",book.status);
+  assertEquals(lt+"?art_types=audiobook",OfficialSeriesParser.pageUrl(lt+"?art_types=audiobook",lt));
+  assertEquals("",OfficialSeriesParser.pageUrl(lt+"?art_types=audiobook&redirect=https://invalid.example",lt));
+ }
  @Test public void paginationControlsAreIndependentAndExactlyEightyCardsArePartial(){
   String card=mobileCard("100K зн.","");
   assertTrue(mobilePage(card+"<button>Показать ещё</button>").incomplete);

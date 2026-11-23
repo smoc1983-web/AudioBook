@@ -112,7 +112,7 @@ internal class OfficialSeriesCatalog(private val context:Context,private val fet
                     val previous=prior.sources.firstOrNull{it.provider==provider} ?: OfficialSource(provider)
                     try {
                         withTimeout(18_000L) {
-                            loadSource(provider,title,prior.author.ifBlank{author},previous,now,OfficialSeriesHttp()).second
+                            loadSource(provider,title,prior.author.ifBlank{author},previous,now,OfficialSeriesHttp(),true).second
                         }
                     }catch(error:TimeoutCancellationException) {
                         currentCoroutineContext().ensureActive()
@@ -128,30 +128,40 @@ internal class OfficialSeriesCatalog(private val context:Context,private val fet
         }
     }
     private suspend fun loadSource(provider:String,title:String,author:String,previous:OfficialSource?,
-        now:Long,fetcher:SeriesAuthorityFetcher):Pair<SeriesEvidence,OfficialSource> {
+        now:Long,fetcher:SeriesAuthorityFetcher,search:Boolean=false):Pair<SeriesEvidence,OfficialSource> {
         val savedHint=previous?.books?.firstOrNull{SeriesAuthorityRules.sameTitle(title,it.title,it.series)}?.url.orEmpty()
         val authorityHint=SeriesAuthorityCache.evidence(prefs,title,author)?.bookUrl.orEmpty()
         val hint=savedHint.ifBlank{authorityHint.takeIf{SeriesAuthorityRules.provider(it)==provider}.orEmpty()}
         val (evidence,state)=SeriesAuthorityResolver(fetcher).resolveFrom(provider,title,author,hint)
         requireNotNull(evidence){if(state=="ambiguous")"Неоднозначное название или автор" else "Прямая серия пока не подтверждена"}
-        val queue=java.util.ArrayDeque<String>();queue.add(evidence.seriesUrl)
+        val series=evidence.seriesUrl
+        val audioView=search && provider=="Литрес"
+        val queue=java.util.ArrayDeque<String>()
+        queue.add(if(audioView)series+"?art_types=audiobook" else series)
         val seen=mutableSetOf<String>();val collected=linkedMapOf<String,OfficialEdition>();var complete=true
         while(queue.isNotEmpty()) {
             currentCoroutineContext().ensureActive()
             val page=queue.removeFirst();if(!seen.add(page))continue
             if(seen.size>6){complete=false;break}
-            val p=OfficialSeriesParser.page(fetcher.html(page),page,evidence.seriesUrl,evidence.series,evidence.author)
+            val p=try {
+                OfficialSeriesParser.page(fetcher.html(page),page,series,evidence.series,evidence.author)
+            }catch(cancelled:CancellationException){throw cancelled}
+            catch(error:Exception) {
+                if(!audioView || page==series || collected.isNotEmpty())throw error
+                queue.add(series);continue
+            }
             complete=complete&&!p.incomplete
             for(b in p.books)collected[b.url]=OfficialEdition(b.title,b.url,b.author,b.series,b.provider,b.format,b.status,b.order)
             require(collected.size<=500){"Слишком много книг серии"}
             p.next.filter{it !in seen}.forEach{queue.add(it)}
         }
         val seedRows=collected.values.filter{SeriesAuthorityRules.sameTitle(title,it.title,evidence.series)}
-        require(seedRows.isNotEmpty()){"Книга не найдена в прямой серии справочника"}
+        require(seedRows.isNotEmpty() || audioView){"Книга не найдена в прямой серии справочника"}
         val listedOrders=seedRows.mapNotNull{it.order}.distinct()
         require(listedOrders.size<=1&&(evidence.order==null||listedOrders.isEmpty()||listedOrders.single()==evidence.order)){"Номер текущей книги расходится между страницей и каталогом серии"}
         val seedOrder=evidence.order ?: listedOrders.singleOrNull()
-        return evidence to OfficialSource(provider,evidence.series,evidence.seriesUrl,seedOrder,now,now,complete,
+        val completeCatalogue=complete && (!audioView || series in seen)
+        return evidence to OfficialSource(provider,evidence.series,evidence.seriesUrl,seedOrder,now,now,completeCatalogue,
             if(complete)"" else "Список прочитан частично; уведомления по нему не создаются",collected.values.toList())
     }
     private fun updateNotices(snapshot:OfficialSnapshot) {

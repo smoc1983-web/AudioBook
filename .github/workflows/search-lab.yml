@@ -1,4 +1,4 @@
-name: Audiobook Test APK
+name: Audiobook Series Test APK
 on:
   push:
     branches: ['cloud/search-series-order-20261123']
@@ -48,14 +48,14 @@ jobs:
       - name: Verify distinct package and isolate installable APK
         run: |
           mkdir -p test-output
-          cp app/build/outputs/apk/debug/app-debug.apk test-output/Audiobook-Test.apk
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging test-output/Audiobook-Test.apk > test-output/apk-info.txt
-          grep -F "package: name='com.audiobookdownloader.searchlab'" test-output/apk-info.txt
-          grep -F "application-label:'Audiobook Test'" test-output/apk-info.txt
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs test-output/Audiobook-Test.apk
-          (cd test-output && sha256sum Audiobook-Test.apk | tee SHA256SUMS.txt)
+          cp app/build/outputs/apk/debug/app-debug.apk test-output/Audiobook-Series-Test.apk
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging test-output/Audiobook-Series-Test.apk > test-output/apk-info.txt
+          grep -F "package: name='com.audiobookdownloader.searchseries'" test-output/apk-info.txt
+          grep -F "application-label:'Audiobook Test — Серии'" test-output/apk-info.txt
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs test-output/Audiobook-Series-Test.apk
+          (cd test-output && sha256sum Audiobook-Series-Test.apk | tee SHA256SUMS.txt)
       - uses: actions/upload-artifact@v4
         with:
-          name: Audiobook-Test
+          name: Audiobook-Series-Test
           path: test-output/
           if-no-files-found: error
