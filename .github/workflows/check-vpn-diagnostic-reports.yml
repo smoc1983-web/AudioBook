@@ -1,7 +1,9 @@
-name: Verify VPN diagnostic reports for AudioBook Test (no release)
+name: Verify Test search and VPN diagnostic reports (no release)
 on:
   push:
-    branches: ['feature/test-diagnostic-vpn-reports-20261123']
+    branches: ['feature/test-diagnostic-vpn-reports-20261123', 'feature/test-search-diagnostics-20261123']
+  pull_request:
+    branches: ['test']
   workflow_dispatch:
 permissions:
   contents: read

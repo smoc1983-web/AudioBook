@@ -77,13 +77,13 @@ internal data class SourceHealthView(val state:SourceHealthState,val targets:Map
         AbButton("Отменить проверку сайтов",theme){job?.cancel()}
     }
     if(state.message.isNotBlank())Text(state.message,color=theme.muted,fontSize=12.sp)
-    AbButton("Подготовить отчёт: VPN / без VPN (.txt)",theme,enabled=!state.running&&!reporting) {
+    AbButton("Подготовить отчёт: VPN и поиск (.txt)",theme,enabled=!state.running&&!reporting) {
         reporting=true
         reportPreview=null
         reportError=""
         scope.launch {
             try {
-                reportPreview=withContext(Dispatchers.IO){AbVpnDiagnosticReport.collect(context,targets)}
+                reportPreview=withContext(Dispatchers.IO){AbVpnDiagnosticReport.collect(context,targets)+AbSearchDiagnostics.collect(context)}
             }catch(cancel:CancellationException){throw cancel}
             catch(_:Exception){reportError="Не удалось собрать отчёт. Повторите попытку."}
             finally{reporting=false}
@@ -91,7 +91,7 @@ internal data class SourceHealthView(val state:SourceHealthState,val targets:Map
     }
     val prepared=reportPreview
     if(prepared!=null) {
-        Text("Предпросмотр отчёта перед отправкой. Он содержит версию приложения и сохранённые результаты обеих проверок; личные данные не собираются.",color=theme.muted,fontSize=12.sp)
+        Text("Предпросмотр отчёта перед отправкой. Он содержит версию приложения, сравнение доступности сайтов и поисковых результатов; поисковые запросы и адреса книг не экспортируются.",color=theme.muted,fontSize=12.sp)
         SelectionContainer {
             Text(prepared,modifier=Modifier.heightIn(max=220.dp).verticalScroll(rememberScrollState()),
                 color=theme.text,fontSize=11.sp)
