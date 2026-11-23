@@ -50,5 +50,5 @@ public class PreviewUpdateRulesTest {
   assertEquals(TAG,PreviewUpdateRules.latestTag(xml));
  }
  @Test public void hashIsStandardSha256()throws Exception{assertEquals("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",PreviewUpdateRules.sha256("abc".getBytes(java.nio.charset.StandardCharsets.UTF_8)));}
- @Test public void runtimeIdentityMatchesLibraryAndChannel(){boolean preview=BuildConfig.APPLICATION_ID.endsWith(".preview");assertEquals(preview?"AudioBooks-Preview":"AudioBooks",BuildConfig.LIBRARY_DIRECTORY);assertEquals(preview?"preview-v":"stable-v",BuildConfig.UPDATE_PREFIX);assertTrue(PlaybackService.ACTION_TOGGLE.startsWith(BuildConfig.APPLICATION_ID+"."));}
+ @Test public void runtimeIdentityMatchesLibraryAndChannel(){boolean isolated=BuildConfig.APPLICATION_ID.endsWith(".test");assertEquals(isolated?"AudioBooks-Test":"AudioBooks-Preview",BuildConfig.LIBRARY_DIRECTORY);assertEquals(isolated?"test-v":"preview-v",BuildConfig.UPDATE_PREFIX);assertTrue(PlaybackService.ACTION_TOGGLE.startsWith(BuildConfig.APPLICATION_ID+"."));}
 }

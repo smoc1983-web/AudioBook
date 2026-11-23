@@ -1,23 +1,23 @@
 plugins { id("com.android.application"); id("org.jetbrains.kotlin.android"); id("org.jetbrains.kotlin.plugin.compose") }
-val audiobookChannel=providers.gradleProperty("audiobookChannel").orElse("preview").get()
-require(audiobookChannel in listOf("preview","stable")) { "Unknown Audiobook channel" }
-val stableChannel=audiobookChannel=="stable"
+val audiobookChannel=providers.gradleProperty("audiobookChannel").orElse("main").get()
+require(audiobookChannel in listOf("main","preview","test")) { "Unknown Audiobook channel" }
+val testChannel=audiobookChannel=="test"
 android {
     namespace="com.audiobookdownloader"
     compileSdk=36
     defaultConfig {
-        applicationId=if(stableChannel) "com.audiobookdownloader" else "com.audiobookdownloader.preview"
+        applicationId=if(testChannel) "com.audiobookdownloader.test" else "com.audiobookdownloader.preview"
         minSdk=23;targetSdk=36
         versionCode=100000+(System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull() ?: 0)
         versionName="4.2."+(System.getenv("GITHUB_RUN_NUMBER") ?: "local")
-        buildConfigField("String","PRODUCT_NAME","\"Audiobook\"")
+        buildConfigField("String","PRODUCT_NAME",if(testChannel) "\"Audiobook Test\"" else "\"Audiobook\"")
         buildConfigField("String","UPDATE_ORIGIN","\"https://github.com\"")
         buildConfigField("String","UPDATE_REPOSITORY","\"/smoc1983-web/AudioBook\"")
-        buildConfigField("String","UPDATE_PREFIX",if(stableChannel) "\"stable-v\"" else "\"preview-v\"")
-        buildConfigField("String","UPDATE_APK",if(stableChannel) "\"Audiobook.apk\"" else "\"Audiobook-Preview.apk\"")
-        buildConfigField("String","UPDATE_METADATA",if(stableChannel) "\"stable-update.json\"" else "\"preview-update.json\"")
-        resValue("string","app_name","Audiobook")
-        buildConfigField("String","LIBRARY_DIRECTORY",if(stableChannel) "\"AudioBooks\"" else "\"AudioBooks-Preview\"")
+        buildConfigField("String","UPDATE_PREFIX",if(testChannel) "\"test-v\"" else "\"preview-v\"")
+        buildConfigField("String","UPDATE_APK",if(testChannel) "\"Audiobook-Test.apk\"" else "\"Audiobook-Preview.apk\"")
+        buildConfigField("String","UPDATE_METADATA",if(testChannel) "\"test-update.json\"" else "\"preview-update.json\"")
+        resValue("string","app_name",if(testChannel) "Audiobook Test" else "Audiobook")
+        buildConfigField("String","LIBRARY_DIRECTORY",if(testChannel) "\"AudioBooks-Test\"" else "\"AudioBooks-Preview\"")
         testInstrumentationRunner="androidx.test.runner.AndroidJUnitRunner"
     }
     buildFeatures { compose=true;buildConfig=true }
@@ -28,10 +28,10 @@ android {
         }
     }
     buildTypes {
-        getByName("debug") { if(stableChannel) signingConfig=null else if(System.getenv("PREVIEW_KEYSTORE")!=null) signingConfig=signingConfigs.getByName("preview") }
+        getByName("debug") { if(System.getenv("PREVIEW_KEYSTORE")!=null) signingConfig=signingConfigs.getByName("preview") }
         getByName("release") {
             isDebuggable=false
-            if(!stableChannel && System.getenv("PREVIEW_KEYSTORE")!=null) signingConfig=signingConfigs.getByName("preview")
+            if(System.getenv("PREVIEW_KEYSTORE")!=null) signingConfig=signingConfigs.getByName("preview")
         }
     }
     compileOptions {

@@ -1,51 +1,42 @@
-# Audiobook
+# AudioBook
 
-Android-приложение для поиска, загрузки и прослушивания аудиокниг.
+Android-приложение для поиска, скачивания и прослушивания аудиокниг.
 
-Текущий опубликованный выпуск: **4.2.95 / 100095**, канал Preview,
-пакет `com.audiobookdownloader.preview`. Прежняя подпись сохранена.
+**Основная версия:** [4.2.101](https://github.com/smoc1983-web/AudioBook/releases/tag/preview-v100101) (`versionCode 100101`). 23 ноября 2026 года подтверждено успешное обновление на Samsung через экран приложения.
 
-[Скачать APK](https://github.com/smoc1983-web/AudioBook/releases/download/preview-v100095/Audiobook-Preview.apk)
-· [Релиз](https://github.com/smoc1983-web/AudioBook/releases/tag/preview-v100095)
-· [Проверки и ограничения выпуска](docs/RELEASE-4.2.95.md)
+> Технический идентификатор основной версии — `com.audiobookdownloader.preview`, а теги релизов — `preview-v...`. Слово Preview сохранено **только ради обновлений существующих установок**; основная ветка разработки — **`main`**.
 
-Обновление устанавливается поверх прежней Preview. Удалять приложение не нужно.
-В версиях с GitHub updater доступно меню обновления. Старый адрес сайта может
-потребовать разового ручного APK; подробности в [описании перехода](docs/BRIDGE-4.2.93.md).
-Stable имеет другой пакет и не смешивается с Preview.
+| Назначение | Git-ветка | Android-пакет | Канал обновлений | Библиотека |
+| --- | --- | --- | --- | --- |
+| Основное приложение | `main` | `com.audiobookdownloader.preview` | `preview-v...` / `Audiobook-Preview.apk` | `AudioBooks-Preview` |
+| Экспериментальная версия | `test` | `com.audiobookdownloader.test` | `test-v...` / `Audiobook-Test.apk` | `AudioBooks-Test` |
 
-## Структура проекта
+[Скачать основную версию](https://github.com/smoc1983-web/AudioBook/releases/download/preview-v100101/Audiobook-Preview.apk) · [История выпусков](https://github.com/smoc1983-web/AudioBook/releases)
 
-- `app/` — Android-модуль, код функций приложения, manifest, unit- и Android-тесты.
-- `current/MainActivity.kt`, `current/PlaybackService.kt` — основной интерфейс и сервис; Gradle копирует их в generated sources.
-- `current/app/src/main/` — дополнительные исходники и ресурсы основного модуля.
-- `current/tests/` — тесты парсеров, fixtures и структурная проверка Kotlin.
-- `current/js-check/` — извлечённые из Kotlin скрипты для тестов парсеров.
-- `legacyFixture/`, `upgradeProbe/` — тестовые модули совместимости обновлений.
-- `scripts/`, `tools/`, `.github/` — сборка, проверки и публикация.
-- `docs/` — инструкции, описание функций и подтверждения проверок приложения.
-- `AGENTS.md` — правила продолжения работы и актуальное состояние проекта.
+**Важно:** обе программы устанавливаются параллельно; библиотеки, настройки и прогресс в их закрытых хранилищах независимы. Тестовые APK **никогда** не устанавливать поверх основного приложения. Для первого тестового APK: `gradle :app:assembleRelease -PaudiobookChannel=test`; он должен быть подписан *постоянным* ключом тестового канала.
 
-## Проверки и сборка
+## Как выпускать обновления
 
-Для сборки используются AGP8.10.1 и Kotlin/Compose Compiler2.2.21. Нужны JDK17, Gradle8.11.1, Android SDK36 и build-tools35.0.0.
+1. Разрабатывать и проверять изменения в ветке `test`; её GitHub Actions выпускает отдельно подписанные `test-v...` релизы. Встроенный обновлятор Audiobook Test проверяет **только** эти теги.
+2. После успешных проверок переносить изменения в `main` через pull request. `main` собирается и тестируется, но **не публикует APK автоматически**.
+3. Выпускать основную AudioBook отдельным проверенным процессом с пакетом `com.audiobookdownloader.preview`, прежним сертификатом SHA-256 `3a4cecd14bb3e983843871766909c3f07b3dc64379800f3e270e4a27d39affb7` и `versionCode` выше опубликованного.
+
+Историческая Stable (`com.audiobookdownloader`, 1.0) более не поддерживается сборочной цепочкой: её закрытый ключ потерян. Исходники и архивы доступны в истории Git; рабочее приложение не нужно удалять для обновления.
+
+## Где находится код
+
+- `app/`: Android, Kotlin/Java и ресурсы.
+- `current/MainActivity.kt`, `current/PlaybackService.kt`: основные части интерфейса и аудиосервиса.
+- `scripts/` и `.github/workflows/`: проверки и сборка.
+- `upgradeProbe/`, `legacyFixture/`: тестовые инструменты совместимости (не являются старой Stable APK).
+- `docs/`: техническая документация.
+
+## Локальная проверка
 
 ```sh
-python3 tools/run_checks.py
-gradle :app:testDebugUnitTest :app:testReleaseUnitTest :app:lintRelease -PaudiobookChannel=stable
+python3 current/check.py
+gradle :app:testDebugUnitTest :app:testReleaseUnitTest -PaudiobookChannel=main
+gradle :app:testReleaseUnitTest :app:assembleRelease -PaudiobookChannel=test
 ```
 
-Первая команда проверяет исходники, парсеры и Java-правила; она не заменяет
-компиляцию Android и испытания на устройстве. Тестовые fixtures не входят в APK.
-Для подписанного выпуска Preview используется только существующий сертификат.
-Не создавать замену ключа и не изменять package для обхода ошибки обновления.
-
-## Документация
-
-[Последовательность доработок](docs/IMPROVEMENT-SEQUENCE.md),
-[передача проекта](docs/HANDOFF.md), [правила качества](docs/QUALITY.md).
-
-Старые копии исходников, ZIP-архивы и макеты убраны из текущего дерева ветки.
-История Git и опубликованные GitHub Releases сохранены. Старые ссылки внутри
-исторических отчётов относятся к состоянию до очистки; его можно открыть
-в коммите `6de4d878b315adf55bcdccd17b0c1d0a326e535b`.
+Для сборки: JDK 17, Gradle 8.11.1 и Android SDK 36. Нельзя ставить неподписанную или случайно переподписанную сборку поверх рабочего приложения.

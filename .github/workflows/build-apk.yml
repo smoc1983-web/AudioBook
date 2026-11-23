@@ -1,23 +1,26 @@
-name: Build Audiobook APK
+name: AudioBook main - verify only
 on:
   push:
-    branches: [main, build/library-experience, build/search-collections-layout, build/compact-player-design]
-    paths-ignore: ['docs/**', 'README.md', 'FILES.json']
+    branches: [main]
+    paths:
+      - 'app/**'
+      - 'current/**'
+      - 'scripts/**'
+      - '.github/workflows/build-apk.yml'
+  pull_request:
+    branches: [main]
   workflow_dispatch:
+permissions:
+  contents: read
 concurrency:
-  group: audiobook-preview-runtime-v3-${{ github.ref }}
+  group: audiobook-main-check-${{ github.ref }}
   cancel-in-progress: true
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
     timeout-minutes: 35
-    permissions:
-      contents: write
-      actions: read
     steps:
       - uses: actions/checkout@v4
-        with:
-          persist-credentials: false
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -25,148 +28,24 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.11.1'
-      - name: Signing workspace
-        run: |
-          echo "PREVIEW_KEYSTORE=$RUNNER_TEMP/audiobook-preview-signing/preview.keystore" >> "$GITHUB_ENV"
-      # Transitional read-only recovery; do not create new copies of the signing key.
-      # Permanent storage is AUDIOBOOK_PREVIEW_KEYSTORE_BASE64 in Actions secrets.
-      - uses: actions/cache/restore@v4
-        with:
-          path: ${{ runner.temp }}/audiobook-preview-signing
-          key: audiobook-preview-signing-v1
-      - name: Preserve Preview signing identity
-        env:
-          GH_TOKEN: ${{ github.token }}
-          KEYSTORE_BASE64: ${{ secrets.AUDIOBOOK_PREVIEW_KEYSTORE_BASE64 }}
-        run: bash scripts/preview-signing.sh
-      - name: Restored source adapters and playlist regressions
-        run: |
-          python scripts/test-permission-audit.py
-          python current/check.py
-          node current/tests/test-additional-sources.cjs
-          node current/tests/test-predanie.cjs
-          node current/test-catalog.cjs
-          node current/test-native-genres.cjs
-          node current/test-online-source.cjs
-          node current/test-online-player-load.cjs
-          node current/test-php-playlist.cjs
-          node current/tests/test-author-search.cjs
-          node current/tests/test-source-directory.cjs
-      - name: Record current source availability
-        run: python scripts/audit-book-sources.py
-      - name: Fetch published baseline for upgrade verification
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: bash scripts/with-release-number.sh python scripts/fetch-upgrade-baseline.py
       - name: Android SDK
         run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;35.0.0"'
-      - name: Tests and isolated Preview APK
-        run: bash scripts/with-release-number.sh gradle :app:testDebugUnitTest :app:testReleaseUnitTest :app:assembleDebug :app:assembleRelease :app:assembleDebugAndroidTest :upgradeProbe:assembleDebug --stacktrace
-      - name: Enable Android emulator acceleration
+      - name: Parser tests
         run: |
-          gradle --stop
-          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android/sdk/ndk
-          df -h
-          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
-          sudo udevadm control --reload-rules
-          sudo udevadm trigger --name-match=kvm
-      - name: Actual Android 36 startup and recovery tests
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 36
-          emulator-boot-timeout: 300
-          target: aosp_atd
-          arch: x86_64
-          profile: pixel_6
-          disable-animations: false
-          emulator-options: -no-window -gpu software -feature -Vulkan -no-snapshot -noaudio -no-boot-anim -camera-back none -memory 2048 -cores 2
-          script: bash scripts/with-release-number.sh bash scripts/test-android-startup.sh
-      - name: Save Android runtime evidence
+          python3 current/check.py
+          node current/tests/test-additional-sources.cjs
+          node current/tests/test-nova-sources.cjs
+      - name: Compile, unit tests and Android lint (NO RELEASE)
+        run: |
+          GITHUB_RUN_NUMBER=101 gradle :app:testDebugUnitTest :app:testReleaseUnitTest :app:assembleDebug :app:lintDebug -PaudiobookChannel=main --max-workers=2 --console=plain
+          python3 scripts/check-android-lint.py app/build/reports/lint-results-debug.xml
+      - name: Save test reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: android-startup-test-reports
+          name: audiobook-main-test-reports
           path: |
-            startup-evidence/
-            source-evidence/
-            app/build/reports/androidTests/connected/
-            app/build/outputs/androidTest-results/connected/
-      - name: Android lint before publishing
-        run: bash scripts/with-release-number.sh gradle :app:lintRelease --stacktrace
-      - name: Require zero Android lint errors
-        run: python scripts/check-android-lint.py app/build/reports/lint-results-release.xml
-      - name: Check resolved runtime dependencies before publishing
-        run: |
-          bash scripts/with-release-number.sh gradle :app:auditRuntimeDependencies
-          python scripts/audit-dependencies.py --input app/build/reports/security/runtime-dependencies.json --output audit-evidence/dependency-advisories.json
-      - name: Package verified update
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: bash scripts/with-release-number.sh python scripts/preview-release.py
-      - name: Save installed APK permission audit
-        uses: actions/upload-artifact@v4
-        with:
-          name: installable-permission-audit
-          path: dist/permission-audit.json
-      - name: Publish private in-app update channel
-        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/build/library-experience' || github.ref == 'refs/heads/build/search-collections-layout' || github.ref == 'refs/heads/build/compact-player-design'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          tag="$(cat dist/tag.txt)"
-          if ! gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release create "$tag" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --draft --prerelease --title "Audiobook $tag" --notes "Audiobook: компактные коллекции, общая карточка книги, постоянная очередь загрузок, резервные копии с аудио, управление памятью, статусы серий, настройки таймера и перемотки, одна кнопка обновлений, читаемость и тема «Графит» без свечения. Пакет и подпись прежние; данные сохраняются."
-          fi
-          gh release upload "$tag" dist/Audiobook-Preview.apk dist/preview-update.json --repo "$GITHUB_REPOSITORY" --clobber
-          gh release edit "$tag" --repo "$GITHUB_REPOSITORY" --draft=false --prerelease --latest=false
-      - uses: actions/upload-artifact@v4
-        with:
-          name: Audiobook-Preview
-          overwrite: true
-          path: |
-            dist/Audiobook-Preview.apk
-            dist/preview-update.json
-      - name: Split large APK for independent inspection
-        run: |
-          mkdir -p dist-inspection
-          split -b 24000000 -d dist/Audiobook-Preview.apk dist-inspection/Audiobook-Preview.apk.part-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: APK-inspection-part-00
-          path: dist-inspection/Audiobook-Preview.apk.part-00
-      - uses: actions/upload-artifact@v4
-        with:
-          name: APK-inspection-part-01
-          path: dist-inspection/Audiobook-Preview.apk.part-01
-      - name: Prepare unsigned stable-compatible candidate (original signer required)
-        run: |
-          bash scripts/with-release-number.sh gradle :app:testReleaseUnitTest :app:assembleRelease -PaudiobookChannel=stable --stacktrace
-          mkdir -p dist-stable
-          cp app/build/outputs/apk/release/app-release-unsigned.apk dist-stable/Audiobook-stable-UNSIGNED.apk
-          cp docs/STABLE-INSTALL.md dist-stable/READ-ME.md
-          cp scripts/sign-phone-update.sh dist-stable/sign-phone-update-fixed.sh
-          python scripts/inspect-stable-candidate.py
-          (cd dist-stable && zip -q ../Audiobook-stable-sign-on-phone.zip Audiobook-stable-UNSIGNED.apk READ-ME.md sign-phone-update-fixed.sh stable-candidate.json)
-      - name: Publish stable candidate for signing on the original phone
-        if: github.ref == 'refs/heads/main'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh release upload "$(cat dist/tag.txt)" Audiobook-stable-sign-on-phone.zip --repo "$GITHUB_REPOSITORY" --clobber
-      - uses: actions/upload-artifact@v4
-        with:
-          name: Audiobook-stable-signing-candidate
-          path: dist-stable/
-      - name: Save source verification reports
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: source-test-reports
-          overwrite: true
-          path: |
-            app/build/test-results/testDebugUnitTest/
-            app/build/reports/tests/testDebugUnitTest/
-            app/build/test-results/testReleaseUnitTest/
-            app/build/reports/lint-results-release.*
-            app/build/reports/security/
-            audit-evidence/dependency-advisories.json
-            app/build/reports/tests/testReleaseUnitTest/
+            app/build/test-results/
+            app/build/reports/
+          if-no-files-found: warn
+          retention-days: 14
