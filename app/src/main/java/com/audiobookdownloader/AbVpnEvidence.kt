@@ -24,11 +24,13 @@ internal object AbVpnEvidenceRules {
 internal class AbVpnEvidenceStore(context:Context) {
     private val prefs=context.applicationContext.getSharedPreferences("source_vpn_evidence_v1",0)
     private fun key(target:SourceHealthTarget,mode:AbVpnCheckMode) = mode.name+"_"+target.key
-    private fun read(target:SourceHealthTarget,mode:AbVpnCheckMode):AbVpnCheck? = try {
-        val parts=prefs.getString(key(target,mode),null)?.split(':',limit=2) ?: return null
-        if(parts.size!=2)return null
-        AbVpnCheck(SourceHealthRules.Status.valueOf(parts[0]),parts[1].toLong().also {require(it>0)})
-    } catch(_:Exception) {null}
+    private fun read(target:SourceHealthTarget,mode:AbVpnCheckMode):AbVpnCheck? {
+        return try {
+            val parts=prefs.getString(key(target,mode),null)?.split(':',limit=2) ?: return null
+            if(parts.size!=2)return null
+            AbVpnCheck(SourceHealthRules.Status.valueOf(parts[0]),parts[1].toLong().also {require(it>0)})
+        } catch(_:Exception) {null}
+    }
     fun record(target:SourceHealthTarget,mode:AbVpnCheckMode,result:SourceHealthObservation) {
         // Only observations from a new request count; a cached response never proves VPN impact.
         prefs.edit().putString(key(target,mode),result.status.name+":"+result.checked).apply()
