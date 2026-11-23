@@ -42,6 +42,49 @@ final class SearchLabSources {
         }
     }
 
+    static final class PoleBook {
+        final String title, url, author, narrator, cover;
+        PoleBook(String title, String url, String author, String narrator, String cover) {
+            this.title = title;
+            this.url = url;
+            this.author = author;
+            this.narrator = narrator;
+            this.cover = cover;
+        }
+    }
+
+    static boolean poleBookUrl(String address) {
+        URI uri = https(address);
+        return uri != null && pole(uri.getHost()) && uri.getRawPath().matches("/books/[0-9]+/?");
+    }
+
+    static String polePrimaryTitle(String title) {
+        return title.split("(?iu)\\.\\s+Рассказы?\\s*:", 2)[0].trim();
+    }
+
+    static List<PoleBook> poleBooks(String html) {
+        List<PoleBook> books = new ArrayList<>();
+        Set<String> seen = new HashSet<>();
+        for (Element card : Jsoup.parse(html, "https://poleknig.com/").select(".book-item")) {
+            Element link = card.selectFirst(".media-body a.book-title[href], .media-body .media-heading a[href]");
+            if (link == null || link.text().isBlank()) continue;
+            String address = link.absUrl("href");
+            if (!poleBookUrl(address) || !seen.add(address)) continue;
+            Element cover = card.selectFirst("img.cover");
+            String image = cover == null ? "" : cover.absUrl("data-original");
+            URI coverUrl = https(image);
+            books.add(new PoleBook(link.text(), address, label(card, ".book-author a[href], a[href^=/authors/]"),
+                label(card, ".book-reader a[href]"), coverUrl != null && pole(coverUrl.getHost()) ? image : ""));
+            if (books.size() >= 200) break;
+        }
+        return books;
+    }
+
+    private static String label(Element card, String selector) {
+        Element node = card.selectFirst(selector);
+        return node == null ? "" : node.text();
+    }
+
     static boolean telegramPost(String value) {
         URI uri = https(value);
         return uri != null && "t.me".equals(uri.getHost()) &&

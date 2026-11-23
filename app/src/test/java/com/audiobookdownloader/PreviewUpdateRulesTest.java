@@ -53,10 +53,10 @@ public class PreviewUpdateRulesTest {
  @Test public void runtimeIdentityMatchesLibraryAndChannel() {
   boolean preview=BuildConfig.APPLICATION_ID.endsWith(".preview");
   if(BuildConfig.SEARCH_LAB) {
-   assertEquals("com.audiobookdownloader.searchseries",BuildConfig.APPLICATION_ID);
-   assertEquals("AudioBooks-SeriesTest",BuildConfig.LIBRARY_DIRECTORY);
+   assertEquals("com.audiobookdownloader.searchfixes",BuildConfig.APPLICATION_ID);
+   assertEquals("AudioBooks-SearchFixes",BuildConfig.LIBRARY_DIRECTORY);
    assertEquals("searchlab-v",BuildConfig.UPDATE_PREFIX);
-   assertEquals("Audiobook-Series-Test.apk",BuildConfig.UPDATE_APK);
+   assertEquals("Audiobook-Search-Test.apk",BuildConfig.UPDATE_APK);
   } else {
    assertEquals(preview?"AudioBooks-Preview":"AudioBooks",BuildConfig.LIBRARY_DIRECTORY);
    assertEquals(preview?"preview-v":"stable-v",BuildConfig.UPDATE_PREFIX);

@@ -36,6 +36,20 @@ internal object SearchLabDownloads {
         }.filter { match.rank(it) != null })
     }
 
+    suspend fun poleSearch(query:String):SiteSearchResult=withContext(Dispatchers.IO) {
+        val match=AbBookQuery(query)
+        val normalized=query.replace(Regex("""(?<=\p{L})\.(?=\p{L})"""),". ").trim().take(200)
+        val alternatives=listOf(normalized,normalized.substringAfter('.', "").trim()).filter{it.length>=2}.distinct()
+        for (phrase in alternatives) {
+            val html=text("https://poleknig.com/?q="+URLEncoder.encode(phrase,"UTF-8"))
+            val books=SearchLabSources.poleBooks(html).map {
+                BookLink(it.title,it.url,it.cover,it.author,narrator=it.narrator)
+            }.filter { match.rank(it.copy(title=SearchLabSources.polePrimaryTitle(it.title)))!=null }
+            if (books.isNotEmpty()) return@withContext SiteSearchResult(books)
+        }
+        SiteSearchResult(emptyList())
+    }
+
     suspend fun load(ref: BookRef): AbDownloadEdition? = withContext(Dispatchers.IO) {
         require(handles(ref.url)) { "Нужна страница книги поддерживаемого источника" }
         val html = text(ref.url)
@@ -58,7 +72,8 @@ internal object SearchLabDownloads {
             error("Источник не передал список глав выбранного издания")
         }
         if (!preview) parsed.take(1).forEach { verifyAudio(it.url, ref.url) }
-        AbDownloadEdition(ref, parsed.map { AudioTrack(it.title, 0, it.url) }, preview, sourceTitle = heading)
+        AbDownloadEdition(ref, parsed.map { AudioTrack(it.title, 0, it.url) }, preview, sourceTitle = heading,
+            sourceAuthor = doc.selectFirst(".book-author a[href]")?.text().orEmpty())
     }
 
     private suspend fun files(list: String, host: String, page: String): List<SearchLabSources.Track> =

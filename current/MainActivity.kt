@@ -189,7 +189,7 @@ private data class AbGenreReturn(
 private data class AbSearchReturn(
     val screenId:Int,val query:String,val books:List<BookLink>,val status:String,
     val cycle:BookCycle?,val cycleBrowsing:Boolean,val genre:AbGenreReturn,
-    val scrollIndex:Int,val scrollOffset:Int,val interrupted:Boolean,val source:String=""
+    val scrollIndex:Int,val scrollOffset:Int,val interrupted:Boolean,val source:String="",val submittedQuery:String=""
 )
 
 class MainActivity : ComponentActivity() {
@@ -385,12 +385,15 @@ class MainActivity : ComponentActivity() {
         // A voluntary exit after composing is not a failed startup.
         if(appStarted)AbLaunchState.healthy(this,launchToken)
         if(appStarted)AbLibraryHousekeeping.request(applicationContext)
-        try {AbWebViews.closeAll(this)}
+        try {AbWebViews.closeAll(this,keepSearch=BuildConfig.SEARCH_LAB)}
         catch(error: RuntimeException){AbCrashReport.record(this,error,"Закрытие браузеров")}
         catch(error: LinkageError){AbCrashReport.record(this,error,"Закрытие браузеров")}
         super.onStop()
     }
     override fun onDestroy() {
+        if(BuildConfig.SEARCH_LAB)try{AbWebViews.closeAll(this)}
+            catch(error:RuntimeException){AbCrashReport.record(this,error,"Закрытие поиска")}
+            catch(error:LinkageError){AbCrashReport.record(this,error,"Закрытие поиска")}
         activityWork.coroutineContext[kotlinx.coroutines.Job]?.cancel()
         super.onDestroy()
     }
@@ -934,6 +937,8 @@ private class AbAppUiState(prefs: android.content.SharedPreferences) {
     var currentUrl by mutableStateOf("")
     var unifiedSources by mutableStateOf(AbBookSources.searchOrder)
     var unifiedQuery by mutableStateOf("")
+    var submittedQuery by mutableStateOf("")
+    var labSearchJob:kotlinx.coroutines.Job?=null
     var unifiedSearchId by mutableStateOf(0)
     var searchReports by mutableStateOf<Map<String, SiteSearchResult>>(emptyMap())
     var rankedSearch by mutableStateOf<BookRankingRules.Book?>(null)
@@ -1164,6 +1169,8 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
 
 
     fun cancelSearchMerges() {
+        labSearchJob?.cancel()
+        labSearchJob=null
         genreMergeVersion++;genreMergeJob?.cancel();genreMerging=false
         unifiedMergeVersion++;unifiedMergeJob?.cancel();unifiedMerging=false
     }
@@ -1194,6 +1201,10 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
     val libraryBooks by librarySync.books
     val downloadedIndex=librarySync.downloadedIndex
     val modernWork=androidx.compose.runtime.rememberCoroutineScope()
+    val labSearchScope=remember {kotlinx.coroutines.CoroutineScope(Dispatchers.Main.immediate+kotlinx.coroutines.SupervisorJob())}
+    DisposableEffect(labSearchScope) {
+        onDispose {labSearchScope.coroutineContext[kotlinx.coroutines.Job]?.cancel()}
+    }
     LaunchedEffect(Unit) {PlaybackService.restoreScreenState(context.applicationContext)}
 
 
@@ -1832,16 +1843,17 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
             genreResultTarget,genrePending+genreDeferredPending,native=selectedNativeGenre)
         val saved=AbSearchReturn(searchScreenId,searchText,bookLinks.toList(),status,selectedCycle,cycleBrowsing,genre,
             searchListState.firstVisibleItemIndex,searchListState.firstVisibleItemScrollOffset,
-            unifiedQuery.isNotBlank() || cycleLoading || genreIsWorking() || unifiedMerging,source=selectedSearchSource)
+            unifiedQuery.isNotBlank() || cycleLoading || genreIsWorking() || unifiedMerging,source=selectedSearchSource,submittedQuery=submittedQuery)
         searchReturns=(searchReturns+saved).takeLast(8)
     }
 
-    fun openWebsiteBook(book: BookLink, sourceUrl: String = book.url,rememberResults:Boolean=true) {
+    fun openWebsiteBook(book: BookLink, sourceUrl: String = book.url,rememberResults:Boolean=true,readNative:Boolean=true) {
         if(BuildConfig.SEARCH_LAB && SearchLabSources.telegramPost(sourceUrl)) {
             abOpenTelegram(context,sourceUrl)
             return
         }
-        if(OpenAudioCatalog.fromPage(sourceUrl)!=null) {
+        val direct=readNative && SearchLabDownloads.handles(sourceUrl)
+        if(OpenAudioCatalog.fromPage(sourceUrl)!=null || direct) {
             if(rememberResults)rememberSearchResults()
             cancelSearchMerges()
             val request=++bookOpenId
@@ -1854,7 +1866,16 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
             resumeAfterLoad=false;loadId=0;trackStates.clear();appPage=AppPage.SEARCH;status="Загружаю главы…"
             modernWork.launch {
                 try {
-                    val loaded=withContext(Dispatchers.IO){VerifiedBooks.load(sourceUrl)}
+                    val loaded=if(direct) {
+                        val edition=SearchLabDownloads.load(BookRef(book.title,sourceUrl,book.coverUrl))
+                        if(request!=bookOpenId)return@launch
+                        if(edition==null) {
+                            openWebsiteBook(book,sourceUrl,rememberResults=false,readNative=false)
+                            return@launch
+                        }
+                        VerifiedBooks.Loaded(edition.sourceTitle.ifBlank{book.title},edition.sourceAuthor.ifBlank{book.author},
+                            edition.ref.cover,PlayerData(sourceUrl,edition.tracks.sumOf{it.duration},edition.tracks))
+                    } else withContext(Dispatchers.IO){VerifiedBooks.load(sourceUrl)}
                     if(request!=bookOpenId)return@launch
                     pageTitle=loaded.title;currentBookAuthor=loaded.author;currentCoverUrl=loaded.cover;player=loaded.data
                     bookPageLoading=false;bookOpening=null;bookPageError="";status="Глав: ${loaded.data.tracks.size}"
@@ -1951,6 +1972,35 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
         status = "Загружаю все книги цикла…"
     }
 
+    fun launchLabSearch(query:String,sources:List<String>,ranked:BookRankingRules.Book?,narration:NarrationLookup?) {
+        val request=unifiedSearchId
+        labSearchJob=labSearchScope.launch {
+            try {
+                abSearchSources(context,prefs,query,sources,keepBrowser=true) { site,report ->
+                    if(request==unifiedSearchId) {
+                        val limited=report.copy(books=report.books.take(AB_SEARCH_LIMIT))
+                        searchReports=searchReports+(site to limited)
+                        status="Проверено источников: ${searchReports.size} из ${sources.size}"
+                        AbSourceTrace.recordSearch(context,query,searchReports,sources)
+                        launch(Dispatchers.IO){limited.books.forEach{abRememberCatalog(prefs,it)}}
+                    }
+                }
+                val merged=abMergeSubmittedSearch(reports=searchReports,sources=sources,query=query,prefs=prefs,
+                    narration=narration,ranked=ranked)
+                val verified=if(ranked==null && narration==null)
+                    SearchLabSeries.verify(context,merged,query){abProbeSearchLabChapters(context,it)}
+                else merged
+                if(request==unifiedSearchId) bookLinks=verified
+            }catch(cancelled:kotlinx.coroutines.CancellationException){throw cancelled}
+            catch(error:Exception) {
+                AbCrashReport.record(context,error,"Поиск")
+                if(request==unifiedSearchId)status="Не удалось завершить поиск. Повторите запрос."
+            }finally {
+                if(request==unifiedSearchId)unifiedQuery=""
+            }
+        }
+    }
+
     fun startCommonBookSearch(ranked:BookRankingRules.Book?=null,narration:NarrationLookup?=null) {
         rankedSearch=ranked
         narrationSearch=narration
@@ -2002,9 +2052,11 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
         searchReports = emptyMap()
         unifiedSearchId++
         unifiedQuery = query
+        submittedQuery=query
         unifiedSources=if(selectedSearchSource.isBlank() || narration!=null)AbBookSources.enabled(prefs) else listOf(selectedSearchSource)
         AbSourceTrace.recordSearch(context,query,emptyMap(),unifiedSources)
         status=if(BuildConfig.SEARCH_LAB) "Проверено источников: 0 из ${unifiedSources.size}" else if(selectedSearchSource.isBlank())"Ищу по включённым источникам…" else "Ищу: $selectedSearchSource…"
+        if(BuildConfig.SEARCH_LAB)launchLabSearch(query,unifiedSources.toList(),ranked,narration)
     }
 
     /*
@@ -2154,7 +2206,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
         genreExternalId++;genreExternalBatch=0;genreExternalLoading=false;genreExternalMore=false
         genreExternalBooks=emptyList();genreExternalVisited=emptySet();genreExternalStatus=""
         searchReports=emptyMap();bookLinks=emptyList();player=null
-        pageTitle="";currentCoverUrl="";insideBook=false;searchText="";status=""
+        pageTitle="";currentCoverUrl="";insideBook=false;searchText="";submittedQuery="";status=""
         searchSessionActive=false;searchScreenId++;appPage=AppPage.SEARCH
         (context.getSystemService(Context.INPUT_METHOD_SERVICE) as? android.view.inputmethod.InputMethodManager)
             ?.hideSoftInputFromWindow((context as? android.app.Activity)?.currentFocus?.windowToken,0)
@@ -2178,7 +2230,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
         genreResultTarget=genre.visibleCount;genreDeferredPending=genre.pending
         genreExternalMore=genre.externalMore;genreExternalBooks=genre.externalBooks
         genreExternalVisited=genre.externalVisited;genreExternalStatus=genre.externalStatus
-        searchReports=emptyMap();bookLinks=saved.books;searchText=saved.query
+        searchReports=emptyMap();bookLinks=saved.books;searchText=saved.query;submittedQuery=saved.submittedQuery
         selectedSearchSource=saved.source
         prefs.edit().putString("search_source",selectedSearchSource).apply()
         status=if(saved.interrupted) "Сохранено результатов: ${saved.books.size}. Поиск был прерван открытием книги. Для обновления нажмите «Найти»."
@@ -2542,7 +2594,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
             when(q.state){"complete"->TrackState.DOWNLOADED;"error"->TrackState.ERROR;"cancelled"->TrackState.READY;else->TrackState.DOWNLOADING},
             q.error,if(q.retryAt>System.currentTimeMillis())q.error else if(q.state=="verifying")"Проверка файла" else if(q.state=="queued")"В очереди на скачивание" else if(q.error.isNotBlank())q.error else "Скачивается",q.bytes,q.total)}}
     val modernData = AbScreenData(
-        page = appPage, query = searchText, searchSource=selectedSearchSource,results = bookLinks, onlineBook = player,
+        page = appPage, query = searchText, submittedQuery=submittedQuery, searchSource=selectedSearchSource,results = bookLinks, onlineBook = player,
         pageTitle = pageTitle, pageUrl = currentUrl, pageCover = currentCoverUrl,
         bookOpening=bookOpening,bookPageLoading=bookPageLoading,bookPageError=bookPageError,
         cycle = detectedCycle ?: selectedCycle, cycleBrowsing = cycleBrowsing,
@@ -2630,7 +2682,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
             }
         }
 
-        if (unifiedQuery.isNotBlank()) {
+        if (!BuildConfig.SEARCH_LAB && unifiedQuery.isNotBlank()) {
             key(unifiedSearchId) {
                 val requestId = unifiedSearchId
                 val requestSources=unifiedSources.toList()
@@ -2644,34 +2696,18 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                         searchReports=searchReports+(site to limited)
                         AbSourceTrace.recordSearch(context,unifiedQuery,searchReports,requestSources)
                         val reports=searchReports
-                        val complete=requestSources.all{it in reports}
-                        if(BuildConfig.SEARCH_LAB) {
-                            status="Проверено источников: ${reports.size} из ${requestSources.size}"
-                            if(!complete)return@UnifiedBookSearch
-                        }
                         val version=++unifiedMergeVersion
                         unifiedMergeJob?.cancel();unifiedMerging=true
                         unifiedMergeJob=modernWork.launch {
                             try {
-                                val merged=withContext(Dispatchers.Default) {
-                                    val context=kotlinx.coroutines.currentCoroutineContext()
-                                    val result=AbGlobalBookResults.prepare(reports,requestSources,requestQuery,AB_SEARCH_LIMIT,checkActive={context.ensureActive()})
-                                    when {
-                                        narration!=null -> result.mapNotNull{narration.match(prefs,it)}
-                                        ranked!=null -> result.mapNotNull{rankedAudioResult(prefs,ranked,it)}
-                                        else -> result
-                                    }
-                                }
-                                val verified=if(BuildConfig.SEARCH_LAB && ranked==null && narration==null)
-                                    SearchLabSeries.verify(context,merged,requestQuery){abProbeSearchLabChapters(context,it)}
-                                else merged
+                                val merged=abMergeSubmittedSearch(reports,requestSources,requestQuery,prefs,narration,ranked)
                                 if(version!=unifiedMergeVersion || requestId!=unifiedSearchId || unifiedQuery.isBlank())return@launch
-                                bookLinks=verified
-                                if(!BuildConfig.SEARCH_LAB) status=(if(requestSources.size==1)requestSources.first()+": " else "Общий поиск: ")+unifiedSearchStatus(reports,merged.size,requestSources)+
+                                bookLinks=merged
+                                status=(if(requestSources.size==1)requestSources.first()+": " else "Общий поиск: ")+unifiedSearchStatus(reports,merged.size,requestSources)+
                                     if(merged.size>=AB_SEARCH_LIMIT) ". Показаны первые $AB_SEARCH_LIMIT книг; уточните запрос." else ""
-                                if(!BuildConfig.SEARCH_LAB && narration!=null)status="Та же озвучка · "+unifiedSearchStatus(reports,merged.size,requestSources)
+                                if(narration!=null)status="Та же озвучка · "+unifiedSearchStatus(reports,merged.size,requestSources)
                                 if(requestSources.all{it in reports}) {
-                                    if(!BuildConfig.SEARCH_LAB && ranked!=null && merged.isEmpty()) {
+                                    if(ranked!=null && merged.isEmpty()) {
                                         val local=libraryBooks.any { it.files.isNotEmpty() &&
                                             SeriesAuthorityRules.sameTitle(ranked.title,it.title,"") }
                                         rankedAudioStatus(ranked,local,requestSources.isNotEmpty() &&
@@ -8331,14 +8367,15 @@ class BookSearchTask(
 
 /** Every search mode uses the same site task, headers, form discovery and parser. */
 private suspend fun abSearchOneSource(context:Context,site:String,query:String,
-    prefs:android.content.SharedPreferences):SiteSearchResult {
+    prefs:android.content.SharedPreferences,keepBrowser:Boolean=false):SiteSearchResult {
     if(BuildConfig.SEARCH_LAB && site==SearchLabSources.TELEGRAM) return SearchLabDownloads.telegramSearch(query)
+    if(BuildConfig.SEARCH_LAB && site=="Поле книг") return SearchLabDownloads.poleSearch(query)
     var browser:WebView?=null
     var task:BookWebsiteTask?=null
     try {
         return kotlinx.coroutines.suspendCancellableCoroutine {reply ->
             fun finish(result:SiteSearchResult) {if(reply.isActive)reply.resumeWith(Result.success(result))}
-            browser=abCreateBrowser(context,{error ->finish(SiteSearchResult(emptyList(),error))}) {
+            browser=abCreateBrowser(context,{error ->finish(SiteSearchResult(emptyList(),error))},keepSearch=keepBrowser) {
                 settings.javaScriptEnabled=true
                 settings.domStorageEnabled=true
                 settings.loadsImagesAutomatically=false
@@ -8377,7 +8414,7 @@ private suspend fun abProbeSearchLabChapters(context:Context,book:BookLink):AbCh
     var task:AbOpenPageTask?=null
     try {
         return kotlinx.coroutines.suspendCancellableCoroutine { reply ->
-            browser=abCreateBrowser(context,{if(reply.isActive)reply.resumeWith(Result.success(null))}) {
+            browser=abCreateBrowser(context,{if(reply.isActive)reply.resumeWith(Result.success(null))},keepSearch=true) {
                 settings.javaScriptEnabled=true
                 settings.domStorageEnabled=true
                 settings.loadsImagesAutomatically=false
@@ -8412,15 +8449,32 @@ fun UnifiedBookSearch(query: String, prefs: android.content.SharedPreferences,
     val requested=sources.filter{it in AbBookSources.searchOrder}.distinct()
     val report by androidx.compose.runtime.rememberUpdatedState(onResult)
     LaunchedEffect(query,requested,prefs) {
-        // Two browsers at most; slow sitemap enumeration never occupies the first slot.
-        val scheduled=requested.sortedBy{if(it==AbBookSources.AZBYKA)1 else 0}
-        AbSearchCoordinator.search(scheduled,{site ->
-            if(BuildConfig.SEARCH_LAB) (if(site==AbBookSources.AZBYKA)35_000L else 20_000L)
-            else if(site==AbBookSources.AZBYKA)95_000L else 50_000L
-        },
-            {site ->AbSearchCache.get(site,query) ?: abSearchOneSource(context,site,query,prefs).also{AbSearchCache.put(site,query,it)}}, {site,result ->report(site,AbGlobalBookResults.nativeResult(result,query))})
+        abSearchSources(context,prefs,query,requested,keepBrowser=false) {site,result->report(site,result)}
     }
 }
+
+private suspend fun abSearchSources(context:Context,prefs:android.content.SharedPreferences,query:String,
+    sources:List<String>,keepBrowser:Boolean,onResult:(String,SiteSearchResult)->Unit) {
+    val scheduled=sources.sortedBy{if(it==AbBookSources.AZBYKA)1 else 0}
+    AbSearchCoordinator.search(scheduled,{site ->
+        if(BuildConfig.SEARCH_LAB) (if(site==AbBookSources.AZBYKA)35_000L else 20_000L)
+        else if(site==AbBookSources.AZBYKA)95_000L else 50_000L
+    },{site->AbSearchCache.get(site,query) ?: abSearchOneSource(context,site,query,prefs,keepBrowser).also{
+        AbSearchCache.put(site,query,it)
+    }},{site,result->onResult(site,AbGlobalBookResults.nativeResult(result,query))})
+}
+
+private suspend fun abMergeSubmittedSearch(reports:Map<String,SiteSearchResult>,sources:List<String>,query:String,
+    prefs:android.content.SharedPreferences,narration:NarrationLookup?,ranked:BookRankingRules.Book?):List<BookLink> =
+    withContext(Dispatchers.Default) {
+        val coroutine=kotlinx.coroutines.currentCoroutineContext()
+        val result=AbGlobalBookResults.prepare(reports,sources,query,AB_SEARCH_LIMIT,checkActive={coroutine.ensureActive()})
+        when {
+            narration!=null -> result.mapNotNull{narration.match(prefs,it)}
+            ranked!=null -> result.mapNotNull{rankedAudioResult(prefs,ranked,it)}
+            else -> result
+        }
+    }
 
 class BookCycleTask(web: WebView, private val cycle: BookCycle,
     private val progress: (List<BookLink>, Boolean, String) -> Unit) : BookWebsiteTask(web) {
@@ -8981,7 +9035,7 @@ private fun abHasDownloadedChapter(index: DownloadedChapterIndex, title: String,
 internal data class AbDownloadItem(val track: AudioTrack,val book:String,val state:TrackState,val error:String,
     val phase:String="",val downloadedBytes:Long=0L,val totalBytes:Long=-1L)
 private data class AbScreenData(
-    val page: AppPage, val query: String, val searchSource:String,val results: List<BookLink>,
+    val page: AppPage, val query: String, val submittedQuery:String, val searchSource:String,val results: List<BookLink>,
     val onlineBook: PlayerData?, val pageTitle: String, val pageUrl: String, val pageCover: String,
     val bookOpening:AbBookOpen?,val bookPageLoading:Boolean,val bookPageError:String,
     val cycle: BookCycle?, val cycleBrowsing: Boolean, val searching: Boolean, val status: String,
@@ -9592,7 +9646,8 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
     var seriesOnly by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
     var localOnly by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
     val activeFilters = listOf(hidePreviews, narratorFilter.isNotEmpty(), seriesOnly, localOnly).count { it }
-    var shownResults by androidx.compose.runtime.saveable.rememberSaveable(data.query,data.genre,data.cycle?.url) {mutableStateOf(AB_RESULTS_PAGE)}
+    val listQuery=if(BuildConfig.SEARCH_LAB)data.submittedQuery else data.query
+    var shownResults by androidx.compose.runtime.saveable.rememberSaveable(listQuery,data.genre,data.cycle?.url) {mutableStateOf(AB_RESULTS_PAGE)}
     fun applyFilters(narrator: String, series: Boolean, local: Boolean, hideDemo: Boolean) {
         narratorFilter = narrator.trim().take(100).takeIf { SearchBookIndex.normal(it).isNotEmpty() }.orEmpty()
         seriesOnly = series
@@ -9613,11 +9668,10 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
     val seriesStatus=SeriesAuthorityWatcher(verificationTargets,prefs)
     // Playback ticks and lazy-list recycling must not reparse every book's reference metadata.
     val seriesRevision=remember(prefs,data.version) {prefs.getInt("book_series_revision",0)}
-    val prepared by androidx.compose.runtime.produceState<List<AbSearchRow>?>(null,
-        data.results,books,seriesRevision,data.cycle,data.cycleBrowsing,data.query,data.genre,hidePreviews,narratorFilter,seriesOnly,localOnly,data.searchScreenId) {
-        if(BuildConfig.SEARCH_LAB)value=null
+    val prepared by androidx.compose.runtime.produceState<List<AbSearchRow>?>(if(BuildConfig.SEARCH_LAB)emptyList() else null,
+        data.results,books,seriesRevision,data.cycle,data.cycleBrowsing,listQuery,data.genre,hidePreviews,narratorFilter,seriesOnly,localOnly,data.searchScreenId) {
         value=AbSearchRows.prepare(data.results,books,prefs,data.cycle.takeIf{data.cycleBrowsing},
-            query=if(data.genre.isBlank()&&!data.cycleBrowsing)data.query else "",hidePreviews=hidePreviews,
+            query=if(data.genre.isBlank()&&!data.cycleBrowsing)listQuery else "",hidePreviews=hidePreviews,
             narrator=narratorFilter,seriesOnly=seriesOnly,localOnly=localOnly,
             verifiedSearch=BuildConfig.SEARCH_LAB && data.genre.isBlank() && !data.cycleBrowsing)
     }
@@ -9653,7 +9707,7 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
                 Text(backLabel,color=theme.accent,fontSize=14.sp,modifier=Modifier.clickable(onClick=actions.backSearch).padding(8.dp))
             }
         }
-        item {
+        item(key="search-input") {
             AbTextField(data.query,"Название, автор или ссылка",theme,actions.query,actions.search)
             Row(Modifier.fillMaxWidth().padding(top=6.dp),horizontalArrangement=Arrangement.spacedBy(8.dp)) {
                 AbButton("Общий поиск",theme,Modifier.weight(1f),primary=data.searchSource.isBlank()) {actions.searchScope("")}
@@ -13031,7 +13085,7 @@ private class AbBrowserHost(context:Context,private val viewportWidth:Int,
     override fun dispatchTouchEvent(event:android.view.MotionEvent):Boolean=false
 }
 
-internal fun abCreateBrowser(context: Context,failed:(String)->Unit,
+internal fun abCreateBrowser(context: Context,failed:(String)->Unit,keepSearch:Boolean=false,
     setup:WebView.()->Unit):WebView? {
     var browser:WebView?=null
     fun failure(error:Throwable):WebView? {
@@ -13046,6 +13100,7 @@ internal fun abCreateBrowser(context: Context,failed:(String)->Unit,
         val web=WebView(context)
         browser=web
         AbWebViews.register(web)
+        if(keepSearch)AbWebViews.retainForSearch(web)
         val metrics=context.resources.displayMetrics
         val width=metrics.widthPixels.coerceAtLeast(320)
         val height=(760*metrics.density).toInt().coerceAtLeast(640)
@@ -13076,7 +13131,7 @@ private fun AbParsingBrowser(onFailure:(String)->Unit,setup:WebView.()->Unit) {
     val alive=remember{booleanArrayOf(true)}
     DisposableEffect(context) {
         alive[0]=true
-        val web=abCreateBrowser(context,{if(alive[0])failure(it)},setup)
+        val web=abCreateBrowser(context,{if(alive[0])failure(it)},setup=setup)
         onDispose {
             alive[0]=false
             web?.let{AbWebViews.release(it)}
@@ -13090,6 +13145,7 @@ private object AbWebViews {
         var released=false; var rendererGone=false; var destroyed=false
         var cancel:(()->Unit)?=null
         var host:AbBrowserHost?=null
+        var keepDuringSearch=false
     }
     private val entries=java.util.WeakHashMap<WebView,Entry>()
     private val main=android.os.Handler(android.os.Looper.getMainLooper())
@@ -13123,11 +13179,13 @@ private object AbWebViews {
         val entry=entries[web] ?: return false
         return !entry.released && !entry.rendererGone && !entry.destroyed
     }
-    fun closeAll(context: Context) {
-        // Compose's recomposer can already be paused by ON_STOP. Cancel work
-        // synchronously; the activity changes the browser generation on start.
+    fun retainForSearch(web:WebView) {entries[web]?.keepDuringSearch=true}
+    fun closeAll(context: Context,keepSearch:Boolean=false) {
         val activity=owner(context)
-        entries.keys.toList().filter {entries[it]?.owner===activity}.forEach {web ->
+        entries.keys.toList().filter {web->
+            val entry=entries[web]
+            entry!=null && entry.owner===activity && (!keepSearch || !entry.keepDuringSearch)
+        }.forEach {web ->
             entries[web]?.cancel?.invoke()
             release(web)
         }

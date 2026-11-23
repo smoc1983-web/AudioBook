@@ -19,7 +19,9 @@ internal object SearchLabSeries {
         val snapshots = LinkedHashMap<String, OfficialSnapshot>()
         val store = OfficialSeriesStore(context)
         val lookup = Semaphore(3)
-        val seeds=(books + BookLink(query,"")).distinctBy(AbSearchPresentation::work).take(MAX_LOOKUPS)
+        val seeds=(books + BookLink(query,"")).map { book ->
+            if(SearchLabSources.poleBookUrl(book.url))book.copy(title=SearchLabSources.polePrimaryTitle(book.title)) else book
+        }.distinctBy(AbSearchPresentation::work).take(MAX_LOOKUPS)
         withTimeoutOrNull(35_000L) {
             supervisorScope {
                 seeds.map { book -> async {

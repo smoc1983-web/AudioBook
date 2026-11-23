@@ -54,4 +54,21 @@ class SearchLabSequenceTest {
         assertEquals(listOf(2.0),rows.map{it.cycles.single().order})
         assertEquals(official(2).url,rows.single().url)
     }
+    @Test fun seriesPrefixMatchesTheExactWorkWithBonusStoriesOnPoleKnig() {
+        val name="Файролл"
+        val writer="Андрей Васильев"
+        val work=OfficialEdition("Слово и сталь","https://www.litres.ru/book/andrey-vasilev/slovo-i-stal-1234",
+            writer,name,"Литрес","text","published",6.0)
+        val reference=OfficialSnapshot(work.title,writer,listOf(OfficialSource("Литрес",name,checked=1,
+            complete=true,books=listOf(work))))
+        val url="https://poleknig.com/books/130805"
+        val source=BookLink("Файролл. Слово и сталь. Рассказы: «Файролл. Кролина»",url,author=writer,
+            sources=listOf(BookSource("Поле книг",url)))
+        val rows=SearchLabSequence.rows(SearchLabSequence.plan(listOf(source),listOf(reference),"файролл.слово и сталь")){
+            AbChapterAvailability.AVAILABLE
+        }
+        assertEquals(url,rows.single().url)
+        assertEquals(6.0,rows.single().cycles.single().order)
+    }
+
 }

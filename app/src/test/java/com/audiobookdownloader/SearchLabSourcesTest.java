@@ -51,6 +51,21 @@ public class SearchLabSourcesTest {
         assertEquals("", SearchLabSources.poleList(html, "https://poleknig.com/books/43"));
     }
 
+    @Test public void poleSearchKeepsTheBookWithBonusStoriesAndRejectsUnrelatedLinks() {
+        String title = "Файролл. Слово и сталь. Рассказы: «Файролл. Кролина. Ночь в Мертвом лесу»";
+        String html = "<a href='/books/999'>Рекомендация</a><div class='book-item'><div class='media-body'>"
+            + "<h4 class='media-heading'><a href='/books/130805'>" + title + "</a></h4>"
+            + "<a href='/authors/124377'>Андрей Васильев</a><a href='/books/111'>Чужая книга</a>"
+            + "</div></div>";
+        var result = SearchLabSources.poleBooks(html);
+        assertEquals(1,result.size());
+        assertEquals("https://poleknig.com/books/130805",result.get(0).url);
+        assertEquals("Андрей Васильев",result.get(0).author);
+        assertEquals(title,result.get(0).title);
+        assertEquals("Файролл. Слово и сталь",SearchLabSources.polePrimaryTitle(title));
+        assertEquals("Сборник рассказов",SearchLabSources.polePrimaryTitle("Сборник рассказов"));
+    }
+
     @Test public void slushReadsOnlyAnExplicitGroupedChapterList() {
         String list = "<ul><li data-type='mp3' data-title='01' data-url='https://chitalkin2.ru/1.mp3'></li>"
             + "<li data-type='mp3' data-title='02' data-url='https://chitalkin2.ru/2.mp3'></li></ul>";

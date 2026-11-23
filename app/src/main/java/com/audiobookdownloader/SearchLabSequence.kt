@@ -26,7 +26,7 @@ internal object SearchLabSequence {
             val group=SeriesAuthorityRules.author(positions.values.first().first().author)+"\u0000"+AbSearchPresentation.seriesKey(name)
             val total=positions.size.takeIf{ sources.any{it.complete && it.error.isBlank()} &&
                 sources.flatMap{it.books}.all{it.order!=null} } ?: 0
-            val byTitle=positions.filterValues{editions->editions.any{match.rank(BookLink(it.title,""))!=null}}
+            val byTitle=positions.filterValues{editions->editions.any{match.rank(BookLink(it.title,"",cycles=listOf(BookCycle(name))))!=null}}
             val bySeries=match.rank(BookLink(name,""))!=null
             val selected=when {
                 !numbered && (bySeries || byTitle.size>=2) -> positions
@@ -114,8 +114,9 @@ internal object SearchLabSequence {
 
     private fun matches(book:BookLink,edition:OfficialEdition):Boolean {
         val sameAuthor=book.author.isBlank() || SeriesAuthorityRules.author(book.author)==SeriesAuthorityRules.author(edition.author)
-        return sameAuthor && (SeriesAuthorityRules.sameTitle(previewSuffix.replace(book.title,""),edition.title,edition.series) ||
-            titleKey(book.title)==titleKey(edition.title))
+        val sourceTitle=if(SearchLabSources.poleBookUrl(book.url))SearchLabSources.polePrimaryTitle(book.title) else book.title
+        return sameAuthor && (SeriesAuthorityRules.sameTitle(previewSuffix.replace(sourceTitle,""),edition.title,edition.series) ||
+            titleKey(sourceTitle)==titleKey(edition.title))
     }
 
     private fun titleKey(text:String)=volumeWord.replace(SeriesAuthorityRules.title(previewSuffix.replace(text,""))," ")
