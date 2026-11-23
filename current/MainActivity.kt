@@ -8174,12 +8174,19 @@ class BookSearchTask(
     private var stableSamples = 0
     private var submittedAt = 0L
     private var bookinfoToken = -1
+    private val searchPages=SearchPaginationPolicy(AB_EXTRA_SOURCE_JSON)
+    private val seenSearchPages=HashSet<String>()
+    private val discovered=LinkedHashMap<String,BookLink>()
+    private var rootSearchPage=""
+    private var completedSearchPages=0
 
     init {
         web.webViewClient = object:AbBookWebViewClient({finish(emptyList(),"","Браузер поиска закрыт системой. Повторите поиск.")}) {
             override fun onPageStarted(view: WebView?, url: String?, favicon: android.graphics.Bitmap?) {
                 pageToken++
                 pageReady = false
+                stableSamples = 0
+                signature = ""
                 if (site == "Bookinfo" && active) web.evaluateJavascript(bookinfoHookJs(), null)
             }
             override fun onPageCommitVisible(view:WebView?,url:String?) {
@@ -8266,7 +8273,7 @@ class BookSearchTask(
     private fun collect(token: Int) {
         if (!active || finished || token != pageToken) return
         if (!pageReady) { scheduleCollect(token); return }
-        evaluate(bookCatalogJs(web.url.orEmpty().ifBlank{home})) { raw ->
+        evaluate(bookCatalogJs(rootSearchPage.ifBlank{web.url.orEmpty().ifBlank{home}})) { raw ->
             if (!active || finished || token != pageToken) return@evaluate
             try {
                 val root = JSONObject(decodeJsString(raw))
@@ -8279,7 +8286,28 @@ class BookSearchTask(
                 val elapsed = android.os.SystemClock.elapsedRealtime() - submittedAt
                 when {
                     root.optBoolean("blocked") -> finish(emptyList(),"","Сайт требует проверки соединения в браузере")
-                    books.isNotEmpty() && stableSamples >= 1 -> finish(books, "", "")
+                    books.isNotEmpty() && stableSamples >= 1 -> {
+                        books.forEach{book ->
+                            discovered.putIfAbsent(book.url.substringBefore('#').trimEnd('/'),book)
+                        }
+                        val address=web.url.orEmpty().ifBlank{home}
+                        if(rootSearchPage.isBlank())rootSearchPage=address
+                        seenSearchPages.add(searchPages.canonical(address))
+                        completedSearchPages++
+                        // Follow at most four safe HTTPS search pages on the registered site.
+                        val next=if(completedSearchPages<4 && discovered.size<AB_SEARCH_LIMIT)
+                            searchPages.next(rootSearchPage,root.optJSONArray("nextUrls"),seenSearchPages) else ""
+                        if(next.isNotBlank()) {
+                            seenSearchPages.add(searchPages.canonical(next))
+                            web.loadUrl(next)
+                        } else {
+                            val mightHaveMore=(completedSearchPages>=4 &&
+                                (root.optJSONArray("nextUrls")?.length() ?: 0)>0) ||
+                                root.optBoolean("hasNextButton")
+                            finish(discovered.values.toList(),"",if(mightHaveMore)
+                                "На сайте могут быть ещё страницы результатов. Уточните запрос." else "")
+                        }
+                    }
                     root.optBoolean("noResults") && elapsed > 1000L -> finish(emptyList(), "", "")
                     books.isEmpty() && elapsed >= 20_000L -> finish(emptyList(), "", "Поиск не вернул результаты")
                     else -> scheduleCollect(token)
@@ -8297,7 +8325,9 @@ class BookSearchTask(
         if (finished || !active) return
         finished = true
         handler.removeCallbacksAndMessages(null)
-        done(SiteSearchResult(books, error), endpoint)
+        val available=if(discovered.isEmpty())books else
+            (discovered.values+books).distinctBy{it.url.substringBefore('#').trimEnd('/')}
+        done(SiteSearchResult(available, error), endpoint)
     }
 }
 
@@ -9694,7 +9724,8 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
         AbBookSources.searchOrder.forEach { site ->
             Row(Modifier.fillMaxWidth().abGlass(theme,12,field=true).padding(horizontal=10.dp,vertical=4.dp),verticalAlignment=Alignment.CenterVertically) {
                 Column(Modifier.weight(1f).clickable{showSources=false;actions.searchScope(site)}.padding(vertical=8.dp)) {
-                    Text((if(data.searchSource==site)"✓ " else "")+site,color=theme.text,fontSize=14.sp)
+                    Text((if(data.searchSource==site)"✓ " else "")+site+
+                         (if(health.targets[site]?.key?.let{it in health.vpnHelpful}==true)" · VPN" else ""),color=theme.text,fontSize=14.sp)
                     val status=AbExtraSources.status(site)
                     if(status.isNotBlank())Text(status,color=theme.muted,fontSize=10.sp)
                     AbSourceHealthStatus(site,health,theme)

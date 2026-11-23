@@ -36,7 +36,8 @@ internal class SourceHealthCache(c:Context):SourceHealthStore {
 }
 internal data class SourceHealthState(val values:Map<String,SourceHealthObservation> = emptyMap(),
     val active:Set<String> = emptySet(),val running:Boolean=false,val loading:Boolean=true,
-    val done:Int=0,val total:Int=0,val cached:Int=0,val message:String="")
+    val done:Int=0,val total:Int=0,val cached:Int=0,val message:String="",
+    val refreshed:Set<String> = emptySet())
 
 /** One process-wide run at a time. Caller owns lifetime; closing the dialog cancels its requests. */
 internal class SourceHealthSession(private val store:SourceHealthStore,private val client:SourceHealthClient,
@@ -56,7 +57,7 @@ internal class SourceHealthSession(private val store:SourceHealthStore,private v
         require(targets.size<=64&&targets.distinctBy{it.key}.size==targets.size)
         if(!mutex.tryLock())return false
         try {
-            mutable.update{it.copy(running=true,loading=false,done=0,total=targets.size,cached=0,message="")}
+            mutable.update{it.copy(running=true,loading=false,done=0,total=targets.size,cached=0,message="",refreshed=emptySet())}
             val slots=Semaphore(3)
             val writeErrors=java.util.concurrent.atomic.AtomicInteger()
             coroutineScope {targets.map{target->async {
@@ -69,7 +70,8 @@ internal class SourceHealthSession(private val store:SourceHealthStore,private v
                         catch(_:Exception){SourceHealthObservation(SourceHealthRules.Status.CONNECTION,clock(),0)}
                     currentCoroutineContext().ensureActive()
                     if(!cached)withContext(Dispatchers.IO){try{store.put(target,value)}catch(cancel:CancellationException){throw cancel}catch(_:Exception){writeErrors.incrementAndGet()}}
-                    mutable.update{it.copy(values=it.values+(target.key to value),active=it.active-target.key,done=it.done+1,cached=it.cached+if(cached)1 else 0)}
+                    mutable.update{it.copy(values=it.values+(target.key to value),active=it.active-target.key,done=it.done+1,cached=it.cached+if(cached)1 else 0,
+                        refreshed=if(cached)it.refreshed else it.refreshed+target.key)}
                 }
             }}.awaitAll()}
             mutable.update{it.copy(message=if(writeErrors.get()>0)"Проверка завершена, но часть результатов не удалось сохранить на устройстве."
