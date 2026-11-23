@@ -117,19 +117,33 @@ jobs:
           gh release upload "$TEST_TAG" dist-test/Audiobook-Test.apk dist-test/test-update.json --repo "$GITHUB_REPOSITORY"
           python3 - <<'PY'
           import hashlib,json,os,subprocess,time
+          from pathlib import Path
           tag=os.environ["TEST_TAG"]
           repo=os.environ["GITHUB_REPOSITORY"]
-          root="dist-test/"
-          expected={name:("sha256:"+hashlib.sha256(open(root+name,"rb").read()).hexdigest()) for name in ["Audiobook-Test.apk","test-update.json"]}
-          for attempt in range(8):
-            release=json.loads(subprocess.check_output(["gh","api",f"repos/{repo}/releases/tags/{tag}"],text=True))
-            values={a["name"]:a.get("digest") for a in release["assets"] if a["state"]=="uploaded"}
-            if values==expected and release["draft"]:break
+          root=Path("dist-test")
+          names=("Audiobook-Test.apk","test-update.json")
+          expected={name:("sha256:"+hashlib.sha256((root/name).read_bytes()).hexdigest()) for name in names}
+          for attempt in range(10):
+            # Draft releases cannot be fetched from /releases/tags/{tag};
+            # the authenticated releases listing includes them.
+            releases=json.loads(subprocess.check_output(["gh","api",f"repos/{repo}/releases?per_page=100"],text=True))
+            matches=[r for r in releases if r["tag_name"]==tag]
+            assert len(matches)<=1,"Ambiguous test release"
+            release=matches[0] if matches else None
+            if release:
+              assets={a["name"]:a.get("digest") for a in release["assets"] if a["state"]=="uploaded"}
+              if release["draft"] and release["prerelease"] and release["target_commitish"]==os.environ["GITHUB_SHA"] and assets==expected:
+                (root/"release-id.txt").write_text(str(release["id"]))
+                print("Verified draft release and all original SHA256 digests",tag)
+                break
             time.sleep(3)
-          else:raise RuntimeError("Verified GitHub sha256 digests not available; leaving draft unpublished")
-          print("Verified both immutable release assets:",tag)
+          else:
+            raise RuntimeError("Draft release assets were not fully verified; refusing publication")
           PY
-          gh release edit "$TEST_TAG" --repo "$GITHUB_REPOSITORY" --draft=false --prerelease --latest=false
+          RELEASE_ID="$(cat dist-test/release-id.txt)"
+          gh api --method PATCH "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID" -F draft=false -F prerelease=true -f make_latest=false >/dev/null
+          test "$(gh api "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID" --jq '.draft')" = false
+
       - uses: actions/upload-artifact@v4
         if: always()
         with:
