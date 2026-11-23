@@ -11169,8 +11169,8 @@ private fun AbSettingsDialog(data: AbScreenData,prefs: android.content.SharedPre
         }
         if(section==AbSettingsSection.DIAGNOSTICS) {
             AbHeading("Диагностика",theme)
-            AbButton("Диагностика и логи",theme,onClick=onCrashReport)
-            Text("Сведения об устройстве, события плеера и последний сохранённый сбой. Можно скопировать или отправить отчёт через выбранное приложение, даже если сбоя не было. При запуске отчёт не открывается.",color=theme.muted,fontSize=12.sp)
+            AbButton("Отчёт после обновления или проверки (.txt)",theme,onClick=onCrashReport)
+            Text("Включает установленную версию, дату обновления, технические события и сравнение источников без VPN и с VPN. Отчёт можно просмотреть, скопировать или отправить через Android в ChatGPT. Автоматической отправки нет.",color=theme.muted,fontSize=12.sp)
         }
         Text(AB_PRODUCT_NAME,color=theme.muted,fontSize=12.sp)
     } }
@@ -13194,6 +13194,12 @@ internal object AbCrashReport {
             ?: context.getSharedPreferences("audiobook_diagnostics",Context.MODE_PRIVATE).getLong(FIRST_RUN,0L)
         val text=StringBuilder("Версия диагностики: "+REVISION+"\nОтчёт собран: "+java.util.Date()+"\nAndroid ${Build.VERSION.SDK_INT}, ${Build.MANUFACTURER} ${Build.MODEL}\n")
         text.append("\n=== Установленная сборка ===\n"+installedBuild(context)+"\n")
+        try {
+            text.append("\n=== Сравнение источников: без VPN / с VPN ===\n")
+            text.append(AbVpnDiagnosticReport.collect(context)).append('\n')
+        }catch(_:Exception){
+            text.append("\nДанные сравнения VPN пока недоступны.\n")
+        }
         val source=AbSourceTrace.read(context)
         if(source.isNotBlank())text.append("\n=== Последняя проверка источника ===\n"+AbDiagnosticSections.summary(source,(AbBookSources.all+AbExtraSources.browserOnly.map{it.first}).toSet())+"\n")
         val search=AbSourceTrace.readSearch(context)
@@ -13479,7 +13485,7 @@ internal fun AbCrashReports(theme: AbTheme,requested: Int) {
     val saved=report ?: return
     fun dismiss() {shareJob?.cancel();shareJob=null;sharing=false;shareError="";visible=false;report=null}
     AbDialog("Диагностика и логи",theme,{dismiss()}) {
-        Text("Отчёт содержит сведения об устройстве, последние события плеера и сохранённую ошибку, если она есть. Секреты, ссылки на главы и поисковые запросы скрыты. Проверьте текст ниже перед отправкой. Получателя вы выбираете сами.",
+        Text("Отчёт содержит версию после обновления, сравнение источников без VPN/с VPN, события плеера и сохранённую ошибку. Секреты, ссылки на главы и поисковые запросы скрыты. Проверьте текст перед отправкой — получателя выбираете сами.",
             color=theme.muted,fontSize=14.sp,lineHeight=20.sp)
         if(AbCrashReport.historical(context,saved.first)) Text(
             "В отчёте есть событие предыдущей версии диагностики. Его дата указана отдельно.",color=theme.muted,fontSize=12.sp)
