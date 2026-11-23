@@ -49,6 +49,13 @@ internal data class SourceHealthView(val state:SourceHealthState,val targets:Map
             now=System.currentTimeMillis().coerceAtLeast(0)
         }
     }
+    // Preserve the original neutral check; no VPN claim is recorded.
+    AbButton("Проверить включённые источники",theme,enabled=!state.running&&!state.loading&&enabled.isNotEmpty()) {
+        if(job?.isActive!=true) {
+            val selected=targets.filter{it.name in enabled}
+            job=scope.launch{session.run(selected,force=true);now=System.currentTimeMillis().coerceAtLeast(0)}
+        }
+    }
     AbButton("1. VPN выключен · проверить",theme,enabled=!state.running&&!state.loading&&enabled.isNotEmpty()) {
         checkWithNetwork(AbVpnCheckMode.DIRECT)
     }
