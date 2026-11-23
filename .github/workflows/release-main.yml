@@ -1,0 +1,131 @@
+name: AudioBook main - manual signed release
+on:
+  workflow_dispatch:
+    inputs:
+      release_number:
+        description: 'Версия 4.2.N (указать N, только после тестирования)'
+        type: string
+        required: true
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: audiobook-primary-signed-release
+  cancel-in-progress: false
+jobs:
+  verified-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    env:
+      APP_NUMBER: ${{ inputs.release_number }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+      - name: Android SDK
+        run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;35.0.0"'
+      - uses: actions/cache/restore@v4
+        with:
+          path: ${{ runner.temp }}/audiobook-preview-signing
+          key: audiobook-preview-signing-v1
+      - name: Restore original installed-app signer
+        env:
+          ORIGINAL_KEY: ${{ secrets.AUDIOBOOK_PREVIEW_KEYSTORE_BASE64 }}
+        run: |
+          python3 - <<'PY'
+          import base64,os,re
+          from pathlib import Path
+          number=os.environ["APP_NUMBER"]
+          assert re.fullmatch(r"[1-9][0-9]{2,5}",number), "Invalid release number"
+          path=Path(os.environ["RUNNER_TEMP"])/"audiobook-preview-signing/preview.keystore"
+          if os.environ.get("ORIGINAL_KEY"):
+            path.parent.mkdir(parents=True,exist_ok=True)
+            path.write_bytes(base64.b64decode(os.environ["ORIGINAL_KEY"],validate=True))
+            path.chmod(0o600)
+          assert path.is_file() and path.stat().st_size, "Original signer missing; refusing release"
+          with open(os.environ["GITHUB_ENV"],"a") as out:
+            out.write(f"PREVIEW_KEYSTORE={path}\n")
+          PY
+      - name: Verify previous published primary version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          GITHUB_RUN_NUMBER="$APP_NUMBER" python3 scripts/fetch-upgrade-baseline.py
+          python3 - <<'PY'
+          import json,os
+          baseline=json.load(open("upgrade-baseline/preview-update.json"))
+          code=100000+int(os.environ["APP_NUMBER"])
+          assert baseline["versionCode"]<code
+          print(f"Confirmed primary update {baseline['versionCode']} → {code}")
+          PY
+      - name: Build, verify and lint
+        run: |
+          python3 current/check.py
+          GITHUB_RUN_NUMBER="$APP_NUMBER" gradle :app:testDebugUnitTest :app:testReleaseUnitTest :app:assembleDebug :app:assembleDebugAndroidTest :app:assembleRelease :app:lintRelease :upgradeProbe:assembleDebug -PaudiobookChannel=main --max-workers=2 --console=plain
+          python3 scripts/check-android-lint.py app/build/reports/lint-results-release.xml
+      - name: Verify package replacement and data preservation on emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 36
+          target: aosp_atd
+          arch: x86_64
+          profile: pixel_6
+          emulator-boot-timeout: 300
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -memory 2048 -cores 2
+          script: |
+            GITHUB_RUN_NUMBER="$APP_NUMBER" gradle :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.audiobookdownloader.CompactPlayerTest,com.audiobookdownloader.NovaListeningFeaturesTest,com.audiobookdownloader.BookProgressWidgetTest --max-workers=2 --console=plain
+            GITHUB_RUN_NUMBER="$APP_NUMBER" python3 scripts/test-preview-upgrade.py
+      - name: Validate original certificate and package signed assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: GITHUB_RUN_NUMBER="$APP_NUMBER" python3 scripts/preview-release.py
+      - name: Publish only the new approved version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="$(cat dist/tag.txt)"
+          test "$tag" = "preview-v$((100000+APP_NUMBER))"
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo 'Refusing to replace an existing release' >&2
+            exit 1
+          fi
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          m=json.loads(Path("dist/preview-update.json").read_text())
+          Path("dist/release-notes.md").write_text("\n".join("- "+s for s in m["changes"])+"\n")
+          PY
+          gh release create "$tag" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --draft --prerelease --title "Audiobook 4.2.$APP_NUMBER" --notes-file dist/release-notes.md
+          gh release upload "$tag" dist/Audiobook-Preview.apk dist/preview-update.json --repo "$GITHUB_REPOSITORY"
+          python3 - <<'PY'
+          import hashlib,json,os,subprocess,time
+          repo=os.environ["GITHUB_REPOSITORY"]
+          tag=f"preview-v{100000+int(os.environ['APP_NUMBER'])}"
+          names=["Audiobook-Preview.apk","preview-update.json"]
+          expected={n:"sha256:"+hashlib.sha256(open("dist/"+n,"rb").read()).hexdigest() for n in names}
+          for i in range(8):
+            release=json.loads(subprocess.check_output(["gh","api",f"repos/{repo}/releases/tags/{tag}"],text=True))
+            actual={a["name"]:a.get("digest") for a in release["assets"] if a["state"]=="uploaded"}
+            if actual==expected and release["draft"]:break
+            time.sleep(3)
+          else:raise RuntimeError("GitHub sha256 not independently verified; leave release draft")
+          PY
+          gh release edit "$tag" --repo "$GITHUB_REPOSITORY" --draft=false --prerelease --latest=false
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: audiobook-primary-release-checks
+          path: |
+            app/build/test-results/
+            app/build/reports/
+            startup-evidence/
+            dist/preview-update.json
+          if-no-files-found: warn
+          retention-days: 14
