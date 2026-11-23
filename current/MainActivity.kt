@@ -126,7 +126,8 @@ data class BookLink(
     val cycles: List<BookCycle> = emptyList(),
     val genreOrigin: String = "",
     val searchQuery: String = "",
-    val narrator: String = ""
+    val narrator: String = "",
+    val description: String = ""
 )
 
 data class AudioTrack(
@@ -328,7 +329,7 @@ class MainActivity : ComponentActivity() {
         button("Открыть без фоновой загрузки"){startApp(true)}
         button("Повторить обычный запуск"){startApp(false)}
         button("Диагностика и отчёт TXT"){showStartupReport()}
-        button("Обновления "+AB_PRODUCT_NAME) {
+        if(!BuildConfig.SEARCH_LAB) button("Обновления "+AB_PRODUCT_NAME) {
             startActivity(Intent(this,PreviewUpdatesActivity::class.java))
         }
         setContentView(android.widget.ScrollView(this).apply {
@@ -1835,6 +1836,10 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
     }
 
     fun openWebsiteBook(book: BookLink, sourceUrl: String = book.url,rememberResults:Boolean=true) {
+        if(BuildConfig.SEARCH_LAB && SearchLabSources.telegramPost(sourceUrl)) {
+            abOpenTelegram(context,sourceUrl)
+            return
+        }
         if(OpenAudioCatalog.fromPage(sourceUrl)!=null) {
             if(rememberResults)rememberSearchResults()
             cancelSearchMerges()
@@ -1955,6 +1960,10 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
             return
         }
         val directUrl=if(ranked==null && narration==null)supportedBookUrl(query) else null
+        if(BuildConfig.SEARCH_LAB && directUrl!=null && SearchLabSources.telegramPost(directUrl)) {
+            abOpenTelegram(context,directUrl)
+            return
+        }
         if(ranked==null && narration==null && directUrl==null && (query.startsWith("http://",true) || query.startsWith("https://",true))) {
             status="Поддерживаются ссылки на сайты из раздела «Источники»"
             return
@@ -1994,7 +2003,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
         unifiedQuery = query
         unifiedSources=if(selectedSearchSource.isBlank() || narration!=null)AbBookSources.enabled(prefs) else listOf(selectedSearchSource)
         AbSourceTrace.recordSearch(context,query,emptyMap(),unifiedSources)
-        status=if(selectedSearchSource.isBlank())"Ищу по включённым источникам…" else "Ищу: $selectedSearchSource…"
+        status=if(BuildConfig.SEARCH_LAB) "Проверено источников: 0 из ${unifiedSources.size}" else if(selectedSearchSource.isBlank())"Ищу по включённым источникам…" else "Ищу: $selectedSearchSource…"
     }
 
     /*
@@ -2634,6 +2643,11 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                         searchReports=searchReports+(site to limited)
                         AbSourceTrace.recordSearch(context,unifiedQuery,searchReports,requestSources)
                         val reports=searchReports
+                        val complete=requestSources.all{it in reports}
+                        if(BuildConfig.SEARCH_LAB) {
+                            status="Проверено источников: ${reports.size} из ${requestSources.size}"
+                            if(!complete)return@UnifiedBookSearch
+                        }
                         val version=++unifiedMergeVersion
                         unifiedMergeJob?.cancel();unifiedMerging=true
                         unifiedMergeJob=modernWork.launch {
@@ -2647,13 +2661,14 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                                         else -> result
                                     }
                                 }
+                                val verified=if(BuildConfig.SEARCH_LAB) SearchLabSeries.verify(context,merged,requestQuery) else merged
                                 if(version!=unifiedMergeVersion || requestId!=unifiedSearchId || unifiedQuery.isBlank())return@launch
-                                bookLinks=merged
-                                status=(if(requestSources.size==1)requestSources.first()+": " else "Общий поиск: ")+unifiedSearchStatus(reports,merged.size,requestSources)+
+                                bookLinks=verified
+                                if(!BuildConfig.SEARCH_LAB) status=(if(requestSources.size==1)requestSources.first()+": " else "Общий поиск: ")+unifiedSearchStatus(reports,merged.size,requestSources)+
                                     if(merged.size>=AB_SEARCH_LIMIT) ". Показаны первые $AB_SEARCH_LIMIT книг; уточните запрос." else ""
-                                if(narration!=null)status="Та же озвучка · "+unifiedSearchStatus(reports,merged.size,requestSources)
+                                if(!BuildConfig.SEARCH_LAB && narration!=null)status="Та же озвучка · "+unifiedSearchStatus(reports,merged.size,requestSources)
                                 if(requestSources.all{it in reports}) {
-                                    if(ranked!=null && merged.isEmpty()) {
+                                    if(!BuildConfig.SEARCH_LAB && ranked!=null && merged.isEmpty()) {
                                         val local=libraryBooks.any { it.files.isNotEmpty() &&
                                             SeriesAuthorityRules.sameTitle(ranked.title,it.title,"") }
                                         rankedAudioStatus(ranked,local,requestSources.isNotEmpty() &&
@@ -7866,10 +7881,19 @@ fun formatSleepTime(
 
 data class BookSource(val site: String, val url: String, val coverUrl: String = "")
 data class BookCycle(val title: String, val url: String = "", val order: Double? = null,
-    val referenceUrl:String="",val referenceSite:String="",val parentTitle:String="")
+    val referenceUrl:String="",val referenceSite:String="",val parentTitle:String="",val total:Int=0)
 data class SiteSearchResult(val books: List<BookLink>, val error: String = "")
 
+private fun abOpenTelegram(context:Context,url:String) {
+    if(!SearchLabSources.telegramPost(url))return
+    try { context.startActivity(Intent(Intent.ACTION_VIEW,Uri.parse(url))) }
+    catch(_:android.content.ActivityNotFoundException) {
+        Toast.makeText(context,"Установите Telegram или браузер, чтобы открыть публикацию",Toast.LENGTH_SHORT).show()
+    }
+}
+
 fun bookSiteName(url: String): String = when {
+    BuildConfig.SEARCH_LAB && SearchLabSources.telegramPost(url) -> SearchLabSources.TELEGRAM
     AbExtraSources.manualName(url).isNotBlank() -> AbExtraSources.manualName(url)
     AbExtraSources.name(url).isNotBlank() -> AbExtraSources.name(url)
     AbBookSources.isAzbyka(url) -> AbBookSources.AZBYKA
@@ -7881,6 +7905,7 @@ fun bookSiteName(url: String): String = when {
 
 fun supportedBookUrl(value: String): String? {
     val extra=if(value.startsWith("http",true))value else "https://$value"
+    if(BuildConfig.SEARCH_LAB && SearchLabSources.telegramPost(extra)) return extra
     if(AbExtraSources.name(extra).isNotBlank()||AbExtraSources.manualName(extra).isNotBlank())return extra
     val candidate = if (value.startsWith("http://", true) || value.startsWith("https://", true)) value
         else if (Regex("(?i)^(?:www\\.|mob\\.)?(?:bookinfo\\.net|knigoblud\\.club|azbyka\\.ru|audiokniga-online\\.ru)(?:/|$)").containsMatchIn(value))
@@ -8304,6 +8329,7 @@ class BookSearchTask(
 /** Every search mode uses the same site task, headers, form discovery and parser. */
 private suspend fun abSearchOneSource(context:Context,site:String,query:String,
     prefs:android.content.SharedPreferences):SiteSearchResult {
+    if(BuildConfig.SEARCH_LAB && site==SearchLabSources.TELEGRAM) return SearchLabDownloads.telegramSearch(query)
     var browser:WebView?=null
     var task:BookWebsiteTask?=null
     try {
@@ -8343,7 +8369,10 @@ fun UnifiedBookSearch(query: String, prefs: android.content.SharedPreferences,
     LaunchedEffect(query,requested,prefs) {
         // Two browsers at most; slow sitemap enumeration never occupies the first slot.
         val scheduled=requested.sortedBy{if(it==AbBookSources.AZBYKA)1 else 0}
-        AbSearchCoordinator.search(scheduled,{site ->if(site==AbBookSources.AZBYKA)95_000L else 50_000L},
+        AbSearchCoordinator.search(scheduled,{site ->
+            if(BuildConfig.SEARCH_LAB) (if(site==AbBookSources.AZBYKA)35_000L else 20_000L)
+            else if(site==AbBookSources.AZBYKA)95_000L else 50_000L
+        },
             {site ->AbSearchCache.get(site,query) ?: abSearchOneSource(context,site,query,prefs).also{AbSearchCache.put(site,query,it)}}, {site,result ->report(site,AbGlobalBookResults.nativeResult(result,query))})
     }
 }
@@ -9535,18 +9564,21 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
     val detail=remember(data.onlineBook,data.pageTitle,prefs,data.version) {
         if(data.onlineBook!=null) listOf(abStoredCatalog(prefs,cleanBookTitle(data.pageTitle))) else emptyList()
     }
-    val verificationTargets=remember(detail,data.results,visibleCount) {detail+data.results.take(visibleCount)}
+    val verificationTargets=remember(detail,data.results,visibleCount) {if(BuildConfig.SEARCH_LAB) detail else detail+data.results.take(visibleCount)}
     val seriesStatus=SeriesAuthorityWatcher(verificationTargets,prefs)
     // Playback ticks and lazy-list recycling must not reparse every book's reference metadata.
     val seriesRevision=remember(prefs,data.version) {prefs.getInt("book_series_revision",0)}
     val prepared by androidx.compose.runtime.produceState<List<AbSearchRow>?>(null,
-        data.results,books,seriesRevision,data.cycle,data.cycleBrowsing,data.query,data.genre,hidePreviews,narratorFilter,seriesOnly,localOnly) {
+        data.results,books,seriesRevision,data.cycle,data.cycleBrowsing,data.query,data.genre,hidePreviews,narratorFilter,seriesOnly,localOnly,data.searchScreenId) {
+        if(BuildConfig.SEARCH_LAB)value=null
         value=AbSearchRows.prepare(data.results,books,prefs,data.cycle.takeIf{data.cycleBrowsing},
             query=if(data.genre.isBlank()&&!data.cycleBrowsing)data.query else "",hidePreviews=hidePreviews,
-            narrator=narratorFilter,seriesOnly=seriesOnly,localOnly=localOnly)
+            narrator=narratorFilter,seriesOnly=seriesOnly,localOnly=localOnly,
+            verifiedSearch=BuildConfig.SEARCH_LAB && data.genre.isBlank() && !data.cycleBrowsing)
     }
     val hideFinished=prefs.getBoolean(AbListeningFeatures.HIDE_FINISHED,false)
-    val resultBooks=remember(prepared,data.genre,hideFinished,data.version) {
+    val resultBooks=remember(prepared,data.genre,hideFinished,data.version,data.searching) {
+        if(BuildConfig.SEARCH_LAB && data.searching && data.genre.isBlank() && !data.cycleBrowsing)return@remember emptyList()
         prepared.orEmpty().filterNot { hideFinished && data.genre.isNotBlank() &&
             AbListeningFeatures.completed(prefs,it.ref) }
     }
@@ -9582,8 +9614,14 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
                 AbButton("Общий поиск",theme,Modifier.weight(1f),primary=data.searchSource.isBlank()) {actions.searchScope("")}
                 AbButton("Источники · ${AbBookSources.searchOrder.size}",theme,Modifier.weight(1f),primary=data.searchSource.isNotBlank()) {showSources=true}
             }
-            Text(if(data.searchSource.isBlank())"Режим: включённые источники" else "Режим: только ${data.searchSource}",
+            if(!BuildConfig.SEARCH_LAB) Text(if(data.searchSource.isBlank())"Режим: включённые источники" else "Режим: только ${data.searchSource}",
                 color=theme.muted,fontSize=11.sp,modifier=Modifier.padding(top=5.dp))
+        }
+        if(BuildConfig.SEARCH_LAB && data.status.startsWith("Проверено источников:")) item(key="source-progress") {
+            Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+                if(data.searching) androidx.compose.material3.CircularProgressIndicator(Modifier.size(16.dp),color=theme.accent,strokeWidth=2.dp)
+                Text(data.status,color=theme.muted,fontSize=12.sp)
+            }
         }
         if (data.searchActive || data.cycleBrowsing || data.genre.isNotBlank()) item(key="preview-filter") {
             AbButton(if (activeFilters == 0) "Фильтры поиска" else "Фильтры поиска · $activeFilters",theme) {
@@ -9594,8 +9632,8 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
                 AbButton("Сбросить фильтры",theme) { applyFilters("", false, false, false) }
             }
         }
-        if(seriesStatus.isNotBlank()) item {Text(seriesStatus,color=theme.muted,fontSize=11.sp)}
-        if(data.searching) item { Row(verticalAlignment=Alignment.CenterVertically) {
+        if(!BuildConfig.SEARCH_LAB && seriesStatus.isNotBlank()) item {Text(seriesStatus,color=theme.muted,fontSize=11.sp)}
+        if(data.searching && (!BuildConfig.SEARCH_LAB || data.genre.isNotBlank() || data.cycleBrowsing)) item { Row(verticalAlignment=Alignment.CenterVertically) {
             androidx.compose.material3.CircularProgressIndicator(Modifier.size(18.dp),color=theme.accent,strokeWidth=2.dp)
             Text(if(data.genre.isNotBlank()) "Ищем книги и проверяем жанры…" else "Ищем книги…",color=theme.muted,fontSize=13.sp,modifier=Modifier.padding(start=10.dp))
         } }
@@ -9626,6 +9664,7 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
             Text("Показаны первые $AB_SEARCH_LIMIT книг. Уточните название или автора, чтобы найти нужное издание.",color=theme.muted,fontSize=12.sp)
         }
         if(data.status.isNotBlank() && data.status!="Вставьте ссылку" &&
+            (!BuildConfig.SEARCH_LAB || !data.status.startsWith("Проверено источников:")) &&
             !(data.bookOpening!=null && data.onlineBook==null && (data.bookPageLoading || data.bookPageError.isNotBlank()))) item {
             Text(data.status,color=theme.muted,fontSize=12.sp)
         }
@@ -9673,7 +9712,7 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
             }
             item(key="book-rankings") { AbBookRankings(rankings,theme,foreground,actions.searchRanked) }
             item(key="discoveries") {AbDiscoveries(catalogue,actions,theme,catalogueRequested,onLoadCatalogue,
-                if(data.searchSource.isBlank())AbBookSources.enabled(prefs) else listOf(data.searchSource),
+                (if(data.searchSource.isBlank())AbBookSources.enabled(prefs) else listOf(data.searchSource)).filter{it!=SearchLabSources.TELEGRAM},
                 prefs,hideFinished,data.version)}
         }
     }
@@ -9858,6 +9897,7 @@ private fun AbManualSourceBrowser(name:String,home:String,data:AbScreenData,acti
 @Composable
 internal fun AbSearchResultCard(row:AbSearchRow,theme:AbTheme,onOpen:(BookLink,String)->Unit,
     onMenu:(BookRef)->Unit,onCycle:(BookCycle)->Unit) {
+    val context=androidx.compose.ui.platform.LocalContext.current
     val choices=row.editions.ifEmpty{listOf(row.book)}
     var chosen by androidx.compose.runtime.saveable.rememberSaveable(row.key) {mutableStateOf("")}
     val book=choices.firstOrNull{it.url==chosen} ?: choices.first()
@@ -9866,10 +9906,19 @@ internal fun AbSearchResultCard(row:AbSearchRow,theme:AbTheme,onOpen:(BookLink,S
     Column(verticalArrangement=Arrangement.spacedBy(5.dp)) {
         AbBookRow(ref,if(book.url==row.book.url)row.local else null,book.author.ifBlank{"Аудиокнига"},theme,
             onClick={onOpen(book,book.url)},onMenu={onMenu(ref)})
+        if(BuildConfig.SEARCH_LAB && SearchLabSources.telegramPost(book.url)) {
+            Text("Книга находится в Telegram-канале @BookFan2",color=theme.accent,fontSize=12.sp)
+            if(book.description.isNotBlank())Text(book.description,color=theme.muted,fontSize=12.sp,
+                maxLines=4,overflow=TextOverflow.Ellipsis)
+            AbButton("Открыть в Telegram",theme){abOpenTelegram(context,book.url)}
+        } else if(BuildConfig.SEARCH_LAB && SearchLabDownloads.handles(book.url)) {
+            AbButton("Скачать",theme){onMenu(ref)}
+        }
         if(AbSourceAvailability.isPreview(sourcePrefs,book))Text("Демо · ознакомительный фрагмент",color=theme.error,fontSize=12.sp)
         if(book.genres.isNotEmpty()) Text(book.genres.joinToString(" · "),color=theme.muted,fontSize=11.sp)
         book.cycles.forEach {cycle ->
-            Text("${if(cycle.referenceUrl.isNotBlank()) "Сверено" else "По источнику"}: ${cycle.title} · ${abVolumeLabel(cycle)}",
+            Text("${if(cycle.referenceUrl.isNotBlank()) "Сверено" else "По источнику"}: ${cycle.title} · ${abVolumeLabel(cycle)}"+
+                if(cycle.total>0) " · Книг в серии: ${cycle.total}" else "",
                 color=theme.accent,fontSize=12.sp,modifier=Modifier.fillMaxWidth().abGlass(theme,9,field=true)
                     .clickable(enabled=cycle.url.isNotBlank()){onCycle(cycle)}.padding(10.dp))
         }
@@ -10939,7 +10988,7 @@ private enum class AbSettingsSection(val label:String,val subtitle:String,val ic
 
 @Composable
 private fun AbSettingsTiles(theme:AbTheme,onSelect:(AbSettingsSection)->Unit) {
-    AbSettingsSection.values().filter{it!=AbSettingsSection.HOME}.chunked(2).forEach {row ->
+    AbSettingsSection.values().filter{it!=AbSettingsSection.HOME && (!BuildConfig.SEARCH_LAB || it!=AbSettingsSection.UPDATES)}.chunked(2).forEach {row ->
         Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp)) {
             row.forEach {section ->
                 Column(Modifier.weight(1f).heightIn(min=92.dp).abGlass(theme,16)
@@ -10990,7 +11039,7 @@ private fun AbSettingsDialog(data: AbScreenData,prefs: android.content.SharedPre
 
         if(section==AbSettingsSection.BACKUP)AbBackupPanel(theme){sync.requestSync()}
         if(section==AbSettingsSection.STORAGE)AbStoragePanel(sync.books.value,prefs,theme,actions.deleteBook)
-        if(section==AbSettingsSection.UPDATES)AbButton("Проверить обновления",theme){context.startActivity(Intent(context,PreviewUpdatesActivity::class.java))}
+        if(!BuildConfig.SEARCH_LAB && section==AbSettingsSection.UPDATES)AbButton("Проверить обновления",theme){context.startActivity(Intent(context,PreviewUpdatesActivity::class.java))}
         if(section==AbSettingsSection.PLAYER_TOOLS)AbPlayerToolSettings(prefs,theme)
         if(section==AbSettingsSection.CATALOG_VIEW) {
             var hidden by remember(prefs){mutableStateOf(prefs.getBoolean(AbListeningFeatures.HIDE_FINISHED,false))}
@@ -11132,7 +11181,7 @@ private fun AbSettingsDialog(data: AbScreenData,prefs: android.content.SharedPre
         if(section==AbSettingsSection.HOME) {
             AbButton("Что нового · "+BuildConfig.VERSION_NAME,theme){context.startActivity(Intent(context,ReleaseNotesActivity::class.java))}
             AbButton("Перенос и копия коллекций",theme){context.startActivity(Intent(context,CollectionTransferActivity::class.java))}
-            AbButton("Обновления · "+BuildConfig.VERSION_NAME,theme) {
+            if(!BuildConfig.SEARCH_LAB) AbButton("Обновления · "+BuildConfig.VERSION_NAME,theme) {
                 context.startActivity(Intent(context,PreviewUpdatesActivity::class.java))
             }
         }
@@ -11435,7 +11484,17 @@ internal fun AbCollectionDownloads(refs:List<BookRef>,index:DownloadedChapterInd
 internal fun AbReadDownloadEdition(ref:BookRef,done:(AbDownloadEdition?,String)->Unit) {
     val observationPrefs=androidx.compose.ui.platform.LocalContext.current.getSharedPreferences("audiobook_downloader",Context.MODE_PRIVATE)
     val report by androidx.compose.runtime.rememberUpdatedState(done)
-    if(OpenAudioCatalog.fromPage(ref.url)!=null) {
+    if(BuildConfig.SEARCH_LAB && SearchLabSources.telegramPost(ref.url)) {
+        LaunchedEffect(ref.url) {report(null,"Книга находится в Telegram-канале @BookFan2")}
+    } else if(SearchLabDownloads.handles(ref.url)) {
+        LaunchedEffect(ref.url) {
+            try { report(SearchLabDownloads.load(ref),"") }
+            catch(cancel:kotlinx.coroutines.CancellationException){throw cancel}
+            catch(error:IllegalStateException){report(null,error.message ?: "Не удалось проверить главы")}
+            catch(error:IllegalArgumentException){report(null,error.message ?: "Не удалось проверить главы")}
+            catch(_:java.io.IOException){report(null,"Источник не ответил. Повторите проверку глав.")}
+        }
+    } else if(OpenAudioCatalog.fromPage(ref.url)!=null) {
         LaunchedEffect(ref.url) {
             try {
                 val loaded=withContext(Dispatchers.IO){VerifiedBooks.load(ref.url)}
@@ -11488,6 +11547,14 @@ private fun AbBookMenu(ref: BookRef,local: LibraryBook?,prefs: android.content.S
     theme: AbTheme,actions: AbActions,version: Int,index:DownloadedChapterIndex,
     downloads:List<AbDownloadItem>,onShelf:()->Unit,dismiss:()->Unit) {
     val context=androidx.compose.ui.platform.LocalContext.current
+    if(BuildConfig.SEARCH_LAB && SearchLabSources.telegramPost(ref.url)) {
+        AbDialog(ref.title,theme,dismiss) {
+            Text("Книга находится в Telegram-канале @BookFan2",color=theme.muted)
+            AbButton("Открыть в Telegram",theme,primary=true){abOpenTelegram(context,ref.url)}
+            AbButton("Добавить в коллекцию",theme,onClick=onShelf)
+        }
+        return
+    }
     var editMetadata by remember(local?.bookId){mutableStateOf(false)}
     if(editMetadata&&local!=null) {BookMetadataEditor(local,prefs,theme){editMetadata=false};return}
     var confirmDelete by remember(ref.title){mutableStateOf(false)}
@@ -14773,7 +14840,7 @@ private object AbBookSources {
     const val PSYCHOLOGY="https://azbyka.ru/audio/metka/psixologiya"
     val original=listOf(AZBYKA,"Книгоблуд","Bookinfo",AUDIO_ONLINE)
     val all=original+AbExtraSources.names
-    val searchOrder=all
+    val searchOrder=if(BuildConfig.SEARCH_LAB)all+SearchLabSources.TELEGRAM else all
     fun enabled(prefs:android.content.SharedPreferences):List<String> {
         var saved=prefs.getStringSet("search_enabled_sources",null)
         if(!prefs.getBoolean("predanie_source_added",false)) {
@@ -14782,7 +14849,7 @@ private object AbBookSources {
                 prefs.edit().putStringSet("search_enabled_sources",saved).putBoolean("predanie_source_added",true).apply()
             } else prefs.edit().putBoolean("predanie_source_added",true).apply()
         }
-        val defaults=original.toSet()+AbExtraSources.defaults
+        val defaults=original.toSet()+AbExtraSources.defaults+if(BuildConfig.SEARCH_LAB)setOf(SearchLabSources.TELEGRAM) else emptySet()
         val retained=saved?.intersect(searchOrder.toSet())
         val choices=retained?.takeIf{it.isNotEmpty()} ?: defaults
         if(saved!=null&&saved!=choices)prefs.edit().putStringSet("search_enabled_sources",choices).apply()
@@ -14799,6 +14866,7 @@ private object AbBookSources {
         "Bookinfo" -> "https://bookinfo.net/"
         AUDIO_ONLINE -> "https://audiokniga-online.ru/"
         "Книгоблуд" -> "https://mob.knigoblud.club/"
+        SearchLabSources.TELEGRAM -> SearchLabSources.TELEGRAM_HOME
         else -> AbExtraSources.home(site)
     }
     fun genres(name: String): List<String> =

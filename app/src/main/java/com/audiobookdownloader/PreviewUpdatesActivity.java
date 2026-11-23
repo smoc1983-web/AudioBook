@@ -39,7 +39,9 @@ public final class PreviewUpdatesActivity extends Activity {
         button.setOnClickListener(v->action.run());return button;
     }
     @Override public void onCreate(Bundle state){
-        super.onCreate(state);session=UpdateSessions.shared(this);
+        super.onCreate(state);
+        if(BuildConfig.SEARCH_LAB){finish();return;}
+        session=UpdateSessions.shared(this);
         waitingForPermission=state!=null&&state.getBoolean("waitingForInstallPermission",false);
         int surface=flat()?0xff101214:0xff171228;getWindow().setStatusBarColor(surface);getWindow().setNavigationBarColor(surface);
         ScrollView scroll=new ScrollView(this);scroll.setBackgroundColor(surface);
@@ -116,6 +118,7 @@ public final class PreviewUpdatesActivity extends Activity {
         render();
     }
     public static void checkInBackground(Activity activity){
+        if(BuildConfig.SEARCH_LAB)return;
         PreviewUpdater updater=new PreviewUpdater(activity);
         android.content.SharedPreferences prefs=activity.getSharedPreferences("preview_updates",0);
         long now=System.currentTimeMillis();

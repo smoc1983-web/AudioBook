@@ -333,6 +333,20 @@ internal const val AB_EXTRA_SOURCE_JSON = """[
     "enabled": false
   },
   {
+    "id": "slushkinvsem",
+    "name": "СлушКинВсем",
+    "home": "https://slushkinvsem.ru/",
+    "hosts": [
+      "slushkinvsem.ru",
+      "www.slushkinvsem.ru"
+    ],
+    "book": "^/(?!blok/|page/)(?:[^/]+/)*[0-9]+-[^/]+[.]html$",
+    "genre": "^/kniga_audio_[^/]+/?$",
+    "author": "^/(?:author|avtor)/[^/]+/?$",
+    "status": "Скачивание глав",
+    "enabled": true
+  },
+  {
     "id": "audioknigi-top",
     "name": "Audioknigi.top",
     "home": "https://audioknigi.top/",
@@ -350,6 +364,7 @@ internal const val AB_EXTRA_SOURCE_JSON = """[
 
 internal object AbExtraSources {
     // Listed for access in a browser, not advertised as working search adapters.
+    private val labHidden=setOf("Aume","Lis10book","Audio-Lib","КнигиAudio","Слушать книги","A-kniga")
     val browserOnly=listOf(
         Triple("СлушКинВсем","https://slushkinvsem.ru/","Сервер ответил ошибкой; встроенный поиск пока не подключён"),
         Triple("Aume","https://aume.ru/","Сервер ответил ошибкой; встроенный поиск пока не подключён"),
@@ -357,7 +372,7 @@ internal object AbExtraSources {
         Triple("Audio-Lib","https://audio-lib.club/","Сайт требует проверки соединения"),
         Triple("КнигиAudio","https://knigiaudio.net/","Не удалось проверить доступ; встроенный поиск пока не подключён"),
         Triple("Author.Today","https://author.today/","Используется для сверки серий; аудио открывается на сайте")
-    )
+    ).filterNot{BuildConfig.SEARCH_LAB && (it.first in labHidden || it.first=="СлушКинВсем")}
     // Manual browsing is intentionally separate from automatic search adapters.
     fun manualName(address:String):String=try {
         val u=URI(address)
@@ -368,7 +383,8 @@ internal object AbExtraSources {
     }catch(_:Exception){""}
     private val rows=JSONArray(AB_EXTRA_SOURCE_JSON)
     val names:List<String> = (0 until rows.length()).map{rows.getJSONObject(it).getString("name")}
-    val defaults:Set<String> = (0 until rows.length()).map{rows.getJSONObject(it)}.filter{it.optBoolean("enabled")}.map{it.getString("name")}.toSet()
+        .filter{if(BuildConfig.SEARCH_LAB)it !in labHidden else it!="СлушКинВсем"}
+    val defaults:Set<String> = (0 until rows.length()).map{rows.getJSONObject(it)}.filter{it.optBoolean("enabled")}.map{it.getString("name")}.filter{it in names}.toSet()
     private fun row(name:String)= (0 until rows.length()).map{rows.getJSONObject(it)}.firstOrNull{it.getString("name")==name}
     fun name(address:String):String=try {
         val u=URI(address);val h=u.host?.lowercase(java.util.Locale.ROOT).orEmpty()

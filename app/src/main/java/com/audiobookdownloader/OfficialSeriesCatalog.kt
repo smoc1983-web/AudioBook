@@ -73,7 +73,7 @@ private val officialSeriesLocks=Array(16){Mutex()}
 internal class OfficialSeriesCatalog(private val context:Context,private val fetcher:SeriesAuthorityFetcher=OfficialSeriesHttp()) {
     private val store=OfficialSeriesStore(context)
     private val prefs=context.getSharedPreferences("audiobook_downloader",0)
-    suspend fun refresh(title:String,author:String,force:Boolean=false):OfficialSnapshot=withContext(Dispatchers.IO) {
+    suspend fun refresh(title:String,author:String,force:Boolean=false,notify:Boolean=true):OfficialSnapshot=withContext(Dispatchers.IO) {
         officialSeriesLocks[(SeriesAuthorityRules.title(title).hashCode() and Int.MAX_VALUE)%officialSeriesLocks.size].withLock {
             var snapshot=store.read(title,author) ?: OfficialSnapshot(title,author,emptyList())
             val now=System.currentTimeMillis()
@@ -120,7 +120,7 @@ internal class OfficialSeriesCatalog(private val context:Context,private val fet
                 store.save(snapshot,author)
             }
             if(!snapshot.conflict)resolved.firstOrNull()?.let{SeriesAuthorityCache.save(prefs,title,author,it,"confirmed")}
-            updateNotices(snapshot)
+            if(notify)updateNotices(snapshot)
             snapshot
         }
     }
