@@ -168,7 +168,7 @@ final class SearchLabSources {
 
     private static URI chapterFile(String value, String host) {
         String[] versions = value.split("\\s+or\\s+", -1);
-        if (versions.length > (uknig(host) ? 2 : 1)) return null;
+        if (versions.length > 2) return null;
         URI first = chapterAddress(versions[0], host);
         if (first == null || versions.length == 1) return first;
         URI alternative = chapterAddress(versions[1], host);

@@ -44,7 +44,10 @@ public class SearchLabSourcesTest {
         String json = "[{\"title\":\"Глава\",\"file\":\"https://poleknig.com/files/42?h=sample\"}]";
         assertEquals(1, SearchLabSources.files(json, "poleknig.com").size());
         assertTrue(SearchLabSources.files(json.replace("/files/42", "/api/42"), "poleknig.com").isEmpty());
-        assertTrue(SearchLabSources.files(json.replace("h=sample", "h=sample or https://poleknig.com/files/42?h=x"),
+        String sameChapter = json.replace("h=sample", "h=sample or https://poleknig.com/files/42?h=x");
+        assertEquals("https://poleknig.com/files/42?h=sample",SearchLabSources.files(sameChapter,"poleknig.com").get(0).url);
+        assertTrue(SearchLabSources.files(sameChapter.replace("files/42?h=x","files/43?h=x"),"poleknig.com").isEmpty());
+        assertTrue(SearchLabSources.files(sameChapter.replace("poleknig.com/files/42?h=x","other.invalid/files/42?h=x"),
             "poleknig.com").isEmpty());
         String html = "<script>new Playerjs({file:'https://poleknig.com/books/42/playlist.txt?t=1'});</script>";
         assertEquals("https://poleknig.com/books/42/playlist.txt?t=1", SearchLabSources.poleList(html, "https://poleknig.com/books/42"));
