@@ -127,7 +127,8 @@ data class BookLink(
     val genreOrigin: String = "",
     val searchQuery: String = "",
     val narrator: String = "",
-    val description: String = ""
+    val description: String = "",
+    val seriesSlot: SearchLabSeriesSlot? = null
 )
 
 data class AudioTrack(
@@ -2661,7 +2662,9 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                                         else -> result
                                     }
                                 }
-                                val verified=if(BuildConfig.SEARCH_LAB) SearchLabSeries.verify(context,merged,requestQuery) else merged
+                                val verified=if(BuildConfig.SEARCH_LAB && ranked==null && narration==null)
+                                    SearchLabSeries.verify(context,merged,requestQuery){abProbeSearchLabChapters(context,it)}
+                                else merged
                                 if(version!=unifiedMergeVersion || requestId!=unifiedSearchId || unifiedQuery.isBlank())return@launch
                                 bookLinks=verified
                                 if(!BuildConfig.SEARCH_LAB) status=(if(requestSources.size==1)requestSources.first()+": " else "Общий поиск: ")+unifiedSearchStatus(reports,merged.size,requestSources)+
@@ -8361,6 +8364,47 @@ private suspend fun abSearchOneSource(context:Context,site:String,query:String,
     }
 }
 
+private suspend fun abProbeSearchLabChapters(context:Context,book:BookLink):AbChapterAvailability? {
+    val ref=BookRef(book.title,book.url,book.coverUrl)
+    if(SearchLabDownloads.handles(book.url)) {
+        val edition=try {SearchLabDownloads.load(ref)}
+        catch(cancel:kotlinx.coroutines.CancellationException){throw cancel}
+        catch(_:Exception){return null}
+        if(edition!=null)return abSearchLabChapterStatus(edition)
+    }
+    if(!abIsBookDetailAddress(book.url))return null
+    var browser:WebView?=null
+    var task:AbOpenPageTask?=null
+    try {
+        return kotlinx.coroutines.suspendCancellableCoroutine { reply ->
+            browser=abCreateBrowser(context,{if(reply.isActive)reply.resumeWith(Result.success(null))}) {
+                settings.javaScriptEnabled=true
+                settings.domStorageEnabled=true
+                settings.loadsImagesAutomatically=false
+                task=AbOpenPageTask(this,book.url,{}) { root,url,error ->
+                    if(reply.isActive) {
+                        val edition=if(error.isBlank())root?.let{abDownloadEdition(ref,it,url)} else null
+                        reply.resumeWith(Result.success(edition?.let(::abSearchLabChapterStatus)))
+                    }
+                }
+                AbWebViews.onClose(this) {
+                    task?.close()
+                    if(reply.isActive)reply.resumeWith(Result.success(null))
+                }
+            }
+        }
+    } finally {
+        task?.close()
+        browser?.let{AbWebViews.release(it)}
+    }
+}
+
+private fun abSearchLabChapterStatus(edition:AbDownloadEdition):AbChapterAvailability? = when {
+    edition.preview -> AbChapterAvailability.PREVIEW
+    edition.tracks.any{!EditionDownloadRules.isSegmented(it.src)} -> AbChapterAvailability.AVAILABLE
+    else -> null
+}
+
 @Composable
 fun UnifiedBookSearch(query: String, prefs: android.content.SharedPreferences,
     sources:List<String> = AbBookSources.searchOrder,onResult: (String, SiteSearchResult) -> Unit) {
@@ -9649,6 +9693,12 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
                 else if(data.cycleBrowsing) data.cycle?.title ?: "Книги цикла" else "Результаты",theme,
                 "${if(data.genre.isNotBlank())minOf(resultBooks.size,visibleCount) else resultBooks.size} книг")
         }
+        val seriesRows=resultBooks.mapNotNull{it.book.seriesSlot}
+        val withoutVerifiedAudio=seriesRows.count{it.availability!=AbChapterAvailability.AVAILABLE}
+        if(withoutVerifiedAudio>0) item(key="search-lab-series-report") {
+            Text("Аудио подтверждено не для всех томов. Для $withoutVerifiedAudio из ${seriesRows.size} " +
+                "не удалось подтвердить главы в проверенных источниках.",color=theme.muted,fontSize=12.sp)
+        }
         if(data.cycleBrowsing && resultBooks.isNotEmpty()) item {
             Text("Тома с известными номерами идут по порядку. Книги без номера — после них, в порядке сайта.",
                 color=theme.muted,fontSize=11.sp)
@@ -9899,14 +9949,29 @@ private fun AbManualSourceBrowser(name:String,home:String,data:AbScreenData,acti
 internal fun AbSearchResultCard(row:AbSearchRow,theme:AbTheme,onOpen:(BookLink,String)->Unit,
     onMenu:(BookRef)->Unit,onCycle:(BookCycle)->Unit) {
     val context=androidx.compose.ui.platform.LocalContext.current
+    val slot=row.book.seriesSlot
+    if(slot!=null && slot.alternatives.isEmpty()) {
+        Column(Modifier.fillMaxWidth().abGlass(theme,12,field=true).padding(12.dp),
+            verticalArrangement=Arrangement.spacedBy(6.dp)) {
+            Text(slot.title,color=theme.text,fontSize=17.sp,fontWeight=FontWeight.SemiBold)
+            row.book.cycles.firstOrNull()?.let{cycle->
+                Text("${cycle.title} · ${abVolumeLabel(cycle)}",color=theme.accent,fontSize=12.sp)
+            }
+            Text(if(slot.availability==AbChapterAvailability.PREVIEW) "Найден только ознакомительный фрагмент"
+                else "Аудио в проверенных источниках не найдено",color=theme.muted,fontSize=12.sp)
+            AbSearchLabOfficialLinks(slot,theme)
+        }
+        return
+    }
     val choices=row.editions.ifEmpty{listOf(row.book)}
     var chosen by androidx.compose.runtime.saveable.rememberSaveable(row.key) {mutableStateOf("")}
     val book=choices.firstOrNull{it.url==chosen} ?: choices.first()
     val ref=BookRef(book.title,book.url,book.coverUrl)
     val sourcePrefs=androidx.compose.ui.platform.LocalContext.current.getSharedPreferences("audiobook_downloader",Context.MODE_PRIVATE)
     Column(verticalArrangement=Arrangement.spacedBy(5.dp)) {
-        AbBookRow(ref,if(book.url==row.book.url)row.local else null,book.author.ifBlank{"Аудиокнига"},theme,
-            onClick={onOpen(book,book.url)},onMenu={onMenu(ref)})
+        AbBookRow(if(slot==null)ref else ref.copy(title=slot.title),if(book.url==row.book.url)row.local else null,
+            book.author.ifBlank{"Аудиокнига"},theme,onClick={onOpen(book,book.url)},onMenu={onMenu(ref)})
+        if(slot!=null && slot.availability!=AbChapterAvailability.AVAILABLE)AbSearchLabOfficialLinks(slot,theme)
         if(BuildConfig.SEARCH_LAB && SearchLabSources.telegramPost(book.url)) {
             Text("Книга находится в Telegram-канале @BookFan2",color=theme.accent,fontSize=12.sp)
             if(book.description.isNotBlank())Text(book.description,color=theme.muted,fontSize=12.sp,
@@ -9946,6 +10011,20 @@ internal fun AbSearchResultCard(row:AbSearchRow,theme:AbTheme,onOpen:(BookLink,S
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun AbSearchLabOfficialLinks(slot:SearchLabSeriesSlot,theme:AbTheme) {
+    val context=androidx.compose.ui.platform.LocalContext.current
+    fun open(url:String) {
+        if(!SeriesAuthorityRules.work(url))return
+        try{context.startActivity(Intent(Intent.ACTION_VIEW,Uri.parse(url)))}
+        catch(_:android.content.ActivityNotFoundException){Toast.makeText(context,"Не удалось открыть ссылку",Toast.LENGTH_SHORT).show()}
+    }
+    if(slot.textUrl.isNotBlank())AbButton("Открыть текст · "+SeriesAuthorityRules.provider(slot.textUrl),theme){open(slot.textUrl)}
+    if(slot.externalAudioUrl.isNotBlank())AbButton("Аудиоверсия · "+SeriesAuthorityRules.provider(slot.externalAudioUrl),theme){
+        open(slot.externalAudioUrl)
     }
 }
 

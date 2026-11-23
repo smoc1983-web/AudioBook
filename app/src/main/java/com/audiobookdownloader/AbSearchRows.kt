@@ -48,6 +48,11 @@ internal object AbSearchRows {
             }
             AbSearchRow(book,BookRef(book.title,book.url,book.coverUrl),local,bookSources(book))
         }
+        if(verifiedSearch && books.any{it.seriesSlot!=null})return@withContext rows.map { row ->
+            val slot=row.book.seriesSlot ?: return@map row
+            val alternatives=slot.alternatives.filter{!hidePreviews || !AbSourceAvailability.isPreview(prefs,it)}
+            row.copy(editions=alternatives,key=slot.key)
+        }
         val prepared=AbSearchPresentation.prepare(rows.map{it.book},query=query,cycle=cycle,verifiedOrder=verifiedSearch)
         val indexed=rows.associateBy{it.book.url}
         val groups=LinkedHashMap<String,MutableList<BookLink>>()

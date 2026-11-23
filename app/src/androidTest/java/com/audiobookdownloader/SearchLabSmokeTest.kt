@@ -34,4 +34,15 @@ class SearchLabSmokeTest {
         compose.onNodeWithText("Скачать").performClick()
         compose.runOnIdle { assertEquals(audio.url, picked?.url) }
     }
+    @Test fun aVolumeWithoutAudioOffersItsOfficialText() {
+        val title="Путь строителя 3"
+        val url="https://author.today/work/564142"
+        val slot=SearchLabSeriesSlot("builder-3",title,url,"",AbChapterAvailability.EMPTY,emptyList())
+        val book=BookLink(title,url,cycles=listOf(BookCycle("Строитель",order=3.0,referenceUrl=url)),seriesSlot=slot)
+        val row=AbSearchRow(book,BookRef(title,url,""),null,emptyList())
+        compose.setContent { AbSearchResultCard(row,abTheme(2),{_,_->},{},{}) }
+        compose.onNodeWithText("Аудио в проверенных источниках не найдено").assertIsDisplayed()
+        compose.onNodeWithText("Открыть текст · Author.Today").assertIsDisplayed()
+    }
+
 }

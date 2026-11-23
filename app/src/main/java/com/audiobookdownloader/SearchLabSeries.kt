@@ -14,11 +14,12 @@ import kotlinx.coroutines.withTimeoutOrNull
 internal object SearchLabSeries {
     private const val MAX_LOOKUPS = 8
 
-    suspend fun verify(context: Context, books: List<BookLink>, query: String): List<BookLink> {
+    suspend fun verify(context: Context, books: List<BookLink>, query: String,
+        checkChapters:suspend (BookLink)->AbChapterAvailability?={null}): List<BookLink> {
         val snapshots = LinkedHashMap<String, OfficialSnapshot>()
         val store = OfficialSeriesStore(context)
         val lookup = Semaphore(3)
-        val seeds = books.distinctBy(AbSearchPresentation::work).take(MAX_LOOKUPS)
+        val seeds=(books + BookLink(query,"")).distinctBy(AbSearchPresentation::work).take(MAX_LOOKUPS)
         withTimeoutOrNull(35_000L) {
             supervisorScope {
                 seeds.map { book -> async {
@@ -41,6 +42,13 @@ internal object SearchLabSeries {
                 if (key !in snapshots) store.read(book.title, book.author)?.let { snapshots[key] = it }
             }
         }
+        val sequence=SearchLabSequence.plan(books,snapshots.values.toList(),query)
+        if(sequence.isNotEmpty()) {
+            val prefs=context.getSharedPreferences("audiobook_downloader",0)
+            val status:(String)->AbChapterAvailability={AbSourceAvailability.get(prefs,it)}
+            verifyChapters(sequence,status,checkChapters,prefs)
+            return SearchLabSequence.rows(sequence,status)
+        }
         val confirmed = snapshots.values.flatMap(::cycles)
             .groupBy { SeriesAuthorityRules.author(it.first.author) }
         val mapped = books.map { book ->
@@ -61,6 +69,28 @@ internal object SearchLabSeries {
             }?.url.orEmpty())))
         }
         return AbSearchPresentation.prepare(mapped.map { it.copy(searchQuery = "") }, query, verifiedOrder = true)
+    }
+
+    private suspend fun verifyChapters(sequence:List<SearchLabVolume>,status:(String)->AbChapterAvailability,
+        check:suspend (BookLink)->AbChapterAvailability?,prefs:android.content.SharedPreferences) {
+        val slots=Semaphore(3)
+        withTimeoutOrNull(22_000L) {
+            supervisorScope {
+                sequence.take(30).map { volume -> async {
+                    slots.withPermit {
+                        val sources=volume.candidates.filterNot{SearchLabSources.telegramPost(it.url)}
+                        if(sources.any{SearchLabSequence.status(it,status)==AbChapterAvailability.AVAILABLE})return@withPermit
+                        for(book in sources.filter{SearchLabSequence.status(it,status)==AbChapterAvailability.UNKNOWN}.take(2)) {
+                            val result=withTimeoutOrNull(7_000L){check(book)}
+                            if(result==AbChapterAvailability.AVAILABLE || result==AbChapterAvailability.PREVIEW)
+                                AbSourceAvailability.record(prefs,book.url,result==AbChapterAvailability.AVAILABLE,
+                                    preview=result==AbChapterAvailability.PREVIEW)
+                            if(result==AbChapterAvailability.AVAILABLE)break
+                        }
+                    }
+                } }.awaitAll()
+            }
+        }
     }
 
     internal fun cycles(snapshot: OfficialSnapshot): List<Pair<OfficialEdition, BookCycle>> {

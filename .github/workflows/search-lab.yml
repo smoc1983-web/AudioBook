@@ -1,7 +1,7 @@
 name: Audiobook Test APK
 on:
   push:
-    branches: ['cloud/search-download-lab-20261123']
+    branches: ['cloud/search-series-order-20261123']
 permissions:
   contents: read
 jobs:
