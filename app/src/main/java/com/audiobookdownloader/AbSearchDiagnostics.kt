@@ -149,7 +149,7 @@ internal object AbSearchDiagnostics {
     }catch(_:Exception){JSONArray()}
     private fun save(prefs:SharedPreferences,source:JSONArray) {
         val trimmed=JSONArray()
-        for(i=maxOf(0,source.length()-MAX_ITEMS) until source.length())trimmed.put(source.get(i))
+        for(i in maxOf(0,source.length()-MAX_ITEMS) until source.length())trimmed.put(source.get(i))
         prefs.edit().putString(HISTORY,trimmed.toString()).apply()
     }
     @Synchronized fun begin(context:Context,query:String,sources:List<String>,mode:AbSearchNetworkMode):String {
@@ -165,7 +165,7 @@ internal object AbSearchDiagnostics {
     }
     @Synchronized fun result(context:Context,id:String,site:String,item:SiteSearchResult) {
         val prefs=storage(context);val all=history(prefs)
-        for(i=all.length()-1 downTo 0){
+        for(i in all.length()-1 downTo 0){
             val row=all.optJSONObject(i) ?: continue
             if(row.optString("id")!=id)continue
             val selected=row.optJSONArray("sources") ?: return
@@ -183,7 +183,7 @@ internal object AbSearchDiagnostics {
     }
     @Synchronized fun finish(context:Context,id:String) {
         val prefs=storage(context);val all=history(prefs)
-        for(i=all.length()-1 downTo 0){
+        for(i in all.length()-1 downTo 0){
             val row=all.optJSONObject(i) ?: continue
             if(row.optString("id")==id){row.put("finished",true);save(prefs,all);return}
         }
@@ -191,7 +191,7 @@ internal object AbSearchDiagnostics {
     @Synchronized fun collect(context:Context):String {
         val prefs=storage(context);val all=history(prefs)
         val snapshots=ArrayList<AbSearchSessionSnapshot>()
-        for(i=0 until all.length()){
+        for(i in 0 until all.length()){
             val row=all.optJSONObject(i) ?: continue
             val mode=try{AbSearchNetworkMode.valueOf(row.optString("mode"))}catch(_:Exception){continue}
             val sources=row.optJSONArray("sources") ?: continue
