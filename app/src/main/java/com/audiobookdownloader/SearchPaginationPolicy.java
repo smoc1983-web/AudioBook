@@ -7,7 +7,10 @@ import org.json.JSONArray;
 /** Source-bound pagination only. Search never visits an arbitrary URL from a page. */
 public final class SearchPaginationPolicy {
     private final ContinuationPolicy known;
-    public SearchPaginationPolicy(String sourceRegistry) { known = new ContinuationPolicy(sourceRegistry); }
+    public SearchPaginationPolicy(String sourceRegistry) {
+        try { known = new ContinuationPolicy(sourceRegistry); }
+        catch(org.json.JSONException bad) { throw new IllegalArgumentException("Invalid source registry",bad); }
+    }
     public String canonical(String url) { return known.canonical(url); }
 
     public String next(String searchRoot, JSONArray candidates, Set<String> visited) {
