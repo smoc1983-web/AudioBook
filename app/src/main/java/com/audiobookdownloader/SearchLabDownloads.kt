@@ -23,12 +23,13 @@ internal object SearchLabDownloads {
         require(html.contains("tgme_channel_history") || html.contains("tgme_widget_message")) {
             "Не удалось прочитать публичную ленту Telegram"
         }
+        val match = AbBookQuery(query)
         SiteSearchResult(SearchLabSources.telegram(html).map { post ->
             BookLink(post.title, post.url, author = post.author, description = post.description)
-        }.filter { AbBookQuery(query).rank(it) != null })
+        }.filter { match.rank(it) != null })
     }
 
-    suspend fun load(ref: BookRef): AbDownloadEdition = withContext(Dispatchers.IO) {
+    suspend fun load(ref: BookRef): AbDownloadEdition? = withContext(Dispatchers.IO) {
         require(handles(ref.url)) { "Нужна страница книги поддерживаемого источника" }
         val html = text(ref.url)
         val doc = Jsoup.parse(html)
@@ -37,14 +38,18 @@ internal object SearchLabDownloads {
             error("Источник требует подтверждения доступа")
         require(heading.isNotBlank()) { "Источник не передал карточку книги" }
         val host = URI(ref.url).host
-        val parsed = when (AbExtraSources.name(ref.url)) {
+        val site = AbExtraSources.name(ref.url)
+        val parsed = when (site) {
             "СлушКинВсем" -> SearchLabSources.slush(html)
             "Uknig" -> files(SearchLabSources.uknigList(html, ref.url), host, ref.url)
             else -> files(SearchLabSources.poleList(html, ref.url), host, ref.url)
         }
         val preview = EditionDownloadRules.isPreview(ref.title + " " + heading, parsed.map { it.url })
-        if (preview && parsed.isEmpty()) error("Источник отдаёт только ознакомительный фрагмент")
-        require(parsed.isNotEmpty()) { "Источник не передал список глав выбранного издания" }
+        if (parsed.isEmpty()) {
+            if (preview) error("Источник отдаёт только ознакомительный фрагмент")
+            if (site != "СлушКинВсем") return@withContext null
+            error("Источник не передал список глав выбранного издания")
+        }
         if (!preview) parsed.take(1).forEach { verifyAudio(it.url, ref.url) }
         AbDownloadEdition(ref, parsed.map { AudioTrack(it.title, 0, it.url) }, preview, sourceTitle = heading)
     }

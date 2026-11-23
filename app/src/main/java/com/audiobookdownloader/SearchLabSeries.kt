@@ -24,7 +24,7 @@ internal object SearchLabSeries {
                 seeds.map { book -> async {
                     try {
                         val snapshot = lookup.withPermit {
-                            OfficialSeriesCatalog(context).refresh(book.title, book.author, notify = false)
+                            OfficialSeriesCatalog(context).refreshForSearch(book.title, book.author)
                         }
                         snapshots[AbSearchPresentation.work(book)] = snapshot
                     } catch (cancelled: CancellationException) {
@@ -41,7 +41,7 @@ internal object SearchLabSeries {
                 if (key !in snapshots) store.read(book.title, book.author)?.let { snapshots[key] = it }
             }
         }
-        val confirmed = snapshots.values.filter { !it.conflict && !it.orderConflict }.flatMap(::cycles)
+        val confirmed = snapshots.values.flatMap(::cycles)
             .groupBy { SeriesAuthorityRules.author(it.first.author) }
         val mapped = books.map { book ->
             val author = SeriesAuthorityRules.author(book.author.ifBlank {
@@ -66,8 +66,8 @@ internal object SearchLabSeries {
     internal fun cycles(snapshot: OfficialSnapshot): List<Pair<OfficialEdition, BookCycle>> {
         if (snapshot.conflict || snapshot.orderConflict) return emptyList()
         val available = snapshot.sources.filter { it.checked > 0 && it.books.isNotEmpty() }
+        if (available.flatMap { it.books }.map { SeriesAuthorityRules.author(it.author) }.distinct().size > 1) return emptyList()
         val named = available.flatMap { it.books }.filter { it.status in setOf("published", "ongoing") }
-        if (available.isEmpty()) return emptyList()
         val count = if (available.any { it.complete && it.error.isBlank() })
             named.map { SeriesAuthorityRules.title(it.title) }.distinct().size else 0
         return named.map { book ->

@@ -11484,11 +11484,15 @@ internal fun AbCollectionDownloads(refs:List<BookRef>,index:DownloadedChapterInd
 internal fun AbReadDownloadEdition(ref:BookRef,done:(AbDownloadEdition?,String)->Unit) {
     val observationPrefs=androidx.compose.ui.platform.LocalContext.current.getSharedPreferences("audiobook_downloader",Context.MODE_PRIVATE)
     val report by androidx.compose.runtime.rememberUpdatedState(done)
+    var useExistingReader by remember(ref.url){mutableStateOf(false)}
     if(BuildConfig.SEARCH_LAB && SearchLabSources.telegramPost(ref.url)) {
         LaunchedEffect(ref.url) {report(null,"Книга находится в Telegram-канале @BookFan2")}
-    } else if(SearchLabDownloads.handles(ref.url)) {
+    } else if(SearchLabDownloads.handles(ref.url) && !useExistingReader) {
         LaunchedEffect(ref.url) {
-            try { report(SearchLabDownloads.load(ref),"") }
+            try {
+                val result=SearchLabDownloads.load(ref)
+                if(result==null)useExistingReader=true else report(result,"")
+            }
             catch(cancel:kotlinx.coroutines.CancellationException){throw cancel}
             catch(error:IllegalStateException){report(null,error.message ?: "Не удалось проверить главы")}
             catch(error:IllegalArgumentException){report(null,error.message ?: "Не удалось проверить главы")}
