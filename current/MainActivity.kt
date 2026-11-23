@@ -7867,7 +7867,8 @@ fun formatSleepTime(
 data class BookSource(val site: String, val url: String, val coverUrl: String = "")
 data class BookCycle(val title: String, val url: String = "", val order: Double? = null,
     val referenceUrl:String="",val referenceSite:String="",val parentTitle:String="")
-data class SiteSearchResult(val books: List<BookLink>, val error: String = "")
+data class SiteSearchResult(val books: List<BookLink>, val error: String = "",
+    val pagesVisited:Int=0, val morePages:Boolean=false, val fromCache:Boolean=false, val durationMs:Long=0)
 
 fun bookSiteName(url: String): String = when {
     AbExtraSources.manualName(url).isNotBlank() -> AbExtraSources.manualName(url)
@@ -8327,7 +8328,8 @@ class BookSearchTask(
         handler.removeCallbacksAndMessages(null)
         val available=if(discovered.isEmpty())books else
             (discovered.values+books).distinctBy{it.url.substringBefore('#').trimEnd('/')}
-        done(SiteSearchResult(available, error), endpoint)
+        done(SiteSearchResult(available, error, pagesVisited=completedSearchPages,
+            morePages=error.contains("ещё страницы") || error.contains("еще страницы")), endpoint)
     }
 }
 
@@ -8373,8 +8375,19 @@ fun UnifiedBookSearch(query: String, prefs: android.content.SharedPreferences,
     LaunchedEffect(query,requested,prefs) {
         // Two browsers at most; slow sitemap enumeration never occupies the first slot.
         val scheduled=requested.sortedBy{if(it==AbBookSources.AZBYKA)1 else 0}
-        AbSearchCoordinator.search(scheduled,{site ->if(site==AbBookSources.AZBYKA)95_000L else 50_000L},
-            {site ->AbSearchCache.get(site,query) ?: abSearchOneSource(context,site,query,prefs).also{AbSearchCache.put(site,query,it)}}, {site,result ->report(site,AbGlobalBookResults.nativeResult(result,query))})
+        val mode=AbSearchDiagnostics.mode(prefs)
+        val session=AbSearchDiagnostics.begin(context,query,scheduled,mode)
+        try {
+            AbSearchCoordinator.search(scheduled,{site ->if(site==AbBookSources.AZBYKA)95_000L else 50_000L},
+                {site ->
+                    val cached=if(mode==AbSearchNetworkMode.NORMAL)AbSearchCache.get(site,query) else null
+                    cached?.copy(fromCache=true) ?: abSearchOneSource(context,site,query,prefs)
+                        .also{AbSearchCache.put(site,query,it)}
+                }, {site,result ->
+                    AbSearchDiagnostics.result(context,session,site,result)
+                    report(site,AbGlobalBookResults.nativeResult(result,query))
+                })
+        } finally {AbSearchDiagnostics.finish(context,session)}
     }
 }
 
@@ -9537,6 +9550,7 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
     }
     val history=remember(prefs,data.version) {getListeningHistory(prefs).map {bookRefFor(prefs,it)}}
     var showSources by remember {mutableStateOf(false)}
+    var searchNetworkMode by remember(prefs){mutableStateOf(AbSearchDiagnostics.mode(prefs))}
     var manualSource by remember {mutableStateOf<Pair<String,String>?>(null)}
     var hidePreviews by remember(prefs) {mutableStateOf(prefs.getBoolean("search_hide_previews",false))}
     var enabledSources by remember {mutableStateOf(AbBookSources.enabled(prefs).toSet())}
@@ -9614,6 +9628,16 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
             }
             Text(if(data.searchSource.isBlank())"Режим: включённые источники" else "Режим: только ${data.searchSource}",
                 color=theme.muted,fontSize=11.sp,modifier=Modifier.padding(top=5.dp))
+            Text("Диагностика поиска: укажите реальный режим сети до поиска. При VPN-проверке кэш не используется. Текст запроса в отчёт не попадёт.",
+                color=theme.muted,fontSize=11.sp,modifier=Modifier.padding(top=6.dp))
+            Row(Modifier.fillMaxWidth().padding(top=5.dp),horizontalArrangement=Arrangement.spacedBy(5.dp)) {
+                AbSearchNetworkMode.entries.forEach {option ->
+                    AbButton(option.title,theme,Modifier.weight(1f),primary=searchNetworkMode==option) {
+                        searchNetworkMode=option
+                        prefs.edit().putString(AbSearchDiagnostics.MODE_KEY,option.name).apply()
+                    }
+                }
+            }
         }
         if (data.searchActive || data.cycleBrowsing || data.genre.isNotBlank()) item(key="preview-filter") {
             AbButton(if (activeFilters == 0) "Фильтры поиска" else "Фильтры поиска · $activeFilters",theme) {
@@ -11170,7 +11194,7 @@ private fun AbSettingsDialog(data: AbScreenData,prefs: android.content.SharedPre
         if(section==AbSettingsSection.DIAGNOSTICS) {
             AbHeading("Диагностика",theme)
             AbButton("Отчёт после обновления или проверки (.txt)",theme,onClick=onCrashReport)
-            Text("Включает установленную версию, дату обновления, технические события и сравнение источников без VPN и с VPN. Отчёт можно просмотреть, скопировать или отправить через Android в ChatGPT. Автоматической отправки нет.",color=theme.muted,fontSize=12.sp)
+            Text("Включает версию, дату обновления, технические события, сравнение источников и статистику последних поисков по каждому сайту. Поиск без VPN и с VPN сопоставляется без передачи названия книги. Отправка вручную через Android.",color=theme.muted,fontSize=12.sp)
         }
         Text(AB_PRODUCT_NAME,color=theme.muted,fontSize=12.sp)
     } }
@@ -13202,6 +13226,8 @@ internal object AbCrashReport {
         }
         val source=AbSourceTrace.read(context)
         if(source.isNotBlank())text.append("\n=== Последняя проверка источника ===\n"+AbDiagnosticSections.summary(source,(AbBookSources.all+AbExtraSources.browserOnly.map{it.first}).toSet())+"\n")
+        try {text.append(AbSearchDiagnostics.collect(context))}
+        catch(_:Exception) {text.append("\nДанные диагностики поиска недоступны.\n")}
         val search=AbSourceTrace.readSearch(context)
         if(search.isNotBlank())text.append("\n=== Последний общий поиск (без запроса) ===\n"+AbDiagnosticSections.summary(search,(AbBookSources.all+AbExtraSources.browserOnly.map{it.first}).toSet())+"\n")
         val library=context.getSharedPreferences("audiobook_diagnostics",Context.MODE_PRIVATE).getString("last_library","").orEmpty()
@@ -13485,7 +13511,7 @@ internal fun AbCrashReports(theme: AbTheme,requested: Int) {
     val saved=report ?: return
     fun dismiss() {shareJob?.cancel();shareJob=null;sharing=false;shareError="";visible=false;report=null}
     AbDialog("Диагностика и логи",theme,{dismiss()}) {
-        Text("Отчёт содержит версию после обновления, сравнение источников без VPN/с VPN, события плеера и сохранённую ошибку. Секреты, ссылки на главы и поисковые запросы скрыты. Проверьте текст перед отправкой — получателя выбираете сами.",
+        Text("Отчёт содержит версию после обновления, сравнение источников, статистику поиска, события плеера и сохранённую ошибку. Пароли, ссылки на главы и поисковые запросы скрыты. Проверьте текст перед отправкой — получателя выбираете сами.",
             color=theme.muted,fontSize=14.sp,lineHeight=20.sp)
         if(AbCrashReport.historical(context,saved.first)) Text(
             "В отчёте есть событие предыдущей версии диагностики. Его дата указана отдельно.",color=theme.muted,fontSize=12.sp)
