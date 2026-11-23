@@ -8376,7 +8376,7 @@ fun UnifiedBookSearch(query: String, prefs: android.content.SharedPreferences,
         // Two browsers at most; slow sitemap enumeration never occupies the first slot.
         val scheduled=requested.sortedBy{if(it==AbBookSources.AZBYKA)1 else 0}
         val mode=AbSearchDiagnostics.mode(prefs)
-        val session=AbSearchDiagnostics.begin(context,query,scheduled,mode)
+        val session=runCatching{AbSearchDiagnostics.begin(context,query,scheduled,mode)}.getOrDefault("")
         try {
             AbSearchCoordinator.search(scheduled,{site ->if(site==AbBookSources.AZBYKA)95_000L else 50_000L},
                 {site ->
@@ -8384,10 +8384,10 @@ fun UnifiedBookSearch(query: String, prefs: android.content.SharedPreferences,
                     cached?.copy(fromCache=true) ?: abSearchOneSource(context,site,query,prefs)
                         .also{AbSearchCache.put(site,query,it)}
                 }, {site,result ->
-                    AbSearchDiagnostics.result(context,session,site,result)
+                    if(session.isNotBlank())runCatching{AbSearchDiagnostics.result(context,session,site,result)}
                     report(site,AbGlobalBookResults.nativeResult(result,query))
                 })
-        } finally {AbSearchDiagnostics.finish(context,session)}
+        } finally {if(session.isNotBlank())runCatching{AbSearchDiagnostics.finish(context,session)}}
     }
 }
 
