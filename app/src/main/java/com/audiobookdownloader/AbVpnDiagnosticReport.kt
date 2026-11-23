@@ -98,11 +98,15 @@ internal object AbVpnDiagnosticReport {
         val app=context.applicationContext
         val now=System.currentTimeMillis().coerceAtLeast(1)
         val evidence=AbVpnEvidenceStore(app)
-        val enabled=app.getSharedPreferences("audiobook_downloader",Context.MODE_PRIVATE)
-            .getStringSet("search_enabled_sources",null)
+        val defaults=setOf("Азбука веры","Книгоблуд","Bookinfo","Audiokniga-online.ru")+
+            AbExtraSources.defaults
+        val enabled=try {
+            app.getSharedPreferences("audiobook_downloader",Context.MODE_PRIVATE)
+                .getStringSet("search_enabled_sources",null)?.toSet()?.takeIf{it.isNotEmpty()} ?: defaults
+        }catch(_:Exception){defaults}
         val rows=targets.take(64).map{target->
             val pair=evidence.snapshot(target)
-            AbVpnSourceReportRow(target.name,enabled?.contains(target.name) ?: true,pair.first,pair.second)
+            AbVpnSourceReportRow(target.name,target.name in enabled,pair.first,pair.second)
         }
         val lastUpdate=try{app.packageManager.getPackageInfo(app.packageName,0).lastUpdateTime}
             catch(_:Exception){0}
