@@ -57,6 +57,7 @@ internal object AbSearchDiagnosticReport {
     fun render(sessions:List<AbSearchSessionSnapshot>,now:Long):String {
         val valid=sessions.takeLast(4)
         val out=StringBuilder("\n=== Диагностика фактического поиска книг ===\n")
+        out.append("Отчёт создан: ").append(utc(now)).append("\n")
         out.append("Запросы, названия книг, URL и сообщения серверов не экспортируются. ")
             .append("Режим VPN выбран вручную, а не определён устройством.\n")
         out.append("Количество книг по сайтам не равно числу уникальных книг после объединения. ")
@@ -144,8 +145,7 @@ internal object AbSearchDiagnostics {
     }
     private fun history(prefs:SharedPreferences):JSONArray = try {
         val raw=prefs.getString(HISTORY,"") ?: ""
-        if(raw.length>70_000)return JSONArray()
-        JSONArray(raw.ifBlank{"[]"})
+        if(raw.length>70_000)JSONArray() else JSONArray(raw.ifBlank{"[]"})
     }catch(_:Exception){JSONArray()}
     private fun save(prefs:SharedPreferences,source:JSONArray) {
         val trimmed=JSONArray()
