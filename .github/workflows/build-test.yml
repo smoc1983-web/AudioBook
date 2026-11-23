@@ -102,19 +102,7 @@ jobs:
           profile: pixel_6
           emulator-boot-timeout: 420
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -memory 2048 -cores 2
-          script: |
-            if [ -f prior-test/Audiobook-Test.apk ]; then
-              adb install prior-test/Audiobook-Test.apk
-              adb install -r dist-test/Audiobook-Test.apk
-            else
-              adb install dist-test/Audiobook-Test.apk
-            fi
-            adb shell am start -n com.audiobookdownloader.test/com.audiobookdownloader.MainActivity
-            adb shell dumpsys package com.audiobookdownloader.test | grep -F "versionCode=$TEST_CODE"
-            if adb shell pm list packages | grep -F 'package:com.audiobookdownloader.preview'; then
-              echo 'Test APK must not install the main application package' >&2
-              exit 1
-            fi
+          script: bash scripts/test-test-install.sh
       - name: Publish only verified Test channel assets
         env:
           GH_TOKEN: ${{ github.token }}
