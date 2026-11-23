@@ -13,6 +13,8 @@ assert 'com.audiobookdownloader.preview.updates' in manifest_tree
 assert 'com.audiobookdownloader.preview.diagnostic_reports' in manifest_tree
 certificate=subprocess.check_output([str(build_tools/'apksigner'),'verify','--verbose','--print-certs',str(apk)],text=True)
 fingerprint=re.search(r'Signer #1 certificate SHA-256 digest: ([0-9a-f]+)',certificate)[1]
+EXPECTED_PREVIEW_SIGNER='3a4cecd14bb3e983843871766909c3f07b3dc64379800f3e270e4a27d39affb7'
+assert fingerprint==EXPECTED_PREVIEW_SIGNER, 'Preview signing identity differs from installed releases; refusing publication'
 # Compare with the latest published identity before exposing a newly signed APK.
 old=json.loads(subprocess.check_output(['gh','api',f"repos/{os.environ['GITHUB_REPOSITORY']}/releases?per_page=30"],text=True))
 for release in old:
