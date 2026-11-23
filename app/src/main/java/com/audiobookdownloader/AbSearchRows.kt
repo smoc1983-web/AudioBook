@@ -14,7 +14,7 @@ internal data class AbSearchRow(val book:BookLink,val ref:BookRef,val local:Libr
 internal object AbSearchRows {
     suspend fun prepare(books:List<BookLink>,library:List<LibraryBook>,prefs:SharedPreferences,
         cycle:BookCycle?,query:String="",hidePreviews:Boolean=false,
-        narrator:String="",seriesOnly:Boolean=false,localOnly:Boolean=false):List<AbSearchRow> = withContext(Dispatchers.Default) {
+        narrator:String="",seriesOnly:Boolean=false,localOnly:Boolean=false,verifiedSearch:Boolean=false):List<AbSearchRow> = withContext(Dispatchers.Default) {
         val playable=library.filter{it.files.isNotEmpty()}
         val exact=playable.groupBy{it.title}
         fun localKey(title:String)=safeFileName(cleanBookTitle(title)).lowercase(Locale.ROOT)
@@ -27,7 +27,7 @@ internal object AbSearchRows {
             currentCoroutineContext().ensureActive()
             val raw=if(hidePreviews)AbSourceAvailability.withoutPreviews(prefs,input) ?: return@mapNotNull null else input
             if (narrator.isNotEmpty() && !SearchFilterRules.matchesNarrator(raw.title, raw.narrator, narrator)) return@mapNotNull null
-            val cycles=SeriesAuthorityCache.cycles(prefs,raw.title,raw.author,raw.cycles,raw.url)
+            val cycles=if(verifiedSearch)raw.cycles else SeriesAuthorityCache.cycles(prefs,raw.title,raw.author,raw.cycles,raw.url)
             if(expected!=null && cycles.any{it.referenceUrl.isNotBlank()} &&
                 cycles.none{AbSearchPresentation.seriesKey(it.title)==expected})return@mapNotNull null
             if (seriesOnly && cycles.none { AbSearchPresentation.seriesKey(it.title).isNotBlank() }) return@mapNotNull null
@@ -48,7 +48,12 @@ internal object AbSearchRows {
             }
             AbSearchRow(book,BookRef(book.title,book.url,book.coverUrl),local,bookSources(book))
         }
-        val prepared=AbSearchPresentation.prepare(rows.map{it.book},query=query,cycle=cycle)
+        if(verifiedSearch && books.any{it.seriesSlot!=null})return@withContext rows.map { row ->
+            val slot=row.book.seriesSlot ?: return@map row
+            val alternatives=slot.alternatives.filter{!hidePreviews || !AbSourceAvailability.isPreview(prefs,it)}
+            row.copy(editions=alternatives,key=slot.key)
+        }
+        val prepared=AbSearchPresentation.prepare(rows.map{it.book},query=query,cycle=cycle,verifiedOrder=verifiedSearch)
         val indexed=rows.associateBy{it.book.url}
         val groups=LinkedHashMap<String,MutableList<BookLink>>()
         for(book in prepared) {

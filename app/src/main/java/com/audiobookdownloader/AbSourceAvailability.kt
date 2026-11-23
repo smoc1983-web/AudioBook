@@ -4,7 +4,7 @@ import android.content.SharedPreferences
 import java.security.MessageDigest
 
 /** A source-specific observation; unknown is intentionally not presented as available. */
-internal enum class AbChapterAvailability(val priority:Int,val label:String) {
+enum class AbChapterAvailability(val priority:Int,val label:String) {
     AVAILABLE(0,"Главы найдены"), UNKNOWN(1,"Главы не проверены"), EMPTY(2,"Главы не найдены"), PREVIEW(3,"Демо · фрагмент")
 }
 

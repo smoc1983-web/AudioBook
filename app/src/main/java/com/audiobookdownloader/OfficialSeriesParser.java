@@ -23,6 +23,8 @@ public final class OfficialSeriesParser {
    if(!canonical.equals(SeriesAuthorityRules.canonical(series))||uri.getRawFragment()!=null)return "";
    String query=uri.getRawQuery();
    if(query==null)return canonical;
+   if(query.equals("art_types=audiobook")&&SeriesAuthorityRules.provider(series).equals("Литрес"))
+    return canonical+"?"+query;
    return query.matches("page=[1-9]\\d{0,2}")?canonical+"?"+query:"";
   }catch(Exception error){return "";}
  }
@@ -91,7 +93,7 @@ public final class OfficialSeriesParser {
   List<Edition> books=new ArrayList<>();
   for(SeriesAuthorityParser.Listed listed:records){
    SeriesAuthorityParser.Record row=listed.record;if(!belongs(row,author,series))continue;
-   Element card=listed.card;Element info=at?card.selectFirst(".book-stats,.book-info,.work-info"):card;
+   Element card=listed.card;Element info=at?card.selectFirst(".book-stats,.book-info,.work-info,.book-details"):card;
    books.add(new Edition(row.title,row.bookUrl,author,series,provider,format(at,row.bookUrl,info),status(at,card,info),row.order));
   }
   if(books.isEmpty())throw new IllegalArgumentException("Не прочитан список книг указанного автора");

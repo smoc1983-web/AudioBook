@@ -27,6 +27,21 @@ public class OfficialSeriesParserTest {
   assertEquals("planned",mobilePage(mobileCard("весь текст","<span class='preorder'>Анонс</span>")).books.get(0).status);
   assertEquals("planned",mobilePage(mobileCard("весь текст","Предзаказ")).books.get(0).status);
  }
+ @Test public void desktopBookDetailsRecognizePublishedTextAndLitresAudioFilterIsExact(){
+  var book=mobilePage(mobileCard(null,"<div class='book-details'>Размер: 400 087 зн., 10,00 а.л. весь текст</div>")).books.get(0);
+  assertEquals("text",book.format);assertEquals("published",book.status);
+  assertEquals(lt+"?art_types=audiobook",OfficialSeriesParser.pageUrl(lt+"?art_types=audiobook",lt));
+  assertEquals("",OfficialSeriesParser.pageUrl(lt+"?art_types=audiobook&redirect=https://invalid.example",lt));
+ }
+ @Test public void litresAudioDetailUsesTheAuthorNotTheNarrator(){
+  String html="<h1>Том первый</h1>"+
+   "<div data-testid='art__author--details'><a data-testid='art__personName--link' href='/author/avtor/'>Тест Автор</a></div>"+
+   "<div data-testid='art__reader--details'><a data-testid='art__personName--link' href='/author/chtec/'>Другой Чтец</a></div>"+
+   "<div data-testid='art__inSeries--title'><div>1 книга из 17 в серии <a href='/series/hranitel-kladov-714498/?art_types=audiobook'>«Хранитель кладов»</a></div></div>";
+  var record=SeriesAuthorityParser.detail(html,"https://www.litres.ru/audiobook/avtor/tom-pervyy-73846793/");
+  assertEquals(java.util.List.of("Тест Автор"),record.authors);
+  assertEquals(Double.valueOf(1),record.order);assertEquals(lt,record.seriesUrl);
+ }
  @Test public void paginationControlsAreIndependentAndExactlyEightyCardsArePartial(){
   String card=mobileCard("100K зн.","");
   assertTrue(mobilePage(card+"<button>Показать ещё</button>").incomplete);

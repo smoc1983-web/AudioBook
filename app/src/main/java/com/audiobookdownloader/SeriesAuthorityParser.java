@@ -62,7 +62,7 @@ public final class SeriesAuthorityParser {
   String provider=SeriesAuthorityRules.provider(url);
   Element scope=detailScope(d,provider);List<String> writers=detailAuthors(scope,provider);
   Element cycle=seriesLink(scope,provider.equals("Author.Today")?"a[href]":
-   "[data-testid='book__series--title'] a[href],[data-testid='book__seriesSlider--title'] a[href]",provider);
+   "[data-testid='book__series--title'] a[href],[data-testid='book__seriesSlider--title'] a[href],[data-testid='art__inSeries--title'] a[href]",provider);
   if(writers.isEmpty())throw new IllegalArgumentException("Нет автора произведения");
   if(cycle==null)throw new IllegalArgumentException("Справочник не указал прямую серию");
   String name=label(cycle);
@@ -79,7 +79,7 @@ public final class SeriesAuthorityParser {
  private static List<String> detailAuthors(Element scope,String provider){
   return authors(scope,provider.equals("Author.Today")?
    ".book-authors [itemprop=name][content],.book-author a,.book-authors a,.card-author [itemprop=name][content],.card-author a":
-   "[data-testid='book__author--link'],[data-testid='book__author'] a,[data-testid='book__authors'] a,[itemprop=author] [itemprop=name],a[data-testid*=author][href^=/author/]");
+   "[data-testid='art__author--details'] [data-testid='art__personName--link'],[data-testid='book__author--link'],[data-testid='book__author'] a,[data-testid='book__authors'] a,[itemprop=author] [itemprop=name],a[data-testid*=author][href^=/author/]");
  }
  private static Element[] titleAndLink(Element card,boolean at){
   Element title=card.selectFirst(at?".book-title a[href],.work-title a[href]":"[data-testid='art__title'][href]");

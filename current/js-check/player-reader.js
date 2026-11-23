@@ -428,6 +428,20 @@
     "enabled": false
   },
   {
+    "id": "slushkinvsem",
+    "name": "СлушКинВсем",
+    "home": "https://slushkinvsem.ru/",
+    "hosts": [
+      "slushkinvsem.ru",
+      "www.slushkinvsem.ru"
+    ],
+    "book": "^/(?!blok/|page/)(?:[^/]+/)*[0-9]+-[^/]+[.]html$",
+    "genre": "^/kniga_audio_[^/]+/?$",
+    "author": "^/(?:author|avtor)/[^/]+/?$",
+    "status": "Скачивание глав",
+    "enabled": true
+  },
+  {
     "id": "audioknigi-top",
     "name": "Audioknigi.top",
     "home": "https://audioknigi.top/",

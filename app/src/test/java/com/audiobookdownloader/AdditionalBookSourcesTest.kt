@@ -5,11 +5,15 @@ import org.junit.Test
 
 class AdditionalBookSourcesTest {
     @Test fun registryPreservesDefaultsAndAddsOptInSources() {
-        assertEquals(24,AbExtraSources.names.size)
-        assertEquals(24,AbExtraSources.names.toSet().size)
-        assertEquals(10,AbExtraSources.defaults.size)
+        assertEquals(if(BuildConfig.SEARCH_LAB)23 else 24,AbExtraSources.names.size)
+        assertEquals(if(BuildConfig.SEARCH_LAB)23 else 24,AbExtraSources.names.toSet().size)
+        assertEquals(if(BuildConfig.SEARCH_LAB)11 else 10,AbExtraSources.defaults.size)
+        if(BuildConfig.SEARCH_LAB) {
+            assertTrue("СлушКинВсем" in AbExtraSources.defaults)
+            assertTrue(listOf("Слушать книги","A-kniga").none{it in AbExtraSources.names})
+        }
         for(name in AbExtraSources.names){assertEquals(name,AbExtraSources.name(AbExtraSources.home(name)));assertTrue(AbExtraSources.status(name).isNotBlank())}
-        for((name,url) in listOf("Lis10Book" to "https://lis10book.com/", "Слушкин Всем" to "https://slushkinvsem.ru/", "Audio-Lib" to "https://audio-lib.club/")) {
+        for((name,url) in listOf("Lis10Book" to "https://lis10book.com/", "Audio-Lib" to "https://audio-lib.club/")) {
             assertFalse(name in AbExtraSources.names)
             assertEquals("",AbExtraSources.home(name))
             assertEquals("",AbExtraSources.name(url))

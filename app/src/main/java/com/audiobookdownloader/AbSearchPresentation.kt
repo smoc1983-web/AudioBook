@@ -41,7 +41,7 @@ internal object AbSearchPresentation {
         return unique
     }
 
-    fun prepare(books:List<BookLink>,query:String="",cycle:BookCycle?=null,checkActive:()->Unit={}):List<BookLink> {
+    fun prepare(books:List<BookLink>,query:String="",cycle:BookCycle?=null,verifiedOrder:Boolean=false,checkActive:()->Unit={}):List<BookLink> {
         val wanted=cycle?.let{seriesKey(it.title)}
         val matcher=AbBookQuery(query)
         val unique=merge(books.filter{book->
@@ -59,7 +59,8 @@ internal object AbSearchPresentation {
             Ordered(book,matcher.rank(book) ?: Int.MAX_VALUE,selected?.let{if(wanted!=null||seriesKey(it.title)==querySeries)"0:0:"+seriesKey(it.title)
                 else "0:1:"+SeriesAuthorityRules.author(book.author)+"\u0000"+seriesKey(it.title)}
                 ?: "1:"+volume.replace(key,"").trim(),
-                selected?.order ?: volume.find(SearchBookIndex.titleKey(book.title))?.groupValues?.get(1)?.replace(',','.')?.toDoubleOrNull() ?: Double.MAX_VALUE,key)
+                selected?.order ?: (if(verifiedOrder)null else
+                    volume.find(SearchBookIndex.titleKey(book.title))?.groupValues?.get(1)?.replace(',','.')?.toDoubleOrNull()) ?: Double.MAX_VALUE,key)
         }
         val groupRanks=ordered.groupBy{it.group}.mapValues{(_,items)->items.minOf{it.rank}}
         return ordered.sortedWith(compareBy<Ordered>{groupRanks[it.group]}.thenBy{it.group}
