@@ -12,6 +12,9 @@ class SearchLabSequenceTest {
             "https://www.litres.ru/audiobook/aleksey-kovtunov/put-stroitelya-${100+n}"
             else "https://author.today/work/${100+n}",author,label,provider,format,"published",n.toDouble())
 
+    private fun audio(n:Int,site:String,url:String,author:String="") =
+        BookLink(title(n),url,author=author,sources=listOf(BookSource(site,url)))
+
     @Test fun projectsCanonicalOrderAcrossSourcesAndOffersTextInTheGap() {
         val volumes = (1..11).map{official(it)}
         val source = OfficialSource("Author.Today",label,checked=1,complete=true,books=volumes.reversed())
@@ -19,10 +22,10 @@ class SearchLabSequenceTest {
             books=listOf(official(1,"Литрес","audio"),official(2,"Литрес","audio"),official(4,"Литрес","audio"))
                 .map{it.copy(series="Путь строителя")})
         val snapshot=OfficialSnapshot(title(1),author,listOf(source,litres))
-        val demo=BookLink(title(1), "https://bookinfo.net/book/demo", author=author)
-        val one=BookLink(title(1), "https://mob.knigoblud.club/first")
-        val two=BookLink(title(2), "https://poleknig.com/books/2", author=author)
-        val ten=BookLink(title(10), "https://mob.knigoblud.club/tenth")
+        val demo=audio(1,"Bookinfo","https://bookinfo.net/book/demo",author)
+        val one=audio(1,"Книгоблуд","https://mob.knigoblud.club/first")
+        val two=audio(2,"Поле книг","https://poleknig.com/books/2",author)
+        val ten=audio(10,"Книгоблуд","https://mob.knigoblud.club/tenth")
         val plan=SearchLabSequence.plan(listOf(ten,demo,one,two),listOf(snapshot),"Путь строителя")
         val rows=SearchLabSequence.rows(plan) { url ->
             when(url) {
@@ -45,7 +48,7 @@ class SearchLabSequenceTest {
         val volumes=(1..3).map{official(it)}
         val source=OfficialSource("Author.Today",label,checked=1,complete=true,books=volumes)
         val snapshot=OfficialSnapshot(title(1),author,listOf(source))
-        val unrelated=BookLink(title(2),"https://bookinfo.net/book/unrelated",author="Другой Автор")
+        val unrelated=audio(2,"Bookinfo","https://bookinfo.net/book/unrelated","Другой Автор")
         val plan=SearchLabSequence.plan(listOf(unrelated),listOf(snapshot),"Путь строителя 2")
         val rows=SearchLabSequence.rows(plan){AbChapterAvailability.AVAILABLE}
         assertEquals(listOf(2.0),rows.map{it.cycles.single().order})
