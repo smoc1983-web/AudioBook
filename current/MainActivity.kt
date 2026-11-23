@@ -1975,6 +1975,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
     fun launchLabSearch(query:String,sources:List<String>,ranked:BookRankingRules.Book?,narration:NarrationLookup?) {
         val request=unifiedSearchId
         labSearchJob=labSearchScope.launch {
+            val background=SearchTransferService.begin(context)
             try {
                 abSearchSources(context,prefs,query,sources,keepBrowser=true) { site,report ->
                     if(request==unifiedSearchId) {
@@ -1996,6 +1997,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                 AbCrashReport.record(context,error,"Поиск")
                 if(request==unifiedSearchId)status="Не удалось завершить поиск. Повторите запрос."
             }finally {
+                SearchTransferService.end(background)
                 if(request==unifiedSearchId)unifiedQuery=""
             }
         }

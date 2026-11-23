@@ -1,5 +1,6 @@
 package com.audiobookdownloader
 
+import android.app.NotificationManager
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.compose.ui.test.*
@@ -46,7 +47,11 @@ class SearchLabReliabilityTest {
         val reply=CountDownLatch(1)
         val response=AtomicReference<String>()
         lateinit var worker:WebView
+        lateinit var notifications:NotificationManager
+        var token=0L
         compose.activityRule.scenario.onActivity { activity ->
+            token=SearchTransferService.begin(activity)
+            notifications=activity.getSystemService(NotificationManager::class.java)
             worker=checkNotNull(abCreateBrowser(activity,{},keepSearch=true) {
                 settings.javaScriptEnabled=true
                 webViewClient=object:WebViewClient() {
@@ -57,16 +62,23 @@ class SearchLabReliabilityTest {
                 loadDataWithBaseURL("https://poleknig.com/","<html><body>ready</body></html>","text/html","UTF-8",null)
             })
         }
-        assertTrue("The search browser loaded its document",ready.await(8,TimeUnit.SECONDS))
-        compose.activityRule.scenario.moveToState(Lifecycle.State.CREATED)
-        InstrumentationRegistry.getInstrumentation().runOnMainSync {
-            worker.evaluateJavascript("document.body.textContent") { value ->
-                response.set(value)
-                reply.countDown()
+        try {
+            assertTrue("The search browser loaded its document",ready.await(8,TimeUnit.SECONDS))
+            compose.waitUntil(timeoutMillis=8000) {
+                notifications.activeNotifications.any{it.id==SearchTransferService.NOTIFICATION}
             }
+            compose.activityRule.scenario.moveToState(Lifecycle.State.CREATED)
+            InstrumentationRegistry.getInstrumentation().runOnMainSync {
+                worker.evaluateJavascript("document.body.textContent") { value ->
+                    response.set(value)
+                    reply.countDown()
+                }
+            }
+            assertTrue("The result arrived before reopening the app",reply.await(8,TimeUnit.SECONDS))
+            assertEquals("\"ready\"",response.get())
+            assertEquals(Lifecycle.State.CREATED,compose.activityRule.scenario.state)
+        } finally {
+            InstrumentationRegistry.getInstrumentation().runOnMainSync{SearchTransferService.end(token)}
         }
-        assertTrue("The result arrived before reopening the app",reply.await(8,TimeUnit.SECONDS))
-        assertEquals("\"ready\"",response.get())
-        assertEquals(Lifecycle.State.CREATED,compose.activityRule.scenario.state)
     }
 }
