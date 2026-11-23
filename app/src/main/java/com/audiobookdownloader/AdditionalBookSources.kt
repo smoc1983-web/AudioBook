@@ -390,7 +390,7 @@ internal object AbExtraSources {
         val u=URI(address);val h=u.host?.lowercase(java.util.Locale.ROOT).orEmpty()
         if(u.scheme !in listOf("http","https")||u.rawUserInfo!=null||u.port !in listOf(-1,80,443)) "" else
             (0 until rows.length()).map{rows.getJSONObject(it)}.firstOrNull{r ->
-                val hosts=r.getJSONArray("hosts");(0 until hosts.length()).any{hosts.getString(it)==h}
+                val hosts=r.getJSONArray("hosts");r.getString("name") in names && (0 until hosts.length()).any{hosts.getString(it)==h}
             }?.getString("name").orEmpty()
     }catch(_:Exception){""}
     fun home(name:String):String=row(name)?.optString("home").orEmpty()

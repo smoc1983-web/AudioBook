@@ -60,7 +60,7 @@ internal object SearchLabSeries {
                 AbSearchPresentation.seriesKey(it.title) == AbSearchPresentation.seriesKey(official.title)
             }?.url.orEmpty())))
         }
-        return AbSearchPresentation.prepare(mapped, query)
+        return AbSearchPresentation.prepare(mapped.map { it.copy(searchQuery = "") }, query, verifiedOrder = true)
     }
 
     internal fun cycles(snapshot: OfficialSnapshot): List<Pair<OfficialEdition, BookCycle>> {

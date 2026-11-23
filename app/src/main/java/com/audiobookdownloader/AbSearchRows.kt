@@ -48,7 +48,7 @@ internal object AbSearchRows {
             }
             AbSearchRow(book,BookRef(book.title,book.url,book.coverUrl),local,bookSources(book))
         }
-        val prepared=AbSearchPresentation.prepare(rows.map{it.book},query=query,cycle=cycle)
+        val prepared=AbSearchPresentation.prepare(rows.map{it.book},query=query,cycle=cycle,verifiedOrder=verifiedSearch)
         val indexed=rows.associateBy{it.book.url}
         val groups=LinkedHashMap<String,MutableList<BookLink>>()
         for(book in prepared) {

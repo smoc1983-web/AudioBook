@@ -2198,7 +2198,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
             genrePending=setOf(native.site);genreExternalLoading=false
             status="Читаем раздел «$name» · ${native.site}…"
         } else {
-            genrePending=if(selectedSearchSource.isBlank())AbBookSources.genres(name).filter{it in AbBookSources.enabled(prefs)}.toSet() else setOf(selectedSearchSource)
+            genrePending=if(selectedSearchSource.isBlank() || selectedSearchSource==SearchLabSources.TELEGRAM)AbBookSources.genres(name).filter{it in AbBookSources.enabled(prefs)}.toSet() else setOf(selectedSearchSource)
             genreExternalLoading=selectedSearchSource.isBlank()
             status=if(selectedSearchSource.isBlank())"Ищем жанр «$name»: сайты и открытые источники…"
                 else "Ищем жанр «$name»: $selectedSearchSource…"
@@ -9393,7 +9393,7 @@ private fun AbModernApp(data: AbScreenData, actions: AbActions, sync: LibrarySyn
     if(foreground && catalogueReady && catalogueRequested && data.page==AppPage.SEARCH && !data.searchActive &&
         data.onlineBook==null && data.results.isEmpty() && !data.searching && !data.cycleBrowsing) {
         key(browserGeneration,data.searchSource) {AbDiscoveryLoaders(catalogue,
-            if(data.searchSource.isBlank())AbBookSources.enabled(prefs) else listOf(data.searchSource)) {site,result ->
+            (if(data.searchSource.isBlank())AbBookSources.enabled(prefs) else listOf(data.searchSource)).filter{it!=SearchLabSources.TELEGRAM}) {site,result ->
             result.books.forEach {abRememberCatalog(prefs,it)}
             catalogue=catalogue+(site to result)
         }}
@@ -12230,11 +12230,11 @@ private fun AbNativeGenres(theme:AbTheme,pick:(AbNativeGenre)->Unit) {
     var selected by remember {mutableStateOf(0)}
     var limit by remember {mutableStateOf(40)}
     fun close(){visible=false;loading=false;request++}
-    AbGenreAction("Все жанры · ${AbBookSources.searchOrder.size} источников",theme,icon=AbIcon.BOOKS){visible=true;query="";limit=40;if(reports.size<AbBookSources.all.size){
+    AbGenreAction("Все жанры · ${AbBookSources.all.size} источников",theme,icon=AbIcon.BOOKS){visible=true;query="";limit=40;if(reports.size<AbBookSources.all.size){
         reports=reports+AbExtraSources.names.filter{it !in AbExtraSources.defaults}.associateWith{emptyList<AbNativeGenre>() to AbExtraSources.status(it)}
         loading=true;request++}}
     if(visible) {
-        val site=if(loading)AbBookSources.searchOrder.firstOrNull{it !in reports} else null
+        val site=if(loading)AbBookSources.all.firstOrNull{it !in reports} else null
         if(site!=null) key(request,site) {
             val id=request
             Box(Modifier.fillMaxWidth().height(1.dp).clipToBounds()) {
@@ -12244,9 +12244,9 @@ private fun AbNativeGenres(theme:AbTheme,pick:(AbNativeGenre)->Unit) {
             }
         }
         LaunchedEffect(loading,reports.size){if(loading&&reports.size==AbBookSources.all.size)loading=false}
-        val sites=listOf("Все")+AbBookSources.searchOrder
+        val sites=listOf("Все")+AbBookSources.all
         val rows=remember(reports,selected,query) {
-            (if(selected==0)AbBookSources.searchOrder.flatMap{reports[it]?.first.orEmpty()}
+            (if(selected==0)AbBookSources.all.flatMap{reports[it]?.first.orEmpty()}
                 else reports[sites[selected]]?.first.orEmpty()).filter{it.title.contains(query.trim(),true)}
                 .sortedWith(compareBy<AbNativeGenre>{it.title.lowercase(java.util.Locale.ROOT)}.thenBy{it.site})
         }

@@ -27,7 +27,24 @@ jobs:
           node current/tests/test-top-downloads.cjs
           node current/test-online-source.cjs
       - name: Test and build only the test application
-        run: gradle :app:testDebugUnitTest :app:assembleDebug :app:lintDebug -PaudiobookChannel=searchlab --continue --stacktrace
+        run: |
+          gradle :app:testDebugUnitTest :app:assembleDebug :app:assembleDebugAndroidTest :app:lintDebug -PaudiobookChannel=searchlab --max-workers=2 --console=plain
+          python3 scripts/check-android-lint.py app/build/reports/lint-results-debug.xml
+      - name: Enable the emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Check Telegram and download controls in the test package
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 36
+          target: aosp_atd
+          arch: x86_64
+          profile: pixel_6
+          emulator-boot-timeout: 300
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -memory 2048 -cores 2
+          script: gradle :app:connectedDebugAndroidTest -PaudiobookChannel=searchlab -Pandroid.testInstrumentationRunnerArguments.class=com.audiobookdownloader.SearchLabSmokeTest --max-workers=2 --console=plain
       - name: Verify distinct package and isolate installable APK
         run: |
           mkdir -p test-output
