@@ -9695,7 +9695,7 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
             Row(Modifier.fillMaxWidth().abGlass(theme,12,field=true).padding(horizontal=10.dp,vertical=4.dp),verticalAlignment=Alignment.CenterVertically) {
                 Column(Modifier.weight(1f).clickable{showSources=false;actions.searchScope(site)}.padding(vertical=8.dp)) {
                     Text((if(data.searchSource==site)"✓ " else "")+site+
-                         (if(health.targets[site]?.key in health.vpnHelpful)" · VPN" else ""),color=theme.text,fontSize=14.sp)
+                         (if(health.targets[site]?.key?.let{it in health.vpnHelpful}==true)" · VPN" else ""),color=theme.text,fontSize=14.sp)
                     val status=AbExtraSources.status(site)
                     if(status.isNotBlank())Text(status,color=theme.muted,fontSize=10.sp)
                     AbSourceHealthStatus(site,health,theme)
