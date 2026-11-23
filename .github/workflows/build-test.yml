@@ -1,0 +1,149 @@
+name: Audiobook Test - signed release and in-app updates
+on:
+  push:
+    branches: ['test']
+    paths:
+      - 'app/**'
+      - 'current/**'
+      - 'scripts/**'
+      - '.github/workflows/build-test.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: audiobook-test-release
+  cancel-in-progress: false
+jobs:
+  test-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+      - name: Android SDK
+        run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;35.0.0"'
+      - name: Recover original signing identity - never generate a new key
+        env:
+          ORIGINAL_KEY: ${{ secrets.AUDIOBOOK_PREVIEW_KEYSTORE_BASE64 }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/audiobook-preview-signing"
+          echo "PREVIEW_KEYSTORE=$RUNNER_TEMP/audiobook-preview-signing/preview.keystore" >> "$GITHUB_ENV"
+          if [ -n "$ORIGINAL_KEY" ]; then
+            printf '%s' "$ORIGINAL_KEY" | base64 --decode > "$RUNNER_TEMP/audiobook-preview-signing/preview.keystore"
+            chmod 600 "$RUNNER_TEMP/audiobook-preview-signing/preview.keystore"
+          fi
+      - uses: actions/cache/restore@v4
+        with:
+          path: ${{ runner.temp }}/audiobook-preview-signing
+          key: audiobook-preview-signing-v1
+      - name: Verify signing identity is available
+        run: test -s "$PREVIEW_KEYSTORE"
+      - name: Reserve the next independent test version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import json,os,subprocess
+          repo=os.environ["GITHUB_REPOSITORY"]
+          releases=json.loads(subprocess.check_output(["gh","api",f"repos/{repo}/releases?per_page=100"],text=True))
+          codes=[int(t[6:]) for r in releases if (t:=r["tag_name"]).startswith("test-v") and t[6:].isdigit() and not r["draft"]]
+          latest=max(codes,default=100100)
+          assert latest>=100100 and latest<1099999
+          next_code=latest+1
+          next_number=next_code-100000
+          tag=f"test-v{next_code}"
+          assert not any(r["tag_name"]==tag for r in releases), "Version tag already exists"
+          with open(os.environ["GITHUB_ENV"],"a") as out:
+            out.write(f"TEST_NUMBER={next_number}\nTEST_CODE={next_code}\nTEST_TAG={tag}\n")
+            out.write(f"TEST_BASE_TAG={f'test-v{latest}' if codes else ''}\n")
+          print("Reserved",tag,"base",latest if codes else "none")
+          PY
+      - name: Validate source parsers
+        run: |
+          python3 current/check.py
+          node current/tests/test-additional-sources.cjs
+          node current/tests/test-nova-sources.cjs
+      - name: Build signed isolated Test APK and run checks
+        run: |
+          GITHUB_RUN_NUMBER="$TEST_NUMBER" gradle :app:testDebugUnitTest :app:testReleaseUnitTest :app:assembleRelease :app:lintRelease -PaudiobookChannel=test --max-workers=2 --console=plain
+          python3 scripts/check-android-lint.py app/build/reports/lint-results-release.xml
+          python3 scripts/package-test-release.py
+      - name: Confirm previous Test APK can be replaced without signer rotation
+        if: env.TEST_BASE_TAG != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p prior-test
+          gh release download "$TEST_BASE_TAG" --repo "$GITHUB_REPOSITORY" --dir prior-test --pattern 'Audiobook-Test.apk'
+          OLD_CERT=$("$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs prior-test/Audiobook-Test.apk | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')
+          NEW_CERT=$("$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs dist-test/Audiobook-Test.apk | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')
+          test -n "$OLD_CERT" && test "$OLD_CERT" = "$NEW_CERT"
+          test "$NEW_CERT" = "3a4cecd14bb3e983843871766909c3f07b3dc64379800f3e270e4a27d39affb7"
+      - name: Verify install or upgrade in Android emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 36
+          target: aosp_atd
+          arch: x86_64
+          profile: pixel_6
+          emulator-boot-timeout: 300
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -memory 2048 -cores 2
+          script: |
+            if [ -f prior-test/Audiobook-Test.apk ]; then
+              adb install prior-test/Audiobook-Test.apk
+              adb install -r dist-test/Audiobook-Test.apk
+            else
+              adb install dist-test/Audiobook-Test.apk
+            fi
+            adb shell am start -n com.audiobookdownloader.test/com.audiobookdownloader.MainActivity
+            adb shell dumpsys package com.audiobookdownloader.test | grep -F "versionCode=$TEST_CODE"
+            if adb shell pm list packages | grep -F 'package:com.audiobookdownloader.preview'; then
+              echo 'Test APK must not install the main application package' >&2
+              exit 1
+            fi
+      - name: Publish only verified Test channel assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          test -s dist-test/Audiobook-Test.apk
+          test -s dist-test/test-update.json
+          if gh release view "$TEST_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Refusing to replace an existing test release" >&2
+            exit 1
+          fi
+          gh release create "$TEST_TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --draft --prerelease --title "Audiobook Test 4.2.$TEST_NUMBER" --notes-file dist-test/release-notes.md
+          gh release upload "$TEST_TAG" dist-test/Audiobook-Test.apk dist-test/test-update.json --repo "$GITHUB_REPOSITORY"
+          python3 - <<'PY'
+          import hashlib,json,os,subprocess,time
+          tag=os.environ["TEST_TAG"]
+          repo=os.environ["GITHUB_REPOSITORY"]
+          root="dist-test/"
+          expected={name:("sha256:"+hashlib.sha256(open(root+name,"rb").read()).hexdigest()) for name in ["Audiobook-Test.apk","test-update.json"]}
+          for attempt in range(8):
+            release=json.loads(subprocess.check_output(["gh","api",f"repos/{repo}/releases/tags/{tag}"],text=True))
+            values={a["name"]:a.get("digest") for a in release["assets"] if a["state"]=="uploaded"}
+            if values==expected and release["draft"]:break
+            time.sleep(3)
+          else:raise RuntimeError("Verified GitHub sha256 digests not available; leaving draft unpublished")
+          print("Verified both immutable release assets:",tag)
+          PY
+          gh release edit "$TEST_TAG" --repo "$GITHUB_REPOSITORY" --draft=false --prerelease --latest=false
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Audiobook-Test-checks
+          path: |
+            app/build/reports/
+            app/build/test-results/
+            dist-test/test-update.json
+          if-no-files-found: warn
+          retention-days: 14
