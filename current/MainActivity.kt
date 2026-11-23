@@ -8344,7 +8344,8 @@ private suspend fun abSearchOneSource(context:Context,site:String,query:String,
                     AbBookSources.AUDIO_ONLINE -> AbOnlineSearchTask(this,query,::finish)
                     else -> BookSearchTask(this,site,query,prefs.getString("bookinfo_search_endpoint","").orEmpty()) {result,endpoint ->
                         if(site=="Bookinfo"&&endpoint.isNotBlank())prefs.edit().putString("bookinfo_search_endpoint",endpoint).apply()
-                        finish(result)
+                        finish(if(BuildConfig.SEARCH_LAB && site=="СлушКинВсем")
+                            result.copy(books=result.books.map(SearchLabDownloads::slushBook)) else result)
                     }
                 }
                 task=created

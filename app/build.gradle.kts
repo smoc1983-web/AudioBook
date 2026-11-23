@@ -20,9 +20,9 @@ android {
         buildConfigField("String","PRODUCT_NAME","\"$label\"")
         buildConfigField("String","UPDATE_ORIGIN","\"https://github.com\"")
         buildConfigField("String","UPDATE_REPOSITORY","\"/smoc1983-web/AudioBook\"")
-        buildConfigField("String","UPDATE_PREFIX",if(stableChannel) "\"stable-v\"" else "\"preview-v\"")
-        buildConfigField("String","UPDATE_APK",if(stableChannel) "\"Audiobook.apk\"" else "\"Audiobook-Preview.apk\"")
-        buildConfigField("String","UPDATE_METADATA",if(stableChannel) "\"stable-update.json\"" else "\"preview-update.json\"")
+        buildConfigField("String","UPDATE_PREFIX",if(searchLab) "\"searchlab-v\"" else if(stableChannel) "\"stable-v\"" else "\"preview-v\"")
+        buildConfigField("String","UPDATE_APK",if(searchLab) "\"Audiobook-Test.apk\"" else if(stableChannel) "\"Audiobook.apk\"" else "\"Audiobook-Preview.apk\"")
+        buildConfigField("String","UPDATE_METADATA",if(searchLab) "\"searchlab-update.json\"" else if(stableChannel) "\"stable-update.json\"" else "\"preview-update.json\"")
         resValue("string","app_name",label)
         buildConfigField("String","LIBRARY_DIRECTORY",if(searchLab) "\"AudioBooks-SearchLab\"" else if(stableChannel) "\"AudioBooks\"" else "\"AudioBooks-Preview\"")
         testInstrumentationRunner="androidx.test.runner.AndroidJUnitRunner"

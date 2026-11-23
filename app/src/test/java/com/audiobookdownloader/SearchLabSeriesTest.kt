@@ -10,6 +10,13 @@ class SearchLabSeriesTest {
         OfficialEdition(title, "https://author.today/work/${order.toInt()}", "Иван Петров", series,
             provider, format, "published", order)
 
+    @Test fun slushCaptionProvidesASeparateAuthorForCatalogueMatching() {
+        val raw = BookLink("Корсаков-4 / Владимир Кощеев (4)", "https://slushkinvsem.ru/123-korsakov.html")
+        val book = SearchLabDownloads.slushBook(raw)
+        assertEquals("Корсаков-4", book.title)
+        assertEquals("Владимир Кощеев", book.author)
+    }
+
     @Test fun matchingTextAndAudioAreOneVolume() {
         val first = book("Author.Today", "Первый том", 1.0)
         val second = book("Author.Today", "Второй том", 2.0)

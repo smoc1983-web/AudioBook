@@ -14,6 +14,13 @@ internal object SearchLabDownloads {
     private const val AGENT = "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/130.0.0.0 Mobile Safari/537.36"
     private val sites = setOf("Uknig", "Поле книг", "СлушКинВсем")
 
+    private val slushCaption = Regex("""^(.+?)\s+/\s+([\p{L}][\p{L}. -]+?)(?:\s+\(\d+\))?$""")
+
+    fun slushBook(book: BookLink): BookLink {
+        val caption = slushCaption.matchEntire(book.title) ?: return book
+        return book.copy(title = caption.groupValues[1], author = book.author.ifBlank { caption.groupValues[2] })
+    }
+
     fun handles(url: String): Boolean = BuildConfig.SEARCH_LAB && url.startsWith("https://") &&
         AbExtraSources.name(url) in sites && AbExtraSources.book(url)
 
