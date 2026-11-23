@@ -18,6 +18,16 @@ public class SearchLabSourcesTest {
         assertFalse(SearchLabSources.telegramPost("https://t.me/AnotherChannel/1552"));
     }
 
+    @Test public void telegramPostIdentityRejectsRedirectsAndCredentials() {
+        assertTrue(SearchLabSources.telegramPost("https://t.me:443/BookFan2/1552"));
+        for (String url : List.of(
+            "http://t.me/BookFan2/1552", "https://t.me.evil/BookFan2/1552", "https://user@t.me/BookFan2/1552",
+            "https://t.me:888/BookFan2/1552", "https://t.me/BookFan2/1552#next", "https://t.me/BookFan2/1552?next=1",
+            "https://t.me/BookFan2/0", "https://t.me/BookFan2/search", "not a URI")) {
+            assertFalse(url, SearchLabSources.telegramPost(url));
+        }
+    }
+
     @Test public void uknigKeepsOnlyOneSameChapterVariantInCorrectOrder() {
         String html = "<script>createPlayer(\"https://uknig.com/books/52/playlist.txt?h=sample\")</script>";
         assertEquals("https://uknig.com/books/52/playlist.txt?h=sample", SearchLabSources.uknigList(html, "https://uknig.com/books/52"));
@@ -33,6 +43,12 @@ public class SearchLabSourcesTest {
     @Test public void poleSupportsDeclaredFilesWithoutExtension() {
         String json = "[{\"title\":\"Глава\",\"file\":\"https://poleknig.com/files/42?h=sample\"}]";
         assertEquals(1, SearchLabSources.files(json, "poleknig.com").size());
+        assertTrue(SearchLabSources.files(json.replace("/files/42", "/api/42"), "poleknig.com").isEmpty());
+        assertTrue(SearchLabSources.files(json.replace("h=sample", "h=sample or https://poleknig.com/files/42?h=x"),
+            "poleknig.com").isEmpty());
+        String html = "<script>new Playerjs({file:'https://poleknig.com/books/42/playlist.txt?t=1'});</script>";
+        assertEquals("https://poleknig.com/books/42/playlist.txt?t=1", SearchLabSources.poleList(html, "https://poleknig.com/books/42"));
+        assertEquals("", SearchLabSources.poleList(html, "https://poleknig.com/books/43"));
     }
 
     @Test public void slushReadsOnlyAnExplicitGroupedChapterList() {

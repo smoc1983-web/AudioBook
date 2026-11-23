@@ -121,14 +121,16 @@ final class SearchLabSources {
     private static URI chapterFile(String value, String host) {
         String[] versions = value.split("\\s+or\\s+", -1);
         if (versions.length > (uknig(host) ? 2 : 1)) return null;
-        URI first = null;
-        for (String version : versions) {
-            URI address = https(version);
-            if (address == null || !host.equals(address.getHost()) || !address.getRawPath().matches("/files/[0-9]+")) return null;
-            if (first != null && !first.getRawPath().equals(address.getRawPath())) return null;
-            if (first == null) first = address;
-        }
-        return first;
+        URI first = chapterAddress(versions[0], host);
+        if (first == null || versions.length == 1) return first;
+        URI alternative = chapterAddress(versions[1], host);
+        return alternative != null && first.getRawPath().equals(alternative.getRawPath()) ? first : null;
+    }
+
+    private static URI chapterAddress(String value, String host) {
+        URI address = https(value);
+        return address != null && host.equals(address.getHost()) &&
+            address.getRawPath().matches("/files/[0-9]+") ? address : null;
     }
 
     static List<Track> slush(String html) {
