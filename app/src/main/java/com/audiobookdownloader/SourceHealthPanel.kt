@@ -1,6 +1,12 @@
 package com.audiobookdownloader
 
 import androidx.compose.material3.Text
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.*
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.sp
@@ -18,6 +24,9 @@ internal data class SourceHealthView(val state:SourceHealthState,val targets:Map
     val scope=rememberCoroutineScope()
     val vpnEvidence=remember(context){AbVpnEvidenceStore(context)}
     var evidenceRevision by remember{mutableIntStateOf(0)}
+    var reportPreview by remember{mutableStateOf<String?>(null)}
+    var reporting by remember{mutableStateOf(false)}
+    var reportError by remember{mutableStateOf("")}
     var job by remember{mutableStateOf<Job?>(null)}
     var now by remember{mutableLongStateOf(System.currentTimeMillis().coerceAtLeast(0))}
     LaunchedEffect(session,targets){session.load(targets)}
@@ -35,6 +44,7 @@ internal data class SourceHealthView(val state:SourceHealthState,val targets:Map
     fun checkWithNetwork(mode:AbVpnCheckMode) {
         if(job?.isActive==true)return
         val selected=targets.filter{it.name in enabled}
+        reportPreview=null
         job=scope.launch {
             val completed=session.run(selected,force=true)
             if(completed) {
@@ -67,6 +77,40 @@ internal data class SourceHealthView(val state:SourceHealthState,val targets:Map
         AbButton("Отменить проверку сайтов",theme){job?.cancel()}
     }
     if(state.message.isNotBlank())Text(state.message,color=theme.muted,fontSize=12.sp)
+    AbButton("Подготовить отчёт: VPN / без VPN (.txt)",theme,enabled=!state.running&&!reporting) {
+        reporting=true
+        reportPreview=null
+        reportError=""
+        scope.launch {
+            try {
+                reportPreview=withContext(Dispatchers.IO){AbVpnDiagnosticReport.collect(context,targets)}
+            }catch(cancel:CancellationException){throw cancel}
+            catch(_:Exception){reportError="Не удалось собрать отчёт. Повторите попытку."}
+            finally{reporting=false}
+        }
+    }
+    val prepared=reportPreview
+    if(prepared!=null) {
+        Text("Предпросмотр отчёта перед отправкой. Он содержит версию приложения и сохранённые результаты обеих проверок; личные данные не собираются.",color=theme.muted,fontSize=12.sp)
+        SelectionContainer {
+            Text(prepared,modifier=Modifier.heightIn(max=220.dp).verticalScroll(rememberScrollState()),
+                color=theme.text,fontSize=11.sp)
+        }
+        AbButton("Отправить отчёт (.txt) в ChatGPT или другое приложение",theme,enabled=!reporting) {
+            reporting=true
+            reportError=""
+            scope.launch {
+                try {
+                    val uri=withContext(Dispatchers.IO){AbDiagnosticReportFiles.create(context,prepared)}
+                    AbDiagnosticReportFiles.share(context,uri)
+                }catch(cancel:CancellationException){throw cancel}
+                catch(_:Exception){reportError="Не удалось открыть отправку. Попробуйте из раздела «Диагностика»."}
+                finally{reporting=false}
+            }
+        }
+        AbButton("Скрыть отчёт",theme){reportPreview=null}
+    }
+    if(reportError.isNotBlank())Text(reportError,color=theme.error,fontSize=12.sp)
     val vpnHelpful=remember(targets,now,evidenceRevision) {
         targets.filter{vpnEvidence.vpnHelped(it,now)}.map{it.key}.toSet()
     }
