@@ -85,7 +85,7 @@ jobs:
         run: GITHUB_RUN_NUMBER="$PREVIEW_CANDIDATE_NUMBER" python3 scripts/preview-release.py
       - uses: actions/upload-artifact@v4
         with:
-          name: Audiobook-Preview-4.2.101-ci-candidate
+          name: Audiobook-Preview-4.2.101-candidate
           path: |
             dist/Audiobook-Preview.apk
             dist/preview-update.json
@@ -96,7 +96,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: preview100-verification
+          name: preview101-verification
           path: |
             app/build/test-results/
             app/build/reports/
