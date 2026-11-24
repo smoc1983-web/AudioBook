@@ -38,7 +38,8 @@ internal object AbSearchDiagnosticReport {
             message.contains("429") -> "RATE_LIMIT"
             message.contains("вовремя")||message.contains("не ответил")||message.contains("тайм") -> "TIMEOUT"
             message.contains("http 5")||message.contains("ошибка сервера") -> "SERVER"
-            message.contains("форма поиска")||message.contains("разбор страницы") -> "PARSE"
+            message.contains("форма поиска") -> "FORM"
+            (message.contains("разбор страницы")||message.contains("разбора страницы")) -> "PARSE"
             message.contains("ещё страницы")||message.contains("еще страницы") -> "PARTIAL"
             message.isNotBlank() -> "ERROR"
             count>0 -> "OK"
@@ -51,7 +52,7 @@ internal object AbSearchDiagnosticReport {
     private fun state(code:String)=when(code){
         "OK"->"книги найдены";"EMPTY"->"результатов нет";"TIMEOUT"->"тайм-аут"
         "ACCESS"->"доступ ограничен";"RATE_LIMIT"->"ограничение запросов"
-        "SERVER"->"ошибка сервера";"PARSE"->"сбой разбора страницы"
+        "SERVER"->"ошибка сервера";"FORM"->"форма поиска не найдена";"PARSE"->"сбой разбора страницы"
         "PARTIAL"->"возможны следующие страницы";else->"ошибка поиска"
     }
     fun render(sessions:List<AbSearchSessionSnapshot>,now:Long):String {

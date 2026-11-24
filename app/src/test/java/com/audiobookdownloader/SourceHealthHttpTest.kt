@@ -31,6 +31,7 @@ class SourceHealthHttpTest {
     @Test fun htmlChallengesAndHttpErrorsAreDifferentAndNoCredentialsAreSent()=runBlocking {
         for((code,body,expected) in listOf(Triple(200,html,SourceHealthRules.Status.RESPONDED),
             Triple(200,"<html><title>Just a moment...</title></html>".toByteArray(),SourceHealthRules.Status.RESTRICTED),
+            Triple(200,"<html><title>Checking that you are human</title><body>Please continue</body></html>".toByteArray(),SourceHealthRules.Status.RESTRICTED),
             Triple(200,"{}".toByteArray(),SourceHealthRules.Status.UNEXPECTED),
             Triple(403,html,SourceHealthRules.Status.RESTRICTED),Triple(429,html,SourceHealthRules.Status.RATE_LIMIT),
             Triple(503,html,SourceHealthRules.Status.SERVER_ERROR),Triple(404,html,SourceHealthRules.Status.HTTP_ERROR))) {

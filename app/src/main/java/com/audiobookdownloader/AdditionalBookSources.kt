@@ -395,7 +395,7 @@ internal fun abExtraSourceJs():String {
     function address(v,base){try{var u=new URL(v,base||location.href);return /^https?:${'$'}/.test(u.protocol)&&!u.username&&!u.password?u.href:'';}catch(e){return '';}}
     function matches(value,key){try{var s=source(value),u=new URL(value,location.href);return !!s&&!!current&&s.id===current.id&&new RegExp(s[key],'i').test(u.pathname);}catch(e){return false;}}
     function excluded(node){if(node.closest('header')&&!node.closest('article'))return true;return !!node.closest('nav,footer,aside,[class*="recommend"],[class*="related"],[class*="comment"],[class*="advert"],[class*="similar"]');}
-    function blocked(){return /captcha|just a moment|checking your browser|access denied|(?:проверка соединения|секундная проверка)|подтвердите.{0,30}(?:человек|робот)/i.test((document.title||'')+' '+text(document.body).slice(0,3000));}
+    function blocked(){return /captcha|just a moment|checking your browser|checking that you are human|i am not a robot|access denied|(?:проверка соединения|секундная проверка)|подтвердите.{0,30}(?:человек|робот)/i.test((document.title||'')+' '+text(document.body).slice(0,3000));}
     function unavailable(){
         if(document.querySelector('article.book--item--closed'))return 'Эта книга недоступна у источника.';
         if(/удален[оаы] правообладателем|заблокирован[аоы]?.{0,40}правообладател/i.test(text(document.querySelector('.alert-danger,.book-blocked,.blocked')||null)))return 'Книга удалена или закрыта правообладателем.';
