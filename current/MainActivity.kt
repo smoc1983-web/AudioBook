@@ -10391,7 +10391,7 @@ internal fun AbCollectionShelf(shelf:Shelf,books:List<LibraryBook>,prefs:android
             }
         }
         if(!collapsed && chosen!=null)key(bookRefIdentity(chosen)) {
-            AbCollectionContinuations(chosen,books,prefs,version,theme,onOpen)
+            AbCollectionContinuations(chosen,books,prefs,version,theme,onOpen=onOpen)
         }
     }
     menuBook?.let { ref ->
@@ -10414,7 +10414,7 @@ internal fun AbCollectionShelf(shelf:Shelf,books:List<LibraryBook>,prefs:android
 
 @Composable
 internal fun AbCollectionContinuations(ref:BookRef,books:List<LibraryBook>,prefs:android.content.SharedPreferences,
-    version:Int,theme:AbTheme,onOpen:(BookRef)->Unit,onFindAudio:((String)->Unit)?=null) {
+    version:Int,theme:AbTheme,onFindAudio:((String)->Unit)?=null,onOpen:(BookRef)->Unit) {
     val context=androidx.compose.ui.platform.LocalContext.current.applicationContext
     val store=remember(context){ContinuationStore(context)}
     var revision by remember{mutableStateOf(0)}
@@ -10515,7 +10515,7 @@ private fun AbCollectionsScreen(data: AbScreenData,actions: AbActions,books: Lis
                     onClick={actions.openRef(ref)},onMenu={showMenu=true})
                 if(showMenu)AbCollectionBookMenu(ref,theme,expanded,{downloadBooks=listOf(ref)},
                     {abRemoveShelfBook(prefs,selected.name,ref)},{expanded=!expanded},{showMenu=false})
-                if(expanded)AbCollectionContinuations(ref,books,prefs,data.version,theme,actions.openRef,onFindAudio=actions.searchOfficial)
+                if(expanded)AbCollectionContinuations(ref,books,prefs,data.version,theme,onFindAudio=actions.searchOfficial,onOpen=actions.openRef)
             }
             if(selected.books.isEmpty()) item {
                 Text("Добавьте книги через меню карточки → «Добавить в коллекцию».",color=theme.muted,fontSize=14.sp)
