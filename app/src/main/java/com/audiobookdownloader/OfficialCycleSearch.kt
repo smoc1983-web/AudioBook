@@ -10,6 +10,25 @@ internal object OfficialCycleSearch {
     data class Template(val author:String,val sources:List<OfficialSource>)
     private data class Cached(val at:Long,val value:Template)
     private val cache=linkedMapOf<String,Cached>()
+    private data class SearchPage(val at:Long,val html:String,val records:List<SeriesAuthorityParser.Record>)
+    private val pages=linkedMapOf<String,SearchPage>()
+    private fun pageKey(query:String,provider:String)=provider+"|"+key(query)
+    @Synchronized private fun cachedPage(query:String,provider:String):SearchPage? =
+        pages[pageKey(query,provider)]?.takeIf{System.currentTimeMillis()-it.at in 0..(if(it.records.isEmpty())120_000L else 900_000L)}
+    @Synchronized private fun savePage(query:String,provider:String,page:SearchPage){
+        pages[pageKey(query,provider)]=page
+        while(pages.size>8)pages.remove(pages.keys.first())
+    }
+    data class Reference(val template:Template?,val author:String)
+    suspend fun preflight(query:String,context:android.content.Context):Reference {
+        val template=find(query,context)
+        val authors=listOf("Author.Today","Литрес").flatMap{provider->
+            cachedPage(query,provider)?.records.orEmpty().filter{
+                OpenedBookIdentity.matches(query,it.title,"","","",null)
+            }.flatMap{it.authors}
+        }.filter{it.isNotBlank()}.distinctBy{SeriesAuthorityRules.author(it)}
+        return Reference(if(authors.isNotEmpty())null else template,authors.singleOrNull().orEmpty())
+    }
     private val prefixNumber=Regex("(?iu)^\\s*(?:[-–—:]\\s*)?\\d+(?:[.,]\\d+)?\\s*[.\\-–—:]?\\s*")
     private val bonus=Regex("(?iu)\\s*\\(\\s*\\+?\\s*бонус\\s*\\)\\s*$")
     private fun key(s:String)=SeriesAuthorityRules.series(s)
@@ -42,7 +61,7 @@ internal object OfficialCycleSearch {
     }
     @Synchronized fun cached(query:String):Template? =
         cache[key(query)]?.takeIf{System.currentTimeMillis()-it.at<15*60_000L}?.value
-    @Synchronized fun invalidate(query:String){cache.remove(key(query))}
+    @Synchronized fun invalidate(query:String){cache.remove(key(query));listOf("Author.Today","Литрес").forEach{pages.remove(pageKey(query,it))}}
     @Synchronized private fun save(query:String,value:Template){
         cache[key(query)]=Cached(System.currentTimeMillis(),value)
         while(cache.size>12)cache.remove(cache.keys.first())
@@ -58,8 +77,11 @@ internal object OfficialCycleSearch {
         val encoded=URLEncoder.encode(query,"UTF-8")
         val url=if(provider=="Author.Today")"https://author.today/search?category=works&q=$encoded"
             else "https://www.litres.ru/search/?q=$encoded"
-        val html=http.html(url)
-        val records=SeriesAuthorityParser.search(html,url)
+        val page=cachedPage(query,provider) ?: http.html(url).let{html->
+            SearchPage(System.currentTimeMillis(),html,SeriesAuthorityParser.search(html,url)).also{savePage(query,provider,it)}
+        }
+        val html=page.html
+        val records=page.records
         if(records.any{SeriesAuthorityRules.sameTitle(query,it.title,"")})return null
         val recordMatches=records.filter{SeriesAuthorityRules.cycle(it.seriesUrl)&&key(it.seriesTitle)==key(query)}
         val pairs=recordMatches.mapNotNull{r->r.authors.singleOrNull()?.let{r.seriesUrl to it}}.distinctBy{it.first+"|"+SeriesAuthorityRules.author(it.second)}

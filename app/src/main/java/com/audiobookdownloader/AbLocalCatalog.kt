@@ -55,13 +55,13 @@ internal object AbLocalCatalog {
             }
         }
         if(saved==null){
-            val rows=AbSearchRows.prepare(books,library,prefs,null,hidePreviews=hidePreviews)
+            val rows=AbSearchRows.prepare(books,library,prefs,null,query=query,hidePreviews=hidePreviews)
             return Result(rows)
         }
         val (name,sources)=saved
         val cycle=BookCycle(name)
         val volumes=withContext(Dispatchers.Default){OfficialCycleSearch.template(name,sources)}
-        if(volumes.isEmpty())return Result(AbSearchRows.prepare(books,library,prefs,null,hidePreviews=hidePreviews))
+        if(volumes.isEmpty())return Result(AbSearchRows.prepare(books,library,prefs,null,query=query,hidePreviews=hidePreviews))
         val matched=withContext(Dispatchers.Default){currentCoroutineContext().ensureActive();match(cycle,volumes,sources,books)}
         val rows=AbSearchRows.prepare(matched.books,library,prefs,cycle,hidePreviews=hidePreviews)
         val unmatched=AbSearchRows.prepare(matched.unmatched,library,prefs,null,hidePreviews=hidePreviews)

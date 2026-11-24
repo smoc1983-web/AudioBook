@@ -2718,13 +2718,16 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                 val requestQuery=unifiedQuery
                 val ranked=rankedSearch
                 val narration=narrationSearch
-                var referenceChecked by remember(requestId){mutableStateOf(narration!=null)}
+                var referenceChecked by remember(requestId){mutableStateOf(false)}
+                var referenceAuthor by remember(requestId){mutableStateOf("")}
                 LaunchedEffect(requestId) {
                     if(!referenceChecked) {
-                        status="Сначала сверяю название цикла по Author.Today и Литрес…"
-                        val rankedSeries=if(ranked!=null)rankedCycle(prefs,ranked) else null
-                        val template=if(ranked==null)OfficialCycleSearch.find(requestQuery,context) else null
+                        status="Сначала сверяю книгу и цикл по Author.Today и Литрес…"
+                        val reference=OfficialCycleSearch.preflight(requestQuery,context)
+                        val rankedSeries=if(ranked!=null&&narration==null)rankedCycle(prefs,ranked) else null
+                        val template=if(ranked==null&&narration==null)reference.template else null
                         if(requestId==unifiedSearchId && unifiedQuery.isNotBlank()){
+                            referenceAuthor=reference.author
                             if(rankedSeries!=null){
                                 selectedCycle=rankedSeries;searchText=rankedSeries.title
                                 cycleBrowsing=true;cycleLoading=true;cycleRequestId++
@@ -2757,7 +2760,9 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                                     when {
                                         narration!=null -> result.mapNotNull{narration.match(prefs,it)}
                                         ranked!=null -> result.mapNotNull{rankedAudioResult(prefs,ranked,it)}
-                                        else -> result
+                                        else -> if(referenceAuthor.isBlank())result else result.filter{
+                                            it.author.isBlank()||SeriesAuthorityRules.author(it.author)==SeriesAuthorityRules.author(referenceAuthor)
+                                        }
                                     }
                                 }
                                 if(version!=unifiedMergeVersion || requestId!=unifiedSearchId || unifiedQuery.isBlank())return@launch
