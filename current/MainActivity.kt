@@ -1862,6 +1862,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
     }
 
     fun failBookOpening(message:String) {
+        bookOpening?.let{AbSourceTrace.check(context,bookSiteName(it.sourceUrl),"OPEN_ERROR")}
         bookPageLoading=false
         resumeAfterLoad=false
         player=null
@@ -10126,14 +10127,38 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
     val searchForeground=LocalAbVisible.current
     LaunchedEffect(data.searchScreenId,data.searching,visibleCount,searchForeground,hidePreviews,prepared!=null) {
         if(!searchForeground||data.onlineBook!=null||data.cycleBrowsing||data.searching||!data.searchActive||prepared==null)return@LaunchedEffect
-        val targets=visibleResults.flatMap{it.editions}.flatMap{b->bookSources(b).map{b to it}}.distinctBy{it.second.url}.take(30)
-        for((book,source) in targets){
-            val known=AbSourceAvailability.get(prefs,source.url)
-            if(known==AbChapterAvailability.EMPTY||AbSourceAvailability.hidden(known)||AbSourceAvailability.tooSmall(prefs,source.url)||AbSourceAvailability.sizePassed(prefs,source.url))continue
-            val loaded=abProbePlaylist(sourceContext,source.url){AbSourceAvailability.record(prefs,source.url,false)}?:continue
-            if(!abOpenedBookMatches(book,loaded.title,loaded.author))continue
-            val observed=AbSourceAvailability.observe(prefs,source.url,loaded.title,loaded.player)
-            if(!AbSourceAvailability.hidden(observed))kotlinx.coroutines.withTimeoutOrNull(12_000L){abCheckAudioMinimum(prefs,source.url,loaded.player)}
+        val candidates=visibleResults.flatMap{it.editions}.flatMap{b->bookSources(b).map{b to it}}.distinctBy{it.second.url}
+            .filter {(_,source)->
+                val known=AbSourceAvailability.get(prefs,source.url)
+                known!=AbChapterAvailability.EMPTY&&!AbSourceAvailability.hidden(known)&&
+                    !AbSourceAvailability.tooSmall(prefs,source.url)&&!AbSourceAvailability.sizePassed(prefs,source.url)
+            }
+        val targets=AbEditionCheckOrder.interleave(candidates,{it.second.site},48)
+        for(batch in targets.chunked(2))kotlinx.coroutines.supervisorScope {
+            batch.map{(book,source)->async{
+                try {
+                    var empty=false
+                    val loaded=abProbePlaylist(sourceContext,source.url){empty=true;AbSourceAvailability.record(prefs,source.url,false)}
+                    if(loaded==null){
+                        AbSourceTrace.check(sourceContext,source.site,if(empty)"EMPTY" else "UNCONFIRMED")
+                        return@async
+                    }
+                    if(!abOpenedBookMatches(book,loaded.title,loaded.author)){
+                        AbSourceTrace.check(sourceContext,source.site,"IDENTITY_MISMATCH",loaded.player.tracks.size)
+                        return@async
+                    }
+                    val observed=AbSourceAvailability.observe(prefs,source.url,loaded.title,loaded.player)
+                    if(!AbSourceAvailability.hidden(observed))kotlinx.coroutines.withTimeoutOrNull(12_000L){abCheckAudioMinimum(prefs,source.url,loaded.player)}
+                    val outcome=when {
+                        AbSourceAvailability.tooSmall(prefs,source.url)||observed==AbChapterAvailability.PREVIEW->"DEMO"
+                        observed==AbChapterAvailability.SUSPECTED||AbSourceAvailability.sizeWarning(prefs,source.url).isNotBlank()->"POSSIBLE_DEMO"
+                        AbSourceAvailability.sizePassed(prefs,source.url)->"CHAPTERS_AND_SIZE"
+                        else->"CHAPTERS_ONLY"
+                    }
+                    AbSourceTrace.check(sourceContext,source.site,outcome,loaded.player.tracks.size)
+                }catch(c:kotlinx.coroutines.CancellationException){throw c}
+                catch(_:Exception){AbSourceTrace.check(sourceContext,source.site,"UNCONFIRMED")}
+            }}.awaitAll()
         }
     }
     var restored by remember(data.searchScreenId){mutableStateOf(false)}
@@ -10573,8 +10598,12 @@ internal fun AbSearchResultCard(row:AbSearchRow,theme:AbTheme,onOpen:(BookLink,S
         AbBookRow(ref,if(book.url==row.book.url)row.local else null,book.author.ifBlank{"Аудиокнига"},theme,
             coverWarning=sizeWarning,onClick={open(book.url)},onMenu={onMenu(ref)})
         if(sizeWarning.isNotBlank())Text(sizeWarning,color=theme.error,fontSize=12.sp)
-        if(book.catalogState=="checked"&&sizeWarning.isBlank())Text("Главы проверены · запуск аудио проверяется при воспроизведении",color=theme.accent,fontSize=11.sp)
-        if(book.catalogState=="candidate")Text("Аудиоиздание найдено · главы проверяются при открытии",color=theme.muted,fontSize=11.sp)
+        val chapterState=AbSourceAvailability.get(sourcePrefs,book.url)
+        if(sizeWarning.isBlank())Text(when {
+            chapterState==AbChapterAvailability.AVAILABLE&&AbSourceAvailability.sizePassed(sourcePrefs,book.url)->"Главы и объём проверены · воспроизведение не проверено"
+            chapterState==AbChapterAvailability.AVAILABLE->"Главы найдены · полнота аудио не подтверждена"
+            else->"Найдена карточка · главы и полнота не подтверждены"
+        },color=if(chapterState==AbChapterAvailability.AVAILABLE)theme.accent else theme.muted,fontSize=11.sp)
         if(AbSourceAvailability.isPreview(sourcePrefs,book))Text("Демо · ознакомительный фрагмент",color=theme.error,fontSize=12.sp)
         else if(AbSourceAvailability.get(sourcePrefs,book.url)==AbChapterAvailability.SUSPECTED)Text("Возможный фрагмент · полнота не подтверждена",color=theme.muted,fontSize=12.sp)
         if(book.genres.isNotEmpty()) Text(book.genres.joinToString(" · "),color=theme.muted,fontSize=11.sp)
@@ -13557,6 +13586,8 @@ internal object AbCrashReport {
         if(source.isNotBlank())text.append("\n=== Последняя проверка источника ===\n"+AbDiagnosticSections.summary(source,(AbBookSources.all+AbExtraSources.browserOnly.map{it.first}).toSet())+"\n")
         try {text.append(AbSearchDiagnostics.collect(context))}
         catch(_:Exception) {text.append("\nДанные диагностики поиска недоступны.\n")}
+        val checks=AbSourceTrace.readChecks(context)
+        if(checks.isNotBlank())text.append("\n=== Последние проверки аудио по источникам ===\n"+checks+"\n")
         val search=AbSourceTrace.readSearch(context)
         if(search.isNotBlank())text.append("\n=== Последний общий поиск (без запроса) ===\n"+AbDiagnosticSections.summary(search,(AbBookSources.all+AbExtraSources.browserOnly.map{it.first}).toSet())+"\n")
         val library=context.getSharedPreferences("audiobook_diagnostics",Context.MODE_PRIVATE).getString("last_library","").orEmpty()
@@ -15129,6 +15160,19 @@ private suspend fun abEnrichAudioOnline(web:WebView,root:JSONObject,page:String)
 
 
 private object AbSourceTrace {
+    private val outcomes=setOf("EMPTY","UNCONFIRMED","IDENTITY_MISMATCH","DEMO","POSSIBLE_DEMO","CHAPTERS_AND_SIZE","CHAPTERS_ONLY","OPEN_ERROR")
+    @Synchronized fun check(context:Context,site:String,outcome:String,chapters:Int=0) {
+        if(site !in AbBookSources.all || outcome !in outcomes)return
+        val prefs=context.applicationContext.getSharedPreferences("audiobook_diagnostics",Context.MODE_PRIVATE)
+        val entry=site+" | "+outcome+" | chapters="+chapters.coerceIn(0,3000)
+        val history=(prefs.getString("audio_checks_v1","").orEmpty().lines().filter{it.isNotBlank()}+entry).takeLast(64)
+        prefs.edit().putString("audio_checks_v1",history.joinToString("\n")).apply()
+    }
+    fun readChecks(context:Context):String=context.getSharedPreferences("audiobook_diagnostics",Context.MODE_PRIVATE)
+        .getString("audio_checks_v1","").orEmpty().lines().takeLast(64).filter{line->
+            val parts=line.split(" | ")
+            parts.size==3&&parts[0] in AbBookSources.all&&parts[1] in outcomes&&Regex("chapters=[0-9]{1,4}").matches(parts[2])
+        }.joinToString("\n")
     fun recordSearch(context:Context,query:String,reports:Map<String,SiteSearchResult>,
         requested:List<String> = AbBookSources.searchOrder) {
         val sites=JSONArray()
