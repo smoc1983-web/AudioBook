@@ -19,13 +19,16 @@ internal object AbSearchCache {
     private val entries=LinkedHashMap<String,Entry>(16,.75f,true)
     private const val DAY=86_400_000L
     private fun key(site:String,query:String)=site+"\u0000"+SearchBookIndex.normal(query)
+    // An empty failed request is not evidence of an empty catalog.
+    private fun cacheable(result:SiteSearchResult)=result.error.isBlank()||result.books.isNotEmpty()
     private fun ttl(result:SiteSearchResult)=if(result.error.isNotBlank()||result.books.isEmpty()||result.morePages)900_000L else 3*DAY
     @Synchronized fun get(site:String,query:String):SiteSearchResult? {
         val key=key(site,query);val e=entries[key]?:return null
-        if(System.currentTimeMillis()-e.at !in 0..ttl(e.result)){entries.remove(key);return null}
+        if(!cacheable(e.result)||System.currentTimeMillis()-e.at !in 0..ttl(e.result)){entries.remove(key);return null}
         return e.result
     }
     @Synchronized fun put(site:String,query:String,result:SiteSearchResult) {
+        if(!cacheable(result))return
         entries[key(site,query)]=Entry(System.currentTimeMillis(),result.copy(books=result.books.take(600)))
         while(entries.size>128||entries.values.sumOf{it.result.books.size}>12000)entries.remove(entries.keys.first())
     }
@@ -96,12 +99,13 @@ internal object AbSearchCache {
                 if(j.optInt("schema")!=2||j.optString("key")!=key(site,query))return@withContext null
                 val result=SiteSearchResult(objects(j.optJSONArray("books"),600).map{decode(it)},j.optString("error"),
                     j.optInt("pages"),j.optBoolean("more"),true)
-                if(System.currentTimeMillis()-j.optLong("at") !in 0..ttl(result)){f.delete();return@withContext null}
+                if(!cacheable(result)||System.currentTimeMillis()-j.optLong("at") !in 0..ttl(result)){f.delete();return@withContext null}
                 result
             }catch(_:Exception){null}
         }
     }
     suspend fun put(context:Context,site:String,query:String,result:SiteSearchResult) {
+        if(!cacheable(result))return
         put(site,query,result)
         withContext(Dispatchers.IO){
             val job=currentCoroutineContext()
