@@ -56,7 +56,7 @@ public final class PreviewUpdatesActivity extends Activity {
         primary=button(root,"Проверить обновления",this::primaryAction);
         cancel=button(root,"Отменить",session::cancel);
         render();
-        text(root,"При первом обновлении Android попросит разрешить установку из приложения. Разрешение можно отозвать после установки. Проверка и загрузка сохраняются при повороте экрана и выходе из этого окна.",13);
+        text(root,"При первом обновлении Android попросит разрешить установку из приложения. Разрешение можно отозвать после установки. Скачивание выполняет Android: можно свернуть или закрыть приложение. При возвращении загрузка продолжится с сохранённым состоянием.",13);
     }
     private void primaryAction(){
         session.primary();
@@ -94,7 +94,7 @@ public final class PreviewUpdatesActivity extends Activity {
     }
     static Intent installerIntent(Context context,File file){
         Uri apk=FileProvider.getUriForFile(context,context.getPackageName()+".updates",file);
-        Intent intent=new Intent(Intent.ACTION_VIEW).setDataAndType(apk,"application/vnd.android.package-archive")
+        Intent intent=new Intent(Intent.ACTION_INSTALL_PACKAGE).setData(apk)
             .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION).putExtra(Intent.EXTRA_RETURN_RESULT,true);
         intent.setClipData(ClipData.newRawUri(BuildConfig.PRODUCT_NAME,apk));return intent;
     }
@@ -120,10 +120,12 @@ public final class PreviewUpdatesActivity extends Activity {
         android.content.SharedPreferences prefs=activity.getSharedPreferences("preview_updates",0);
         long now=System.currentTimeMillis();
         if(!prefs.getBoolean("auto",true)||now-prefs.getLong("last_check",0)<86400000L)return;
-        prefs.edit().putLong("last_check",now).apply();
+        if(now-prefs.getLong("last_attempt",0)<900000L)return;
+        prefs.edit().putLong("last_attempt",now).apply();
         Thread thread=new Thread(()->{
             try{
                 PreviewUpdater.Release release=updater.latest();
+                prefs.edit().putLong("last_check",System.currentTimeMillis()).apply();
                 if(!release.info.isNewer(BuildConfig.VERSION_CODE))return;
                 activity.runOnUiThread(()->{if(activity.isDestroyed()||activity.isFinishing()||!activity.hasWindowFocus())return;
                     new AlertDialog.Builder(activity).setTitle("Обновление "+BuildConfig.PRODUCT_NAME)

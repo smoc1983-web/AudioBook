@@ -22,7 +22,9 @@ final class PreviewUpdater {
     }
     private final Context context;
     private final PreviewUpdateHttp http=new PreviewUpdateHttp();
-    PreviewUpdater(Context context){this.context=context.getApplicationContext();}
+    private final BackgroundUpdateTransfer transfer;
+    private volatile boolean cancelled;
+    PreviewUpdater(Context context){this.context=context.getApplicationContext();transfer=new BackgroundUpdateTransfer(this.context);}
     Release latest() throws Exception {
         GitHubReleaseCatalog.Release selected=GitHubReleaseCatalog.latest(http);
         String metadata=http.read(selected.metadata.url,"application/octet-stream",65536);
@@ -43,7 +45,13 @@ final class PreviewUpdater {
         if(Build.VERSION.SDK_INT>=28)return p.signingInfo==null?new Signature[0]:p.signingInfo.getApkContentsSigners();
         return p.signatures==null?new Signature[0]:p.signatures;
     }
-    void cancel(){http.cancel();}
+    void cancel(){cancelled=true;http.cancel();transfer.cancel();}
+    Release pending(){return transfer.pending();}
+    void clearInstalledCache(){
+        try{if(!receipt().isNewer(BuildConfig.VERSION_CODE)){
+            target().delete();context.getSharedPreferences("verified_update",0).edit().remove("receipt").apply();
+        }}catch(Exception ignored){}
+    }
     private PreviewUpdateRules receipt()throws Exception {
         String saved=context.getSharedPreferences("verified_update",0).getString("receipt",null);
         if(saved==null)throw new IOException("Нет подтверждения выпуска. Загрузите APK заново через приложение.");
@@ -95,15 +103,15 @@ final class PreviewUpdater {
         // An interrupted activity must never delete a newer activity's partial download.
         File temp=File.createTempFile("update-",".part.apk",target.getParentFile());
         try {
-            try(OutputStream out=new FileOutputStream(temp)){
-                http.download(release.info,out,progress::value);
-            }
+            transfer.copyCompleted(release,temp,progress);
+            if(cancelled)throw new IOException("Загрузка отменена");
             verifyExpected(temp,release.info);
             if(release.receipt==null)throw new IOException("Отсутствует подтверждение выпуска GitHub");
             // Clear the old receipt before changing the APK: a crash can only require a fresh download.
             if(!context.getSharedPreferences("verified_update",0).edit().remove("receipt").commit())throw new IOException("Не удалось сохранить проверку выпуска");
             if(!temp.renameTo(target))throw new IOException("Не удалось сохранить APK");
             if(!context.getSharedPreferences("verified_update",0).edit().putString("receipt",release.receipt).commit())throw new IOException("Не удалось сохранить проверку выпуска");
+            transfer.complete();
             return target;
         }finally{temp.delete();}
     }

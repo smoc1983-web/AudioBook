@@ -46,6 +46,10 @@ internal class UpdateSession(val target:File,private val factory:()->UpdateBacke
     private fun changed(){synchronized(lock){listeners.toList()}.forEach{it.changed()}}
     fun check():Boolean=start(Operation.CHECK)
     fun download():Boolean=start(Operation.DOWNLOAD)
+    fun resumeDownload(release:PreviewUpdater.Release):Boolean {
+        synchronized(lock){if(state.busy||!release.info.isNewer(BuildConfig.VERSION_CODE.toLong()))return false;state=state.copy(release=release)}
+        return start(Operation.DOWNLOAD)
+    }
     fun install():Boolean=start(Operation.INSTALL)
     private fun start(operation:Operation):Boolean {
         val running:Running
@@ -119,7 +123,9 @@ internal object UpdateSessions {
     @JvmStatic @Synchronized fun shared(context:Context):UpdateSession {
         instance?.let{return it}
         val app=context.applicationContext
-        val session=UpdateSession(PreviewUpdater(app).target(),{
+        val initial=PreviewUpdater(app)
+        initial.clearInstalledCache()
+        val session=UpdateSession(initial.target(),{
             val updater=PreviewUpdater(app)
             object:UpdateBackend {
                 override fun latest()=updater.latest()
@@ -128,6 +134,8 @@ internal object UpdateSessions {
                 override fun cancel()=updater.cancel()
             }
         },Executors.newSingleThreadExecutor())
-        instance=session;return session
+        instance=session
+        initial.pending()?.let{session.resumeDownload(it)}
+        return session
     }
 }
