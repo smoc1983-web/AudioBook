@@ -1,7 +1,7 @@
 # Статус на 24.11.2026 и план продолжения
 
-## P0 — устранить блокирующий тест
-Последняя попытка 4.2.121: https://github.com/smoc1983-web/AudioBook/actions/runs/45462419012
+## P0 — проверить исправление блокирующего теста
+Предыдущая неудачная попытка 4.2.121: https://github.com/smoc1983-web/AudioBook/actions/runs/45462419012
 Commit 089b28fc4bf78f6d1cf7f6a253bed3047a4e9dc1. Job 138688317296. Итог: failure, публикация пропущена.
 Лог: 486 tests completed, 1 failed, 1 skipped; :app:testDebugUnitTest FAILED.
 Тест AbSourceAvailabilityJvmTest.fullSizeThresholdsAndPartialEvidenceAreDifferent — java.lang.RuntimeException, строка 113. Это вызов searchCandidates с BookLink без явного sources. Возможная причина: Android-зависимый bookSiteName/Uri в чистом JVM-тесте; это гипотеза, необходимо открыть XML отчёт/stacktrace и подтвердить. Не удалять тест и не менять пороги ради зелёного CI. Использовать явный BookSource в fixture, если это подтвердится, либо корректно вынести pure logic.
@@ -46,3 +46,6 @@ Commit 089b28fc4bf78f6d1cf7f6a253bed3047a4e9dc1. Job 138688317296. Итог: fai
 
 ## Ветки
 test — рабочая публикация Test, main — стабильная. Существуют pending/player-menu-20261124, pending/mini-player-swipe-20261124, qa/regression-20261124, прежние cloud/pending/audit ветки; не удалять и не вливать вслепую. Все предшествующие изменения последних этапов уже в истории текущего test. Handoff — снимок, не новый канал релиза.
+
+## Новое исправление (после предыдущего снимка)
+Коммит test 605304ef5eff213a063ee07e5aa40aea4b347a4e: строка 113 действительно вызывает searchCandidates с BookLink без явных sources; bookSources в таком случае обращается к bookSiteName, Android-зависимому реестру. Доступный лог содержит RuntimeException без полного stacktrace, поэтому точный класс внутренней причины пока не подтверждён. Явный BookSource устраняет этот путь в JVM-тесте, не ослабляет assertions, дополнительно проверяет наличие издания 20 МБ. Повторная сборка инициирована обновлением test; дождаться подтверждения CI и публикации, не считать релиз выпущенным. main не изменялась.
