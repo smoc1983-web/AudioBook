@@ -126,7 +126,8 @@ data class BookLink(
     val cycles: List<BookCycle> = emptyList(),
     val genreOrigin: String = "",
     val searchQuery: String = "",
-    val narrator: String = ""
+    val narrator: String = "",
+    val catalogState: String = ""
 )
 
 data class AudioTrack(
@@ -2476,11 +2477,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
         repairCovers = {repairModernCovers()},
         openSite = { book, source -> openWebsiteBook(book, source) },
         openRef = { openBookRef(it) },
-        cycle = { cycle ->
-            if(cycle.referenceUrl.isNotBlank()) {
-                searchText=cycle.title;startCommonBookSearch();selectedCycle=cycle;cycleBrowsing=true;appPage=AppPage.SEARCH
-            } else openWebsiteCycle(cycle)
-        },
+        cycle = { cycle -> openWebsiteCycle(cycle) },
         playOnline = { index ->
             player?.let { book ->
                 val state = PlaybackService.state.value
@@ -2660,6 +2657,12 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                                             requestSources.all{reports[it]?.error.isNullOrBlank()})?.let {status=it}
                                     }
                                     unifiedQuery=""
+                                    if(ranked==null && narration==null && !cycleBrowsing) {
+                                        abExactCycleSeed(merged,requestQuery)?.let { target ->
+                                            selectedCycle=target;cycleBrowsing=true;cycleLoading=true;cycleRequestId++
+                                            status="Сверяю состав цикла по справочникам…"
+                                        }
+                                    }
                                 }
                             }finally{if(version==unifiedMergeVersion)unifiedMerging=false}
                         }
@@ -2672,16 +2675,23 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
             key(cycleRequestId) {
                 val requestId = cycleRequestId
                 val cycle = selectedCycle!!
-                CycleBookBrowser(cycle) { books, finished, error ->
+                val publish:(List<BookLink>,Boolean,String)->Unit = { books,finished,message ->
+                    if(requestId==cycleRequestId && cycleBrowsing) {
+                        bookLinks=abOrderSeries(books,cycle)
+                        status=message
+                        if(finished)cycleLoading=false
+                    }
+                }
+                if(cycle.referenceUrl.isNotBlank() || cycle.seedTitle.isNotBlank()) {
+                    val fallback=remember(requestId){bookLinks.toList()}
+                    LaunchedEffect(requestId) {
+                        abResolveCycleAudio(context,prefs,cycle,fallback,publish)
+                    }
+                } else CycleBookBrowser(cycle) { books, finished, error ->
                     if (requestId == cycleRequestId && cycleBrowsing) {
-                        bookLinks = abOrderSeries(books,cycle)
-                        bookLinks.forEach {abRememberCatalog(prefs,it)}
-                        status = if (error.isNotBlank()) {
-                            "Книг цикла: ${books.size}. $error"
-                        } else if (finished) {
-                            "Книг цикла: ${books.size}"
-                        } else "Книг цикла: ${books.size}. Загружаю остальные…"
-                        if (finished) cycleLoading = false
+                        books.forEach {abRememberCatalog(prefs,it)}
+                        publish(books,finished,if(error.isNotBlank())"Книг цикла: ${books.size}. $error"
+                            else if(finished)"Книг цикла: ${books.size}" else "Книг цикла: ${books.size}. Загружаю остальные…")
                     }
                 }
             }
@@ -7866,7 +7876,8 @@ fun formatSleepTime(
 
 data class BookSource(val site: String, val url: String, val coverUrl: String = "")
 data class BookCycle(val title: String, val url: String = "", val order: Double? = null,
-    val referenceUrl:String="",val referenceSite:String="",val parentTitle:String="")
+    val referenceUrl:String="",val referenceSite:String="",val parentTitle:String="",
+    val seedTitle:String="",val seedAuthor:String="")
 data class SiteSearchResult(val books: List<BookLink>, val error: String = "",
     val pagesVisited:Int=0, val morePages:Boolean=false, val fromCache:Boolean=false, val durationMs:Long=0)
 
@@ -7896,6 +7907,7 @@ fun supportedBookUrl(value: String): String? {
 }
 
 fun bookSources(book: BookLink): List<BookSource> =
+    if(book.catalogState in setOf("pending","missing","incomplete")) emptyList() else
     (book.sources.ifEmpty { listOf(BookSource(bookSiteName(book.url), book.url, book.coverUrl)) })
         .distinctBy { it.url.substringBefore('#').trimEnd('/') }
 
@@ -8363,6 +8375,137 @@ private suspend fun abSearchOneSource(context:Context,site:String,query:String,
     }finally{
         task?.close()
         browser?.let{AbWebViews.release(it)}
+    }
+}
+
+
+/** Exact cycle discovery is deliberately conservative: a title search must remain a title search. */
+internal fun abExactCycleSeed(books:List<BookLink>,query:String):BookCycle? {
+    val key=AbSearchPresentation.seriesKey(query)
+    if(key.isBlank() || books.any{SeriesAuthorityRules.sameTitle(query,it.title,"")})return null
+    val matches=books.filter{it.author.isNotBlank()}.flatMap{b->b.cycles
+        .filter{AbSearchPresentation.seriesKey(it.title)==key}
+        .map{it.copy(seedTitle=b.title,seedAuthor=b.author)}}
+    if(matches.map{SeriesAuthorityRules.author(it.seedAuthor)}.distinct().size!=1)return null
+    return matches.sortedBy{it.referenceUrl.isBlank()}.firstOrNull()
+}
+
+internal fun abCycleVolumeMatch(volume:OfficialEdition,candidate:BookLink):Boolean =
+    SeriesAuthorityRules.sameTitle(volume.title,cleanBookTitle(candidate.title),volume.series) &&
+        (candidate.author.isBlank() || SeriesAuthorityRules.author(candidate.author)==SeriesAuthorityRules.author(volume.author))
+
+private suspend fun abCycleSearch(context:Context,prefs:android.content.SharedPreferences,query:String,
+    sources:List<String>):Map<String,SiteSearchResult> {
+    val reports=linkedMapOf<String,SiteSearchResult>()
+    val mode=AbSearchDiagnostics.mode(prefs)
+    val scheduled=sources.distinct().sortedBy{if(it==AbBookSources.AZBYKA)1 else 0}
+    AbSearchCoordinator.search(scheduled,{if(it==AbBookSources.AZBYKA)95_000L else 50_000L},
+        {site->
+            val cached=if(mode==AbSearchNetworkMode.NORMAL)AbSearchCache.get(site,query) else null
+            cached ?: abSearchOneSource(context,site,query,prefs).also{AbSearchCache.put(site,query,it)}
+        },{site,result->reports[site]=AbGlobalBookResults.nativeResult(result,query)})
+    return reports
+}
+
+/** Use the same page analyzer as a tap on a search result. Never start a player or a download. */
+private suspend fun abProbeCycleEdition(context:Context,volume:OfficialEdition,address:String):Boolean {
+    if(supportedBookUrl(address)==null)return false
+    var browser:WebView?=null
+    var task:BookWebsiteTask?=null
+    try {
+        return kotlinx.coroutines.withTimeoutOrNull(47_000L) {
+            kotlinx.coroutines.suspendCancellableCoroutine<Boolean> { reply ->
+                fun finish(ok:Boolean){if(reply.isActive)reply.resumeWith(Result.success(ok))}
+                browser=abCreateBrowser(context,{finish(false)}) {
+                    settings.javaScriptEnabled=true;settings.domStorageEnabled=true;settings.loadsImagesAutomatically=false
+                    val created=AbOpenPageTask(this,address,{},45_000L){root,_,error->
+                        val parsed=root?.optJSONObject("player")?.let{parsePlayer(it)}
+                        val actualTitle=root?.optString("title").orEmpty()
+                        val actualAuthor=root?.optString("author").orEmpty()
+                        finish(error.isBlank() && parsed!=null && parsed.tracks.isNotEmpty() &&
+                            SeriesAuthorityRules.sameTitle(volume.title,actualTitle,volume.series) &&
+                            SeriesAuthorityRules.author(actualAuthor)==SeriesAuthorityRules.author(volume.author) &&
+                            !EditionDownloadRules.isPreview(actualTitle,parsed.tracks.map{it.src}))
+                    }
+                    task=created
+                    AbWebViews.onClose(this){created.close();finish(false)}
+                }
+            }
+        } ?: false
+    }finally{task?.close();browser?.let{AbWebViews.release(it)}}
+}
+
+private suspend fun abResolveCycleAudio(context:Context,prefs:android.content.SharedPreferences,cycle:BookCycle,
+    fallback:List<BookLink>,publish:(List<BookLink>,Boolean,String)->Unit) {
+    val sources=AbBookSources.enabled(prefs)
+    val snapshot=try {
+        var title=cycle.seedTitle;var author=cycle.seedAuthor
+        if((title.isBlank()||author.isBlank())&&SeriesAuthorityRules.work(cycle.referenceUrl)) {
+            val detail=withContext(Dispatchers.IO){
+                SeriesAuthorityParser.detail(OfficialSeriesHttp().html(cycle.referenceUrl),cycle.referenceUrl)
+            }
+            title=detail.title;author=detail.authors.singleOrNull().orEmpty()
+        }
+        if(title.isBlank()||author.isBlank())null else OfficialSeriesCatalog(context.applicationContext).refresh(title,author)
+    }catch(cancel:kotlinx.coroutines.CancellationException){throw cancel}catch(_:Exception){null}
+    val key=AbSearchPresentation.seriesKey(cycle.title)
+    val catalogs=snapshot?.sources.orEmpty().filter{AbSearchPresentation.seriesKey(it.series)==key && it.books.isNotEmpty()}
+    val volumes=catalogs.flatMap{it.books}.filter{it.author.isNotBlank()}
+        .groupBy{SeriesAuthorityRules.title(it.title)+"|"+SeriesAuthorityRules.author(it.author)}
+        .values.map{editions->
+            val base=editions.first()
+            base.copy(order=editions.mapNotNull{it.order}.distinct().singleOrNull())
+        }.sortedWith(compareBy<OfficialEdition>{it.order ?: Double.MAX_VALUE}.thenBy{it.title})
+    if(volumes.isEmpty()) {
+        val backup=if(fallback.isNotEmpty())fallback else {
+            val reports=abCycleSearch(context,prefs,cycle.title,sources)
+            AbGlobalBookResults.prepare(reports,sources,cycle.title).filter{b->b.cycles.any{AbSearchPresentation.seriesKey(it.title)==key}}
+        }
+        publish(backup,true,"Справочники не подтвердили состав цикла; показан обычный поиск по источникам.")
+        return
+    }
+    fun reference(v:OfficialEdition)=cycle.copy(order=v.order,referenceUrl=v.url,referenceSite=v.provider,seedTitle=v.title,seedAuthor=v.author)
+    fun placeholder(v:OfficialEdition,state:String)=BookLink(v.title,v.url,author=v.author,cycles=listOf(reference(v)),catalogState=state)
+    val rows=volumes.map{listOf(placeholder(it,"pending"))}.toMutableList()
+    val partial=catalogs.none{it.complete&&it.error.isBlank()}
+    fun report(done:Int,finished:Boolean){
+        val found=rows.count{list->list.any{it.catalogState=="checked"}}
+        publish(rows.flatten(),finished,"Справочники: ${volumes.size} книг${if(partial)" (список может быть неполным)" else ""}. Проверено томов: $done/${volumes.size}. Главы найдены: $found.")
+    }
+    report(0,false)
+    for((index,volume) in volumes.withIndex()) {
+        kotlinx.coroutines.currentCoroutineContext().ensureActive()
+        val query=SeriesAuthorityRules.queryTitle(volume.title)
+        val reports=abCycleSearch(context,prefs,query,sources)
+        var incomplete=reports.size<sources.size||reports.values.any{it.error.isNotBlank()}
+        val candidates=AbGlobalBookResults.prepare(reports,sources,query).filter{abCycleVolumeMatch(volume,it)}
+        // A reference page is bibliography only. Only exact audio-search results can be opened.
+        val checked=mutableListOf<BookLink>()
+        val examined=mutableSetOf<String>()
+        var probes=0
+        for(candidate in candidates) {
+            val verified=mutableListOf<BookSource>()
+            for(source in bookSources(candidate).sortedBy{AbSourceAvailability.get(prefs,it.url).priority}) {
+                kotlinx.coroutines.currentCoroutineContext().ensureActive()
+                if(probes>=6){incomplete=true;break}
+                if(SeriesAuthorityRules.provider(source.url).isNotBlank() || supportedBookUrl(source.url)==null ||
+                    AbSourceAvailability.get(prefs,source.url)==AbChapterAvailability.PREVIEW || !examined.add(source.url))continue
+                probes++
+                if(abProbeCycleEdition(context,volume,source.url)) {
+                    AbSourceAvailability.record(prefs,source.url,true)
+                    verified.add(source)
+                } else incomplete=true
+            }
+            if(verified.isNotEmpty()) {
+                val first=verified.first()
+                checked.add(candidate.copy(title=volume.title,author=volume.author,url=first.url,
+                    coverUrl=first.coverUrl.ifBlank{candidate.coverUrl},sources=verified,
+                    cycles=listOf(reference(volume)),catalogState="checked"))
+            }
+            if(probes>=6)break
+        }
+        rows[index]=if(checked.isNotEmpty())checked else listOf(placeholder(volume,if(incomplete)"incomplete" else "missing"))
+        report(index+1,index==volumes.lastIndex)
     }
 }
 
@@ -9918,15 +10061,24 @@ internal fun AbSearchResultCard(row:AbSearchRow,theme:AbTheme,onOpen:(BookLink,S
     val book=choices.firstOrNull{it.url==chosen} ?: choices.first()
     val ref=BookRef(book.title,book.url,book.coverUrl)
     val sourcePrefs=androidx.compose.ui.platform.LocalContext.current.getSharedPreferences("audiobook_downloader",Context.MODE_PRIVATE)
+    if(book.catalogState in setOf("pending","missing","incomplete")) {
+        Column(Modifier.fillMaxWidth().abGlass(theme,13,field=true).padding(12.dp),verticalArrangement=Arrangement.spacedBy(5.dp)) {
+            Text(book.title,color=theme.text,fontSize=15.sp,fontWeight=FontWeight.SemiBold)
+            Text(book.author+" · "+(book.cycles.firstOrNull()?.let{abVolumeLabel(it)} ?: "Порядок не указан"),color=theme.muted,fontSize=12.sp)
+            Text(when(book.catalogState){"pending"->"Поиск аудио ожидается";"incomplete"->"Аудио не подтверждено · часть источников недоступна";else->"Аудиоверсия не найдена"},color=theme.muted,fontSize=12.sp)
+        }
+        return
+    }
     Column(verticalArrangement=Arrangement.spacedBy(5.dp)) {
         AbBookRow(ref,if(book.url==row.book.url)row.local else null,book.author.ifBlank{"Аудиокнига"},theme,
             onClick={onOpen(book,book.url)},onMenu={onMenu(ref)})
+        if(book.catalogState=="checked")Text("Главы проверены · запуск аудио проверяется при воспроизведении",color=theme.accent,fontSize=11.sp)
         if(AbSourceAvailability.isPreview(sourcePrefs,book))Text("Демо · ознакомительный фрагмент",color=theme.error,fontSize=12.sp)
         if(book.genres.isNotEmpty()) Text(book.genres.joinToString(" · "),color=theme.muted,fontSize=11.sp)
         book.cycles.forEach {cycle ->
             Text("${if(cycle.referenceUrl.isNotBlank()) "Сверено" else "По источнику"}: ${cycle.title} · ${abVolumeLabel(cycle)}",
                 color=theme.accent,fontSize=12.sp,modifier=Modifier.fillMaxWidth().abGlass(theme,9,field=true)
-                    .clickable(enabled=cycle.url.isNotBlank()){onCycle(cycle)}.padding(10.dp))
+                    .clickable(enabled=cycle.url.isNotBlank()||cycle.referenceUrl.isNotBlank()){onCycle(cycle.copy(seedTitle=book.title,seedAuthor=book.author))}.padding(10.dp))
         }
         if(choices.size>1) {
             Text("Озвучки и издания · ${choices.size}",color=theme.muted,fontSize=12.sp)
@@ -12758,8 +12910,8 @@ private fun AbSeriesBlock(cycles: List<BookCycle>,theme: AbTheme,actions: AbActi
                 modifier=Modifier.clickable{context.startActivity(Intent(Intent.ACTION_VIEW,Uri.parse(cycle.referenceUrl)))})
             else Text("Сведения аудиоисточника; независимая сверка не выполнена",color=theme.muted,fontSize=10.sp)
             Text(abVolumeLabel(cycle),color=theme.muted,fontSize=12.sp)
-            if(cycle.referenceUrl.isNotBlank()) AbButton("Найти аудиокниги этой серии",theme){actions.cycle(cycle)}
-            else if(cycle.url.isNotBlank()) AbButton("Все книги серии · ${bookSiteName(cycle.url)}",theme) {actions.cycle(cycle)}
+            if(cycle.referenceUrl.isNotBlank()) AbButton("Найти аудиокниги этой серии",theme){actions.cycle(cycle.copy(seedTitle=book?.title.orEmpty(),seedAuthor=book?.author.orEmpty()))}
+            else if(cycle.url.isNotBlank()) AbButton("Все книги серии · ${bookSiteName(cycle.url)}",theme) {actions.cycle(cycle.copy(seedTitle=book?.title.orEmpty(),seedAuthor=book?.author.orEmpty()))}
             else Text("Сайт не указал ссылку на список книг",color=theme.muted,fontSize=11.sp)
         }
     }

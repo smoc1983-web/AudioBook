@@ -25,9 +25,9 @@ internal object AbSearchRows {
         val expected=cycle?.let{AbSearchPresentation.seriesKey(it.title)}
         val rows=books.mapNotNull{input->
             currentCoroutineContext().ensureActive()
-            val raw=if(hidePreviews)AbSourceAvailability.withoutPreviews(prefs,input) ?: return@mapNotNull null else input
+            val raw=if(hidePreviews && input.catalogState !in setOf("pending","missing","incomplete"))AbSourceAvailability.withoutPreviews(prefs,input) ?: return@mapNotNull null else input
             if (narrator.isNotEmpty() && !SearchFilterRules.matchesNarrator(raw.title, raw.narrator, narrator)) return@mapNotNull null
-            val cycles=SeriesAuthorityCache.cycles(prefs,raw.title,raw.author,raw.cycles,raw.url)
+            val cycles=if(raw.catalogState.isNotBlank())raw.cycles else SeriesAuthorityCache.cycles(prefs,raw.title,raw.author,raw.cycles,raw.url)
             if(expected!=null && cycles.any{it.referenceUrl.isNotBlank()} &&
                 cycles.none{AbSearchPresentation.seriesKey(it.title)==expected})return@mapNotNull null
             if (seriesOnly && cycles.none { AbSearchPresentation.seriesKey(it.title).isNotBlank() }) return@mapNotNull null
