@@ -1868,10 +1868,12 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                     pageTitle=loaded.title;currentBookAuthor=loaded.author;currentCoverUrl=loaded.cover;player=loaded.data
                     bookPageLoading=false;bookPageError="";status="Глав: ${loaded.data.tracks.size}"
                     val availability=AbSourceAvailability.observe(prefs,sourceUrl,loaded.title,loaded.data)
-                    if(AbSourceAvailability.hidden(availability)){
+                    val sizeOk=kotlinx.coroutines.withTimeoutOrNull(12_000L){abCheckAudioMinimum(prefs,sourceUrl,loaded.data)}!=false
+                    if(request!=bookOpenId)return@launch
+                    if(!sizeOk||AbSourceAvailability.hidden(availability)){
                         status=availability.label
-                        if(prefs.getBoolean("search_hide_previews",false)){
-                            val next=bookSources(book).firstOrNull{it.url!=sourceUrl&&!AbSourceAvailability.hidden(AbSourceAvailability.get(prefs,it.url))}
+                        if(!sizeOk||prefs.getBoolean("search_hide_previews",false)){
+                            val next=bookSources(book).firstOrNull{it.url!=sourceUrl&&!AbSourceAvailability.hidden(AbSourceAvailability.get(prefs,it.url))&&!AbSourceAvailability.tooSmall(prefs,it.url)}
                             if(next!=null)openWebsiteBook(book,next.url,false) else failBookOpening("Издание содержит демо или возможный фрагмент. Выберите другой источник.")
                             return@launch
                         }
@@ -2475,7 +2477,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
         navigate = { if(it==AppPage.SEARCH && appPage==AppPage.SEARCH && searchSessionActive) backToSearchResults() else appPage=it },
         home = {showSearchHome()},
         resetSearch = {showSearchHome()},
-        refreshSearch = {val query=searchText.trim();modernWork.launch{AbSearchCache.invalidate(context,query);OfficialCycleSearch.invalidate(query);startCommonBookSearch()}},
+        refreshSearch = {val query=searchText.trim();modernWork.launch{AbSearchCache.invalidate(context,query);OfficialCycleSearch.invalidate(query);withContext(Dispatchers.IO){OfficialSeriesStore(context.applicationContext).remove("Цикл: "+query,"")};startCommonBookSearch()}},
         selectResult = {key,url->searchSelectedKey=key;searchSelectedUrl=url;searchRestored=false},
         backSearch = {backToSearchResults()},
         retryBook = {bookOpening?.let{openWebsiteBook(it.book,it.sourceUrl)}},
@@ -2828,11 +2830,14 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                                             val availability=AbSourceAvailability.observe(prefs,url,pageTitle,parsed)
                                             if(opening!=null&&opening.sourceUrl!=url)AbSourceAvailability.record(prefs,opening.sourceUrl,parsed.tracks.isNotEmpty(),
                                                 preview=availability==AbChapterAvailability.PREVIEW,suspected=availability==AbChapterAvailability.SUSPECTED)
-                                            if(AbSourceAvailability.hidden(availability)){
+                                            val sizeOk=kotlinx.coroutines.withTimeoutOrNull(12_000L){abCheckAudioMinimum(prefs,url,parsed)}!=false
+                                            if(!navigationActive[0]||navigationId!=loadId)return@launch
+                                            if(!sizeOk&&opening!=null&&opening.sourceUrl!=url)AbSourceAvailability.copySize(prefs,url,opening.sourceUrl)
+                                            if(!sizeOk||AbSourceAvailability.hidden(availability)){
                                                 resumeAfterLoad=false
-                                                if(prefs.getBoolean("search_hide_previews",false)){
+                                                if(!sizeOk||prefs.getBoolean("search_hide_previews",false)){
                                                     val next=opening?.book?.let{bookSources(it)}?.firstOrNull{source->
-                                                        source.url!=url&&source.url!=opening?.sourceUrl&&!AbSourceAvailability.hidden(AbSourceAvailability.get(prefs,source.url))
+                                                        source.url!=url&&source.url!=opening?.sourceUrl&&!AbSourceAvailability.hidden(AbSourceAvailability.get(prefs,source.url))&&!AbSourceAvailability.tooSmall(prefs,source.url)
                                                     }
                                                     if(next!=null&&opening!=null)openWebsiteBook(opening.book,next.url,false)
                                                     else failBookOpening("Издание содержит демо или возможный фрагмент. Вернитесь к результатам и выберите другой источник.")
@@ -8463,31 +8468,72 @@ private suspend fun abCycleSearch(context:Context,prefs:android.content.SharedPr
 }
 
 /** Use the same page analyzer as a tap on a search result. Never start a player or a download. */
-private suspend fun abProbeCycleEdition(context:Context,volume:OfficialEdition,address:String,cycleTitle:String,aliases:List<String>,candidateAuthor:String):Boolean {
-    if(supportedBookUrl(address)==null)return false
+private data class AbProbedPlaylist(val title:String,val author:String,val player:PlayerData)
+private suspend fun abProbePlaylist(context:Context,address:String):AbProbedPlaylist? {
+    if(OpenAudioCatalog.fromPage(address)!=null){
+        return try{withContext(Dispatchers.IO){VerifiedBooks.load(address).let{AbProbedPlaylist(it.title,it.author,it.data)}}}
+        catch(c:kotlinx.coroutines.CancellationException){throw c}catch(_:Exception){null}
+    }
+    if(supportedBookUrl(address)==null)return null
     var browser:WebView?=null
     var task:BookWebsiteTask?=null
     try {
-        return kotlinx.coroutines.withTimeoutOrNull(47_000L) {
-            kotlinx.coroutines.suspendCancellableCoroutine<Boolean> { reply ->
-                fun finish(ok:Boolean){if(reply.isActive)reply.resumeWith(Result.success(ok))}
-                browser=abCreateBrowser(context,{finish(false)}) {
+        return kotlinx.coroutines.withTimeoutOrNull(25_000L) {
+            kotlinx.coroutines.suspendCancellableCoroutine<AbProbedPlaylist?> { reply ->
+                fun finish(value:AbProbedPlaylist?){if(reply.isActive)reply.resumeWith(Result.success(value))}
+                browser=abCreateBrowser(context,{finish(null)}) {
                     settings.javaScriptEnabled=true;settings.domStorageEnabled=true;settings.loadsImagesAutomatically=false
-                    val created=AbOpenPageTask(this,address,{},45_000L){root,_,error->
+                    val created=AbOpenPageTask(this,address,{},23_000L){root,_,error->
                         val parsed=root?.optJSONObject("player")?.let{parsePlayer(it)}
-                        val actualTitle=root?.optString("title").orEmpty()
-                        val actualAuthor=root?.optString("author").orEmpty()
-                        finish(error.isBlank() && parsed!=null && parsed.tracks.isNotEmpty() &&
-                            aliases.any{OfficialCycleSearch.matches(cycleTitle,it,actualTitle)} &&
-                            SeriesAuthorityRules.author(actualAuthor.ifBlank{candidateAuthor})==SeriesAuthorityRules.author(volume.author) &&
-                            !AbSourceAvailability.hidden(AbSourceAvailability.observe(context.getSharedPreferences("audiobook_downloader",0),address,actualTitle,parsed)))
+                        finish(if(error.isBlank()&&parsed!=null&&parsed.tracks.isNotEmpty())
+                            AbProbedPlaylist(root?.optString("title").orEmpty(),root?.optString("author").orEmpty(),parsed) else null)
                     }
                     task=created
-                    AbWebViews.onClose(this){created.close();finish(false)}
+                    AbWebViews.onClose(this){created.close();finish(null)}
                 }
             }
-        } ?: false
+        }
     }finally{task?.close();browser?.let{AbWebViews.release(it)}}
+}
+
+/** Determine only what the server actually reports. No full audio downloads. */
+private suspend fun abCheckAudioMinimum(prefs:android.content.SharedPreferences,address:String,player:PlayerData):Boolean {
+    if(AbSourceAvailability.tooSmall(prefs,address))return false
+    if(AbSourceAvailability.sizePassed(prefs,address))return true
+    val tracks=player.tracks.distinctBy{it.src}
+    if(tracks.isEmpty())return false
+    for(batch in tracks.chunked(3)){
+        kotlinx.coroutines.currentCoroutineContext().ensureActive()
+        AbAudioSizes.fetch(batch,address)
+        val sizes=AbAudioSizes.state.value
+        val sum=tracks.mapNotNull{sizes[it.src]}.sum()
+        if(sum>=AbSourceAvailability.MIN_AUDIO_BYTES){
+            AbSourceAvailability.recordSize(prefs,address,sum);return true
+        }
+    }
+    val sizes=AbAudioSizes.state.value
+    if(tracks.all{(sizes[it.src]?:0)>0}){
+        val sum=tracks.mapNotNull{sizes[it.src]}.sum()
+        AbSourceAvailability.recordSize(prefs,address,sum)
+        return sum>=AbSourceAvailability.MIN_AUDIO_BYTES
+    }
+    return true
+}
+
+private suspend fun abProbeCycleEdition(context:Context,volume:OfficialEdition,address:String,cycleTitle:String,aliases:List<String>,candidateAuthor:String,
+    references:List<OfficialEdition> = emptyList()):Boolean {
+    val loaded=abProbePlaylist(context,address)?:return false
+    if(!aliases.any{OfficialCycleSearch.matches(cycleTitle,it,loaded.title)} ||
+        SeriesAuthorityRules.author(loaded.author.ifBlank{candidateAuthor})!=SeriesAuthorityRules.author(volume.author))return false
+    val prefs=context.getSharedPreferences("audiobook_downloader",0)
+    val observed=AbSourceAvailability.observe(prefs,address,loaded.title,loaded.player)
+    if(AbSourceAvailability.hidden(observed))return false
+    if(!abCheckAudioMinimum(prefs,address,loaded.player))return false
+    val reference=AbOfficialAudioReference.read(context,references)
+    if(reference.isExcerpt(loaded.player)){
+        AbSourceAvailability.record(prefs,address,true,suspected=true);return false
+    }
+    return true
 }
 
 
@@ -8622,15 +8668,16 @@ private suspend fun abResolveCycleAudio(context:Context,prefs:android.content.Sh
         val choices=list.filter{it.catalogState in setOf("candidate","checked")}
             .flatMap{candidate->bookSources(candidate).map{source->candidate to source}}
             .distinctBy{it.second.url}
-            .filter{!AbSourceAvailability.hidden(AbSourceAvailability.get(prefs,it.second.url))}
+            .filter{!AbSourceAvailability.hidden(AbSourceAvailability.get(prefs,it.second.url))&&!AbSourceAvailability.tooSmall(prefs,it.second.url)}
             .sortedBy{AbSourceAvailability.get(prefs,it.second.url).priority}
         for((candidate,source) in choices.take(3)){
             abRequireSearchWindow(context)
-            if(AbSourceAvailability.get(prefs,source.url)==AbChapterAvailability.AVAILABLE)break
+            if(AbSourceAvailability.get(prefs,source.url)==AbChapterAvailability.AVAILABLE&&AbSourceAvailability.sizePassed(prefs,source.url))break
             if(source.url in checkpoint.verified)continue
             report("Проверка глав: ${i+1}/${volumes.size}.")
-            val ok=kotlinx.coroutines.withTimeoutOrNull(15_000L){
-                abProbeCycleEdition(context,volumes[i],source.url,cycle.title,aliases[i],candidate.author)
+            val references=catalogs.flatMap{it.books}.filter{b->aliases[i].any{OfficialCycleSearch.matches(cycle.title,it,b.title)}&&SeriesAuthorityRules.author(b.author)==SeriesAuthorityRules.author(volumes[i].author)}
+            val ok=kotlinx.coroutines.withTimeoutOrNull(40_000L){
+                abProbeCycleEdition(context,volumes[i],source.url,cycle.title,aliases[i],candidate.author,references)
             }==true
             abRequireSearchWindow(context)
             checkpoint.verified.add(source.url)
@@ -9879,7 +9926,6 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
     }
     val prepared by androidx.compose.runtime.produceState<List<AbSearchRow>?>(null,
         data.searchScreenId,data.results,books,seriesRevision,chapterRevision,data.cycle,data.cycleBrowsing,data.query,data.genre,hidePreviews,narratorFilter,seriesOnly,localOnly) {
-        value=null
         value=AbSearchRows.prepare(data.results,books,prefs,data.cycle.takeIf{data.cycleBrowsing},
             query=if(data.genre.isBlank()&&!data.cycleBrowsing)data.query else "",hidePreviews=hidePreviews,
             narrator=narratorFilter,seriesOnly=seriesOnly,localOnly=localOnly)
@@ -9891,6 +9937,19 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
     }
     val selectedIndex=if(data.restoreSelection)resultBooks.indexOfFirst{it.key==data.selectedResultKey||it.editions.any{e->bookSources(e).any{src->src.url==data.selectedResultUrl}}} else -1
     val visibleResults=remember(resultBooks,visibleCount,selectedIndex) {resultBooks.take(maxOf(visibleCount,selectedIndex+1))}
+    val searchForeground=LocalAbVisible.current
+    LaunchedEffect(data.searchScreenId,data.searching,visibleCount,searchForeground,hidePreviews,prepared!=null) {
+        if(!searchForeground||data.onlineBook!=null||data.cycleBrowsing||data.searching||!data.searchActive||prepared==null)return@LaunchedEffect
+        val targets=visibleResults.flatMap{it.editions}.flatMap{b->bookSources(b).map{b to it}}.distinctBy{it.second.url}.take(30)
+        for((book,source) in targets){
+            if(AbSourceAvailability.hidden(AbSourceAvailability.get(prefs,source.url))||AbSourceAvailability.tooSmall(prefs,source.url)||AbSourceAvailability.sizePassed(prefs,source.url))continue
+            val loaded=kotlinx.coroutines.withTimeoutOrNull(18_000L){abProbePlaylist(sourceContext,source.url)}?:continue
+            if(!SeriesAuthorityRules.sameTitle(book.title,loaded.title,""))continue
+            if(book.author.isNotBlank()&&loaded.author.isNotBlank()&&SeriesAuthorityRules.author(book.author)!=SeriesAuthorityRules.author(loaded.author))continue
+            val observed=AbSourceAvailability.observe(prefs,source.url,loaded.title,loaded.player)
+            if(!AbSourceAvailability.hidden(observed))kotlinx.coroutines.withTimeoutOrNull(12_000L){abCheckAudioMinimum(prefs,source.url,loaded.player)}
+        }
+    }
     var restored by remember(data.searchScreenId){mutableStateOf(false)}
     LaunchedEffect(data.searchScreenId,prepared,selectedIndex){
         if(data.restoreSelection&&!restored&&prepared!=null&&data.onlineBook==null){

@@ -48,6 +48,7 @@ internal class OfficialSeriesStore(context:Context) {
                             r.getString("format"),r.getString("status"),r.optDouble("order").takeIf{it.isFinite()&&it>0})})})
         }
     }catch(_:Exception){null}
+    fun remove(title:String,author:String){File(folder,id(title,author)+".json").delete()}
     fun save(snapshot:OfficialSnapshot,requestedAuthor:String) {
         require(folder.isDirectory||folder.mkdirs());val bytes=snapshot.json().toString();require(bytes.toByteArray().size<=1024*1024)
         for(key in setOf(id(snapshot.title,snapshot.author),id(snapshot.title,requestedAuthor))) {

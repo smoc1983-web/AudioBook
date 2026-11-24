@@ -26,11 +26,18 @@ internal object AbSourceAvailability {
     const val MIN_AUDIO_BYTES=10_000_000L
     private fun sizeKey(url:String)=key(url)+"_size"
     fun recordSize(prefs:SharedPreferences,url:String,total:Long){if(total>0)prefs.edit().putString(sizeKey(url),total.toString()+":"+System.currentTimeMillis()).apply()}
+    fun copySize(prefs:SharedPreferences,from:String,to:String){prefs.getString(sizeKey(from),null)?.let{prefs.edit().putString(sizeKey(to),it).apply()}}
     fun tooSmall(prefs:SharedPreferences,url:String):Boolean{
         val fields=prefs.getString(sizeKey(url),"").orEmpty().split(":")
         val bytes=fields.firstOrNull()?.toLongOrNull()?:return false
         val at=fields.getOrNull(1)?.toLongOrNull()?:return false
         return System.currentTimeMillis()-at in 0..MAX_AGE && bytes in 1 until MIN_AUDIO_BYTES
+    }
+    fun sizePassed(prefs:SharedPreferences,url:String):Boolean{
+        val fields=prefs.getString(sizeKey(url),"").orEmpty().split(":")
+        val bytes=fields.firstOrNull()?.toLongOrNull()?:return false
+        val at=fields.getOrNull(1)?.toLongOrNull()?:return false
+        return System.currentTimeMillis()-at in 0..7L*86_400_000L && bytes>=MIN_AUDIO_BYTES
     }
     fun hidden(value:AbChapterAvailability)=value==AbChapterAvailability.PREVIEW||value==AbChapterAvailability.SUSPECTED
     fun record(prefs:SharedPreferences,url:String,hasChapters:Boolean,now:Long=System.currentTimeMillis(),preview:Boolean=false,suspected:Boolean=false) {
