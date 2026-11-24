@@ -2922,7 +2922,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                                                 preview=availability==AbChapterAvailability.PREVIEW,suspected=availability==AbChapterAvailability.SUSPECTED)
                                             val sizeOk=kotlinx.coroutines.withTimeoutOrNull(12_000L){abCheckAudioMinimum(prefs,url,parsed)}!=false
                                             if(!navigationActive[0]||navigationId!=loadId)return@launch
-                                            if(!sizeOk&&opening!=null&&opening.sourceUrl!=url)AbSourceAvailability.copySize(prefs,url,opening.sourceUrl)
+                                            if(opening!=null&&opening.sourceUrl!=url)AbSourceAvailability.copySize(prefs,url,opening.sourceUrl)
                                             if(!sizeOk||AbSourceAvailability.hidden(availability)){
                                                 resumeAfterLoad=false
                                                 if(!sizeOk||prefs.getBoolean("search_hide_previews",false)){
@@ -8599,8 +8599,13 @@ private suspend fun abCheckAudioMinimum(prefs:android.content.SharedPreferences,
         AbAudioSizes.fetch(batch,address)
         val sizes=AbAudioSizes.state.value
         val sum=tracks.mapNotNull{sizes[it.src]}.sum()
-        if(sum>=AbSourceAvailability.MIN_AUDIO_BYTES){
-            AbSourceAvailability.recordSize(prefs,address,sum);return true
+        val complete=tracks.all{(sizes[it.src]?:0)>0}
+        if(complete){
+            AbSourceAvailability.recordSize(prefs,address,sum)
+            return sum>=AbSourceAvailability.MIN_AUDIO_BYTES
+        }
+        if(sum>=AbSourceAvailability.WARN_AUDIO_BYTES){
+            AbSourceAvailability.recordSize(prefs,address,sum,complete=false);return true
         }
     }
     val sizes=AbAudioSizes.state.value
@@ -9690,11 +9695,15 @@ internal fun AbProgress(value: Float, theme: AbTheme, modifier: Modifier=Modifie
 
 @Composable
 internal fun AbBookRow(ref: BookRef, local: LibraryBook?, subtitle: String, theme: AbTheme,
-    progress: AbBookTimeRules.Result?=null, playing: Boolean=false, onClick: ()->Unit, onMenu: ()->Unit) {
+    progress: AbBookTimeRules.Result?=null, playing: Boolean=false, coverWarning:String="", onClick: ()->Unit, onMenu: ()->Unit) {
     val display=abBookDisplay(ref,local)
     Row(Modifier.fillMaxWidth().abGlass(theme,18,raised=true)
         .clickable(onClick=onClick).padding(10.dp),verticalAlignment=Alignment.CenterVertically) {
-        AbCover(ref.title,local,ref,theme,Modifier.width(66.dp).height(94.dp))
+        Box {
+            AbCover(ref.title,local,ref,theme,Modifier.width(66.dp).height(94.dp))
+            if(coverWarning.isNotBlank())Text("ДЕМО?",color=Color.White,fontSize=10.sp,fontWeight=FontWeight.Bold,
+                modifier=Modifier.align(Alignment.BottomCenter).background(Color(0xffa34b16),RoundedCornerShape(4.dp)).padding(horizontal=5.dp,vertical=3.dp))
+        }
         Column(Modifier.weight(1f).padding(horizontal=13.dp),verticalArrangement=Arrangement.spacedBy(6.dp)) {
             Text(display.title,color=theme.text,fontSize=15.sp,fontWeight=FontWeight.SemiBold,
                 maxLines=2,overflow=TextOverflow.Ellipsis)
@@ -10536,7 +10545,7 @@ internal fun AbSearchResultCard(row:AbSearchRow,theme:AbTheme,onOpen:(BookLink,S
     val lastUrl=visit?.url ?: selectedUrl
     var chosen by androidx.compose.runtime.saveable.rememberSaveable(row.key) {mutableStateOf(lastUrl)}
     val sourcePrefs=androidx.compose.ui.platform.LocalContext.current.getSharedPreferences("audiobook_downloader",Context.MODE_PRIVATE)
-    val book=choices.firstOrNull{contains(it,chosen)} ?: choices.minByOrNull{AbSourceAvailability.priority(sourcePrefs,bookSources(it))} ?: choices.first()
+    val book=choices.firstOrNull{contains(it,chosen)} ?: choices.minWithOrNull(compareBy<BookLink>{AbSourceAvailability.sizeRisk(sourcePrefs,it.url)}.thenBy{AbSourceAvailability.priority(sourcePrefs,bookSources(it))}) ?: choices.first()
     val narratorScroll=rememberScrollState(visit?.narratorScroll ?: 0)
     val sourceScroll=rememberScrollState(visit?.sourceScroll ?: 0)
     fun open(url:String){onVisit(AbSearchVisit(url,narratorScroll.value,sourceScroll.value));onOpen(book,url)}
@@ -10560,9 +10569,11 @@ internal fun AbSearchResultCard(row:AbSearchRow,theme:AbTheme,onOpen:(BookLink,S
     Column(modifier=if(highlighted)Modifier.fillMaxWidth().border(2.dp,theme.accent,RoundedCornerShape(15.dp)).padding(8.dp) else Modifier,verticalArrangement=Arrangement.spacedBy(5.dp)) {
         if(collapsible)AbButton("Свернуть озвучки",theme){expanded=false}
         if(highlighted)Text("Последняя открытая книга",color=theme.accent,fontSize=12.sp)
+        val sizeWarning=row.sizeLabels[book.url].orEmpty()
         AbBookRow(ref,if(book.url==row.book.url)row.local else null,book.author.ifBlank{"Аудиокнига"},theme,
-            onClick={open(book.url)},onMenu={onMenu(ref)})
-        if(book.catalogState=="checked")Text("Главы проверены · запуск аудио проверяется при воспроизведении",color=theme.accent,fontSize=11.sp)
+            coverWarning=sizeWarning,onClick={open(book.url)},onMenu={onMenu(ref)})
+        if(sizeWarning.isNotBlank())Text(sizeWarning,color=theme.error,fontSize=12.sp)
+        if(book.catalogState=="checked"&&sizeWarning.isBlank())Text("Главы проверены · запуск аудио проверяется при воспроизведении",color=theme.accent,fontSize=11.sp)
         if(book.catalogState=="candidate")Text("Аудиоиздание найдено · главы проверяются при открытии",color=theme.muted,fontSize=11.sp)
         if(AbSourceAvailability.isPreview(sourcePrefs,book))Text("Демо · ознакомительный фрагмент",color=theme.error,fontSize=12.sp)
         else if(AbSourceAvailability.get(sourcePrefs,book.url)==AbChapterAvailability.SUSPECTED)Text("Возможный фрагмент · полнота не подтверждена",color=theme.muted,fontSize=12.sp)
@@ -10594,7 +10605,7 @@ internal fun AbSearchResultCard(row:AbSearchRow,theme:AbTheme,onOpen:(BookLink,S
                     .padding(horizontal=12.dp,vertical=7.dp)) {
                     Text(source.site,color=theme.accent,fontSize=11.sp)
                     if(address(source.url) in openedUrls)Text("✓ Открывали",color=theme.accent,fontSize=10.sp)
-                    Text(AbSourceAvailability.get(androidx.compose.ui.platform.LocalContext.current.getSharedPreferences("audiobook_downloader",Context.MODE_PRIVATE),source.url).label,
+                    Text(row.sizeLabels[source.url]?.takeIf{it.isNotBlank()} ?: AbSourceAvailability.get(sourcePrefs,source.url).label,
                         color=theme.muted,fontSize=9.sp,maxLines=1)
                 }
             }
@@ -15561,7 +15572,10 @@ internal fun AbBookSize(title:String,tracks:List<AudioTrack>,local:LibraryBook?,
     val complete=tracks.isNotEmpty() && bytes.all{it!=null && it>=0}
     val sum=bytes.filterNotNull().sum()
     val sizePrefs=androidx.compose.ui.platform.LocalContext.current.getSharedPreferences("audiobook_downloader",0)
-    LaunchedEffect(page,complete,sum){if(complete)AbSourceAvailability.recordSize(sizePrefs,page,sum)}
+    val remoteSources=tracks.map{it.src}.distinct()
+    val remoteComplete=remoteSources.isNotEmpty()&&remoteSources.all{isNetworkAudio(it)&&(known[it]?:0)>0}
+    val remoteSum=remoteSources.mapNotNull{known[it]}.sum()
+    LaunchedEffect(page,remoteComplete,remoteSum){if(remoteComplete)AbSourceAvailability.recordSize(sizePrefs,page,remoteSum)}
     LaunchedEffect(title,tracks,page,retry) {
         if(!complete && tracks.any{isNetworkAudio(it.src)}) {
             checking=true
@@ -15575,6 +15589,7 @@ internal fun AbBookSize(title:String,tracks:List<AudioTrack>,local:LibraryBook?,
             sum>0L->"Известный объём: "+formatFileSize(sum)+" · "+bytes.count{it!=null}+" из ${tracks.size} глав"
             else->"Размер аудиофайлов неизвестен"
         },color=theme.muted,fontSize=11.sp)
+        if(remoteComplete&&remoteSum<AbSourceAvailability.WARN_AUDIO_BYTES)Text(if(remoteSum<AbSourceAvailability.MIN_AUDIO_BYTES) "Демо по объёму · менее 20 МБ" else "Возможное демо · менее 30 МБ",color=theme.error,fontSize=12.sp)
         if(!complete && !checking && tracks.any{isNetworkAudio(it.src)})Text("Уточнить размер",color=theme.accent,fontSize=11.sp,
             modifier=Modifier.heightIn(min=36.dp).clickable{retry++}.padding(vertical=8.dp))
     }

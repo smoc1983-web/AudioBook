@@ -102,4 +102,35 @@ class AbSourceAvailabilityJvmTest {
         assertEquals(AbChapterAvailability.EMPTY,AbSourceAvailability.get(p,url,1000+899999L))
         assertEquals(AbChapterAvailability.UNKNOWN,AbSourceAvailability.get(p,url,1000+900001L))
     }
+    @Test fun fullSizeThresholdsAndPartialEvidenceAreDifferent() {
+        val p=preferences();val url="https://example.org/book"
+        AbSourceAvailability.recordSize(p,url,18_000_000L,complete=false)
+        assertFalse(AbSourceAvailability.tooSmall(p,url))
+        assertFalse(AbSourceAvailability.sizePassed(p,url))
+        assertEquals("",AbSourceAvailability.sizeWarning(p,url))
+        AbSourceAvailability.recordSize(p,url,18_000_000L)
+        assertTrue(AbSourceAvailability.tooSmall(p,url))
+        assertNull(AbSourceAvailability.searchCandidates(p,BookLink("Книга",url),false))
+        AbSourceAvailability.recordSize(p,url,20_000_000L)
+        assertFalse(AbSourceAvailability.tooSmall(p,url))
+        assertTrue(AbSourceAvailability.sizeWarning(p,url).contains("Возможное демо"))
+        assertTrue(AbSourceAvailability.sizePassed(p,url))
+        AbSourceAvailability.recordSize(p,url,29_999_999L)
+        assertTrue(AbSourceAvailability.sizeWarning(p,url).isNotBlank())
+        AbSourceAvailability.recordSize(p,url,30_000_000L,complete=false)
+        assertTrue(AbSourceAvailability.sizeWarning(p,url).isNotBlank())
+        AbSourceAvailability.recordSize(p,url,30_000_000L)
+        assertEquals("",AbSourceAvailability.sizeWarning(p,url))
+    }
+    @Test fun fullSizePreferredToShortAlternativeAndLegacyCacheCannotReject() {
+        val p=preferences();val short="https://example.org/short";val full="https://example.org/full"
+        val book=BookLink("Книга",short,sources=listOf(BookSource("one",short),BookSource("two",full)))
+        AbSourceAvailability.record(p,short,true)
+        val oldKey=p.all.keys.single()
+        p.edit().putString(oldKey+"_size","18000000:"+System.currentTimeMillis()).apply()
+        assertFalse(AbSourceAvailability.tooSmall(p,short))
+        AbSourceAvailability.recordSize(p,short,25_000_000L)
+        AbSourceAvailability.recordSize(p,full,40_000_000L,complete=false)
+        assertEquals(full,AbSourceAvailability.searchCandidates(p,book,false)?.url)
+    }
 }

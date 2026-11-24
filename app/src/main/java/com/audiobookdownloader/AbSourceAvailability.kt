@@ -25,22 +25,43 @@ internal object AbSourceAvailability {
         return when(parts[0]) {"yes"->AbChapterAvailability.AVAILABLE;"no"->AbChapterAvailability.EMPTY;"demo"->AbChapterAvailability.PREVIEW;"suspect"->AbChapterAvailability.SUSPECTED;else->AbChapterAvailability.UNKNOWN}
     }
     const val OBSERVATION_PREFIX="search_chapters_v1_"
-    const val MIN_AUDIO_BYTES=10_000_000L
-    private fun sizeKey(url:String)=key(url)+"_size"
-    fun recordSize(prefs:SharedPreferences,url:String,total:Long){if(total>0)prefs.edit().putString(sizeKey(url),total.toString()+":"+System.currentTimeMillis()).apply()}
+    const val MIN_AUDIO_BYTES=20_000_000L
+    const val WARN_AUDIO_BYTES=30_000_000L
+    // v1 did not distinguish a partial sum from a complete edition. Never use it to reject a book.
+    private fun sizeKey(url:String)=key(url)+"_size_v2"
+    private data class SizeEvidence(val bytes:Long,val at:Long,val complete:Boolean)
+    private fun size(prefs:SharedPreferences,url:String):SizeEvidence? {
+        val fields=prefs.getString(sizeKey(url),"").orEmpty().split(":")
+        val bytes=fields.firstOrNull()?.toLongOrNull()?.takeIf{it>0}?:return null
+        val at=fields.getOrNull(1)?.toLongOrNull()?:return null
+        val complete=when(fields.getOrNull(2)){"full"->true;"lower"->false;else->return null}
+        if(System.currentTimeMillis()-at !in 0..MAX_AGE)return null
+        return SizeEvidence(bytes,at,complete)
+    }
+    fun recordSize(prefs:SharedPreferences,url:String,total:Long,complete:Boolean=true){
+        if(total>0&&url.isNotBlank()){
+            val old=size(prefs,url)
+            if(!complete&&old?.complete==true)return
+            prefs.edit().putString(sizeKey(url),total.toString()+":"+System.currentTimeMillis()+":"+(if(complete)"full" else "lower")).apply()
+        }
+    }
     fun copySize(prefs:SharedPreferences,from:String,to:String){prefs.getString(sizeKey(from),null)?.let{prefs.edit().putString(sizeKey(to),it).apply()}}
-    fun tooSmall(prefs:SharedPreferences,url:String):Boolean{
-        val fields=prefs.getString(sizeKey(url),"").orEmpty().split(":")
-        val bytes=fields.firstOrNull()?.toLongOrNull()?:return false
-        val at=fields.getOrNull(1)?.toLongOrNull()?:return false
-        return System.currentTimeMillis()-at in 0..MAX_AGE && bytes in 1 until MIN_AUDIO_BYTES
-    }
-    fun sizePassed(prefs:SharedPreferences,url:String):Boolean{
-        val fields=prefs.getString(sizeKey(url),"").orEmpty().split(":")
-        val bytes=fields.firstOrNull()?.toLongOrNull()?:return false
-        val at=fields.getOrNull(1)?.toLongOrNull()?:return false
-        return System.currentTimeMillis()-at in 0..7L*86_400_000L && bytes>=MIN_AUDIO_BYTES
-    }
+    fun tooSmall(prefs:SharedPreferences,url:String):Boolean =
+        size(prefs,url)?.let{it.complete&&it.bytes<MIN_AUDIO_BYTES} ?: false
+    fun sizeWarning(prefs:SharedPreferences,url:String):String =
+        size(prefs,url)?.takeIf{it.complete}?.let {
+            when {
+                it.bytes<MIN_AUDIO_BYTES->"Демо по объёму"
+                it.bytes<WARN_AUDIO_BYTES->"Возможное демо · менее 30 МБ"
+                else->""
+            }
+        }.orEmpty()
+    fun sizePassed(prefs:SharedPreferences,url:String):Boolean =
+        size(prefs,url)?.let{System.currentTimeMillis()-it.at in 0..7L*86_400_000L &&
+            (it.bytes>=WARN_AUDIO_BYTES || it.complete&&it.bytes>=MIN_AUDIO_BYTES)} ?: false
+    fun sizeRisk(prefs:SharedPreferences,url:String):Int = size(prefs,url)?.let{
+        when {it.bytes>=WARN_AUDIO_BYTES->0;it.complete&&it.bytes<MIN_AUDIO_BYTES->3;it.complete->2;else->1}
+    } ?: 1
     fun hidden(value:AbChapterAvailability)=value==AbChapterAvailability.PREVIEW||value==AbChapterAvailability.SUSPECTED
     fun record(prefs:SharedPreferences,url:String,hasChapters:Boolean,now:Long=System.currentTimeMillis(),preview:Boolean=false,suspected:Boolean=false) {
         if(url.isBlank())return
@@ -59,7 +80,7 @@ internal object AbSourceAvailability {
         }
         if(sources.isEmpty())return null
         // Keep chip positions stable; only the default open target follows verified availability.
-        val primary=sources.minWithOrNull(compareBy<BookSource>{get(prefs,it.url).priority}.thenBy{it.url!=book.url}) ?: return null
+        val primary=sources.minWithOrNull(compareBy<BookSource>{sizeRisk(prefs,it.url)}.thenBy{get(prefs,it.url).priority}.thenBy{it.url!=book.url}) ?: return null
         return book.copy(url=primary.url,coverUrl=primary.coverUrl.ifBlank{book.coverUrl},sources=sources,
             catalogState=if(book.catalogState=="checked"&&get(prefs,primary.url)!=AbChapterAvailability.AVAILABLE)"candidate" else book.catalogState)
     }

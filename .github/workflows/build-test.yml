@@ -115,7 +115,7 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -memory 2048 -cores 2
           script: |
             GITHUB_RUN_NUMBER="$TEST_NUMBER" gradle :app:connectedDebugAndroidTest -PaudiobookChannel=test -Pandroid.testInstrumentationRunnerArguments.class=com.audiobookdownloader.CollectionTransferTest,com.audiobookdownloader.NovaListeningFeaturesTest,com.audiobookdownloader.SearchScrollTest,com.audiobookdownloader.SearchFiltersTest,com.audiobookdownloader.RankedAudioSearchTest,com.audiobookdownloader.UpdateScreenTest,com.audiobookdownloader.LatestMenuRegressionTest,com.audiobookdownloader.LibraryExperienceTest,com.audiobookdownloader.OfficialSeriesTest,com.audiobookdownloader.EditionDownloadTest,com.audiobookdownloader.MiniPlayerSwipeTest --max-workers=2 --console=plain
-            adb uninstall com.audiobookdownloader.test
+            if adb shell pm path com.audiobookdownloader.test | grep -q "^package:"; then adb uninstall com.audiobookdownloader.test; fi
             bash scripts/test-test-install.sh
       - name: Publish only verified Test channel assets
         env:

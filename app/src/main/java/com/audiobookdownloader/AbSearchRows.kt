@@ -8,7 +8,7 @@ import kotlinx.coroutines.withContext
 import java.util.Locale
 
 internal data class AbSearchRow(val book:BookLink,val ref:BookRef,val local:LibraryBook?,val sources:List<BookSource>,
-    val editions:List<BookLink> = emptyList(),val key:String=book.url)
+    val editions:List<BookLink> = emptyList(),val key:String=book.url,val sizeLabels:Map<String,String> = emptyMap())
 
 /** Build once per result/library/reference change, outside composition and off the UI thread. */
 internal object AbSearchRows {
@@ -90,7 +90,8 @@ internal object AbSearchRows {
             val visible=if(playableEditions.isNotEmpty())playableEditions else editions.take(1)
             val ordered=visible.sortedWith(compareBy<BookLink>{SearchEditionIdentity.voiceKey(it.title,it.narrator)}.thenBy{it.url})
             val book=ordered.first()
-            indexed[book.url]?.copy(book=book,sources=bookSources(book),editions=ordered,key=key)
+            indexed[book.url]?.copy(book=book,sources=bookSources(book),editions=ordered,key=key,
+                sizeLabels=ordered.flatMap{bookSources(it)}.associate{it.url to AbSourceAvailability.sizeWarning(prefs,it.url)}.filterValues{it.isNotBlank()})
         }
     }
 }
