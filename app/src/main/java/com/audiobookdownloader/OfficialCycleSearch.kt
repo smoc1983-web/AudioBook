@@ -33,6 +33,7 @@ internal object OfficialCycleSearch {
             SeriesAuthorityRules.title(lookupTitle(cycle,first)).isNotBlank()
     @Synchronized fun cached(query:String):Template? =
         cache[key(query)]?.takeIf{System.currentTimeMillis()-it.at<15*60_000L}?.value
+    @Synchronized fun invalidate(query:String){cache.remove(key(query))}
     @Synchronized private fun save(query:String,value:Template){
         cache[key(query)]=Cached(System.currentTimeMillis(),value)
         while(cache.size>12)cache.remove(cache.keys.first())
@@ -85,9 +86,14 @@ internal object OfficialCycleSearch {
         if(items.isEmpty())return null
         return OfficialSource(provider,heading,url,checked=System.currentTimeMillis(),complete=complete,books=items.values.toList())
     }
-    suspend fun find(query:String):Template?=withContext(Dispatchers.IO){
+    suspend fun find(query:String,context:android.content.Context?=null):Template?=withContext(Dispatchers.IO){
         if(query.isBlank()||query.length>180)return@withContext null
         cached(query)?.let{return@withContext it}
+        val store=context?.let{OfficialSeriesStore(it.applicationContext)}
+        val stored=store?.read("Цикл: "+query,"")
+        if(stored!=null&&stored.sources.isNotEmpty()&&stored.sources.all{it.complete&&System.currentTimeMillis()-it.checked in 0..7*86_400_000L}){
+            return@withContext Template(stored.author,stored.sources).also{save(query,it)}
+        }
         val sources=supervisorScope{
             listOf("Author.Today","Литрес").map{provider->async{
                 try{withTimeoutOrNull(25_000L){read(query,provider)}}
@@ -96,7 +102,7 @@ internal object OfficialCycleSearch {
         }
         val authors=sources.flatMap{it.books}.map{it.author}.distinctBy{SeriesAuthorityRules.author(it)}
         if(authors.size!=1)return@withContext null
-        Template(authors.single(),sources).also{save(query,it)}
+        Template(authors.single(),sources).also{save(query,it);runCatching{store?.save(OfficialSnapshot("Цикл: "+query,it.author,sources),"")}}
     }
     private fun ordered(source:OfficialSource):List<OfficialEdition> {
         // A complete Author.Today list is preferred to a partial Litres catalogue.
