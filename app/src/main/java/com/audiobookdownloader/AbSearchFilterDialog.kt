@@ -33,7 +33,7 @@ internal fun AbSearchFilterDialog(
         AbTextField(name, "Имя или фамилия чтеца", theme, { name = it.take(100) })
         SearchFilterOption("Только книги из серий", series, theme) { series = it }
         SearchFilterOption("Есть главы этого издания на устройстве", local, theme) { local = it }
-        SearchFilterOption("Скрывать подтверждённые демо", hideDemo, theme) { hideDemo = it }
+        SearchFilterOption("Скрывать демо и возможные короткие фрагменты", hideDemo, theme) { hideDemo = it }
         AbButton("Применить", theme, primary = true) { apply(name, series, local, hideDemo) }
         AbButton("Очистить фильтры", theme) {
             name = ""

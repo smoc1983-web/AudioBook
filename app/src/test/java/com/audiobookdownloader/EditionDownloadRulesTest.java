@@ -27,6 +27,15 @@ public class EditionDownloadRulesTest {
         assertTrue(EditionDownloadRules.isPreview("Книга", Arrays.asList(
                 "https://cdn.example/full.mp3", "https://cdn.example/get_mp3_trial/123.mp3?x=1")));
     }
+    @Test public void chapterLabelAndShortFirstChapterAreDifferentEvidence() {
+        assertTrue(EditionDownloadRules.isPreviewPlaylist("Книга",Collections.emptyList(),Collections.singletonList("Ознакомительная глава")));
+        assertFalse(EditionDownloadRules.isPreviewPlaylist("Книга",Collections.emptyList(),Arrays.asList("Ознакомительная глава","Глава 2")));
+        assertTrue(EditionDownloadRules.isSuspectedExcerpt(Collections.singletonList("Глава 1"),240,0));
+        assertTrue(EditionDownloadRules.isSuspectedExcerpt(Collections.singletonList("1"),0,24));
+        assertFalse(EditionDownloadRules.isSuspectedExcerpt(Collections.singletonList("1"),14400,0));
+        assertFalse(EditionDownloadRules.isSuspectedExcerpt(Collections.singletonList("Рассказ"),240,0));
+        assertFalse(EditionDownloadRules.isSuspectedExcerpt(Arrays.asList("Глава 1","Глава 2"),240,24));
+    }
     @Test public void oneShortFileDoesNotMeanExcerptOrCompleteBook() {
         assertFalse(EditionDownloadRules.isPreview("Полный рассказ", Collections.singletonList("https://cdn.example/1.mp3")));
         assertFalse(EditionDownloadRules.isPreview("Фрагменты жизни", Collections.emptyList()));

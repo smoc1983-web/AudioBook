@@ -56,6 +56,15 @@ class AbSourceAvailabilityJvmTest {
         AbSourceAvailability.record(p,url,true)
         assertEquals(AbChapterAvailability.AVAILABLE,AbSourceAvailability.get(p,url))
     }
+    @Test fun suspectIsSeparateAndFilteringKeepsAlternative(){
+        val p=preferences();val suspect="https://source.example/short";val full="https://other.example/book"
+        AbSourceAvailability.record(p,suspect,true,suspected=true)
+        assertEquals(AbChapterAvailability.SUSPECTED,AbSourceAvailability.get(p,suspect))
+        assertEquals(full,AbSourceAvailability.withoutPreviews(p,BookLink("Книга",suspect,
+            sources=listOf(BookSource("one",suspect),BookSource("two",full))))?.url)
+        AbSourceAvailability.record(p,suspect,true)
+        assertEquals(AbChapterAvailability.AVAILABLE,AbSourceAvailability.get(p,suspect))
+    }
     @Test fun hidingDemoRetainsUnknownAndFullAlternativesWithoutLosingTheBook() {
         val p=preferences();val demo="https://source.example/demo";val full="https://other.example/book"
         AbSourceAvailability.record(p,demo,true,preview=true)

@@ -1854,13 +1854,20 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                     if(request!=bookOpenId)return@launch
                     pageTitle=loaded.title;currentBookAuthor=loaded.author;currentCoverUrl=loaded.cover;player=loaded.data
                     bookPageLoading=false;bookOpening=null;bookPageError="";status="Глав: ${loaded.data.tracks.size}"
-                    AbSourceAvailability.record(prefs,sourceUrl,loaded.data.tracks.isNotEmpty(),
-                        preview=EditionDownloadRules.isPreview(loaded.title,loaded.data.tracks.map{it.src}))
+                    val availability=AbSourceAvailability.observe(prefs,sourceUrl,loaded.title,loaded.data)
+                    if(AbSourceAvailability.hidden(availability)){
+                        status=availability.label
+                        if(prefs.getBoolean("search_hide_previews",false)){
+                            val next=bookSources(book).firstOrNull{it.url!=sourceUrl&&!AbSourceAvailability.hidden(AbSourceAvailability.get(prefs,it.url))}
+                            if(next!=null)openWebsiteBook(book,next.url,false) else failBookOpening("Издание содержит демо или возможный фрагмент. Выберите другой источник.")
+                            return@launch
+                        }
+                    }
                     val title=cleanBookTitle(pageTitle)
                     abRememberCatalog(prefs,BookLink(title,sourceUrl,loaded.cover,loaded.author))
                     prefs.edit().putString(bookUrlKey(title),sourceUrl).putString(bookCoverKey(title),loaded.cover)
                         .putString(abAuthorKey(title),loaded.author).apply()
-                    StableProgress.observe(prefs,title,loaded.data.tracks,true)
+                    if(!AbSourceAvailability.hidden(availability))StableProgress.observe(prefs,title,loaded.data.tracks,true)
                     loaded.data.tracks.forEach{track->trackStates[track.title]=if(isTrackDownloaded(track,title,downloadedIndex))TrackState.DOWNLOADED else TrackState.READY}
                 }catch(cancel:kotlinx.coroutines.CancellationException){throw cancel}
                 catch(error:Exception){if(request==bookOpenId){bookPageLoading=false;bookPageError=error.message?:"Не удалось получить главы";status=bookPageError}}
@@ -2288,6 +2295,9 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
     }
 
     fun requestModernDownload(track: AudioTrack, book: String) {
+        if(AbSourceAvailability.get(prefs,currentUrl)==AbChapterAvailability.PREVIEW && player?.tracks?.any{it.src==track.src}==true){
+            Toast.makeText(context,"Ознакомительный фрагмент: скачивание недоступно",Toast.LENGTH_SHORT).show();return
+        }
         if(isTrackDownloaded(track,book,downloadedIndex)) {
             trackStates[track.title]=TrackState.DOWNLOADED
             return
@@ -2802,8 +2812,21 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                                         if (
                                             parsed != null
                                         ) {
-                                            AbSourceAvailability.record(prefs,url,parsed.tracks.isNotEmpty(),
-                                                preview=EditionDownloadRules.isPreview(root.optString("title"),parsed.tracks.map{it.src}))
+                                            val opening=bookOpening
+                                            val availability=AbSourceAvailability.observe(prefs,url,pageTitle,parsed)
+                                            if(opening!=null&&opening.sourceUrl!=url)AbSourceAvailability.record(prefs,opening.sourceUrl,parsed.tracks.isNotEmpty(),
+                                                preview=availability==AbChapterAvailability.PREVIEW,suspected=availability==AbChapterAvailability.SUSPECTED)
+                                            if(AbSourceAvailability.hidden(availability)){
+                                                resumeAfterLoad=false
+                                                if(prefs.getBoolean("search_hide_previews",false)){
+                                                    val next=opening?.book?.let{bookSources(it)}?.firstOrNull{source->
+                                                        source.url!=url&&source.url!=opening.sourceUrl&&!AbSourceAvailability.hidden(AbSourceAvailability.get(prefs,source.url))
+                                                    }
+                                                    if(next!=null&&opening!=null)openWebsiteBook(opening.book,next.url,false)
+                                                    else failBookOpening("Издание содержит демо или возможный фрагмент. Вернитесь к результатам и выберите другой источник.")
+                                                    return@launch
+                                                }
+                                            }
 
                                             player =
                                                 parsed
@@ -2839,7 +2862,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                                                 )
                                                 .apply()
 
-                                            StableProgress.observe(prefs,realBookTitle,parsed.tracks,true)
+                                            if(!AbSourceAvailability.hidden(availability))StableProgress.observe(prefs,realBookTitle,parsed.tracks,true)
                                             parsed.tracks.forEach { track ->
 
                                                 trackStates[
@@ -2872,7 +2895,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                                             librarySync.requestSync()
 
                                             status =
-                                                if (
+                                                if(AbSourceAvailability.hidden(availability)) availability.label else if (
                                                     already > 0
                                                 ) {
 
@@ -8445,7 +8468,7 @@ private suspend fun abProbeCycleEdition(context:Context,volume:OfficialEdition,a
                         finish(error.isBlank() && parsed!=null && parsed.tracks.isNotEmpty() &&
                             aliases.any{OfficialCycleSearch.matches(cycleTitle,it,actualTitle)} &&
                             SeriesAuthorityRules.author(actualAuthor.ifBlank{candidateAuthor})==SeriesAuthorityRules.author(volume.author) &&
-                            !EditionDownloadRules.isPreview(actualTitle,parsed.tracks.map{it.src}))
+                            !AbSourceAvailability.hidden(AbSourceAvailability.observe(context.getSharedPreferences("audiobook_downloader",0),address,actualTitle,parsed)))
                     }
                     task=created
                     AbWebViews.onClose(this){created.close();finish(false)}
@@ -8523,7 +8546,7 @@ private suspend fun abResolveCycleAudio(context:Context,prefs:android.content.Sh
         val candidates=books.filter{position(it)==i}.mapNotNull{candidate->
             val links=bookSources(candidate).filter{source->
                 supportedBookUrl(source.url)!=null&&SeriesAuthorityRules.provider(source.url).isBlank()&&
-                    AbSourceAvailability.get(prefs,source.url)!=AbChapterAvailability.PREVIEW
+                    !AbSourceAvailability.hidden(AbSourceAvailability.get(prefs,source.url))
             }
             if(links.isEmpty()||EditionDownloadRules.isPreview(candidate.title,emptyList()))null else {
                 val first=links.first()
@@ -9820,8 +9843,16 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
     val seriesStatus=SeriesAuthorityWatcher(verificationTargets,prefs)
     // Playback ticks and lazy-list recycling must not reparse every book's reference metadata.
     val seriesRevision=remember(prefs,data.version) {prefs.getInt("book_series_revision",0)}
+    var chapterRevision by remember(prefs){mutableIntStateOf(0)}
+    DisposableEffect(prefs){
+        val listener=android.content.SharedPreferences.OnSharedPreferenceChangeListener{_,key->
+            if(key?.startsWith(AbSourceAvailability.OBSERVATION_PREFIX)==true)chapterRevision++
+        }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        onDispose{prefs.unregisterOnSharedPreferenceChangeListener(listener)}
+    }
     val prepared by androidx.compose.runtime.produceState<List<AbSearchRow>?>(null,
-        data.results,books,seriesRevision,data.cycle,data.cycleBrowsing,data.query,data.genre,hidePreviews,narratorFilter,seriesOnly,localOnly) {
+        data.results,books,seriesRevision,chapterRevision,data.cycle,data.cycleBrowsing,data.query,data.genre,hidePreviews,narratorFilter,seriesOnly,localOnly) {
         value=AbSearchRows.prepare(data.results,books,prefs,data.cycle.takeIf{data.cycleBrowsing},
             query=if(data.genre.isBlank()&&!data.cycleBrowsing)data.query else "",hidePreviews=hidePreviews,
             narrator=narratorFilter,seriesOnly=seriesOnly,localOnly=localOnly)
@@ -10159,6 +10190,7 @@ internal fun AbSearchResultCard(row:AbSearchRow,theme:AbTheme,onOpen:(BookLink,S
         if(book.catalogState=="checked")Text("Главы проверены · запуск аудио проверяется при воспроизведении",color=theme.accent,fontSize=11.sp)
         if(book.catalogState=="candidate")Text("Аудиоиздание найдено · главы проверяются при открытии",color=theme.muted,fontSize=11.sp)
         if(AbSourceAvailability.isPreview(sourcePrefs,book))Text("Демо · ознакомительный фрагмент",color=theme.error,fontSize=12.sp)
+        else if(AbSourceAvailability.get(sourcePrefs,book.url)==AbChapterAvailability.SUSPECTED)Text("Возможный фрагмент · полнота не подтверждена",color=theme.muted,fontSize=12.sp)
         if(book.genres.isNotEmpty()) Text(book.genres.joinToString(" · "),color=theme.muted,fontSize=11.sp)
         book.cycles.forEach {cycle ->
             Text("${if(cycle.referenceUrl.isNotBlank()) "Сверено" else "По источнику"}: ${cycle.title} · ${abVolumeLabel(cycle)}",
@@ -10356,6 +10388,7 @@ private fun AbOnlineBookDetails(data: AbScreenData,actions: AbActions,books: Lis
     val book=data.onlineBook ?: return
     val title=cleanBookTitle(data.pageTitle)
     val ref=BookRef(title,data.pageUrl,data.pageCover)
+    val availability=AbSourceAvailability.get(prefs,data.pageUrl)
     val downloaded=book.tracks.count{data.trackStates[it.title]==TrackState.DOWNLOADED}
     val active=data.downloads.any{AbLibraryHousekeeping.bookKey(it.book)==AbLibraryHousekeeping.bookKey(title) && it.state==TrackState.DOWNLOADING}
     Column(verticalArrangement=Arrangement.spacedBy(13.dp)) {
@@ -10371,6 +10404,7 @@ private fun AbOnlineBookDetails(data: AbScreenData,actions: AbActions,books: Lis
                 AbIconButton(AbIcon.MORE,"Действия с книгой",theme,onClick={onMenu(ref)})
             }
         }
+        if(AbSourceAvailability.hidden(availability))Text(availability.label,color=theme.error,fontSize=13.sp)
         Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
             AbButton("Слушать",theme,Modifier.weight(1f),primary=true,enabled=book.tracks.isNotEmpty()) {
                 val index=StableProgress.resume(prefs,title,book.tracks.map {
@@ -10378,7 +10412,7 @@ private fun AbOnlineBookDetails(data: AbScreenData,actions: AbActions,books: Lis
                 actions.playOnline(index)
             }
             AbButton(if(active) "Загружается…" else if(downloaded>=book.tracks.size) "Скачана" else if(downloaded>0) "Дозагрузить" else "Скачать",
-                theme,Modifier.weight(1f),enabled=downloaded<book.tracks.size && !active) {
+                theme,Modifier.weight(1f),enabled=downloaded<book.tracks.size && !active && availability!=AbChapterAvailability.PREVIEW) {
                 book.tracks.forEach{actions.download(it,title)}
             }
         }
@@ -11550,7 +11584,7 @@ internal data class AbDownloadEdition @JvmOverloads constructor(val ref:BookRef,
 internal fun abDownloadEdition(ref:BookRef,root:JSONObject,url:String):AbDownloadEdition? {
     val parsed=root.optJSONObject("player")?.let{parsePlayer(it)} ?: return null
     return AbDownloadEdition(ref.copy(url=url,cover=root.optString("cover").ifBlank{ref.cover}),parsed.tracks,
-        EditionDownloadRules.isPreview(ref.title+" "+root.optString("title"),parsed.tracks.map{it.src}),
+        EditionDownloadRules.isPreviewPlaylist(ref.title+" "+root.optString("title"),parsed.tracks.map{it.src},parsed.tracks.map{it.title}),
         sourceTitle=root.optString("title"),sourceAuthor=root.optString("author"),sourceCycles=nextVolumeSourceCycles(root.optJSONArray("cycles"),url))
 }
 
@@ -11732,7 +11766,7 @@ internal fun AbReadDownloadEdition(ref:BookRef,done:(AbDownloadEdition?,String)-
             try {
                 val loaded=withContext(Dispatchers.IO){VerifiedBooks.load(ref.url)}
                 val edition=AbDownloadEdition(ref.copy(cover=loaded.cover.ifBlank{ref.cover}),loaded.data.tracks,
-                    EditionDownloadRules.isPreview(loaded.title,loaded.data.tracks.map{it.src}))
+                    EditionDownloadRules.isPreviewPlaylist(loaded.title,loaded.data.tracks.map{it.src},loaded.data.tracks.map{it.title}))
                 AbSourceAvailability.record(observationPrefs,ref.url,edition.tracks.isNotEmpty(),preview=edition.preview)
                 report(edition,"")
             }catch(cancel:kotlinx.coroutines.CancellationException){throw cancel}
