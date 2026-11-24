@@ -50,8 +50,11 @@ class UpdateSessionTest {
         assertTrue(session.check());assertEquals("Проверяем обновления…",session.primaryLabel())
         tasks.finish();assertEquals("Загрузить обновление",session.primaryLabel())
         backend.onDownload={progress->
-            progress(13);assertEquals("Скачивается… 13%",session.primaryLabel())
+            progress(13);assertEquals("Скачивается…",session.primaryLabel())
+            assertEquals("Загрузка обновления: 13%",session.snapshot().message)
+            assertFalse(session.primaryLabel().contains("%"))
             progress(100);assertEquals("Проверяем APK…",session.primaryLabel())
+            assertEquals("APK скачан. Проверяю целостность и подпись…",session.snapshot().message)
         }
         assertTrue(session.download());assertEquals("Подготовка загрузки…",session.primaryLabel())
         tasks.finish()

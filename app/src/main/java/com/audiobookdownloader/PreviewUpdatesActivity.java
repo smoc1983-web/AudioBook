@@ -64,8 +64,9 @@ public final class PreviewUpdatesActivity extends Activity {
     private void render(){
         if(isDestroyed()||primary==null)return;
         UpdateUiState state=session.snapshot();
+        // Progress belongs to the status text only. While work runs, only Cancel is actionable.
+        primary.setVisibility(state.busy?View.GONE:View.VISIBLE);
         primary.setEnabled(!state.busy);
-        primary.setAlpha(state.busy?0.65f:1f);
         primary.setText(session.primaryLabel());
         if(cancel!=null){
             cancel.setVisibility(state.busy?View.VISIBLE:View.GONE);

@@ -86,7 +86,7 @@ internal class UpdateSession(val target:File,private val factory:()->UpdateBacke
                         if(active===running&&!running.cancelled){
                             val progress=percent.coerceIn(0,100)
                             state=if(progress==100)state.copy(message="APK скачан. Проверяю целостность и подпись…",busyLabel="Проверяем APK…")
-                            else state.copy(message="Загрузка обновления: $progress%",busyLabel="Скачивается… $progress%")
+                            else state.copy(message="Загрузка обновления: $progress%",busyLabel="Скачивается…")
                         }
                     }
                     changed()
