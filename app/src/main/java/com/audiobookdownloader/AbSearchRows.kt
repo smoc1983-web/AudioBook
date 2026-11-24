@@ -60,8 +60,13 @@ internal object AbSearchRows {
         // Availability never reorders numbered volumes. Lazy keys identify the work,
         // not whichever server happened to finish first.
         groups.mapNotNull{(key,editions)->
-            val book=editions.first()
-            indexed[book.url]?.copy(book=book,sources=bookSources(book),editions=editions,key=key)
+            // Only previously checked chapter lists affect preferred edition order.
+            // The known list is not proof of successful audio-stream playback.
+            val ordered=AbOfficialAudioLookup.orderByChapterEvidence(editions) {
+                AbSourceAvailability.priority(prefs,bookSources(it))
+            }
+            val book=ordered.first()
+            indexed[book.url]?.copy(book=book,sources=bookSources(book),editions=ordered,key=key)
         }
     }
 }

@@ -2458,6 +2458,16 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
         retryBook = {bookOpening?.let{openWebsiteBook(it.book,it.sourceUrl)}},
         query = { searchText = it },
         search = { runModernSearch() },
+        searchOfficial = { officialTitle ->
+            val exact=AbOfficialAudioLookup.query(officialTitle)
+            if(exact.isNotBlank()) {
+                selectedSearchSource=""
+                prefs.edit().putString("search_source","").apply()
+                searchText=exact
+                startCommonBookSearch()
+                appPage=AppPage.SEARCH
+            }
+        },
         searchRanked = { book ->
             searchText=book.title
             startCommonBookSearch(book)
@@ -8973,6 +8983,7 @@ private data class AbActions(
     val retryBook: () -> Unit,
     val query: (String) -> Unit,
     val search: () -> Unit,
+    val searchOfficial: (String) -> Unit,
     val searchRanked: (BookRankingRules.Book) -> Unit,
     val searchNarration: (NarrationLookup) -> Unit,
     val searchScope: (String) -> Unit,
@@ -10380,7 +10391,7 @@ internal fun AbCollectionShelf(shelf:Shelf,books:List<LibraryBook>,prefs:android
             }
         }
         if(!collapsed && chosen!=null)key(bookRefIdentity(chosen)) {
-            AbCollectionContinuations(chosen,books,prefs,version,theme,onOpen)
+            AbCollectionContinuations(chosen,books,prefs,version,theme,onOpen=onOpen)
         }
     }
     menuBook?.let { ref ->
@@ -10403,7 +10414,7 @@ internal fun AbCollectionShelf(shelf:Shelf,books:List<LibraryBook>,prefs:android
 
 @Composable
 internal fun AbCollectionContinuations(ref:BookRef,books:List<LibraryBook>,prefs:android.content.SharedPreferences,
-    version:Int,theme:AbTheme,onOpen:(BookRef)->Unit) {
+    version:Int,theme:AbTheme,onFindAudio:((String)->Unit)?=null,onOpen:(BookRef)->Unit) {
     val context=androidx.compose.ui.platform.LocalContext.current.applicationContext
     val store=remember(context){ContinuationStore(context)}
     var revision by remember{mutableStateOf(0)}
@@ -10449,7 +10460,7 @@ internal fun AbCollectionContinuations(ref:BookRef,books:List<LibraryBook>,prefs
             available.take(shown).forEach{book ->AbButton(book.title,theme){onOpen(BookRef(book.title,book.url,""))}}
             if(shown<available.size)AbButton("Ещё книги источника",theme){shown+=5}
         }
-        AbOfficialSeriesPanel(metadata.title,metadata.author,prefs,theme,compact=true)
+        AbOfficialSeriesPanel(metadata.title,metadata.author,prefs,theme,compact=true,onFindAudio=onFindAudio)
     }
 }
 
@@ -10460,7 +10471,7 @@ private fun AbCollectionsScreen(data: AbScreenData,actions: AbActions,books: Lis
     var continuationSettings by remember {mutableStateOf(false)}
     var management by remember {mutableStateOf(false)}
     if(continuationSettings) AbDialog("Продолжения",theme,{continuationSettings=false}) {
-        AbContinuationSettings(theme){ref -> continuationSettings=false;actions.openRef(ref)}
+        AbContinuationSettings(theme,onFindAudio={title->continuationSettings=false;actions.searchOfficial(title)}){ref -> continuationSettings=false;actions.openRef(ref)}
     }
     var downloadBooks by remember {mutableStateOf<List<BookRef>?>(null)}
     downloadBooks?.let {refs -> AbCollectionDownloads(refs,data.downloadedIndex,data.downloads,theme,
@@ -10504,7 +10515,7 @@ private fun AbCollectionsScreen(data: AbScreenData,actions: AbActions,books: Lis
                     onClick={actions.openRef(ref)},onMenu={showMenu=true})
                 if(showMenu)AbCollectionBookMenu(ref,theme,expanded,{downloadBooks=listOf(ref)},
                     {abRemoveShelfBook(prefs,selected.name,ref)},{expanded=!expanded},{showMenu=false})
-                if(expanded)AbCollectionContinuations(ref,books,prefs,data.version,theme,actions.openRef)
+                if(expanded)AbCollectionContinuations(ref,books,prefs,data.version,theme,onFindAudio=actions.searchOfficial,onOpen=actions.openRef)
             }
             if(selected.books.isEmpty()) item {
                 Text("Добавьте книги через меню карточки → «Добавить в коллекцию».",color=theme.muted,fontSize=14.sp)
@@ -10621,7 +10632,8 @@ private fun AbPlayerScreen(data: AbScreenData,actions: AbActions,books: List<Lib
                         val metadata=remember(prefs,state.bookTitle,data.version) {abStoredCatalog(prefs,state.bookTitle)}
                         AbPlayerSeries(metadata,ref,books,prefs,theme,actions.copy(
                             openRef={panel=null;actions.openRef(it)},cycle={panel=null;actions.cycle(it)},
-                            openSite={book,url->panel=null;actions.openSite(book,url)}),
+                            openSite={book,url->panel=null;actions.openSite(book,url)},
+                            searchOfficial={title->panel=null;actions.searchOfficial(title)}),
                             {panel=null;onShelf(it)},{panel=null;onSettings(it)})
                     }
                     AbPlayerPanel.BOOKMARKS -> {
@@ -10880,7 +10892,7 @@ private fun AbSeekButton(seconds: Int,state: ServicePlaybackState,theme: AbTheme
 }
 
 @Composable
-private fun AbContinuationSettings(theme:AbTheme,onOpen:(BookRef)->Unit) {
+private fun AbContinuationSettings(theme:AbTheme,onFindAudio:(String)->Unit,onOpen:(BookRef)->Unit) {
     val context=androidx.compose.ui.platform.LocalContext.current
     val store=remember{ContinuationStore(context)}
     var revision by remember{mutableStateOf(0)}
@@ -10944,7 +10956,7 @@ private fun AbContinuationSettings(theme:AbTheme,onOpen:(BookRef)->Unit) {
     watched.forEach{seed->AbButton(seed.title+if(referenceTitle==seed.title)" · свернуть" else " · открыть каталог серии",theme){referenceTitle=if(referenceTitle==seed.title)"" else seed.title}}
     if(referenceTitle.isNotBlank()) {
         val settings=context.getSharedPreferences("audiobook_downloader",0)
-        AbOfficialSeriesPanel(referenceTitle,abStoredCatalog(settings,referenceTitle).author,settings,theme)
+        AbOfficialSeriesPanel(referenceTitle,abStoredCatalog(settings,referenceTitle).author,settings,theme,onFindAudio=onFindAudio)
     }
     AbHeading("Новые продолжения из моих коллекций",theme)
     Text("По умолчанию показан последний найденный том каждой серии отдельно для текста и аудио.",color=theme.muted,fontSize=12.sp)
@@ -11159,7 +11171,7 @@ private fun AbSettingsDialog(data: AbScreenData,prefs: android.content.SharedPre
             AbButton("Выбрать фон из галереи",theme,onClick=actions.chooseBackground)
             if(data.backgroundUri!=null) AbButton("Вернуть фон темы",theme,onClick=actions.clearBackground)
         }
-        if(section==AbSettingsSection.CONTINUATIONS) {AbContinuationSettings(theme) {ref -> dismiss();actions.openRef(ref)}}
+        if(section==AbSettingsSection.CONTINUATIONS) {AbContinuationSettings(theme,onFindAudio={title->dismiss();actions.searchOfficial(title)}) {ref -> dismiss();actions.openRef(ref)}}
         if(section==AbSettingsSection.WIDGETS) {AbWidgetSettings(theme)}
         if(section==AbSettingsSection.SUPPORT) {
             AbHeading("Поддержать разработчика",theme)
@@ -12766,7 +12778,7 @@ private fun AbSeriesBlock(cycles: List<BookCycle>,theme: AbTheme,actions: AbActi
 }
 
 @Composable
-internal fun AbOfficialSeriesPanel(title:String,author:String,prefs:android.content.SharedPreferences,theme:AbTheme,compact:Boolean=false,autoRefresh:Boolean=true) {
+internal fun AbOfficialSeriesPanel(title:String,author:String,prefs:android.content.SharedPreferences,theme:AbTheme,compact:Boolean=false,autoRefresh:Boolean=true,onFindAudio:((String)->Unit)?=null) {
     val context=androidx.compose.ui.platform.LocalContext.current.applicationContext
     val store=remember(context){OfficialSeriesStore(context)}
     var revision by remember{mutableStateOf(0)}
@@ -12798,7 +12810,7 @@ internal fun AbOfficialSeriesPanel(title:String,author:String,prefs:android.cont
     }
     Column(Modifier.fillMaxWidth().abGlass(theme,17).padding(12.dp),verticalArrangement=Arrangement.spacedBy(9.dp)) {
         Text("Продолжения: текст и аудио",color=theme.text,fontSize=16.sp,fontWeight=FontWeight.SemiBold)
-        Text("Сверка прямой серии по Литрес и Author.Today. Ссылки открывают официальные страницы книг.",color=theme.muted,fontSize=12.sp)
+        Text("Литрес и Author.Today подтверждают состав и порядок серии, но не наличие рабочих аудиоглав. Для прослушивания ищите издание по названию в аудиоисточниках.",color=theme.muted,fontSize=12.sp)
         AbButton(if(running)"Сверяем справочники…" else "Сверить Литрес и Author.Today",theme,enabled=!running){refresh++}
         if(failure.isNotBlank())Text(failure,color=theme.muted,fontSize=12.sp)
         val current=snapshot?.takeIf{SeriesAuthorityRules.sameTitle(title,it.title,"")}
@@ -12844,6 +12856,10 @@ internal fun AbOfficialSeriesPanel(title:String,author:String,prefs:android.cont
                     },color=theme.accent,fontSize=12.sp)
                     Text(when{orders.size>1->"Порядок различается в справочниках";orders.size==1->"Том "+abVolumeLabel(BookCycle(book.series,order=orders.first())).removePrefix("Том ");else->"Порядок в серии не указан"},color=theme.muted,fontSize=11.sp)
                     if(orders.size!=1||current.sources.any{it.seedOrder==null})Text("Последовательность относительно текущей книги не подтверждена",color=theme.muted,fontSize=10.sp)
+                    if(onFindAudio!=null && AbOfficialAudioLookup.query(book.title).isNotBlank())
+                        AbButton("Найти аудио по точному названию",theme,primary=true) {
+                            onFindAudio.invoke(AbOfficialAudioLookup.query(book.title))
+                        }
                     editions.distinctBy{it.url}.forEach{edition->
                         val format=when(edition.format){"text"->"Текст";"audio"->"Аудио";else->"Формат не указан"}
                         val status=when(edition.status){"published"->"опубликовано";"ongoing"->"в процессе";"planned"->"анонс / предзаказ";else->"в каталоге; доступность не подтверждена"}
@@ -12886,7 +12902,7 @@ private fun AbPlayerSeries(metadata:BookLink,ref:BookRef,books:List<LibraryBook>
     if(progress.isNotBlank())Text(progress,color=theme.muted,fontSize=12.sp)
     AbSeriesBlock(metadata.cycles,theme,actions)
     if(metadata.cycles.isEmpty()&&progress.isBlank())Text("Серия пока не подтверждена. Выполните сверку справочников или посмотрите книги с похожим названием выше.",color=theme.muted,fontSize=12.sp)
-    AbOfficialSeriesPanel(metadata.title,metadata.author,prefs,theme,autoRefresh=local.none{it.title!=metadata.title})
+    AbOfficialSeriesPanel(metadata.title,metadata.author,prefs,theme,autoRefresh=local.none{it.title!=metadata.title},onFindAudio=actions.searchOfficial)
     NextVolumeWifiControls(metadata,ref,prefs,theme,actions.downloadBatch)
     AbButton("Обновить сведения аудиоисточника",theme){retry++}
     val available=remember(continuationRevision,metadata.title){val seedIds=continuationStore.seeds().filter{SeriesAuthorityRules.title(it.title)==SeriesAuthorityRules.title(ref.title)}.map{it.id}.toSet()
