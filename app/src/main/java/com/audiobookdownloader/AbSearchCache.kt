@@ -3,6 +3,11 @@ package com.audiobookdownloader
 import android.content.Context
 import android.content.SharedPreferences
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
@@ -25,6 +30,45 @@ internal object AbSearchCache {
         while(entries.size>128||entries.values.sumOf{it.result.books.size}>12000)entries.remove(entries.keys.first())
     }
     private fun folder(context:Context)=File(context.filesDir,"search-cache-v2")
+    private val importMutex=Mutex()
+    /** One-time, non-destructive migration of the old search metadata. No network requests. */
+    suspend fun warmIndex(context:Context)=withContext(Dispatchers.IO){
+        importMutex.withLock {
+            try {
+                val index=AbCatalogIndex.get(context)
+                if(index.imported())return@withLock
+                val job=currentCoroutineContext()
+                val now=System.currentTimeMillis()
+                var bytes=0L
+                for(f in folder(context).listFiles().orEmpty().filter{it.isFile&&it.extension=="json"}
+                    .sortedByDescending{it.lastModified()}.take(256)){
+                    job.ensureActive()
+                    if(f.length() !in 1L..(4L*1024*1024))continue
+                    bytes+=f.length()
+                    if(bytes>32L*1024*1024)break
+                    val j=try{JSONObject(f.readText())}catch(_:Exception){continue}
+                    if(j.optInt("schema")!=2||j.optString("key").isBlank())continue
+                    val observed=j.optLong("at",-1)
+                    if(observed<0||observed>now||now-observed>AbCatalogIndex.MAX_AGE)continue
+                    val books=objects(j.optJSONArray("books"),600).mapNotNull{
+                        try{decode(it)}catch(_:Exception){null}
+                    }
+                    index.record(books,observed,now){job.ensureActive()}
+                }
+                index.markImported()
+            }catch(cancel:CancellationException){throw cancel}
+            catch(_:Exception){/* JSON cache stays available; retry migration next launch. */}
+        }
+    }
+    /** Phase 2 will expose these matches in the search UI with a cached-data label. */
+    suspend fun localMatches(context:Context,query:String,sites:Set<String>,limit:Int=100):List<BookLink> {
+        warmIndex(context)
+        return withContext(Dispatchers.IO){
+            try{AbCatalogIndex.get(context).find(query,sites,limit)}
+            catch(cancel:CancellationException){throw cancel}
+            catch(_:Exception){emptyList()}
+        }
+    }
     private fun prefix(query:String)=ContinuationStore.hash(SearchBookIndex.normal(query))+"-"
     private fun file(context:Context,site:String,query:String)=File(folder(context),prefix(query)+ContinuationStore.hash(site)+".json")
     private fun array(values:List<String>)=JSONArray(values)
@@ -60,6 +104,10 @@ internal object AbSearchCache {
     suspend fun put(context:Context,site:String,query:String,result:SiteSearchResult) {
         put(site,query,result)
         withContext(Dispatchers.IO){
+            val job=currentCoroutineContext()
+            try{AbCatalogIndex.get(context).record(result.books){job.ensureActive()}}
+            catch(cancel:CancellationException){throw cancel}
+            catch(_:Exception){/* An index failure cannot discard a working network result. */}
             try{
                 val f=file(context,site,query);val dir=f.parentFile?:return@withContext
                 if(!dir.isDirectory&&!dir.mkdirs())return@withContext

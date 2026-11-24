@@ -1062,6 +1062,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
     // Keep mutable state in one observed holder, rather than 100+ local delegates.
     // Large Composer/register frames were rejected by Android's DEX verifier.
     val uiState=remember(prefs) {AbAppUiState(prefs)}
+    LaunchedEffect(context.applicationContext){AbSearchCache.warmIndex(context.applicationContext)}
     with(uiState) {
 
 
