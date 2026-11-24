@@ -56,7 +56,6 @@ public final class PreviewUpdatesActivity extends Activity {
         primary=button(root,"Проверить обновления",this::primaryAction);
         cancel=button(root,"Отменить",session::cancel);
         render();
-        text(root,"При первом обновлении Android попросит разрешить установку из приложения. Разрешение можно отозвать после установки. Скачивание выполняет Android: можно свернуть или закрыть приложение. При возвращении загрузка продолжится с сохранённым состоянием.",13);
     }
     private void primaryAction(){
         session.primary();
