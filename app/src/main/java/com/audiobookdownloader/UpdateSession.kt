@@ -14,7 +14,7 @@ internal interface UpdateBackend {
 
 internal data class UpdateUiState(@JvmField val busy:Boolean=false,
     @JvmField val release:PreviewUpdater.Release?=null,
-    @JvmField val message:String="После обновления новый номер версии появится вверху этого экрана. Проверка и загрузка выполняются здесь, без браузера.",
+    @JvmField val message:String="",
     @JvmField val rejectedCachedApk:Boolean=false,@JvmField val operationId:Long=0,
     @JvmField val busyLabel:String="")
 
@@ -40,8 +40,8 @@ internal class UpdateSession(val target:File,private val factory:()->UpdateBacke
         Operation.CHECK -> "Проверить обновления"
     }
     fun primary():Boolean=start(availableAction())
-    fun notesText():String=state.release?.notes?.takeIf{it.isNotEmpty()}?.let{"Что нового\n"+it}
-        ?: "Список изменений появится после проверки нового выпуска."
+    fun notesText():String=state.release?.takeIf{it.info.isNewer(BuildConfig.VERSION_CODE.toLong()) && it.notes.isNotBlank()}
+        ?.let{"Доступное обновление · ${it.info.versionName}\n"+it.notes}.orEmpty()
     fun addListener(listener:Listener){synchronized(lock){listeners.add(listener)};listener.changed()}
     fun removeListener(listener:Listener){synchronized(lock){listeners.remove(listener)}}
     private fun changed(){synchronized(lock){listeners.toList()}.forEach{it.changed()}}

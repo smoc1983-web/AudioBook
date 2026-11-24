@@ -22,6 +22,7 @@ public final class PreviewUpdatesActivity extends Activity {
     private Button primary;
     private Button cancel;
     private TextView changes;
+    private String installedNotes;
     private boolean waitingForPermission;
     private static final int INSTALL_REQUEST=72;
     private boolean flat(){return getSharedPreferences("audiobook_downloader",0).getInt("glass_theme",2)==10;}
@@ -50,12 +51,26 @@ public final class PreviewUpdatesActivity extends Activity {
         scroll.addView(root);setContentView(scroll);
         text(root,"Обновления "+BuildConfig.PRODUCT_NAME,25).setTypeface(null,Typeface.BOLD);
         text(root,"Установлена "+BuildConfig.VERSION_NAME+" · "+BuildConfig.VERSION_CODE,14);
-        text(root,"Здесь можно проверить, скачать и установить обновление Audiobook. Удалять приложение перед обновлением не нужно.",15);
-        status=text(root,"После обновления новый номер версии появится вверху этого экрана. Проверка и загрузка выполняются здесь, без браузера.",15);status.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);
-        changes=text(root,"Список изменений появится после проверки нового выпуска.",14);
+        installedNotes=readInstalledNotes();
+        status=text(root,"",15);status.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);
+        changes=text(root,installedNotes,14);
         primary=button(root,"Проверить обновления",this::primaryAction);
         cancel=button(root,"Отменить",session::cancel);
         render();
+    }
+    private String readInstalledNotes(){
+        StringBuilder notes=new StringBuilder("Последнее обновление · ").append(BuildConfig.VERSION_NAME);
+        try(java.io.BufferedReader reader=new java.io.BufferedReader(new java.io.InputStreamReader(
+                getAssets().open("release-notes.json"),java.nio.charset.StandardCharsets.UTF_8))){
+            StringBuilder json=new StringBuilder();String line;
+            while((line=reader.readLine())!=null)json.append(line);
+            org.json.JSONArray list=new org.json.JSONObject(json.toString()).optJSONArray("changes");
+            if(list!=null)for(int i=0;i<Math.min(list.length(),12);i++){
+                String change=list.optString(i,"").trim();
+                if(!change.isEmpty())notes.append("\n• ").append(change);
+            }
+        }catch(Exception ignored){/* The installed version remains visible even without bundled notes. */}
+        return notes.toString();
     }
     private void primaryAction(){
         session.primary();
@@ -72,7 +87,9 @@ public final class PreviewUpdatesActivity extends Activity {
             cancel.setEnabled(!"Отмена…".equals(state.busyLabel));
         }
         status.setText(state.message);
-        changes.setText(session.notesText());
+        status.setVisibility(state.message.isEmpty()?View.GONE:View.VISIBLE);
+        String availableNotes=session.notesText();
+        changes.setText(availableNotes.isEmpty()?installedNotes:availableNotes);
         if(resumed){
             File prepared=session.claimInstaller();
             if(prepared!=null){verifiedInstallerFile=prepared;launchInstaller();}
