@@ -39,7 +39,7 @@ internal object AbSearchDiagnosticReport {
             message.contains("вовремя")||message.contains("не ответил")||message.contains("тайм") -> "TIMEOUT"
             message.contains("http 5")||message.contains("ошибка сервера") -> "SERVER"
             message.contains("форма поиска") -> "FORM"
-            message.contains("разбор страницы") -> "PARSE"
+            (message.contains("разбор страницы")||message.contains("разбора страницы")) -> "PARSE"
             message.contains("ещё страницы")||message.contains("еще страницы") -> "PARTIAL"
             message.isNotBlank() -> "ERROR"
             count>0 -> "OK"
