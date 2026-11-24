@@ -91,7 +91,8 @@ internal object OfficialCycleSearch {
         cached(query)?.let{return@withContext it}
         val store=context?.let{OfficialSeriesStore(it.applicationContext)}
         val stored=store?.read("Цикл: "+query,"")
-        if(stored!=null&&stored.sources.isNotEmpty()&&stored.sources.all{it.complete&&System.currentTimeMillis()-it.checked in 0..7*86_400_000L}){
+        if(stored!=null&&stored.sources.map{it.provider}.toSet().containsAll(setOf("Author.Today","Литрес"))&&
+            stored.sources.all{it.complete&&it.error.isBlank()&&System.currentTimeMillis()-it.checked in 0..86_400_000L}){
             return@withContext Template(stored.author,stored.sources).also{save(query,it)}
         }
         val sources=supervisorScope{
@@ -99,6 +100,11 @@ internal object OfficialCycleSearch {
                 try{withTimeoutOrNull(25_000L){read(query,provider)}}
                 catch(c:CancellationException){throw c}catch(_:Exception){null}
             }}.awaitAll().filterNotNull()
+        }
+        if(sources.isEmpty()&&stored!=null&&stored.sources.isNotEmpty()){
+            // Keep an old catalogue available offline, but never claim it was freshly confirmed.
+            val fallback=stored.sources.map{it.copy(complete=false,error="Справочник сейчас недоступен; сохранённый список")}
+            return@withContext Template(stored.author,fallback).also{save(query,it)}
         }
         val authors=sources.flatMap{it.books}.map{it.author}.distinctBy{SeriesAuthorityRules.author(it)}
         if(authors.size!=1)return@withContext null
@@ -110,6 +116,14 @@ internal object OfficialCycleSearch {
         return source.books.filter{it.order!=null}.groupBy{it.order}.values.mapNotNull{editions->
             editions.firstOrNull{it.format=="text"} ?: editions.firstOrNull()
         }.sortedBy{it.order}
+    }
+    internal fun sourceSummary(sources:List<OfficialSource>):String {
+        val reports=sources.distinctBy{it.provider}.map{
+            val count=ordered(it).size
+            it.provider+": "+count+(if(!it.complete||it.error.isNotBlank())" (неполный/сохранённый список)" else "")
+        }
+        val missing=listOf("Author.Today","Литрес").filter{provider->sources.none{it.provider==provider}}
+        return (reports+missing.map{"$it: не подтверждён"}).joinToString(" · ")
     }
     fun template(cycle:String,sources:List<OfficialSource>):List<OfficialEdition> {
         val ranked=sources.filter{it.books.isNotEmpty()}.sortedWith(

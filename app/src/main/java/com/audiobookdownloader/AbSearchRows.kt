@@ -23,14 +23,25 @@ internal object AbSearchRows {
             it.editionId.isNotBlank() && !it.identityAmbiguous
         }.groupBy { it.editionId } else emptyMap()
         val expected=cycle?.let{AbSearchPresentation.seriesKey(it.title)}
+        val missingStates=setOf("pending","missing","incomplete")
+        fun officialPosition(book:BookLink)=book.cycles.firstOrNull{
+            expected!=null&&AbSearchPresentation.seriesKey(it.title)==expected&&it.order!=null&&it.referenceUrl.isNotBlank()&&book.catalogState.isNotBlank()
+        }
+        fun unavailable(book:BookLink):BookLink? {
+            val position=officialPosition(book) ?: return null
+            // A missing audio edition does not remove a bibliographic volume.
+            return book.copy(url=position.referenceUrl,sources=emptyList(),narrator="",catalogState="incomplete")
+        }
         val rows=books.mapNotNull{input->
             currentCoroutineContext().ensureActive()
             val raw=if(input.catalogState in setOf("pending","missing","incomplete"))input else {
                 val sources=bookSources(input).filterNot{AbSourceAvailability.tooSmall(prefs,it.url)}
-                if(sources.isEmpty())return@mapNotNull null
-                val first=sources.firstOrNull{it.url==input.url}?:sources.first()
-                val sized=input.copy(url=first.url,coverUrl=first.coverUrl.ifBlank{input.coverUrl},sources=sources)
-                if(hidePreviews)AbSourceAvailability.withoutPreviews(prefs,sized)?:return@mapNotNull null else sized
+                if(sources.isEmpty())unavailable(input)?:return@mapNotNull null
+                else {
+                    val first=sources.firstOrNull{it.url==input.url}?:sources.first()
+                    val sized=input.copy(url=first.url,coverUrl=first.coverUrl.ifBlank{input.coverUrl},sources=sources)
+                    if(hidePreviews)AbSourceAvailability.withoutPreviews(prefs,sized)?:unavailable(input)?:return@mapNotNull null else sized
+                }
             }
             if(author.isNotBlank()&&!SearchBookIndex.normal(raw.author).contains(SearchBookIndex.normal(author)))return@mapNotNull null
             if(genre.isNotBlank()&&raw.genres.none{SearchBookIndex.normal(it).contains(SearchBookIndex.normal(genre))})return@mapNotNull null
@@ -64,13 +75,17 @@ internal object AbSearchRows {
             val work=AbSearchPresentation.work(book)
             val order=book.cycles.filter{it.order!=null}.sortedBy{AbSearchPresentation.seriesKey(it.title)}
                 .joinToString("|"){AbSearchPresentation.seriesKey(it.title)+":"+it.order}
-            groups.getOrPut(work+"\u0000"+order){ArrayList()}.add(book)
+            val official=officialPosition(book)
+            val group=if(official!=null)"official:"+expected+"\u0000"+SeriesAuthorityRules.author(book.author)+"\u0000"+official.order else work+"\u0000"+order
+            groups.getOrPut(group){ArrayList()}.add(book)
         }
         // Availability never reorders numbered volumes. Lazy keys identify the work,
         // not whichever server happened to finish first.
         groups.mapNotNull{(key,editions)->
             // Availability changes badges, never the position of an existing voice.
-            val ordered=editions.sortedWith(compareBy<BookLink>{SearchEditionIdentity.voiceKey(it.title,it.narrator)}.thenBy{it.url})
+            val playableEditions=editions.filter{it.catalogState !in missingStates}
+            val visible=if(playableEditions.isNotEmpty())playableEditions else editions.take(1)
+            val ordered=visible.sortedWith(compareBy<BookLink>{SearchEditionIdentity.voiceKey(it.title,it.narrator)}.thenBy{it.url})
             val book=ordered.first()
             indexed[book.url]?.copy(book=book,sources=bookSources(book),editions=ordered,key=key)
         }

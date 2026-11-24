@@ -46,6 +46,23 @@ class SearchEditionsTest {
             assertEquals(2,next.first().editions.size)
         } finally {p.edit().clear().commit()}
     }
+    @Test fun hiddenDemoDoesNotEraseOfficialCyclePosition()=runBlocking {
+        val p=ApplicationProvider.getApplicationContext<Context>().getSharedPreferences("cycle-count-regression",0)
+        val cycle=BookCycle("Приключения")
+        fun item(voice:String,site:String,n:Double)=book(voice,site,n).copy(
+            title="Книга $n",catalogState="candidate",cycles=listOf(cycle.copy(order=n,referenceUrl="https://author.today/work/"+n.toInt())))
+        try {
+            val demo=item("Иван","demo",1.0)
+            val full=item("Пётр","full",2.0)
+            val secondVoice=item("Иван","other",2.0)
+            AbSourceAvailability.record(p,demo.url,true,preview=true)
+            val result=AbSearchRows.prepare(listOf(demo,full,secondVoice),emptyList(),p,cycle,hidePreviews=true)
+            assertEquals(listOf(1.0,2.0),result.map{it.book.cycles.single().order})
+            assertEquals("incomplete",result.first().book.catalogState)
+            assertEquals(2,result.last().editions.size)
+            assertTrue(result.first().sources.isEmpty())
+        }finally{p.edit().clear().commit()}
+    }
     @Test fun checkingLaterVoiceDoesNotReorderEditions()=runBlocking {
         val p=ApplicationProvider.getApplicationContext<Context>().getSharedPreferences("search-stable-voices",0)
         try {

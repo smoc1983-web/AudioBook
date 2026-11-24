@@ -8647,7 +8647,7 @@ private suspend fun abResolveCycleAudio(context:Context,prefs:android.content.Sh
 
     fun reference(v:OfficialEdition)=cycle.copy(order=v.order,referenceUrl=v.url,referenceSite=v.provider,seedTitle=v.title,seedAuthor=v.author)
     fun placeholder(v:OfficialEdition,state:String)=BookLink(v.title,v.url,author=v.author,cycles=listOf(reference(v)),catalogState=state)
-    val partial=catalogs.none{it.complete&&it.error.isBlank()}
+    val partial=catalogs.map{it.provider}.toSet().size<2||catalogs.any{!it.complete||it.error.isNotBlank()}
     val aliases=volumes.map{OfficialCycleSearch.aliases(cycle.title,it,catalogs)}
     val volumeAuthors=volumes.map{SeriesAuthorityRules.author(it.author)}
     val aliasIndex=mutableMapOf<String,MutableSet<Int>>()
@@ -8684,7 +8684,7 @@ private suspend fun abResolveCycleAudio(context:Context,prefs:android.content.Sh
             listOf(placeholder(volumes[i],if(finished)"incomplete" else "pending"))
         }}
         val found=checkpoint.rows.values.count{list->list.any{it.catalogState in setOf("candidate","checked")}}
-        publish(rows,finished,"Порядок: ${catalogs.joinToString(" + "){it.provider}} · ${volumes.size} книг${if(partial)" (список может быть неполным)" else ""}. Найдено аудио: $found/${volumes.size}. $stage")
+        publish(rows,finished,"По справочникам: ${volumes.size} книг${if(partial)" (сверка неполная)" else ""}. ${OfficialCycleSearch.sourceSummary(catalogs)}. Найдено аудио: $found/${volumes.size}. $stage")
     }
     report("Сверяю найденные книги…")
     // Stage 1: one broad query per source; stream successful results into all slots.
@@ -10022,6 +10022,14 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
     }
     val selectedIndex=if(data.restoreSelection)resultBooks.indexOfFirst{it.key==data.selectedResultKey||it.editions.any{e->bookSources(e).any{src->src.url==data.selectedResultUrl}}} else -1
     val visibleResults=remember(resultBooks,visibleCount,selectedIndex) {resultBooks.take(maxOf(visibleCount,selectedIndex+1))}
+    val officialCycleCount=remember(data.results,data.cycle,data.cycleBrowsing){
+        if(!data.cycleBrowsing||data.cycle==null)0 else {
+            val key=AbSearchPresentation.seriesKey(data.cycle.title)
+            data.results.asSequence().filter{it.catalogState.isNotBlank()}.flatMap{it.cycles.asSequence()}
+                .filter{AbSearchPresentation.seriesKey(it.title)==key&&it.referenceUrl.isNotBlank()}
+                .mapNotNull{it.order}.distinct().count()
+        }
+    }
     val searchForeground=LocalAbVisible.current
     LaunchedEffect(data.searchScreenId,data.searching,visibleCount,searchForeground,hidePreviews,prepared!=null) {
         if(!searchForeground||data.onlineBook!=null||data.cycleBrowsing||data.searching||!data.searchActive||prepared==null)return@LaunchedEffect
@@ -10144,7 +10152,8 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
         if(resultBooks.isNotEmpty() || data.cycleBrowsing || data.genre.isNotBlank()) item {
             AbHeading(if(data.genre.isNotBlank()) "Жанр: ${data.genre}"
                 else if(data.cycleBrowsing) data.cycle?.title ?: "Книги цикла" else "Результаты",theme,
-                "${if(data.genre.isNotBlank())minOf(resultBooks.size,visibleCount) else resultBooks.size} книг")
+                if(officialCycleCount>0)"$officialCycleCount книг по справочникам · ${resultBooks.size} после фильтров"
+                else "${if(data.genre.isNotBlank())minOf(resultBooks.size,visibleCount) else resultBooks.size} книг")
         }
         if(data.cycleBrowsing && resultBooks.isNotEmpty()) item {
             Text(if(data.results.any{it.catalogState.isNotBlank()})"Позиции из справочников. Найденные аудиоиздания появляются постепенно; непроверенные главы обозначены отдельно." else "Порядок по сведениям источника.",

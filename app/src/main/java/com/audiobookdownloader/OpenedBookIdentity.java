@@ -48,7 +48,9 @@ public final class OpenedBookIdentity {
         Part a=part(wanted,author,cycle),b=part(actual,author,cycle);
         if(a.key.isEmpty()||!a.key.equals(b.key))return false;
         if(a.number!=null&&b.number!=null&&!a.number.equals(b.number))return false;
-        if(expectedOrder!=null&&((a.number!=null&&!expectedOrder.equals(a.number))||(b.number!=null&&!expectedOrder.equals(b.number))))return false;
+        // The official catalogue position is not the printed number in a series title.
+        // E.g. Fayroll-12 can occupy position 14 when earlier works have multiple volumes.
+        // Compare explicit title numbers to each other, not to the catalogue ordinal.
         return true;
     }
 }

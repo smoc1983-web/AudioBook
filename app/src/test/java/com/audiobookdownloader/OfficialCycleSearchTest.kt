@@ -12,6 +12,13 @@ class OfficialCycleSearchTest {
         assertTrue(OfficialCycleSearch.matches("Файролл",items.first().title,"Квадратура круга. Том 1"))
         assertFalse(OfficialCycleSearch.matches("Файролл",items.first().title,"Квадратура круга. Том 2"))
     }
+    @Test fun oneProviderIsNotPresentedAsBothAndEditionsCountOnce(){
+        val books=listOf(book("Файролл-1. Игра не ради игры",1.0),book("Игра не ради игры",1.0).copy(format="audio"),book("Пути Востока",2.0))
+        val source=OfficialSource("Author.Today",complete=true,books=books)
+        assertEquals(2,OfficialCycleSearch.template("Файролл",listOf(source)).size)
+        assertTrue(OfficialCycleSearch.sourceSummary(listOf(source)).contains("Author.Today: 2"))
+        assertTrue(OfficialCycleSearch.sourceSummary(listOf(source)).contains("Литрес: не подтверждён"))
+    }
     @Test fun equivalentEditionsAndDifferentCycleLabels(){
         assertTrue(OfficialCycleSearch.seriesMatches("Файролл","Файролл. Хроники Хейгена"))
         assertTrue(OfficialCycleSearch.matches("Файролл","Файролл-11. Снисхождение. Том 1","Файролл. Снисхождение. Том 1 (+Бонус)"))
