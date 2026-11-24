@@ -83,4 +83,23 @@ class AbSourceAvailabilityJvmTest {
         assertNull(AbSourceAvailability.withoutPreviews(p,book.copy(sources=listOf(BookSource("one",demo)))))
         assertNull(AbSourceAvailability.withoutPreviews(p,book.copy(title="Книга (демоверсия)")))
     }
+    @Test fun searchSuppressesRecentEmptyAndDemoButRetainsUnknownAndPreferredAudio() {
+        val p=preferences()
+        val dead="https://dead.example/book";val demo="https://demo.example/book"
+        val unknown="https://unknown.example/book";val live="https://live.example/book"
+        AbSourceAvailability.record(p,dead,false)
+        AbSourceAvailability.record(p,demo,true,preview=true)
+        AbSourceAvailability.record(p,live,true)
+        val book=BookLink("Книга",dead,sources=listOf(BookSource("dead",dead),BookSource("demo",demo),BookSource("unknown",unknown),BookSource("live",live)))
+        val filtered=AbSourceAvailability.searchCandidates(p,book,false)!!
+        assertEquals(live,filtered.url)
+        assertEquals(listOf(unknown,live),filtered.sources.map{it.url})
+        assertNull(AbSourceAvailability.searchCandidates(p,book.copy(sources=listOf(BookSource("dead",dead))),false))
+    }
+    @Test fun emptyPlaylistCanBeRetriedAfterFifteenMinutes() {
+        val p=preferences();val url="https://dead.example/book"
+        AbSourceAvailability.record(p,url,false,1000)
+        assertEquals(AbChapterAvailability.EMPTY,AbSourceAvailability.get(p,url,1000+899999L))
+        assertEquals(AbChapterAvailability.UNKNOWN,AbSourceAvailability.get(p,url,1000+900001L))
+    }
 }

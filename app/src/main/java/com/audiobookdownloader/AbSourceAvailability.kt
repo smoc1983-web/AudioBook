@@ -11,6 +11,7 @@ internal enum class AbChapterAvailability(val priority:Int,val label:String) {
 internal object AbSourceAvailability {
     private const val PREFIX="search_chapters_v1_"
     private const val MAX_AGE=30L*24*60*60*1000
+    private const val EMPTY_AGE=15L*60*1000
     private fun key(url:String):String {
         val digest=MessageDigest.getInstance("SHA-256").digest(url.substringBefore('#').trimEnd('/').toByteArray(Charsets.UTF_8))
         return PREFIX+buildString(digest.size*2){for(byte in digest){val n=byte.toInt() and 255;append("0123456789abcdef"[n ushr 4]);append("0123456789abcdef"[n and 15])}}
@@ -19,7 +20,8 @@ internal object AbSourceAvailability {
         val raw=prefs.getString(key(url),null)?:return AbChapterAvailability.UNKNOWN
         val parts=raw.split(':',limit=2)
         val at=parts.getOrNull(1)?.toLongOrNull()?:return AbChapterAvailability.UNKNOWN
-        if(at>now || now-at>MAX_AGE){prefs.edit().remove(key(url)).apply();return AbChapterAvailability.UNKNOWN}
+        val ageLimit=if(parts[0]=="no")EMPTY_AGE else MAX_AGE
+        if(at>now || now-at>ageLimit){prefs.edit().remove(key(url)).apply();return AbChapterAvailability.UNKNOWN}
         return when(parts[0]) {"yes"->AbChapterAvailability.AVAILABLE;"no"->AbChapterAvailability.EMPTY;"demo"->AbChapterAvailability.PREVIEW;"suspect"->AbChapterAvailability.SUSPECTED;else->AbChapterAvailability.UNKNOWN}
     }
     const val OBSERVATION_PREFIX="search_chapters_v1_"
@@ -46,6 +48,21 @@ internal object AbSourceAvailability {
     }
     fun isPreview(prefs:SharedPreferences,book:BookLink):Boolean =
         EditionDownloadRules.isPreview(book.title,emptyList()) || get(prefs,book.url)==AbChapterAvailability.PREVIEW
+
+    /** Search hides recent empty playlists and confirmed samples; unknown remains eligible. */
+    fun searchCandidates(prefs:SharedPreferences,book:BookLink,hideSuspected:Boolean):BookLink? {
+        if(EditionDownloadRules.isPreview(book.title,emptyList()))return null
+        val sources=bookSources(book).filter{source->
+            val state=get(prefs,source.url)
+            state!=AbChapterAvailability.EMPTY && state!=AbChapterAvailability.PREVIEW &&
+                (!hideSuspected||state!=AbChapterAvailability.SUSPECTED) && !tooSmall(prefs,source.url)
+        }
+        if(sources.isEmpty())return null
+        // Keep chip positions stable; only the default open target follows verified availability.
+        val primary=sources.minWithOrNull(compareBy<BookSource>{get(prefs,it.url).priority}.thenBy{it.url!=book.url}) ?: return null
+        return book.copy(url=primary.url,coverUrl=primary.coverUrl.ifBlank{book.coverUrl},sources=sources,
+            catalogState=if(book.catalogState=="checked"&&get(prefs,primary.url)!=AbChapterAvailability.AVAILABLE)"candidate" else book.catalogState)
+    }
 
     fun withoutPreviews(prefs:SharedPreferences,book:BookLink):BookLink? {
         if(EditionDownloadRules.isPreview(book.title,emptyList()))return null

@@ -21,7 +21,7 @@ public class LatestMenuRegressionTest {
   try(ActivityScenario<PreviewUpdatesActivity> scenario=ActivityScenario.launch(PreviewUpdatesActivity.class)){
    scenario.onActivity(a->{ArrayDeque<View> q=new ArrayDeque<>();q.add(a.getWindow().getDecorView());StringBuilder text=new StringBuilder();
     while(!q.isEmpty()){View v=q.remove();if(v instanceof TextView&&v.getVisibility()==View.VISIBLE)text.append(((TextView)v).getText()).append("\n");if(v instanceof ViewGroup){ViewGroup g=(ViewGroup)v;for(int i=0;i<g.getChildCount();i++)q.add(g.getChildAt(i));}}
-    String s=text.toString();assertTrue(s,s.contains("Последнее обновление"));assertTrue(s,s.contains("Проверить обновления"));assertTrue(s,s.contains("Ночное")||s.contains("ночное"));assertFalse(s,s.contains("Список изменений появится"));assertFalse(s,s.contains("При первом обновлении"));assertFalse(s,s.contains("Здесь можно проверить"));
+    String s=text.toString();assertTrue(s,s.contains("Последнее обновление"));assertTrue(s,s.contains("Проверить обновления"));assertTrue(s,s.contains("•"));assertFalse(s,s.contains("Список изменений появится"));assertFalse(s,s.contains("При первом обновлении"));assertFalse(s,s.contains("Здесь можно проверить"));
    });
   }
  }

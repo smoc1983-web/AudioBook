@@ -8555,7 +8555,7 @@ private suspend fun abCycleSearch(context:Context,prefs:android.content.SharedPr
 
 /** Use the same page analyzer as a tap on a search result. Never start a player or a download. */
 private data class AbProbedPlaylist(val title:String,val author:String,val player:PlayerData)
-private suspend fun abProbePlaylist(context:Context,address:String):AbProbedPlaylist? {
+private suspend fun abProbePlaylist(context:Context,address:String,onEmpty:()->Unit={}):AbProbedPlaylist? {
     if(OpenAudioCatalog.fromPage(address)!=null){
         return try{withContext(Dispatchers.IO){VerifiedBooks.load(address).let{AbProbedPlaylist(it.title,it.author,it.data)}}}
         catch(c:kotlinx.coroutines.CancellationException){throw c}catch(_:Exception){null}
@@ -8570,6 +8570,7 @@ private suspend fun abProbePlaylist(context:Context,address:String):AbProbedPlay
                 browser=abCreateBrowser(context,{finish(null)}) {
                     settings.javaScriptEnabled=true;settings.domStorageEnabled=true;settings.loadsImagesAutomatically=false
                     val created=AbOpenPageTask(this,address,{},23_000L){root,_,error->
+                        if(reply.isActive&&error=="Страница открылась, но источник не передал читаемый список глав.")onEmpty()
                         val parsed=root?.optJSONObject("player")?.let{parsePlayer(it)}
                         finish(if(error.isBlank()&&parsed!=null&&parsed.tracks.isNotEmpty())
                             AbProbedPlaylist(root?.optString("title").orEmpty(),root?.optString("author").orEmpty(),parsed) else null)
@@ -10102,8 +10103,9 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
         if(!searchForeground||data.onlineBook!=null||data.cycleBrowsing||data.searching||!data.searchActive||prepared==null)return@LaunchedEffect
         val targets=visibleResults.flatMap{it.editions}.flatMap{b->bookSources(b).map{b to it}}.distinctBy{it.second.url}.take(30)
         for((book,source) in targets){
-            if(AbSourceAvailability.hidden(AbSourceAvailability.get(prefs,source.url))||AbSourceAvailability.tooSmall(prefs,source.url)||AbSourceAvailability.sizePassed(prefs,source.url))continue
-            val loaded=kotlinx.coroutines.withTimeoutOrNull(18_000L){abProbePlaylist(sourceContext,source.url)}?:continue
+            val known=AbSourceAvailability.get(prefs,source.url)
+            if(known==AbChapterAvailability.EMPTY||AbSourceAvailability.hidden(known)||AbSourceAvailability.tooSmall(prefs,source.url)||AbSourceAvailability.sizePassed(prefs,source.url))continue
+            val loaded=abProbePlaylist(sourceContext,source.url){AbSourceAvailability.record(prefs,source.url,false)}?:continue
             if(!abOpenedBookMatches(book,loaded.title,loaded.author))continue
             val observed=AbSourceAvailability.observe(prefs,source.url,loaded.title,loaded.player)
             if(!AbSourceAvailability.hidden(observed))kotlinx.coroutines.withTimeoutOrNull(12_000L){abCheckAudioMinimum(prefs,source.url,loaded.player)}
@@ -10517,12 +10519,12 @@ internal fun AbSearchResultCard(row:AbSearchRow,theme:AbTheme,onOpen:(BookLink,S
     fun contains(edition:BookLink,url:String)=url.isNotBlank()&&bookSources(edition).any{address(it.url)==address(url)}
     val lastUrl=visit?.url ?: selectedUrl
     var chosen by androidx.compose.runtime.saveable.rememberSaveable(row.key) {mutableStateOf(lastUrl)}
-    val book=choices.firstOrNull{contains(it,chosen)} ?: choices.first()
+    val sourcePrefs=androidx.compose.ui.platform.LocalContext.current.getSharedPreferences("audiobook_downloader",Context.MODE_PRIVATE)
+    val book=choices.firstOrNull{contains(it,chosen)} ?: choices.minByOrNull{AbSourceAvailability.priority(sourcePrefs,bookSources(it))} ?: choices.first()
     val narratorScroll=rememberScrollState(visit?.narratorScroll ?: 0)
     val sourceScroll=rememberScrollState(visit?.sourceScroll ?: 0)
     fun open(url:String){onVisit(AbSearchVisit(url,narratorScroll.value,sourceScroll.value));onOpen(book,url)}
     val ref=BookRef(book.title,book.url,book.coverUrl)
-    val sourcePrefs=androidx.compose.ui.platform.LocalContext.current.getSharedPreferences("audiobook_downloader",Context.MODE_PRIVATE)
     var expanded by androidx.compose.runtime.saveable.rememberSaveable(row.key){mutableStateOf(!collapsible||highlighted||visit!=null)}
     if(collapsible&&!expanded&&book.catalogState !in setOf("pending","missing","incomplete","text_only")){
         Column(Modifier.fillMaxWidth().abGlass(theme,13,field=true).clickable{expanded=true}.padding(12.dp)){

@@ -40,7 +40,10 @@ internal object AbSearchRows {
                 else {
                     val first=sources.firstOrNull{it.url==input.url}?:sources.first()
                     val sized=input.copy(url=first.url,coverUrl=first.coverUrl.ifBlank{input.coverUrl},sources=sources)
-                    if(hidePreviews)AbSourceAvailability.withoutPreviews(prefs,sized)?:unavailable(input)?:return@mapNotNull null else sized
+                    // Do not lose locally saved audio merely because its website is currently empty.
+                    if(localOnly||exact[input.title]?.isNotEmpty()==true||normalized[localKey(input.title)]?.singleOrNull()!=null) {
+                        if(hidePreviews)AbSourceAvailability.withoutPreviews(prefs,sized)?:unavailable(input)?:return@mapNotNull null else sized
+                    } else AbSourceAvailability.searchCandidates(prefs,sized,hidePreviews)?:unavailable(input)?:return@mapNotNull null
                 }
             }
             if(author.isNotBlank()&&!SearchBookIndex.normal(raw.author).contains(SearchBookIndex.normal(author)))return@mapNotNull null
