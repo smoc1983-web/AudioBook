@@ -1871,6 +1871,18 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
         status=if(source.isBlank())bookPageError else "$source: $bookPageError"
     }
 
+    fun nextAudioSource(book:BookLink,failedUrl:String):BookSource? {
+        if(attemptedAudioSources.size>=8)return null
+        val failed=failedUrl.substringBefore('#').trimEnd('/')
+        return bookSources(book).filter { source ->
+            val address=source.url.substringBefore('#').trimEnd('/')
+            val availability=AbSourceAvailability.get(prefs,source.url)
+            address!=failed && address !in attemptedAudioSources &&
+                availability!=AbChapterAvailability.EMPTY && !AbSourceAvailability.hidden(availability) &&
+                !AbSourceAvailability.tooSmall(prefs,source.url) && supportedBookUrl(source.url)!=null
+        }.minByOrNull{AbSourceAvailability.get(prefs,it.url).priority}
+    }
+
     fun openWebsiteBook(book: BookLink, sourceUrl: String = book.url,rememberResults:Boolean=true) {
         if(rememberResults)attemptedAudioSources=emptySet()
         val attempt=sourceUrl.substringBefore('#').trimEnd('/')
@@ -2072,7 +2084,11 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
         if(libraryBook!=null) {
             openDownloadedBook(libraryBook,autoPlay)
         } else if (ref.url.isNotBlank()) {
-            bookOpening=AbBookOpen(BookLink(ref.title,ref.url,ref.cover),ref.url)
+            attemptedAudioSources=setOf(ref.url.substringBefore('#').trimEnd('/'))
+            val savedAuthor=prefs.getString(abAuthorKey(ref.title),"").orEmpty()
+                .ifBlank{OpenedBookIdentity.presentationAuthor(ref.title)}
+            val displayTitle=OpenedBookIdentity.cleanPresentation(ref.title,savedAuthor).ifBlank{ref.title}
+            bookOpening=AbBookOpen(BookLink(displayTitle,ref.url,ref.cover,savedAuthor),ref.url)
             bookPageLoading=true;bookPageError=""
             rememberSearchResults()
             cancelSearchMerges()
@@ -2097,11 +2113,10 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
             currentUrl =
                 ref.url
 
-            pageTitle =
-                ref.title
+            pageTitle = displayTitle
 
             currentCoverUrl = ref.cover
-            currentBookAuthor = prefs.getString(abAuthorKey(ref.title), "").orEmpty()
+            currentBookAuthor = savedAuthor
 
             player =
                 null
@@ -2833,8 +2848,20 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                         },timeoutMs=45_000L) {root,url,message ->
                         if(navigationActive[0] && navigationId==loadId) {
                             if(root==null||message.isNotBlank()) {
-                                if(message=="Страница открылась, но источник не передал читаемый список глав.")
+                                if(message=="Страница открылась, но источник не передал читаемый список глав.") {
                                     AbSourceAvailability.record(prefs,url,false)
+                                    val opening=bookOpening
+                                    if(opening!=null) {
+                                        AbSourceAvailability.record(prefs,opening.sourceUrl,false)
+                                        val alternate=nextAudioSource(opening.book,opening.sourceUrl)
+                                        if(alternate!=null) {
+                                            modernWork.launch {
+                                                if(navigationActive[0] && navigationId==loadId)openWebsiteBook(opening.book,alternate.url,false)
+                                            }
+                                            return@AbOpenPageTask
+                                        }
+                                    }
+                                }
                                 if(root!=null&&AbBookSources.isAudioOnline(url)) {
                                     pageTitle=root.optString("title").ifBlank{pageTitle}
                                     currentCoverUrl=root.optString("cover")
@@ -2983,8 +3010,10 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
 
                                         } else {
                                             AbSourceAvailability.record(prefs,url,false)
-                                            status =
-                                                "Плейлист пуст"
+                                            val opening=bookOpening
+                                            val alternate=opening?.let{nextAudioSource(it.book,it.sourceUrl)}
+                                            if(opening!=null&&alternate!=null)openWebsiteBook(opening.book,alternate.url,false)
+                                            else failBookOpening("Источник не передал список глав.")
                                         }
 
                                     } else {
@@ -10670,7 +10699,9 @@ private fun AbDiscoveries(reports:Map<String,SiteSearchResult>,actions:AbActions
 private fun AbPendingBookDetails(data:AbScreenData,actions:AbActions,books:List<LibraryBook>,theme:AbTheme) {
     val request=data.bookOpening ?: return
     val context=androidx.compose.ui.platform.LocalContext.current
-    val title=data.pageTitle.ifBlank{request.book.title}.ifBlank{"Страница источника"}
+    val rawTitle=request.book.title.ifBlank{data.pageTitle}
+    val author=request.book.author.ifBlank{OpenedBookIdentity.presentationAuthor(rawTitle)}
+    val title=OpenedBookIdentity.cleanPresentation(rawTitle,author).ifBlank{"Страница источника"}
     val ref=BookRef(title,request.sourceUrl, data.pageCover.ifBlank{request.book.coverUrl})
     Column(Modifier.fillMaxWidth().abGlass(theme,18).padding(14.dp),
         verticalArrangement=Arrangement.spacedBy(10.dp)) {
@@ -10678,7 +10709,7 @@ private fun AbPendingBookDetails(data:AbScreenData,actions:AbActions,books:List<
             AbCover(title,abFindLocal(books,title),ref,theme,Modifier.width(68.dp).height(96.dp))
             Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(5.dp)) {
                 Text(title,color=theme.text,fontSize=17.sp,fontWeight=FontWeight.SemiBold)
-                if(request.book.author.isNotBlank())Text(request.book.author,color=theme.muted,fontSize=12.sp)
+                if(author.isNotBlank())Text(author,color=theme.muted,fontSize=12.sp)
                 Text(bookSiteName(request.sourceUrl),color=theme.muted,fontSize=11.sp)
             }
         }
@@ -10686,9 +10717,12 @@ private fun AbPendingBookDetails(data:AbScreenData,actions:AbActions,books:List<
             androidx.compose.material3.CircularProgressIndicator(Modifier.size(18.dp),color=theme.accent,strokeWidth=2.dp)
             Text("Загружаем сведения и главы…",color=theme.muted,fontSize=13.sp)
         } else {
-            Text("Главы пока не удалось прочитать. Это может быть ошибка загрузки или изменение страницы источника.",color=theme.muted,fontSize=13.sp)
             Text(data.bookPageError,color=theme.error,fontSize=12.sp)
-            AbButton("Повторить открытие",theme,primary=true,onClick=actions.retryBook)
+            if(title!="Страница источника")AbButton("Найти в других источниках",theme,primary=true) {
+                actions.query(title)
+                actions.searchScope("")
+            }
+            AbButton("Повторить открытие",theme,onClick=actions.retryBook)
             Text(request.sourceUrl,color=theme.muted,fontSize=11.sp,maxLines=3,overflow=TextOverflow.Ellipsis)
             AbButton("Скопировать ссылку",theme) {
                 val clipboard=context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager

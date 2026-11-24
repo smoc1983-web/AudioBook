@@ -12,4 +12,11 @@ public class ImportedTitleRegressionTest {
  @Test public void conflictingAuthorStillRejected() {
   assertFalse(OpenedBookIdentity.matches("Аудиокнига Сыскарь с того света заблудись бесплатно - автор Валерий Пылаев","Сыскарь с того света","","Другой Автор","",null));
  }
+ @Test public void knownPresentationProvidesAuthorWithoutRelaxingIdentity() {
+  String legacy="Аудиокнига Сыскарь с того света заблудись бесплатно - автор Валерий Пылаев";
+  assertEquals("Валерий Пылаев",OpenedBookIdentity.presentationAuthor(legacy));
+  assertEquals("Сыскарь с того света",OpenedBookIdentity.cleanPresentation(legacy,OpenedBookIdentity.presentationAuthor(legacy)));
+  assertEquals("",OpenedBookIdentity.presentationAuthor("Книга - автор Другой Автор"));
+  assertFalse(OpenedBookIdentity.matches(legacy,"Сыскарь с того света","Иной Автор","","",null));
+ }
 }

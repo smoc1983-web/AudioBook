@@ -12,6 +12,13 @@ public final class OpenedBookIdentity {
     private static final Pattern VOLUME=Pattern.compile("^\\s*(\\d+(?:[.,]\\d+)?)\\s*[.\\-–—:]\\s*(.+)$");
     private OpenedBookIdentity(){}
     private static String trim(String s){return s.trim().replaceAll("^[\\s«»\"“”]+|[\\s«»\"“”]+$","").trim();}
+    /** Legacy site wrapper explicitly carries an author; do not infer authors from arbitrary titles. */
+    public static String presentationAuthor(String raw){
+        String s=trim(raw==null?"":raw);
+        Matcher suffix=AUTHOR.matcher(s);
+        if(suffix.find()&&SEO.matcher(s.substring(0,suffix.start())).find())return trim(suffix.group(1));
+        return "";
+    }
     public static String cleanPresentation(String raw,String author){
         String s=trim(raw==null?"":raw);
         // Bookinfo SEO title: <work> — <author>, слушать аудиокнигу.
@@ -58,9 +65,16 @@ public final class OpenedBookIdentity {
         return new Part(titleKey(s),null);
     }
     public static boolean matches(String wanted,String actual,String wantedAuthor,String actualAuthor,String cycle,Double expectedOrder){
+        String embeddedWanted=presentationAuthor(wanted),embeddedActual=presentationAuthor(actual);
         String wa=SeriesAuthorityRules.author(wantedAuthor),aa=SeriesAuthorityRules.author(actualAuthor);
+        String ew=SeriesAuthorityRules.author(embeddedWanted),ea=SeriesAuthorityRules.author(embeddedActual);
+        if(!wa.isEmpty()&&!ew.isEmpty()&&!wa.equals(ew))return false;
+        if(!aa.isEmpty()&&!ea.isEmpty()&&!aa.equals(ea))return false;
+        if(wa.isEmpty())wa=ew;
+        if(aa.isEmpty())aa=ea;
         if(!wa.isEmpty()&&!aa.isEmpty()&&!wa.equals(aa))return false;
-        String author=wa.isEmpty()?actualAuthor:wantedAuthor;
+        String author=!wa.isEmpty()?(SeriesAuthorityRules.author(wantedAuthor).isEmpty()?embeddedWanted:wantedAuthor)
+            :(SeriesAuthorityRules.author(actualAuthor).isEmpty()?embeddedActual:actualAuthor);
         Part a=part(wanted,author,cycle),b=part(actual,author,cycle);
         if(a.key.isEmpty()||!a.key.equals(b.key))return false;
         if(a.number!=null&&b.number!=null&&!a.number.equals(b.number))return false;
