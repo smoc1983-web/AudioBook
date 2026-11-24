@@ -351,11 +351,11 @@ internal const val AB_EXTRA_SOURCE_JSON = """[
 internal object AbExtraSources {
     // Listed for access in a browser, not advertised as working search adapters.
     val browserOnly=listOf(
-        Triple("СлушКинВсем","https://slushkinvsem.ru/","Сервер ответил ошибкой; встроенный поиск пока не подключён"),
-        Triple("Aume","https://aume.ru/","Сервер ответил ошибкой; встроенный поиск пока не подключён"),
-        Triple("Lis10book","https://lis10book.com/","Сайт требует проверки соединения"),
-        Triple("Audio-Lib","https://audio-lib.club/","Сайт требует проверки соединения"),
-        Triple("КнигиAudio","https://knigiaudio.net/","Не удалось проверить доступ; встроенный поиск пока не подключён"),
+        Triple("СлушКинВсем","https://slushkinvsem.ru/","Ручной доступ · общий поиск не подключён"),
+        Triple("Aume","https://aume.ru/","Ручной доступ · общий поиск не подключён"),
+        Triple("Lis10book","https://lis10book.com/","Ручной доступ · общий поиск не подключён"),
+        Triple("Audio-Lib","https://audio-lib.club/","Ручной доступ · общий поиск не подключён"),
+        Triple("КнигиAudio","https://knigiaudio.net/","Ручной доступ · общий поиск не подключён"),
         Triple("Author.Today","https://author.today/","Используется для сверки серий; аудио открывается на сайте")
     )
     // Manual browsing is intentionally separate from automatic search adapters.

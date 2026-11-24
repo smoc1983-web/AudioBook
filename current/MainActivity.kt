@@ -10136,7 +10136,7 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
         showFilters = false
     }
     if(showSources) AbDialog("Источники поиска",theme,{showSources=false}) {
-        val healthTargets=remember{abSourceHealthTargets()}
+        val healthTargets=remember{abSourceHealthTargets(includeManual=true)}
         val health=AbSourceHealthControls(healthTargets,enabledSources,theme)
         Text("Нажмите название для поиска на одном сайте. В результатах откройте меню книги → «Скачать». Переключатели задают состав общего поиска. Проверка каталога не гарантирует доступность каждой книги.",color=theme.muted,fontSize=12.sp)
         AbButton("Общий поиск · ${enabledSources.size} из ${AbBookSources.searchOrder.size}",theme,primary=data.searchSource.isBlank()) {
@@ -10169,6 +10169,7 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
                 showSources=false;manualSource=name to url
             }
             Text(note,color=theme.muted,fontSize=11.sp)
+            AbSourceHealthStatus(name,health,theme)
         }
         AbButton("Готово",theme){showSources=false;if(data.searchSource.isBlank()&&data.query.isNotBlank())actions.searchScope("")}
     }
@@ -15247,8 +15248,9 @@ private object AbSourceTrace {
         .getString("last_source","").orEmpty()
 }
 
-internal fun abSourceHealthTargets():List<SourceHealthTarget> = AbBookSources.searchOrder.distinct()
-    .map{SourceHealthTarget(it,AbBookSources.home(it))}
+internal fun abSourceHealthTargets(includeManual:Boolean=false):List<SourceHealthTarget> =
+    (AbBookSources.searchOrder.distinct().map{SourceHealthTarget(it,AbBookSources.home(it))} +
+        if(includeManual)AbExtraSources.browserOnly.map{(name,home,_)->SourceHealthTarget(name,home)} else emptyList()).distinctBy{it.key}
 
 private object AbBookSources {
     const val AZBYKA="Азбука веры"

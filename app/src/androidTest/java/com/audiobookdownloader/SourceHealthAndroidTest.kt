@@ -32,6 +32,17 @@ class SourceHealthAndroidTest {
         }
         assertEquals(0,requests.get())
     }
+    @Test fun manualSitesCanBeCheckedButCannotRedirectToAnotherSite() {
+        val manual=abSourceHealthTargets(includeManual=true).filter{AbExtraSources.manualName(it.home).isNotBlank()}
+        assertEquals(AbExtraSources.browserOnly.size,manual.size)
+        SourceHealthHttp({error("No network in this test")}).use{client->
+            manual.forEach{target->
+                assertTrue(client.allowed(target,URL(target.home)))
+                assertFalse(client.allowed(target,URL("https://example.org/")))
+                assertFalse(target.name in AbExtraSources.names)
+            }
+        }
+    }
     @Test fun cacheSurvivesStoreRecreationAndCannotBeReusedForAnotherConfiguredHome() {
         val c=Device(app);val cache=SourceHealthCache(c);val value=ok(100000)
         cache.put(target,value)

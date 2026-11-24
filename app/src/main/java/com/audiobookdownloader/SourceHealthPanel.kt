@@ -45,6 +45,10 @@ internal data class SourceHealthView(val state:SourceHealthState,val targets:Map
             job=scope.launch{session.run(selected,force=true);now=System.currentTimeMillis().coerceAtLeast(0)}
         }
     }
+    val additional=targets.filter{AbExtraSources.manualName(it.home).isNotBlank()}
+    if(additional.isNotEmpty())AbButton("Проверить дополнительные сайты · ${additional.size}",theme,enabled=!state.running&&!state.loading) {
+        if(job?.isActive!=true)job=scope.launch{session.run(additional,force=true);now=System.currentTimeMillis().coerceAtLeast(0)}
+    }
     if(state.running) {
         Text("Обработано: ${state.done} из ${state.total}. Проверяется список, выбранный при запуске.",color=theme.muted,fontSize=12.sp)
         AbButton("Отменить проверку сайтов",theme){job?.cancel()}

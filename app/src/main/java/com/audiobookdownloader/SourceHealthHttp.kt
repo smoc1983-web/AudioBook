@@ -51,7 +51,8 @@ internal class SourceHealthHttp(private val factory:(URL)->HttpURLConnection={it
         {task->Thread(task,"source-health-close").apply{isDaemon=true}},ThreadPoolExecutor.AbortPolicy())
     init{require(deadline in 50..10000)}
     internal fun allowed(target:SourceHealthTarget,address:URL):Boolean =
-        address.protocol=="https"&&address.port in listOf(-1,443)&&NetworkAddressRules.publicAddress(address.toString())&&policy.same(target.home,address.toString())
+        address.protocol=="https"&&address.port in listOf(-1,443)&&NetworkAddressRules.publicAddress(address.toString())&&
+            (policy.same(target.home,address.toString())||AbExtraSources.manualName(target.home).let{it.isNotBlank()&&it==AbExtraSources.manualName(address.toString())})
     override suspend fun check(target:SourceHealthTarget):SourceHealthObservation {
         val start=System.nanoTime()
         val wire=try{withTimeout(deadline){request(target)}}
