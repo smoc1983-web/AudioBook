@@ -12,6 +12,15 @@ class AbSearchCoordinatorTest {
         assertEquals("Проверено источников: 3 из 4",unifiedSearchStatus(reports,1,sources))
         assertEquals("Проверено источников: 4 из 4",unifiedSearchStatus(reports+("D" to SiteSearchResult(emptyList())),1,sources))
     }
+    @Test fun progressFractionUsesDistinctSelectedSourcesOnly() {
+        val reports=mapOf("a" to SiteSearchResult(emptyList()),"b" to SiteSearchResult(emptyList(),"timeout"),"other" to SiteSearchResult(emptyList()))
+        val progress=abSourceProgress(reports,listOf("a","b","c","a"))
+        assertEquals(2,progress.completed)
+        assertEquals(3,progress.total)
+        assertEquals(66,progress.percent)
+        assertEquals(2f/3f,progress.fraction,0.0001f)
+        assertEquals(0,abSourceProgress(reports,emptyList()).percent)
+    }
     @Test(timeout=5000) fun slowAndFailedSitesDoNotHoldBackWorkingSources()=runBlocking {
         val slow=CompletableDeferred<Unit>()
         val reports=linkedMapOf<String,SiteSearchResult>()

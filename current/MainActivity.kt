@@ -2615,7 +2615,9 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
             genreDeferredPending.isNotEmpty() || genreNext.isNotEmpty() || genreExternalMore || genreExternalLoading),
         coverRepairRunning = coverRepairRunning, coverRepairStatus = coverRepairStatus,
         searching = unifiedQuery.isNotBlank() || cycleLoading || unifiedMerging || genreIsWorking(),
-        status = status, sourceProgress=if(unifiedQuery.isNotBlank()||unifiedMerging)unifiedSearchStatus(searchReports,0,unifiedSources) else "", skin = appSkin, backgroundUri = customBackgroundUri,
+        status = status,
+        sourceProgress=if(unifiedQuery.isNotBlank()||unifiedMerging)abSourceProgress(searchReports,unifiedSources) else null,
+        skin = appSkin, backgroundUri = customBackgroundUri,
         version = userDataVersion + bookmarksVersion + coverRefresh,
         playback = playbackState, durations = modernDurations,
         downloadedIndex = downloadedIndex, trackStates = modernTrackStates,
@@ -8038,12 +8040,17 @@ fun searchBookIdentity(book:BookLink):String = SearchBookIndex.keys(cleanBookTit
 fun mergeSearchBooks(books:List<BookLink>,checkActive:()->Unit={}):List<BookLink> =
     AbSearchPresentation.merge(books,checkActive)
 
-fun unifiedSearchStatus(reports: Map<String, SiteSearchResult>, count: Int,
-    sources:List<String> = AbBookSources.searchOrder): String {
-    val requested=sources.distinct()
-    val completed=requested.count{it in reports}
-    return "Проверено источников: $completed из ${requested.size}"
+internal data class AbSourceProgress(val completed:Int,val total:Int) {
+    val fraction:Float get()=if(total<=0)0f else (completed.toFloat()/total).coerceIn(0f,1f)
+    val percent:Int get()=if(total<=0)0 else ((completed.toLong()*100/total).toInt()).coerceIn(0,100)
+    val label:String get()="Проверено источников: $completed из $total"
 }
+internal fun abSourceProgress(reports:Map<String,SiteSearchResult>,sources:List<String>):AbSourceProgress {
+    val requested=sources.distinct()
+    return AbSourceProgress(requested.count{it in reports},requested.size)
+}
+fun unifiedSearchStatus(reports: Map<String, SiteSearchResult>, count: Int,
+    sources:List<String> = AbBookSources.searchOrder): String = abSourceProgress(reports,sources).label
 
 @Composable
 fun BookSourceButtons(book: BookLink, green: Color, onOpen: (String) -> Unit) {
@@ -9375,7 +9382,7 @@ private data class AbScreenData(
     val onlineBook: PlayerData?, val pageTitle: String, val pageUrl: String, val pageCover: String,
     val bookOpening:AbBookOpen?,val bookPageLoading:Boolean,val bookPageError:String,
     val cycle: BookCycle?, val cycleBrowsing: Boolean, val searching: Boolean, val status: String,
-    val searchActive: Boolean, val searchScreenId: Int, val sourceProgress:String="",
+    val searchActive: Boolean, val searchScreenId: Int, val sourceProgress:AbSourceProgress?=null,
     val canReturnResults:Boolean,val searchListState:androidx.compose.foundation.lazy.LazyListState,val searchRestoreIndex:Int,
     val selectedResultKey:String="",val selectedResultUrl:String="",val restoreSelection:Boolean=false,
     val searchRestoreOffset:Int=0,val searchRestoreKey:String="",val searchVisits:Map<String,AbSearchVisit> = emptyMap(),val searchOpenedUrls:Set<String> = emptySet(),
@@ -10175,10 +10182,22 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
             }
         }
         if(seriesStatus.isNotBlank()) item {Text(seriesStatus,color=theme.muted,fontSize=11.sp)}
-        if(data.searching) item { Row(verticalAlignment=Alignment.CenterVertically) {
-            androidx.compose.material3.CircularProgressIndicator(Modifier.size(18.dp),color=theme.accent,strokeWidth=2.dp)
-            Text(if(data.cycleBrowsing) data.status.ifBlank{"Ищу аудиокниги цикла…"} else if(data.genre.isNotBlank()) "Ищем книги и проверяем жанры…" else data.sourceProgress.ifBlank{"Ищем книги…"},color=theme.muted,fontSize=13.sp,modifier=Modifier.padding(start=10.dp))
-        } }
+        if(data.searching) item(key="search-progress") {
+            val progress=data.sourceProgress
+            if(progress!=null&&!data.cycleBrowsing&&data.genre.isBlank()){
+                Column(Modifier.fillMaxWidth().abGlass(theme,13,field=true).padding(12.dp),
+                    verticalArrangement=Arrangement.spacedBy(8.dp)){
+                    Row(verticalAlignment=Alignment.CenterVertically){
+                        Text(progress.label,color=theme.text,fontSize=13.sp,modifier=Modifier.weight(1f))
+                        Text("${progress.percent}%",color=theme.accent,fontSize=13.sp,fontWeight=FontWeight.SemiBold)
+                    }
+                    AbProgress(progress.fraction,theme,Modifier.fillMaxWidth())
+                }
+            }else Row(verticalAlignment=Alignment.CenterVertically) {
+                androidx.compose.material3.CircularProgressIndicator(Modifier.size(18.dp),color=theme.accent,strokeWidth=2.dp)
+                Text(if(data.cycleBrowsing) data.status.ifBlank{"Ищу аудиокниги цикла…"} else if(data.genre.isNotBlank()) "Ищем книги и проверяем жанры…" else "Ищем книги…",color=theme.muted,fontSize=13.sp,modifier=Modifier.padding(start=10.dp))
+            }
+        }
         if(data.onlineBook==null && data.bookOpening!=null && (data.bookPageLoading || data.bookPageError.isNotBlank()))
             item {AbPendingBookDetails(data,actions,books,theme)}
         data.onlineBook?.let { book ->
@@ -10210,7 +10229,7 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
         if(data.genre.isNotBlank() && visibleCount>=AB_SEARCH_LIMIT && resultBooks.size>=AB_SEARCH_LIMIT) item {
             Text("Показаны первые $AB_SEARCH_LIMIT книг. Уточните название или автора, чтобы найти нужное издание.",color=theme.muted,fontSize=12.sp)
         }
-        if(data.status.isNotBlank() && data.status!="Вставьте ссылку" && !(data.cycleBrowsing&&data.searching) && !(data.searching&&data.sourceProgress.isNotBlank()) &&
+        if(data.status.isNotBlank() && data.status!="Вставьте ссылку" && !(data.cycleBrowsing&&data.searching) && !(data.searching&&data.sourceProgress!=null) &&
             !(data.bookOpening!=null && data.onlineBook==null && (data.bookPageLoading || data.bookPageError.isNotBlank()))) item {
             Text(data.status,color=theme.muted,fontSize=12.sp)
         }

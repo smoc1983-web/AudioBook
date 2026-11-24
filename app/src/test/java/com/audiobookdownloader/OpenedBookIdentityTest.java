@@ -19,6 +19,17 @@ public class OpenedBookIdentityTest {
         assertTrue(OpenedBookIdentity.matches("Файролл-11. Снисхождение. Том 1","Снисхождение. Том первый (+Бонус)",a,a,"Файролл",12.0));
         assertFalse(OpenedBookIdentity.matches("Файролл-11. Снисхождение. Том 1","Снисхождение. Том второй",a,a,"Файролл",12.0));
     }
+    @Test public void bookinfoSeoAuthorSuffixMustMatchAndVolumeMustSurvive(){
+        String a="Андрей Васильев";
+        String wanted="Файролл-11. Снисхождение. Том 1";
+        String page="Снисхождение. Том 1 — Андрей Васильев, слушать аудиокнигу";
+        assertTrue(OpenedBookIdentity.matches(wanted,page,a,a,"Файролл",12.0));
+        assertTrue(OpenedBookIdentity.matches("Снисхождение. Том 1",page,a,a,"",null));
+        assertTrue(OpenedBookIdentity.matches(wanted,page,a,"","Файролл",12.0));
+        assertFalse(OpenedBookIdentity.matches(wanted,page.replace("Том 1","Том 2"),a,a,"Файролл",12.0));
+        assertFalse(OpenedBookIdentity.matches(wanted,page.replace(a,"Другой Автор"),a,a,"Файролл",12.0));
+        assertFalse(OpenedBookIdentity.matches(wanted,page,a,"Другой Автор","Файролл",12.0));
+    }
     @Test public void wrongBookAuthorAndVolumeStayRejected(){
         String a="Андрей Васильев";
         assertFalse(OpenedBookIdentity.matches("Файролл-1. Игра не ради игры","Право выбора",a,a,"Файролл",1.0));

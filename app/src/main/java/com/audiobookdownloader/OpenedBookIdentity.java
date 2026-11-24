@@ -7,12 +7,19 @@ import java.util.regex.Pattern;
 public final class OpenedBookIdentity {
     private static final Pattern PREFIX=Pattern.compile("(?iu)^\\s*аудиокнига\\s*[:—–-]?\\s+");
     private static final Pattern SEO=Pattern.compile("(?iu)\\s+(?:заблудись\\s+бесплатно|аудиокнига\\s+бесплатно|слушать\\s+онлайн\\s+бесплатно|слушать\\s+бесплатно)[! .…]*$");
+    private static final Pattern BOOKINFO_TITLE=Pattern.compile("(?iu)\\s+[-—–|]\\s*(.+?)\\s*,\\s*слушать\\s+аудиокнигу[.!…\\s]*$");
     private static final Pattern AUTHOR=Pattern.compile("(?iu)\\s+[-—–|]\\s*автор\\s*:?\\s+(.+?)\\s*$");
     private static final Pattern VOLUME=Pattern.compile("^\\s*(\\d+(?:[.,]\\d+)?)\\s*[.\\-–—:]\\s*(.+)$");
     private OpenedBookIdentity(){}
     private static String trim(String s){return s.trim().replaceAll("^[\\s«»\"“”]+|[\\s«»\"“”]+$","").trim();}
     public static String cleanPresentation(String raw,String author){
         String s=trim(raw==null?"":raw);
+        // Bookinfo SEO title: <work> — <author>, слушать аудиокнигу.
+        // Strip the author only when the parsed/expected author independently agrees.
+        Matcher seo=BOOKINFO_TITLE.matcher(s);
+        if(seo.find()&&!SeriesAuthorityRules.author(author).isEmpty()
+                &&SeriesAuthorityRules.author(author).equals(SeriesAuthorityRules.author(seo.group(1))))
+            s=s.substring(0,seo.start());
         Matcher m=AUTHOR.matcher(s);
         if(m.find()&&!SeriesAuthorityRules.author(author).isEmpty()
                 &&SeriesAuthorityRules.author(author).equals(SeriesAuthorityRules.author(m.group(1))))
