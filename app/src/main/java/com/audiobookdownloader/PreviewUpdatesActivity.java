@@ -65,8 +65,12 @@ public final class PreviewUpdatesActivity extends Activity {
         if(isDestroyed()||primary==null)return;
         UpdateUiState state=session.snapshot();
         primary.setEnabled(!state.busy);
+        primary.setAlpha(state.busy?0.65f:1f);
         primary.setText(session.primaryLabel());
-        if(cancel!=null)cancel.setVisibility(state.busy?View.VISIBLE:View.GONE);
+        if(cancel!=null){
+            cancel.setVisibility(state.busy?View.VISIBLE:View.GONE);
+            cancel.setEnabled(!"Отмена…".equals(state.busyLabel));
+        }
         status.setText(state.message);
         changes.setText(session.notesText());
         if(resumed){
