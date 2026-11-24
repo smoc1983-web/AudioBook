@@ -29,6 +29,7 @@ internal class AbBookQuery(private val query:String) {
         // Preserve cycle discovery, but never rank cycle-only matches above title/author.
         val all=bibliographic+tokens(book.cycles.joinToString(" "){it.title})
         if(contains(all,false))return 5
+        if(contains(tokens(SearchEditionIdentity.narrator(book.title,book.narrator)),false))return 5
         return if(book.searchQuery.isNotBlank() && normal(book.searchQuery)==normal(query))6 else null
     }
 }

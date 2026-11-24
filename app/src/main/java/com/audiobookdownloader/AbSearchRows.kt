@@ -14,7 +14,7 @@ internal data class AbSearchRow(val book:BookLink,val ref:BookRef,val local:Libr
 internal object AbSearchRows {
     suspend fun prepare(books:List<BookLink>,library:List<LibraryBook>,prefs:SharedPreferences,
         cycle:BookCycle?,query:String="",hidePreviews:Boolean=false,
-        narrator:String="",seriesOnly:Boolean=false,localOnly:Boolean=false):List<AbSearchRow> = withContext(Dispatchers.Default) {
+        narrator:String="",seriesOnly:Boolean=false,localOnly:Boolean=false,author:String="",genre:String="",exactOnly:Boolean=false):List<AbSearchRow> = withContext(Dispatchers.Default) {
         val playable=library.filter{it.files.isNotEmpty()}
         val exact=playable.groupBy{it.title}
         fun localKey(title:String)=safeFileName(cleanBookTitle(title)).lowercase(Locale.ROOT)
@@ -32,6 +32,9 @@ internal object AbSearchRows {
                 val sized=input.copy(url=first.url,coverUrl=first.coverUrl.ifBlank{input.coverUrl},sources=sources)
                 if(hidePreviews)AbSourceAvailability.withoutPreviews(prefs,sized)?:return@mapNotNull null else sized
             }
+            if(author.isNotBlank()&&!SearchBookIndex.normal(raw.author).contains(SearchBookIndex.normal(author)))return@mapNotNull null
+            if(genre.isNotBlank()&&raw.genres.none{SearchBookIndex.normal(it).contains(SearchBookIndex.normal(genre))})return@mapNotNull null
+            if(exactOnly&&query.isNotBlank()&&SearchBookIndex.titleKey(cleanBookTitle(raw.title))!=SearchBookIndex.titleKey(query)&&raw.cycles.none{AbSearchPresentation.seriesKey(it.title)==AbSearchPresentation.seriesKey(query)})return@mapNotNull null
             if (narrator.isNotEmpty() && !SearchFilterRules.matchesNarrator(raw.title, raw.narrator, narrator)) return@mapNotNull null
             val cycles=if(raw.catalogState.isNotBlank())raw.cycles else SeriesAuthorityCache.cycles(prefs,raw.title,raw.author,raw.cycles,raw.url)
             if(expected!=null && cycles.any{it.referenceUrl.isNotBlank()} &&
