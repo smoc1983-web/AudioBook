@@ -107,7 +107,7 @@ internal class SourceHealthHttp(private val factory:(URL)->HttpURLConnection={it
             val text=String(prefix,Charsets.UTF_8)
             val html=Regex("(?is)<(?:!doctype\\s+html|html|head|body)(?:\\s|>)").containsMatchIn(text)
             val doc=Jsoup.parse(text);val title=doc.title().lowercase(Locale.ROOT)
-            val challenge=listOf("just a moment","checking your browser","captcha","access denied","verify you are human","проверка браузера","доступ ограничен").any{title.contains(it)} || doc.getElementById("challenge-form")!=null
+            val challenge=listOf("just a moment","checking your browser","checking that you are human","i am not a robot","captcha","access denied","verify you are human","проверка браузера","доступ ограничен").any{title.contains(it)} || doc.getElementById("challenge-form")!=null
             return Wire(SourceHealthRules.response(code,html,challenge),code)
         }finally{active.compareAndSet(connection,null);connection.disconnect()}
     }
