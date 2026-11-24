@@ -1,0 +1,134 @@
+package com.audiobookdownloader
+
+import kotlinx.coroutines.*
+import org.jsoup.Jsoup
+import java.net.URLEncoder
+import java.util.Locale
+
+/** Resolve bibliography before audio. Positions come from catalogue rows, never audio titles. */
+internal object OfficialCycleSearch {
+    data class Template(val author:String,val sources:List<OfficialSource>)
+    private data class Cached(val at:Long,val value:Template)
+    private val cache=linkedMapOf<String,Cached>()
+    private val prefixNumber=Regex("(?iu)^\\s*(?:[-–—:]\\s*)?\\d+(?:[.,]\\d+)?\\s*[.\\-–—:]?\\s*")
+    private val bonus=Regex("(?iu)\\s*\\(\\s*\\+?\\s*бонус\\s*\\)\\s*$")
+    private fun key(s:String)=SeriesAuthorityRules.series(s)
+    fun seriesMatches(query:String,heading:String):Boolean {
+        val q=key(query);val h=key(heading)
+        return q.isNotBlank()&&(q==h||h.startsWith(q+" "))
+    }
+    fun lookupTitle(cycle:String,title:String):String {
+        var t=SeriesAuthorityRules.queryTitle(title).trim().trim('«','»','"','“','”')
+        t=bonus.replace(t,"").trim()
+        val short=cycle.substringBefore(". ").trim().trim('«','»','"')
+        if(short.isNotBlank()&&t.startsWith(short,true)&&
+            (t.length==short.length||!t[short.length].isLetterOrDigit())){
+            t=t.substring(short.length).trimStart(' ','.',':','-','–','—')
+            t=prefixNumber.replaceFirst(t,"")
+        }
+        return t.trim().trimEnd('.').ifBlank{title}
+    }
+    fun matches(cycle:String,first:String,second:String)=
+        SeriesAuthorityRules.title(lookupTitle(cycle,first))==SeriesAuthorityRules.title(lookupTitle(cycle,second)) &&
+            SeriesAuthorityRules.title(lookupTitle(cycle,first)).isNotBlank()
+    @Synchronized fun cached(query:String):Template? =
+        cache[key(query)]?.takeIf{System.currentTimeMillis()-it.at<15*60_000L}?.value
+    @Synchronized private fun save(query:String,value:Template){
+        cache[key(query)]=Cached(System.currentTimeMillis(),value)
+        while(cache.size>12)cache.remove(cache.keys.first())
+    }
+    // Verified equivalent series names/URLs; general discovery below also handles other cycles.
+    private fun known(query:String,provider:String):Pair<String,String>? {
+        if(key(query) !in setOf(key("Файролл"),key("Файролл. Хроники Хейгена")))return null
+        return if(provider=="Author.Today")"https://author.today/work/series/1350" to "Андрей Васильев"
+            else "https://www.litres.ru/series/fayroll-208918" to "Андрей Васильев"
+    }
+    private suspend fun discover(query:String,provider:String,http:SeriesAuthorityFetcher):Pair<String,String>? {
+        known(query,provider)?.let{return it}
+        val encoded=URLEncoder.encode(query,"UTF-8")
+        val url=if(provider=="Author.Today")"https://author.today/search?category=works&q=$encoded"
+            else "https://www.litres.ru/search/?q=$encoded"
+        val html=http.html(url)
+        val records=SeriesAuthorityParser.search(html,url)
+        if(records.any{SeriesAuthorityRules.sameTitle(query,it.title,"")})return null
+        val recordMatches=records.filter{SeriesAuthorityRules.cycle(it.seriesUrl)&&key(it.seriesTitle)==key(query)}
+        val pairs=recordMatches.mapNotNull{r->r.authors.singleOrNull()?.let{r.seriesUrl to it}}.distinctBy{it.first+"|"+SeriesAuthorityRules.author(it.second)}
+        if(pairs.size==1)return pairs.first()
+        if(pairs.size>1)return null
+        val doc=SeriesAuthorityParser.document(html,url,false)
+        val links=doc.select("a[href]").filter{a->SeriesAuthorityRules.cycle(a.absUrl("href"))&&key(SeriesAuthorityRules.seriesLabel(a.text()))==key(query)}
+            .map{SeriesAuthorityRules.canonical(it.absUrl("href"))}.distinct()
+        return links.singleOrNull()?.let{it to ""}
+    }
+    private suspend fun read(query:String,provider:String):OfficialSource? {
+        val http=OfficialSeriesHttp()
+        val (url,hint)=discover(query,provider,http) ?: return null
+        val first=http.html(url)
+        val doc=SeriesAuthorityParser.document(first,url,true)
+        val heading=SeriesAuthorityRules.seriesLabel(doc.select("h1").text())
+        if(!seriesMatches(query,heading)&&known(query,provider)==null)return null
+        val writers=SeriesAuthorityParser.search(first,url).flatMap{it.authors}.distinctBy{SeriesAuthorityRules.author(it)}
+        val author=hint.ifBlank{writers.singleOrNull().orEmpty()}
+        if(author.isBlank())return null
+        val queue=java.util.ArrayDeque<String>();queue.add(url)
+        val visited=linkedSetOf<String>();val items=linkedMapOf<String,OfficialEdition>();var complete=true
+        while(queue.isNotEmpty()){
+            currentCoroutineContext().ensureActive()
+            val page=queue.removeFirst()
+            if(!visited.add(page))continue
+            if(visited.size>6){complete=false;break}
+            val parsed=OfficialSeriesParser.page(if(page==url)first else http.html(page),page,url,heading,author)
+            complete=complete&&!parsed.incomplete
+            for(b in parsed.books)items[b.url]=OfficialEdition(b.title,b.url,b.author,b.series,b.provider,b.format,b.status,b.order)
+            parsed.next.filter{it !in visited}.forEach{queue.add(it)}
+        }
+        if(items.isEmpty())return null
+        return OfficialSource(provider,heading,url,checked=System.currentTimeMillis(),complete=complete,books=items.values.toList())
+    }
+    suspend fun find(query:String):Template?=withContext(Dispatchers.IO){
+        if(query.isBlank()||query.length>180)return@withContext null
+        cached(query)?.let{return@withContext it}
+        val sources=supervisorScope{
+            listOf("Author.Today","Литрес").map{provider->async{
+                try{withTimeoutOrNull(25_000L){read(query,provider)}}
+                catch(c:CancellationException){throw c}catch(_:Exception){null}
+            }}.awaitAll().filterNotNull()
+        }
+        val authors=sources.flatMap{it.books}.map{it.author}.distinctBy{SeriesAuthorityRules.author(it)}
+        if(authors.size!=1)return@withContext null
+        Template(authors.single(),sources).also{save(query,it)}
+    }
+    private fun ordered(source:OfficialSource):List<OfficialEdition> {
+        // A complete Author.Today list is preferred to a partial Litres catalogue.
+        // An explicit position is mandatory; do not invent positions from title digits.
+        return source.books.filter{it.order!=null}.groupBy{it.order}.values.mapNotNull{editions->
+            editions.firstOrNull{it.format=="text"} ?: editions.firstOrNull()
+        }.sortedBy{it.order}
+    }
+    fun template(cycle:String,sources:List<OfficialSource>):List<OfficialEdition> {
+        val ranked=sources.filter{it.books.isNotEmpty()}.sortedWith(
+            compareByDescending<OfficialSource>{it.complete&&it.error.isBlank()}
+                .thenByDescending{ordered(it).size}.thenBy{it.provider!="Author.Today"})
+        val primary=ranked.firstOrNull() ?: return emptyList()
+        val result=ordered(primary).toMutableList()
+        for(source in ranked.drop(1)){
+            // Merge additional positions only when shared titles confirm the numbering agrees.
+            val other=ordered(source)
+            val same=result.count{a->other.any{b->a.order==b.order&&matches(cycle,a.title,b.title)}}
+            val conflicts=result.any{a->other.any{b->a.order!=b.order&&matches(cycle,a.title,b.title)}}
+            if(same>=2&&!conflicts)other.filter{b->result.none{a->a.order==b.order||matches(cycle,a.title,b.title)}}.forEach{result.add(it)}
+        }
+        return result.sortedBy{it.order}
+    }
+    fun aliases(cycle:String,volume:OfficialEdition,sources:List<OfficialSource>):List<String> {
+        val result=linkedSetOf(volume.title)
+        val base=sources.firstOrNull{it.provider==volume.provider} ?: return result.toList()
+        for(source in sources){
+            val same=ordered(base).count{a->ordered(source).any{b->a.order==b.order&&matches(cycle,a.title,b.title)}}
+            val conflict=ordered(base).any{a->ordered(source).any{b->a.order!=b.order&&matches(cycle,a.title,b.title)}}
+            if(source.provider==volume.provider||same>=2&&!conflict)
+                source.books.filter{it.order==volume.order&&SeriesAuthorityRules.author(it.author)==SeriesAuthorityRules.author(volume.author)}.forEach{result.add(it.title)}
+        }
+        return result.toList()
+    }
+}

@@ -2624,7 +2624,23 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                 val requestQuery=unifiedQuery
                 val ranked=rankedSearch
                 val narration=narrationSearch
-                UnifiedBookSearch(unifiedQuery, prefs,requestSources) { site, report ->
+                var referenceChecked by remember(requestId){mutableStateOf(ranked!=null||narration!=null)}
+                LaunchedEffect(requestId) {
+                    if(!referenceChecked) {
+                        status="Сначала сверяю название цикла по Author.Today и Литрес…"
+                        val template=OfficialCycleSearch.find(requestQuery)
+                        if(requestId==unifiedSearchId && unifiedQuery.isNotBlank()){
+                            if(template!=null){
+                                selectedCycle=BookCycle(requestQuery,referenceUrl=template.sources.first().seriesUrl,
+                                    referenceSite=template.sources.first().provider,seedAuthor=template.author)
+                                cycleBrowsing=true;cycleLoading=true;cycleRequestId++
+                                unifiedQuery="";bookLinks=emptyList()
+                                status="Цикл подтверждён справочниками. Ищу аудиокниги по порядку…"
+                            }else referenceChecked=true
+                        }
+                    }
+                }
+                if(referenceChecked) UnifiedBookSearch(unifiedQuery, prefs,requestSources) { site, report ->
                     if (requestId == unifiedSearchId && unifiedQuery.isNotBlank()) {
                         val limited=report.copy(books=report.books.take(AB_SEARCH_LIMIT))
                         modernWork.launch(Dispatchers.IO){limited.books.forEach{abRememberCatalog(prefs,it)}}
@@ -8408,7 +8424,7 @@ private suspend fun abCycleSearch(context:Context,prefs:android.content.SharedPr
 }
 
 /** Use the same page analyzer as a tap on a search result. Never start a player or a download. */
-private suspend fun abProbeCycleEdition(context:Context,volume:OfficialEdition,address:String):Boolean {
+private suspend fun abProbeCycleEdition(context:Context,volume:OfficialEdition,address:String,cycleTitle:String,aliases:List<String>,candidateAuthor:String):Boolean {
     if(supportedBookUrl(address)==null)return false
     var browser:WebView?=null
     var task:BookWebsiteTask?=null
@@ -8423,8 +8439,8 @@ private suspend fun abProbeCycleEdition(context:Context,volume:OfficialEdition,a
                         val actualTitle=root?.optString("title").orEmpty()
                         val actualAuthor=root?.optString("author").orEmpty()
                         finish(error.isBlank() && parsed!=null && parsed.tracks.isNotEmpty() &&
-                            SeriesAuthorityRules.sameTitle(volume.title,actualTitle,volume.series) &&
-                            SeriesAuthorityRules.author(actualAuthor)==SeriesAuthorityRules.author(volume.author) &&
+                            aliases.any{OfficialCycleSearch.matches(cycleTitle,it,actualTitle)} &&
+                            SeriesAuthorityRules.author(actualAuthor.ifBlank{candidateAuthor})==SeriesAuthorityRules.author(volume.author) &&
                             !EditionDownloadRules.isPreview(actualTitle,parsed.tracks.map{it.src}))
                     }
                     task=created
@@ -8438,6 +8454,8 @@ private suspend fun abProbeCycleEdition(context:Context,volume:OfficialEdition,a
 private suspend fun abResolveCycleAudio(context:Context,prefs:android.content.SharedPreferences,cycle:BookCycle,
     fallback:List<BookLink>,publish:(List<BookLink>,Boolean,String)->Unit) {
     val sources=AbBookSources.enabled(prefs)
+    val direct=OfficialCycleSearch.cached(cycle.title) ?: if(SeriesAuthorityRules.cycle(cycle.referenceUrl))
+        OfficialCycleSearch.find(cycle.title) else null
     val snapshot=try {
         var title=cycle.seedTitle;var author=cycle.seedAuthor
         if((title.isBlank()||author.isBlank())&&SeriesAuthorityRules.work(cycle.referenceUrl)) {
@@ -8446,22 +8464,17 @@ private suspend fun abResolveCycleAudio(context:Context,prefs:android.content.Sh
             }
             title=detail.title;author=detail.authors.singleOrNull().orEmpty()
         }
-        if(title.isBlank()||author.isBlank())null else OfficialSeriesCatalog(context.applicationContext).refresh(title,author)
+        if(direct!=null || title.isBlank()||author.isBlank())null else OfficialSeriesCatalog(context.applicationContext).refresh(title,author)
     }catch(cancel:kotlinx.coroutines.CancellationException){throw cancel}catch(_:Exception){null}
     val key=AbSearchPresentation.seriesKey(cycle.title)
-    val catalogs=snapshot?.sources.orEmpty().filter{AbSearchPresentation.seriesKey(it.series)==key && it.books.isNotEmpty()}
-    val volumes=catalogs.flatMap{it.books}.filter{it.author.isNotBlank()}
-        .groupBy{SeriesAuthorityRules.title(it.title)+"|"+SeriesAuthorityRules.author(it.author)}
-        .values.map{editions->
-            val base=editions.first()
-            base.copy(order=editions.mapNotNull{it.order}.distinct().singleOrNull())
-        }.sortedWith(compareBy<OfficialEdition>{it.order ?: Double.MAX_VALUE}.thenBy{it.title})
+    val catalogs=direct?.sources ?: snapshot?.sources.orEmpty().filter{OfficialCycleSearch.seriesMatches(cycle.title,it.series) && it.books.isNotEmpty()}
+    val volumes=OfficialCycleSearch.template(cycle.title,catalogs)
     if(volumes.isEmpty()) {
-        val backup=if(fallback.isNotEmpty())fallback else {
+        val backup=(if(fallback.isNotEmpty())fallback else {
             val reports=abCycleSearch(context,prefs,cycle.title,sources)
             AbGlobalBookResults.prepare(reports,sources,cycle.title).filter{b->b.cycles.any{AbSearchPresentation.seriesKey(it.title)==key}}
-        }
-        publish(backup,true,"Справочники не подтвердили состав цикла; показан обычный поиск по источникам.")
+        }).map{b->b.copy(cycles=b.cycles.map{c->if(AbSearchPresentation.seriesKey(c.title)==key)c.copy(order=null) else c})}
+        publish(backup,true,"Справочники недоступны: порядок цикла не подтверждён. Показаны результаты без номеров аудиоисточников.")
         return
     }
     fun reference(v:OfficialEdition)=cycle.copy(order=v.order,referenceUrl=v.url,referenceSite=v.provider,seedTitle=v.title,seedAuthor=v.author)
@@ -8470,15 +8483,19 @@ private suspend fun abResolveCycleAudio(context:Context,prefs:android.content.Sh
     val partial=catalogs.none{it.complete&&it.error.isBlank()}
     fun report(done:Int,finished:Boolean){
         val found=rows.count{list->list.any{it.catalogState=="checked"}}
-        publish(rows.flatten(),finished,"Справочники: ${volumes.size} книг${if(partial)" (список может быть неполным)" else ""}. Проверено томов: $done/${volumes.size}. Главы найдены: $found.")
+        publish(rows.flatten(),finished,"Порядок: ${catalogs.joinToString(" + "){it.provider}}. ${volumes.size} книг${if(partial)" (список может быть неполным)" else ""}. Проверено: $done/${volumes.size}. Главы найдены: $found.")
     }
     report(0,false)
     for((index,volume) in volumes.withIndex()) {
         kotlinx.coroutines.currentCoroutineContext().ensureActive()
-        val query=SeriesAuthorityRules.queryTitle(volume.title)
+        val query=OfficialCycleSearch.lookupTitle(cycle.title,volume.title)
         val reports=abCycleSearch(context,prefs,query,sources)
         var incomplete=reports.size<sources.size||reports.values.any{it.error.isNotBlank()}
-        val candidates=AbGlobalBookResults.prepare(reports,sources,query).filter{abCycleVolumeMatch(volume,it)}
+        val aliases=OfficialCycleSearch.aliases(cycle.title,volume,catalogs)
+        val candidates=AbSearchPresentation.merge(reports.values.flatMap{it.books}.filter{b->
+            aliases.any{alias->OfficialCycleSearch.matches(cycle.title,alias,b.title)} &&
+                (b.author.isBlank()||SeriesAuthorityRules.author(b.author)==SeriesAuthorityRules.author(volume.author))
+        })
         // A reference page is bibliography only. Only exact audio-search results can be opened.
         val checked=mutableListOf<BookLink>()
         val examined=mutableSetOf<String>()
@@ -8491,7 +8508,7 @@ private suspend fun abResolveCycleAudio(context:Context,prefs:android.content.Sh
                 if(SeriesAuthorityRules.provider(source.url).isNotBlank() || supportedBookUrl(source.url)==null ||
                     AbSourceAvailability.get(prefs,source.url)==AbChapterAvailability.PREVIEW || !examined.add(source.url))continue
                 probes++
-                if(abProbeCycleEdition(context,volume,source.url)) {
+                if(abProbeCycleEdition(context,volume,source.url,cycle.title,aliases,candidate.author)) {
                     AbSourceAvailability.record(prefs,source.url,true)
                     verified.add(source)
                 } else incomplete=true
