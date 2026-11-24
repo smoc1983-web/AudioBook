@@ -11,6 +11,28 @@ public final class SeriesAuthorityRules {
  public static String seriesLabel(String value){return (value==null?"":value).trim().replaceFirst("(?iu)^\\s*(?:цикл|серия)\\s*[:—–-]?\\s*", "").replaceAll("^[\\s«»\"“”]+|[\\s«»\"“”]+$","").trim();}
  public static boolean plausibleSeriesTitle(String value){String s=seriesLabel(value);return !s.isEmpty()&&s.length()<=300&&!s.matches("(?iu).*(?:^|[\\s(])(?:в\\s+исполнении|читает|озвучивает|чтец)(?:[\\s:)]|$).*")&&!s.matches("^\\d+(?:[.,]\\d+)?[.)]\\s+.*");}
  public static boolean sameTitle(String wanted,String actual,String cycle){String a=title(wanted),b=title(actual),c=series(cycle);if(a.isEmpty()||b.isEmpty())return false;if(a.equals(b))return true;if(!c.isEmpty()){if(a.startsWith(c+" "))a=a.substring(c.length()+1);if(b.startsWith(c+" "))b=b.substring(c.length()+1);}return !a.isEmpty()&&a.equals(b);}
+ // A dash suffix is a lookup hint, not a verified author. Only remove it from
+ // the identity after an independent official author agrees.
+ private static final Pattern AUTHOR_SUFFIX=Pattern.compile("\\s+[-—–|]\\s+(.+?)\\s*$");
+ public static String referenceTitle(String raw,String verifiedAuthor){
+  String clean=OpenedBookIdentity.cleanPresentation(raw,verifiedAuthor);
+  Matcher suffix=AUTHOR_SUFFIX.matcher(clean);
+  if(suffix.find()&&!author(verifiedAuthor).isEmpty()&&author(verifiedAuthor).equals(author(suffix.group(1))))return clean.substring(0,suffix.start()).trim();
+  return clean;
+ }
+ public static List<String> referenceQueries(String raw,String knownAuthor){
+  String clean=queryTitle(referenceTitle(raw,knownAuthor));
+  LinkedHashSet<String> queries=new LinkedHashSet<>();
+  queries.add(clean);
+  Matcher suffix=AUTHOR_SUFFIX.matcher(clean);
+  if(suffix.find()&&knownAuthor.trim().isEmpty()&&suffix.group(1).matches("(?U)[\\p{L}]+(?:[-'][\\p{L}]+)?(?:\\s+[\\p{L}]+(?:[-'][\\p{L}]+)?){1,2}"))
+   queries.add(clean.substring(0,suffix.start()).trim());
+  if(!knownAuthor.trim().isEmpty())queries.add(clean+" "+knownAuthor.trim());
+  queries.remove("");return new ArrayList<>(queries);
+ }
+ public static boolean referenceMatches(String wanted,String actual,String cycle,String verifiedAuthor){
+  return sameTitle(referenceTitle(wanted,verifiedAuthor),referenceTitle(actual,verifiedAuthor),cycle);
+ }
  public static boolean sameAuthor(String wanted,Collection<String> actual){
   String key=author(wanted);if(key.isEmpty())return false;
   for(String value:actual)if(key.equals(author(value)))return true;

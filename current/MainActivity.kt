@@ -13162,7 +13162,7 @@ internal fun AbOfficialSeriesPanel(title:String,author:String,prefs:android.cont
         val current=snapshot?.takeIf{SeriesAuthorityRules.sameTitle(title,it.title,"")}
         if(current!=null) {
             if(compact&&current.sources.any{it.error.isNotBlank()})
-                Text("Часть справочников недоступна. Сохранённые сведения доступны; подробности — ниже.",color=theme.muted,fontSize=11.sp)
+                Text(if(current.sources.any{it.books.isNotEmpty()})"Не все справочники подтвердили серию. Сохранённые сведения показаны ниже." else "Серия пока не подтверждена ни одним справочником. Повторите сверку.",color=theme.muted,fontSize=11.sp)
             if(!compact||details)current.sources.forEach{s->
                 val checked=if(s.checked>0)java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.SHORT,java.text.DateFormat.SHORT).format(java.util.Date(s.checked)) else "успешной сверки ещё нет"
                 val attempted=if(s.attempted>0)java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.SHORT,java.text.DateFormat.SHORT).format(java.util.Date(s.attempted)) else "ещё не выполнялась"
@@ -13178,11 +13178,11 @@ internal fun AbOfficialSeriesPanel(title:String,author:String,prefs:android.cont
                 current.sources.flatMap{s->s.books.filter{b->
                     (filter==0||b.format==if(filter==1)"text" else "audio")&&
                         (scope==1||s.seedOrder==null||b.order==null||b.order>s.seedOrder)&&
-                        (scope==1||!SeriesAuthorityRules.sameTitle(title,b.title,s.series))
+                        (scope==1||!SeriesAuthorityRules.referenceMatches(title,b.title,s.series,b.author))
                 }}.groupBy{SeriesAuthorityRules.series(it.series)+"|"+SeriesAuthorityRules.author(it.author)+"|"+SeriesAuthorityRules.title(it.title)}
                     .values.sortedWith(compareBy<List<OfficialEdition>>{it.first().series}.thenBy{it.mapNotNull{b->b.order}.minOrNull() ?: Double.MAX_VALUE})
             }
-            if(grouped.isEmpty())Text(if(running)"Загружаем сведения…" else "Подтверждённых продолжений для выбранного формата пока не найдено. Можно открыть всю серию или повторить сверку.",color=theme.muted,fontSize=12.sp)
+            if(grouped.isEmpty())Text(when{running->"Загружаем сведения…";current.sources.none{it.books.isNotEmpty()}->"Список серии не получен. Это не означает, что продолжений нет.";else->"Подтверждённых продолжений для выбранного формата пока не найдено. Можно открыть всю серию или повторить сверку."},color=theme.muted,fontSize=12.sp)
             val listed=grouped.map{it.first()}
             val completed=listed.count{book->library.any{SeriesAuthorityRules.title(it.title)==SeriesAuthorityRules.title(book.title)&&StableProgress.isCompleted(prefs,it)}}
             Text("В этом списке прослушано: $completed из ${listed.size}",color=theme.muted,fontSize=12.sp)

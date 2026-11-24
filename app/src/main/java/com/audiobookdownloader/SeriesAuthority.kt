@@ -31,7 +31,7 @@ internal object SeriesAuthorityCache {
     fun evidence(prefs:SharedPreferences,title:String,author:String):SeriesEvidence? = try {
         run {
             val j=JSONObject(prefs.getString(key(title,author),"{}").orEmpty())
-            if(j.optString("state")!="confirmed" || !SeriesAuthorityRules.sameTitle(title,j.optString("title"),j.optString("series")) ||
+            if(j.optString("state")!="confirmed" || !SeriesAuthorityRules.referenceMatches(title,j.optString("title"),j.optString("series"),j.optString("author")) ||
                 (author.isNotBlank()&&SeriesAuthorityRules.author(author)!=SeriesAuthorityRules.author(j.optString("author"))) ||
                 !SeriesAuthorityRules.work(j.optString("bookUrl")) || !SeriesAuthorityRules.cycle(j.optString("seriesUrl")))null
             else SeriesEvidence(j.getString("title"),j.getString("author"),j.getString("series"),j.getString("seriesUrl"),
@@ -122,14 +122,14 @@ internal class SeriesAuthorityResolver(private val fetcher:SeriesAuthorityFetche
                 return SeriesEvidence(record.title,expected,record.seriesTitle,record.seriesUrl,record.bookUrl,provider,record.order,record.parentTitle) to "confirmed"
             }
         }catch(e:CancellationException){throw e}catch(_:Exception){}
-        val query=URLEncoder.encode(SeriesAuthorityRules.queryTitle(title),"UTF-8")
         require(provider in listOf("Author.Today","Литрес"))
-        val search=if(provider=="Author.Today")"https://author.today/search?category=works&q=$query" else "https://www.litres.ru/search/?q=$query"
-        run {
+        for(queryText in SeriesAuthorityRules.referenceQueries(title,author)) {
+            val query=URLEncoder.encode(queryText,"UTF-8")
+            val search=if(provider=="Author.Today")"https://author.today/search?category=works&q=$query" else "https://www.litres.ru/search/?q=$query"
             currentCoroutineContext().ensureActive()
             try {
                 val matching=SeriesAuthorityParser.search(fetcher.html(search),search).filter{
-                    (author.isBlank()||SeriesAuthorityRules.sameAuthor(author,it.authors))&&SeriesAuthorityRules.sameTitle(title,it.title,it.seriesTitle)}
+                    (author.isBlank()||SeriesAuthorityRules.sameAuthor(author,it.authors))&&it.authors.any{writer->SeriesAuthorityRules.referenceMatches(title,it.title,it.seriesTitle,writer)}}
                     .distinctBy{it.bookUrl}
                 val writers=matching.flatMap{it.authors}.map{SeriesAuthorityRules.author(it)}.distinct()
                 if(author.isBlank()&&writers.size>1)return null to "ambiguous"

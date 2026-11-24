@@ -85,7 +85,7 @@ internal class OfficialSeriesCatalog(private val context:Context,private val fet
                 currentCoroutineContext().ensureActive()
                 try {
                     val result=withTimeout(45_000L) {
-                        val savedHint=sources[provider]?.books?.firstOrNull{SeriesAuthorityRules.sameTitle(title,it.title,it.series)}?.url.orEmpty()
+                        val savedHint=sources[provider]?.books?.firstOrNull{SeriesAuthorityRules.referenceMatches(title,it.title,it.series,it.author)}?.url.orEmpty()
                         val authorityHint=SeriesAuthorityCache.evidence(prefs,title,snapshot.author.ifBlank{author})?.bookUrl.orEmpty()
                         val hint=savedHint.ifBlank{authorityHint.takeIf{SeriesAuthorityRules.provider(it)==provider}.orEmpty()}
                         val (evidence,state)=SeriesAuthorityResolver(fetcher).resolveFrom(provider,title,snapshot.author.ifBlank{author},hint)
