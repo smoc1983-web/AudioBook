@@ -34,6 +34,10 @@ public class EditionDownloadRulesTest {
         assertTrue(EditionDownloadRules.isSuspectedExcerpt(Collections.singletonList("1"),0,24));
         assertFalse(EditionDownloadRules.isSuspectedExcerpt(Collections.singletonList("1"),14400,0));
         assertFalse(EditionDownloadRules.isSuspectedExcerpt(Collections.singletonList("Рассказ"),240,0));
+        assertTrue(EditionDownloadRules.isSuspectedExcerpt(Collections.singletonList("Начало"),0,0));
+        assertTrue(EditionDownloadRules.isSuspectedExcerpt(Collections.singletonList("Начало"),180,27));
+        assertFalse(EditionDownloadRules.isSuspectedExcerpt(Collections.singletonList("Начало"),18000,27));
+        assertFalse(EditionDownloadRules.isSuspectedExcerpt(java.util.Collections.nCopies(27,"Глава"),18000,24));
         assertFalse(EditionDownloadRules.isSuspectedExcerpt(Arrays.asList("Глава 1","Глава 2"),240,24));
     }
     @Test public void oneShortFileDoesNotMeanExcerptOrCompleteBook() {

@@ -26,8 +26,13 @@ public final class EditionDownloadRules {
     /** A short first chapter is suspicious, not proof of a demo; full single-file books remain valid. */
     public static boolean isSuspectedExcerpt(List<String> chapterTitles,int durationSeconds,int previouslyKnownChapters) {
         if(chapterTitles.size()!=1)return false;
+        String label=chapterTitles.get(0).trim();
+        boolean opening=label.matches("(?iu)^(?:начало|вступление|пролог|начало книги|intro)[.!]?$");
+        // A lengthy single-file narration must not be rejected solely because another
+        // edition splits the same story into chapters.
+        if(durationSeconds>1200)return false;
         if(previouslyKnownChapters>1)return true;
-        return durationSeconds>0 && durationSeconds<=1200 && FIRST_CHAPTER.matcher(chapterTitles.get(0)).matches();
+        return opening || (durationSeconds>0 && FIRST_CHAPTER.matcher(label).matches());
     }
 
     public static boolean isSegmented(String source) {

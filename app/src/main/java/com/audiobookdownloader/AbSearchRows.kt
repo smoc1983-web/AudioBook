@@ -60,8 +60,9 @@ internal object AbSearchRows {
         // Availability never reorders numbered volumes. Lazy keys identify the work,
         // not whichever server happened to finish first.
         groups.mapNotNull{(key,editions)->
-            val book=editions.first()
-            indexed[book.url]?.copy(book=book,sources=bookSources(book),editions=editions,key=key)
+            val ranked=editions.sortedBy{AbSourceAvailability.priority(prefs,bookSources(it))}
+            val book=ranked.first()
+            indexed[book.url]?.copy(book=book,sources=bookSources(book),editions=ranked,key=key)
         }
     }
 }

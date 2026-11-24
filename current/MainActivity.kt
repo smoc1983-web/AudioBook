@@ -8602,27 +8602,36 @@ private suspend fun abResolveCycleAudio(context:Context,prefs:android.content.Sh
         checkpoint.exactDone.add(i)
         if(checkpoint.rows[i].isNullOrEmpty())checkpoint.rows[i]=listOf(placeholder(volumes[i],"incomplete"))
     }
-    // Candidate links are usable immediately. Validate one leading edition per work
-    // with a bounded budget, never block the catalogue on every alternative narration.
+    // If a leading edition is an excerpt, check the next available source instead.
+    // Keep the total per-volume budget bounded and retain every usable alternative.
     for(i in volumes.indices){
         abRequireSearchWindow(context)
         val list=checkpoint.rows[i].orEmpty()
-        val candidate=list.firstOrNull{it.catalogState=="candidate"} ?: continue
-        if(candidate.url in checkpoint.verified)continue
-        report("Проверка глав: ${i+1}/${volumes.size}.")
-        val ok=try {
-            kotlinx.coroutines.withTimeoutOrNull(15_000L){
-                abProbeCycleEdition(context,volumes[i],candidate.url,cycle.title,aliases[i],candidate.author)
+        val choices=list.filter{it.catalogState in setOf("candidate","checked")}
+            .flatMap{candidate->bookSources(candidate).map{source->candidate to source}}
+            .distinctBy{it.second.url}
+            .filter{!AbSourceAvailability.hidden(AbSourceAvailability.get(prefs,it.second.url))}
+            .sortedBy{AbSourceAvailability.get(prefs,it.second.url).priority}
+        for((candidate,source) in choices.take(3)){
+            abRequireSearchWindow(context)
+            if(AbSourceAvailability.get(prefs,source.url)==AbChapterAvailability.AVAILABLE)break
+            if(source.url in checkpoint.verified)continue
+            report("Проверка глав: ${i+1}/${volumes.size}.")
+            val ok=kotlinx.coroutines.withTimeoutOrNull(15_000L){
+                abProbeCycleEdition(context,volumes[i],source.url,cycle.title,aliases[i],candidate.author)
             }==true
-        }catch(cancel:kotlinx.coroutines.CancellationException){
-            checkpoint.verified.remove(candidate.url);throw cancel
+            abRequireSearchWindow(context)
+            checkpoint.verified.add(source.url)
+            if(ok)break
         }
-        abRequireSearchWindow(context)
-        checkpoint.verified.add(candidate.url)
-        if(ok){
-            AbSourceAvailability.record(prefs,candidate.url,true)
-            checkpoint.rows[i]=list.map{if(it.url==candidate.url)it.copy(catalogState="checked") else it}
-        }
+        val filtered=list.mapNotNull{candidate->
+            if(candidate.catalogState !in setOf("candidate","checked"))candidate else
+                AbSourceAvailability.withoutPreviews(prefs,candidate)?.let{book->
+                    book.copy(catalogState=if(AbSourceAvailability.get(prefs,book.url)==AbChapterAvailability.AVAILABLE)"checked" else "candidate")
+                }
+        }.sortedBy{AbSourceAvailability.priority(prefs,bookSources(it))}
+        checkpoint.rows[i]=filtered.ifEmpty{listOf(placeholder(volumes[i],"incomplete"))}
+        report("Проверено изданий цикла: ${i+1}/${volumes.size}.")
     }
     report("Поиск завершён. Откройте книгу для проверки оставшихся озвучек.",true)
 }
