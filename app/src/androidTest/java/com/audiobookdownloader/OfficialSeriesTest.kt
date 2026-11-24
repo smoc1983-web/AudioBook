@@ -167,6 +167,8 @@ class OfficialSeriesTest {
     @Test(timeout=60000) fun legacyCollectionTitleResolvesWithoutRemovingTheStoredBook()=runBlocking {
         latest=2
         val raw=title+" - Автор Тест"
+        assertEquals(listOf(raw,title),SeriesAuthorityRules.referenceQueries(raw,""))
+        assertTrue(SeriesAuthorityRules.referenceMatches(raw,title,"Тестовая серия",author))
         val requests=mutableListOf<String>()
         val provider=SeriesAuthorityFetcher{url->
             requests.add(url)

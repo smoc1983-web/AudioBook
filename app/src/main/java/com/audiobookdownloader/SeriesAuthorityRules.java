@@ -25,7 +25,7 @@ public final class SeriesAuthorityRules {
   LinkedHashSet<String> queries=new LinkedHashSet<>();
   queries.add(clean);
   Matcher suffix=AUTHOR_SUFFIX.matcher(clean);
-  if(suffix.find()&&knownAuthor.trim().isEmpty()&&suffix.group(1).matches("(?U)[\\p{L}]+(?:[-'][\\p{L}]+)?(?:\\s+[\\p{L}]+(?:[-'][\\p{L}]+)?){1,2}"))
+  if(suffix.find()&&knownAuthor.trim().isEmpty()&&suffix.group(1).matches("[\\p{L}]+(?:[-'][\\p{L}]+)?(?:\\s+[\\p{L}]+(?:[-'][\\p{L}]+)?){1,2}"))
    queries.add(clean.substring(0,suffix.start()).trim());
   if(!knownAuthor.trim().isEmpty())queries.add(clean+" "+knownAuthor.trim());
   queries.remove("");return new ArrayList<>(queries);

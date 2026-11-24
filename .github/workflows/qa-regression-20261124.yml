@@ -53,11 +53,7 @@ jobs:
           emulator-boot-timeout: 420
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -memory 2048 -cores 2
           script: |
-            set +e
-            GITHUB_RUN_NUMBER=124 gradle :app:connectedDebugAndroidTest -PaudiobookChannel=test -Pandroid.testInstrumentationRunnerArguments.class=com.audiobookdownloader.LivePermittedAudioTest --max-workers=2 --console=plain
-            result=$?
-            adb logcat -d -s AudioBookLiveQA:I '*:S' | tee live-source-audit.txt
-            exit "$result"
+            result=0; GITHUB_RUN_NUMBER=124 gradle :app:connectedDebugAndroidTest -PaudiobookChannel=test -Pandroid.testInstrumentationRunnerArguments.class=com.audiobookdownloader.LivePermittedAudioTest --max-workers=2 --console=plain || result=$?; adb logcat -d -s AudioBookLiveQA:I '*:S' | tee live-source-audit.txt; exit "$result"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
