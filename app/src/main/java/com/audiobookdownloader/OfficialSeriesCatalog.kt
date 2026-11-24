@@ -102,7 +102,8 @@ internal class OfficialSeriesCatalog(private val context:Context,private val fet
                             require(collected.size<=500){"Слишком много книг серии"}
                             p.next.filter{it !in seen}.forEach{queue.add(it)}
                         }
-                        val seedRows=collected.values.filter{SeriesAuthorityRules.sameTitle(title,it.title,evidence.series)}
+                        val seedRows=collected.values.filter{SeriesAuthorityRules.author(it.author)==SeriesAuthorityRules.author(evidence.author)&&
+                            SeriesAuthorityRules.referenceMatches(title,it.title,evidence.series,evidence.author)}
                         require(seedRows.isNotEmpty()){"Книга не найдена в прямой серии справочника"}
                         val listedOrders=seedRows.mapNotNull{it.order}.distinct()
                         require(listedOrders.size<=1&&(evidence.order==null||listedOrders.isEmpty()||listedOrders.single()==evidence.order)){"Номер текущей книги расходится между страницей и каталогом серии"}
