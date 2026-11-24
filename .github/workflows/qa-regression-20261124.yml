@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 40
     env:
-      GITHUB_RUN_NUMBER_OVERRIDE: '121'
+      GITHUB_RUN_NUMBER_OVERRIDE: '124'
     steps:
       - uses: actions/checkout@v4
         with:
@@ -24,9 +24,9 @@ jobs:
       - name: Android SDK
         run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;35.0.0"'
       - name: JVM regressions and imported legacy title cases
-        run: GITHUB_RUN_NUMBER=121 gradle :app:testDebugUnitTest -PaudiobookChannel=test --max-workers=2 --console=plain
+        run: GITHUB_RUN_NUMBER=124 gradle :app:testDebugUnitTest -PaudiobookChannel=test --max-workers=2 --console=plain
       - name: Build instrumented QA APK
-        run: GITHUB_RUN_NUMBER=121 gradle :app:assembleDebug :app:assembleDebugAndroidTest -PaudiobookChannel=test --max-workers=2 --console=plain
+        run: GITHUB_RUN_NUMBER=124 gradle :app:assembleDebug :app:assembleDebugAndroidTest -PaudiobookChannel=test --max-workers=2 --console=plain
       - name: KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
@@ -41,7 +41,7 @@ jobs:
           profile: pixel_6
           emulator-boot-timeout: 420
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -memory 2048 -cores 2
-          script: GITHUB_RUN_NUMBER=121 gradle :app:connectedDebugAndroidTest -PaudiobookChannel=test -Pandroid.testInstrumentationRunnerArguments.class=com.audiobookdownloader.CollectionTransferTest,com.audiobookdownloader.NovaListeningFeaturesTest,com.audiobookdownloader.SearchScrollTest,com.audiobookdownloader.SearchFiltersTest,com.audiobookdownloader.RankedAudioSearchTest,com.audiobookdownloader.UpdateScreenTest,com.audiobookdownloader.LatestMenuRegressionTest,com.audiobookdownloader.LibraryExperienceTest,com.audiobookdownloader.OfficialSeriesTest,com.audiobookdownloader.EditionDownloadTest,com.audiobookdownloader.MiniPlayerSwipeTest --max-workers=2 --console=plain
+          script: GITHUB_RUN_NUMBER=124 gradle :app:connectedDebugAndroidTest -PaudiobookChannel=test -Pandroid.testInstrumentationRunnerArguments.class=com.audiobookdownloader.CollectionTransferTest,com.audiobookdownloader.NovaListeningFeaturesTest,com.audiobookdownloader.SearchScrollTest,com.audiobookdownloader.SearchFiltersTest,com.audiobookdownloader.RankedAudioSearchTest,com.audiobookdownloader.UpdateScreenTest,com.audiobookdownloader.LatestMenuRegressionTest,com.audiobookdownloader.LibraryExperienceTest,com.audiobookdownloader.OfficialSeriesTest,com.audiobookdownloader.EditionDownloadTest,com.audiobookdownloader.MiniPlayerSwipeTest,com.audiobookdownloader.SourceHealthPanelTest,com.audiobookdownloader.SourceHealthAndroidTest --max-workers=2 --console=plain
       - uses: actions/upload-artifact@v4
         if: always()
         with:

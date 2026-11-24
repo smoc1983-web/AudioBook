@@ -10415,6 +10415,12 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
                 }
             }
         }
+        Text("Официальные каталоги",color=theme.text,fontSize=16.sp)
+        AbButton("LibriVox · открыть каталог",theme){
+            try{sourceContext.startActivity(Intent(Intent.ACTION_VIEW,Uri.parse("https://librivox.org/search")))}
+            catch(_:android.content.ActivityNotFoundException){Toast.makeText(sourceContext,"Не найден браузер",Toast.LENGTH_SHORT).show()}
+        }
+        Text("Записи общественного достояния в США. Учитывайте права в своей стране. Открывается в браузере; в общий поиск пока не входит.",color=theme.muted,fontSize=11.sp)
         Text("Дополнительные сайты",color=theme.text,fontSize=16.sp)
         Text("Откройте сайт внутри приложения, выберите книгу и нажмите «Проверить главы». Общий поиск для этих сайтов пока недоступен.",color=theme.muted,fontSize=12.sp)
         AbExtraSources.browserOnly.forEach{(name,url,note)->

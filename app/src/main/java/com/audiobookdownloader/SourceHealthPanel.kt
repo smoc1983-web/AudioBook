@@ -54,6 +54,13 @@ internal data class SourceHealthView(val state:SourceHealthState,val targets:Map
         AbButton("Отменить проверку сайтов",theme){job?.cancel()}
     }
     if(state.message.isNotBlank())Text(state.message,color=theme.muted,fontSize=12.sp)
+    val observations=targets.map{state.values[it.key]}
+    val fresh=observations.filterNotNull().filter{SourceHealthRules.fresh(it.checked,now)}
+    val answered=fresh.count{it.status==SourceHealthRules.Status.RESPONDED}
+    val stale=observations.filterNotNull().size-fresh.size
+    val unknown=observations.count{it==null}
+    Text("Свежие ответы сайтов: $answered · свежие ошибки/ограничения: ${fresh.size-answered} · устарело: $stale · не проверено: $unknown",color=theme.muted,fontSize=12.sp)
+    Text("Сетевой статус не подтверждает наличие полной аудиокниги или разрешение на скачивание.",color=theme.muted,fontSize=11.sp)
     AbButton("Подготовить отчёт поиска (.txt)",theme,enabled=!state.running&&!reporting) {
         reporting=true
         reportPreview=null
