@@ -22,6 +22,8 @@ badging = subprocess.check_output([str(tools / "aapt"), "dump", "badging", str(a
 assert f"package: name='{PACKAGE}' versionCode='{code}' versionName='{name}'" in badging, "Wrong test package or version"
 assert "application-label:'Audiobook Test'" in badging, "Test application is not distinguishable"
 assert "application-debuggable" not in badging, "Release must not be debuggable"
+manifest = subprocess.check_output([str(tools / "aapt"), "dump", "xmltree", str(apk), "AndroidManifest.xml"], text=True)
+assert "com.audiobookdownloader.ReleaseNotesActivity" not in manifest, "Obsolete notes window is still registered"
 verified = subprocess.check_output([str(tools / "apksigner"), "verify", "--verbose", "--print-certs", str(apk)], text=True)
 assert f"Signer #1 certificate SHA-256 digest: {CERT}" in verified, "Wrong signing key"
 assert "Number of signers: 1" in verified
@@ -48,4 +50,4 @@ metadata = {
 }
 (out / "test-update.json").write_text(json.dumps(metadata, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 (out / "release-notes.md").write_text("\n".join("- " + x for x in changes) + "\n", encoding="utf-8")
-print(json.dumps({key: metadata[key] for key in ("packageName", "versionCode", "versionName", "sha256", "certificateSha256")}, indent=2))
+print(json.dumps({key: metadata[key] for key in ("packageName", "versionCode", "versionName", "size", "sha256", "certificateSha256")}, indent=2))

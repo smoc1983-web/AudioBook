@@ -13,3 +13,7 @@ AbPlayerProgress.kt: read-only progress UI and its two persistent display settin
 5. Move one coherent section at a time; compare behavior and run regressions before the next extraction. Do not combine a wholesale refactor with the current search fixes.
 
 No build or tests executed, per existing deferred-build workflow. On-device verification is pending.
+
+## Second extraction and APK size
+
+Moved AbPlayerScreen, its transport, chapter, bookmark and tool UI into AbPlayerScreen.kt (311 lines). Shared interfaces remain internal. Removed obsolete release-notes Activity registration and launch hooks. The JSON release notes remain the updater's input. Test CI converts nine decorative backgrounds to WebP, keeps dimensions/alpha, does not touch atlas/icon/audio or repository originals; measures APK against prior release. No R8 change in this release. Other screens are not extracted yet; validate this smaller refactor before proceeding.
