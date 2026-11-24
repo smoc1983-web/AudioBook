@@ -11179,6 +11179,7 @@ private fun AbPlayerScreen(data: AbScreenData,actions: AbActions,books: List<Lib
                 AbCover(state.bookTitle,local,ref,theme,Modifier.height(height).width(height*.72f),widgetBook=true)
             }
             if(state.error.isNotBlank())Text(state.error,color=theme.error,fontSize=12.sp,maxLines=2)
+            AbPlayerProgress(state,data.durations,prefs,theme)
             AbPlayerTransport(state,prefs,theme)
             AbPlayerTools(state,prefs.getString(AbListeningFeatures.TOOLS,null),theme,panel,{panel=it},onSettings)
         }
@@ -11342,6 +11343,7 @@ internal fun AbPlayerToolSettings(prefs:android.content.SharedPreferences,theme:
             prefs.edit().putBoolean(AbListeningFeatures.ELAPSED,checked).apply()
         },modifier=Modifier.semantics{contentDescription="Показывать прошедшее время главы"})
     }
+    AbPlayerProgressSettings(prefs,theme)
 }
 
 @Composable
@@ -11362,7 +11364,7 @@ private fun AbPlayerIdentity(data:AbScreenData,prefs:android.content.SharedPrefe
             AbButton(if(collected)"В коллекции" else "В коллекцию",theme,Modifier.weight(1f)) {onShelf(ref)}
             AbButton("Продолжения",theme,Modifier.weight(1f).semantics{contentDescription="Продолжения серии"},onClick=onSeries)
         }
-        AbBookPlaybackProgress(data,theme,compact=true)
+        AbPlayerProgress(data.playback,data.durations,prefs,theme,resolveDurations=false)
         AbBookDownloadFeedback(data,title,theme)
     }
 }
@@ -11434,42 +11436,6 @@ private fun AbPlayerAction(icon: AbIcon,label: String,theme: AbTheme,active: Boo
         AbIcon(icon,if(active) theme.accent else theme.text)
         Text(label,color=if(active) theme.accent else theme.muted,fontSize=10.sp,maxLines=2,
             textAlign=androidx.compose.ui.text.style.TextAlign.Center)
-    }
-}
-
-@Composable
-private fun AbBookPlaybackProgress(data: AbScreenData,theme: AbTheme,compact:Boolean=false) {
-    val state=data.playback
-    val context=androidx.compose.ui.platform.LocalContext.current.applicationContext
-    val cached by AbAudioDurations.state.collectAsState()
-    var checking by remember(state.bookTitle){mutableStateOf(false)}
-    var retry by remember(state.bookTitle){mutableStateOf(0)}
-    val prefs=remember(context){context.getSharedPreferences("audiobook_downloader",0)}
-    val timing=AbBookProgress.playback(prefs,state,data.durations+cached)
-    val sourceKey=remember(state.tracks){state.tracks.map{it.src}}
-    LaunchedEffect(state.bookTitle,sourceKey,state.trackIndex,retry) {
-        checking=true
-        try {AbAudioDurations.resolve(context,state.bookTitle,(state.tracks.drop(state.trackIndex.coerceAtLeast(0))+state.tracks.take(state.trackIndex.coerceAtLeast(0))),retry>0)}
-        finally{checking=false}
-    }
-    Column(Modifier.padding(top=6.dp),verticalArrangement=Arrangement.spacedBy(5.dp)) {
-        AbProgress(timing.progress,theme,Modifier.fillMaxWidth().semantics{contentDescription=AbBookProgress.description(timing)})
-        val text=when {
-            timing.remainingMs>=0 -> "До конца книги: "+AbBookTimeRules.time(timing.remainingMs)+
-                (if(timing.elapsedMs>=0)" · прослушано "+AbBookTimeRules.time(timing.elapsedMs) else "")
-            else -> (if(timing.chapterRemainingMs>=0)"До конца главы: "+AbBookTimeRules.time(timing.chapterRemainingMs)+" · " else "")+
-                if(checking)"Уточняем время книги: ${timing.knownRemaining} из ${timing.totalRemaining} оставшихся глав"
-                else "Время до конца книги пока не определено"
-        }
-        val visibleText=if(compact)AbBookProgress.description(timing)+" · "+text else text
-        Text(visibleText,color=theme.muted,fontSize=11.sp,maxLines=if(compact)2 else 3,modifier=Modifier.fillMaxWidth()
-            .semantics{contentDescription=visibleText},textAlign=androidx.compose.ui.text.style.TextAlign.Center)
-        if(!compact)Text(AbBookProgress.description(timing),
-            color=theme.muted,fontSize=10.sp,modifier=Modifier.fillMaxWidth(),
-            textAlign=androidx.compose.ui.text.style.TextAlign.Center)
-        if(timing.remainingMs<0 && !checking && state.tracks.any{isNetworkAudio(it.src)})
-            Text("Уточнить время книги",color=theme.accent,fontSize=11.sp,
-                modifier=Modifier.heightIn(min=36.dp).clickable{retry++}.padding(vertical=8.dp))
     }
 }
 
@@ -11597,7 +11563,7 @@ private enum class AbSettingsSection(val label:String,val subtitle:String,val ic
     STORAGE("Память устройства","Размер книг и очистка",AbIcon.DOWNLOAD),
     UPDATES("Обновления","Версия и установка",AbIcon.SYNC),
     DIAGNOSTICS("Диагностика","События и сбои",AbIcon.SYNC),
-    PLAYER_TOOLS("Панель плеера","Кнопки и время главы",AbIcon.PLAY),
+    PLAYER_TOOLS("Панель плеера","Кнопки, время главы и книги",AbIcon.PLAY),
     CATALOG_VIEW("Каталог","Завершённые книги",AbIcon.SEARCH)
 }
 

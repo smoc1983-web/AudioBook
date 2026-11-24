@@ -6,6 +6,8 @@ internal object AbListeningFeatures {
     const val LIBRARY_FILTERS = "experience_library_filters"
     const val HIDE_FINISHED = "experience_hide_finished_catalog"
     const val ELAPSED = "experience_player_chapter_elapsed"
+    const val CHAPTER_REMAINING = "experience_player_chapter_remaining"
+    const val BOOK_REMAINING = "experience_player_book_remaining"
     const val TOOLS = "experience_player_tools"
 
     enum class Tool(val label: String) {
