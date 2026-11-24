@@ -7,7 +7,7 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 55
     env:
       GITHUB_RUN_NUMBER_OVERRIDE: '124'
     steps:
@@ -42,6 +42,16 @@ jobs:
           emulator-boot-timeout: 420
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -memory 2048 -cores 2
           script: GITHUB_RUN_NUMBER=124 gradle :app:connectedDebugAndroidTest -PaudiobookChannel=test -Pandroid.testInstrumentationRunnerArguments.class=com.audiobookdownloader.CollectionTransferTest,com.audiobookdownloader.NovaListeningFeaturesTest,com.audiobookdownloader.SearchScrollTest,com.audiobookdownloader.SearchFiltersTest,com.audiobookdownloader.RankedAudioSearchTest,com.audiobookdownloader.UpdateScreenTest,com.audiobookdownloader.LatestMenuRegressionTest,com.audiobookdownloader.LibraryExperienceTest,com.audiobookdownloader.OfficialSeriesTest,com.audiobookdownloader.EditionDownloadTest,com.audiobookdownloader.MiniPlayerSwipeTest,com.audiobookdownloader.SourceHealthPanelTest,com.audiobookdownloader.SourceHealthAndroidTest --max-workers=2 --console=plain
+      - name: Live source health and permitted whole-book download
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 36
+          target: aosp_atd
+          arch: x86_64
+          profile: pixel_6
+          emulator-boot-timeout: 420
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -memory 2048 -cores 2
+          script: GITHUB_RUN_NUMBER=124 gradle :app:connectedDebugAndroidTest -PaudiobookChannel=test -Pandroid.testInstrumentationRunnerArguments.class=com.audiobookdownloader.LivePermittedAudioTest --max-workers=2 --console=plain
       - uses: actions/upload-artifact@v4
         if: always()
         with:
