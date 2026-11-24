@@ -95,6 +95,7 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.flow.collectLatest
 import org.json.JSONArray
 import org.json.JSONObject
 import android.media.MediaMetadataRetriever
@@ -1849,6 +1850,10 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
             unifiedQuery.isNotBlank() || cycleLoading || genreIsWorking() || unifiedMerging,source=selectedSearchSource,selectedKey=searchSelectedKey,selectedUrl=searchSelectedUrl,
             scrollKey=searchListState.layoutInfo.visibleItemsInfo.firstOrNull{it.index==searchListState.firstVisibleItemIndex}?.key as? String ?: "")
         searchReturns=(searchReturns+saved).takeLast(8)
+        if(saved.genre.name.isBlank()){
+            val snapshot=AbSavedSearch(saved.query,saved.source,saved.books,saved.cycle.takeIf{saved.cycleBrowsing},saved.scrollIndex,saved.scrollOffset,saved.scrollKey,saved.selectedKey,saved.selectedUrl,searchVisits,searchOpenedUrls)
+            modernWork.launch(Dispatchers.IO){runCatching{AbSearchResume.save(context.applicationContext,snapshot)}}
+        }
     }
 
     fun failBookOpening(message:String) {
@@ -1881,6 +1886,9 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                 try {
                     val loaded=withContext(Dispatchers.IO){VerifiedBooks.load(sourceUrl)}
                     if(request!=bookOpenId)return@launch
+                    if(book.title.isNotBlank()&&!SeriesAuthorityRules.sameTitle(book.title,loaded.title,"") || book.author.isNotBlank()&&loaded.author.isNotBlank()&&SeriesAuthorityRules.author(book.author)!=SeriesAuthorityRules.author(loaded.author)){
+                        failBookOpening("Название или автор не совпадают с выбранной книгой");return@launch
+                    }
                     pageTitle=loaded.title;currentBookAuthor=loaded.author;currentCoverUrl=loaded.cover;player=loaded.data
                     bookPageLoading=false;bookPageError="";status="Глав: ${loaded.data.tracks.size}"
                     val availability=AbSourceAvailability.observe(prefs,sourceUrl,loaded.title,loaded.data)
@@ -2500,6 +2508,19 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
             searchVisits=searchVisits+(key to visit)
             searchOpenedUrls=searchOpenedUrls+visit.url.substringBefore('#').trimEnd('/')
         },
+        restoreLastSearch = {modernWork.launch{
+            val saved=withContext(Dispatchers.IO){AbSearchResume.load(context.applicationContext)}
+            if(saved==null)Toast.makeText(context,"Сохранённого поиска пока нет",Toast.LENGTH_SHORT).show()
+            else {
+                showSearchHome();searchText=saved.query;selectedSearchSource=saved.source.takeIf{it in AbBookSources.searchOrder}.orEmpty()
+                prefs.edit().putString("search_source",selectedSearchSource).apply()
+                selectedCycle=saved.cycle;cycleBrowsing=saved.cycle!=null;bookLinks=saved.books
+                searchScrollTarget=saved.index to saved.offset;searchRestoreKey=saved.anchor
+                searchSelectedKey=saved.selectedKey;searchSelectedUrl=saved.selectedUrl;searchRestored=true
+                searchVisits=saved.visits;searchOpenedUrls=saved.opened;searchSessionActive=true
+                status="Восстановлены сохранённые результаты · доступность аудио проверяется при открытии"
+            }
+        }},
         backSearch = {backToSearchResults()},
         retryBook = {bookOpening?.let{openWebsiteBook(it.book,it.sourceUrl)}},
         query = { searchText = it },
@@ -2849,6 +2870,9 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                                             parsed != null
                                         ) {
                                             val opening=bookOpening
+                                            if(opening!=null&&opening.book.title.isNotBlank()&&pageTitle.isNotBlank()&&!SeriesAuthorityRules.sameTitle(opening.book.title,pageTitle,"")){
+                                                failBookOpening("Название не совпадает с выбранной книгой");return@launch
+                                            }
                                             val availability=AbSourceAvailability.observe(prefs,url,pageTitle,parsed)
                                             if(opening!=null&&opening.sourceUrl!=url)AbSourceAvailability.record(prefs,opening.sourceUrl,parsed.tracks.isNotEmpty(),
                                                 preview=availability==AbChapterAvailability.PREVIEW,suspected=availability==AbChapterAvailability.SUSPECTED)
@@ -9330,6 +9354,7 @@ private data class AbActions(
     val refreshSearch: () -> Unit,
     val selectResult: (String,String) -> Unit,
     val recordSearchVisit: (String,AbSearchVisit) -> Unit,
+    val restoreLastSearch: () -> Unit,
     val backSearch: () -> Unit,
     val retryBook: () -> Unit,
     val query: (String) -> Unit,
@@ -10016,6 +10041,17 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
             listState.scrollToItem(target,offset);restored=true
         }
     }
+    LaunchedEffect(data.searchScreenId,data.results,data.searching,data.onlineBook,data.cycleBrowsing){
+        if(data.searchActive&&!data.searching&&data.onlineBook==null&&data.bookOpening==null&&data.genre.isBlank()&&data.results.isNotEmpty()){
+            androidx.compose.runtime.snapshotFlow{Triple(listState.firstVisibleItemIndex,listState.firstVisibleItemScrollOffset,listState.layoutInfo.visibleItemsInfo.firstOrNull()?.key as? String ?: "")}
+                .collectLatest{(index,offset,anchor)->
+                    if(anchor.isBlank())return@collectLatest
+                    val snapshot=AbSavedSearch(data.query,data.searchSource,data.results,data.cycle.takeIf{data.cycleBrowsing},index,offset,anchor,data.selectedResultKey,data.selectedResultUrl,data.searchVisits,data.searchOpenedUrls)
+                    delay(400)
+                    withContext(Dispatchers.IO){runCatching{AbSearchResume.save(sourceContext.applicationContext,snapshot)}}
+                }
+        }
+    }
     val searchHome=prepared!=null && !data.searchActive && data.onlineBook==null &&
         resultBooks.isEmpty() && !data.searching && !data.cycleBrowsing
     val foreground=LocalAbVisible.current
@@ -10064,6 +10100,7 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
             }
             if(data.query.trim().length>=2)AbButton("Из локальной базы",theme){showLocalIndex=true}
             AbButton("Любимые авторы и чтецы",theme){showPeople=true}
+            if(!data.searchActive)AbButton("Восстановить последний поиск",theme,onClick=actions.restoreLastSearch)
             if(data.searchActive&&!data.searching&&data.onlineBook==null&&data.query.isNotBlank())AbButton("Обновить результаты",theme,onClick=actions.refreshSearch)
             Row(Modifier.fillMaxWidth().padding(top=6.dp),horizontalArrangement=Arrangement.spacedBy(8.dp)) {
                 AbButton("Общий поиск",theme,Modifier.weight(1f),primary=data.searchSource.isBlank()) {actions.searchScope("")}
