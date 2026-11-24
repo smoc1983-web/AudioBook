@@ -4,6 +4,14 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class AbSearchCoordinatorTest {
+    @Test fun compactProgressCountsCompletedSourcesOnlyWithoutTechnicalDetails() {
+        val sources=listOf("A","B","C","D","A")
+        assertEquals("Проверено источников: 0 из 4",unifiedSearchStatus(emptyMap(),0,sources))
+        val reports=mapOf("A" to SiteSearchResult(emptyList(),"HTTP 404 /api"),"B" to SiteSearchResult(emptyList(),fromCache=true),
+            "C" to SiteSearchResult(listOf(BookLink("Книга","https://example.org/book"))),"other" to SiteSearchResult(emptyList()))
+        assertEquals("Проверено источников: 3 из 4",unifiedSearchStatus(reports,1,sources))
+        assertEquals("Проверено источников: 4 из 4",unifiedSearchStatus(reports+("D" to SiteSearchResult(emptyList())),1,sources))
+    }
     @Test(timeout=5000) fun slowAndFailedSitesDoNotHoldBackWorkingSources()=runBlocking {
         val slow=CompletableDeferred<Unit>()
         val reports=linkedMapOf<String,SiteSearchResult>()

@@ -2052,7 +2052,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
         unifiedQuery = query
         unifiedSources=if(selectedSearchSource.isBlank() || narration!=null)AbBookSources.enabled(prefs) else listOf(selectedSearchSource)
         AbSourceTrace.recordSearch(context,query,emptyMap(),unifiedSources)
-        status=if(selectedSearchSource.isBlank())"Ищу по включённым источникам…" else "Ищу: $selectedSearchSource…"
+        status=unifiedSearchStatus(emptyMap(),0,unifiedSources)
     }
 
     /*
@@ -2614,7 +2614,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
             genreDeferredPending.isNotEmpty() || genreNext.isNotEmpty() || genreExternalMore || genreExternalLoading),
         coverRepairRunning = coverRepairRunning, coverRepairStatus = coverRepairStatus,
         searching = unifiedQuery.isNotBlank() || cycleLoading || unifiedMerging || genreIsWorking(),
-        status = status, skin = appSkin, backgroundUri = customBackgroundUri,
+        status = status, sourceProgress=if(unifiedQuery.isNotBlank()||unifiedMerging)unifiedSearchStatus(searchReports,0,unifiedSources) else "", skin = appSkin, backgroundUri = customBackgroundUri,
         version = userDataVersion + bookmarksVersion + coverRefresh,
         playback = playbackState, durations = modernDurations,
         downloadedIndex = downloadedIndex, trackStates = modernTrackStates,
@@ -2739,9 +2739,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                                 }
                                 if(version!=unifiedMergeVersion || requestId!=unifiedSearchId || unifiedQuery.isBlank())return@launch
                                 bookLinks=merged
-                                status=(if(requestSources.size==1)requestSources.first()+": " else "Общий поиск: ")+unifiedSearchStatus(reports,merged.size,requestSources)+
-                                    if(merged.size>=AB_SEARCH_LIMIT) ". Показаны первые $AB_SEARCH_LIMIT книг; уточните запрос." else ""
-                                if(narration!=null)status="Та же озвучка · "+unifiedSearchStatus(reports,merged.size,requestSources)
+                                status=unifiedSearchStatus(reports,merged.size,requestSources)
                                 if(requestSources.all{it in reports}) {
                                     if(ranked!=null && merged.isEmpty()) {
                                         val local=libraryBooks.any { it.files.isNotEmpty() &&
@@ -8035,20 +8033,9 @@ fun mergeSearchBooks(books:List<BookLink>,checkActive:()->Unit={}):List<BookLink
 
 fun unifiedSearchStatus(reports: Map<String, SiteSearchResult>, count: Int,
     sources:List<String> = AbBookSources.searchOrder): String {
-    val pending=sources.filter{it !in reports}
-    val errors=reports.filterKeys{it in sources}.filterValues{it.error.isNotBlank()}.entries
-        .joinToString("; "){it.key+": "+it.value.error}
-    val live=reports.filterKeys{it in sources}.values.filter{!it.fromCache}
-    val cached=reports.filterKeys{it in sources}.values.count{it.fromCache}
-    val answered=live.count{AbSearchDiagnosticReport.status(it.error,it.books.size) in setOf("OK","EMPTY","PARTIAL")}
-    val failed=live.size-answered
-    val counters="Сайты: ответили $answered · кэш $cached · ошибки $failed · осталось ${pending.size}. "
-    val progress=when {
-        pending.isNotEmpty() -> "Найдено: "+count+". Ещё ищу: "+pending.joinToString()+"…"
-        count==0 && errors.isBlank() -> "В доступных источниках книги не найдены"
-        else -> "Найдено книг: "+count
-    }
-    return counters+progress+if(errors.isBlank()) "" else ". "+errors
+    val requested=sources.distinct()
+    val completed=requested.count{it in reports}
+    return "Проверено источников: $completed из ${requested.size}"
 }
 
 @Composable
@@ -9346,7 +9333,7 @@ private data class AbScreenData(
     val onlineBook: PlayerData?, val pageTitle: String, val pageUrl: String, val pageCover: String,
     val bookOpening:AbBookOpen?,val bookPageLoading:Boolean,val bookPageError:String,
     val cycle: BookCycle?, val cycleBrowsing: Boolean, val searching: Boolean, val status: String,
-    val searchActive: Boolean, val searchScreenId: Int,
+    val searchActive: Boolean, val searchScreenId: Int, val sourceProgress:String="",
     val canReturnResults:Boolean,val searchListState:androidx.compose.foundation.lazy.LazyListState,val searchRestoreIndex:Int,
     val selectedResultKey:String="",val selectedResultUrl:String="",val restoreSelection:Boolean=false,
     val searchRestoreOffset:Int=0,val searchRestoreKey:String="",val searchVisits:Map<String,AbSearchVisit> = emptyMap(),val searchOpenedUrls:Set<String> = emptySet(),
@@ -10141,7 +10128,7 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
         if(seriesStatus.isNotBlank()) item {Text(seriesStatus,color=theme.muted,fontSize=11.sp)}
         if(data.searching) item { Row(verticalAlignment=Alignment.CenterVertically) {
             androidx.compose.material3.CircularProgressIndicator(Modifier.size(18.dp),color=theme.accent,strokeWidth=2.dp)
-            Text(if(data.cycleBrowsing) data.status.ifBlank{"Ищу аудиокниги цикла…"} else if(data.genre.isNotBlank()) "Ищем книги и проверяем жанры…" else "Ищем книги…",color=theme.muted,fontSize=13.sp,modifier=Modifier.padding(start=10.dp))
+            Text(if(data.cycleBrowsing) data.status.ifBlank{"Ищу аудиокниги цикла…"} else if(data.genre.isNotBlank()) "Ищем книги и проверяем жанры…" else data.sourceProgress.ifBlank{"Ищем книги…"},color=theme.muted,fontSize=13.sp,modifier=Modifier.padding(start=10.dp))
         } }
         if(data.onlineBook==null && data.bookOpening!=null && (data.bookPageLoading || data.bookPageError.isNotBlank()))
             item {AbPendingBookDetails(data,actions,books,theme)}
@@ -10174,7 +10161,7 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
         if(data.genre.isNotBlank() && visibleCount>=AB_SEARCH_LIMIT && resultBooks.size>=AB_SEARCH_LIMIT) item {
             Text("Показаны первые $AB_SEARCH_LIMIT книг. Уточните название или автора, чтобы найти нужное издание.",color=theme.muted,fontSize=12.sp)
         }
-        if(data.status.isNotBlank() && data.status!="Вставьте ссылку" && !(data.cycleBrowsing&&data.searching) &&
+        if(data.status.isNotBlank() && data.status!="Вставьте ссылку" && !(data.cycleBrowsing&&data.searching) && !(data.searching&&data.sourceProgress.isNotBlank()) &&
             !(data.bookOpening!=null && data.onlineBook==null && (data.bookPageLoading || data.bookPageError.isNotBlank()))) item {
             Text(data.status,color=theme.muted,fontSize=12.sp)
         }
