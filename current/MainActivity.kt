@@ -9979,13 +9979,17 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
     var showLocalIndex by remember {mutableStateOf(false)}
     var showPeople by remember {mutableStateOf(false)}
     var indexedMatches by remember {mutableStateOf<List<BookLink>>(emptyList())}
+    var localCatalog by remember(data.query,showLocalIndex){mutableStateOf<AbLocalCatalog.Result?>(null)}
     val chosenSites=if(data.searchSource.isBlank())enabledSources else setOf(data.searchSource)
-    LaunchedEffect(data.query,chosenSites,historyOpen,showLocalIndex){
+    LaunchedEffect(data.query,chosenSites,historyOpen){
         indexedMatches=emptyList()
-        if(data.query.trim().length>=2&&(historyOpen||showLocalIndex)){
+        if(data.query.trim().length>=2&&historyOpen){
             delay(250)
             indexedMatches=AbSearchCache.localMatches(sourceContext.applicationContext,data.query,chosenSites,40)
         }
+    }
+    LaunchedEffect(data.query,chosenSites,showLocalIndex,hidePreviews){
+        if(showLocalIndex)localCatalog=AbLocalCatalog.prepare(sourceContext.applicationContext,prefs,data.query,chosenSites,books,hidePreviews)
     }
     val activeFilters = listOf(hidePreviews, narratorFilter.isNotEmpty(), seriesOnly, localOnly,authorFilter.isNotBlank(),genreFilter.isNotBlank(),exactOnly).count { it }
     var shownResults by androidx.compose.runtime.saveable.rememberSaveable(data.query,data.genre,data.cycle?.url) {mutableStateOf(AB_RESULTS_PAGE)}
@@ -10246,11 +10250,23 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
     manualSource?.let { (name,url) -> AbManualSourceBrowser(name,url,data,actions,theme){manualSource=null} }
     if(showLocalIndex)AbDialog("Локальная база",theme,{showLocalIndex=false}){
         Text("Сохранённые метаданные; доступность аудио проверяется заново при открытии.",color=theme.muted,fontSize=12.sp)
-        Text("Найдено: ${indexedMatches.size}",color=theme.text,fontSize=13.sp)
-        indexedMatches.take(40).forEach{book->
-            AbButton(book.title+" · "+book.author+" · "+book.narrator,theme){
-                showLocalIndex=false;actions.openSite(book,book.url)
+        val catalog=localCatalog
+        if(catalog==null)Text("Подготавливаю список…",color=theme.muted,fontSize=13.sp)
+        else {
+            Text(if(catalog.officialCount>0)"Книг по сохранённым справочникам: ${catalog.officialCount}" else "Найдено книг: ${catalog.rows.size}",color=theme.text,fontSize=13.sp)
+            if(catalog.officialCount>0)Text("Сохранённый порядок · "+catalog.sourceSummary,color=theme.muted,fontSize=11.sp)
+            var localShown by remember(data.query){mutableStateOf(40)}
+            val displayed=catalog.rows+catalog.unmatched
+            displayed.take(localShown).forEachIndexed{index,row->
+                if(index==catalog.rows.size&&catalog.unmatched.isNotEmpty())
+                    Text("Другие результаты · позиция не подтверждена",color=theme.muted,fontSize=13.sp)
+                key(row.key){
+                    AbSearchResultCard(row,theme,{book,url->
+                        showLocalIndex=false;actions.selectResult(row.key,url);actions.openSite(book,url)
+                    },onMenu,{cycle->showLocalIndex=false;actions.cycle(cycle)},collapsible=true)
+                }
             }
+            if(localShown<displayed.size)AbButton("Показать ещё · $localShown из ${displayed.size}",theme){localShown+=40}
         }
         AbButton("Закрыть",theme){showLocalIndex=false}
     }

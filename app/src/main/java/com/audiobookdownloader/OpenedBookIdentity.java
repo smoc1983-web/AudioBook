@@ -20,6 +20,8 @@ public final class OpenedBookIdentity {
         s=PREFIX.matcher(s).replaceFirst("");
         s=SEO.matcher(s).replaceFirst("");
         s=s.replaceFirst("(?iu)\\s*\\(\\s*\\+?\\s*бонус\\s*\\)\\s*$","");
+        // A named bonus story appended to an explicitly numbered volume is not another volume.
+        s=s.replaceFirst("(?iu)(\\bтом\\s+(?:\\d+|[ivxlcdm]+|первый|второй))\\s*;\\s*\\+\\s*рассказ\\s+[^;]+$","$1");
         return trim(s);
     }
     public static String titleKey(String value){

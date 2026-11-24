@@ -29,6 +29,20 @@ class OfficialCycleSearchTest {
         assertEquals(OfficialCycleSearch.matchKey("Файролл",v.title),OfficialCycleSearch.matchKey("Файролл","Снисхождение. Том I (+Бонус)"))
         assertFalse(OfficialCycleSearch.matches("Файролл",v.title,"Снисхождение. Том 2"))
     }
+    @Test fun namedBonusStoryDoesNotHideNumberedVolume(){
+        val v=book("Файролл-11. Снисхождение. Том 1",12.0)
+        val title="Файролл 11. Снисхождение. Том 1; +рассказ \"Выгодное вложение\""
+        assertTrue(OfficialCycleSearch.matches("Файролл",v.title,title))
+        assertTrue(OpenedBookIdentity.matches(v.title,title,v.author,v.author,"Файролл",12.0))
+        assertFalse(OfficialCycleSearch.matches("Файролл",v.title,title.replace("Том 1","Том 2")))
+        val second=book("Файролл-11. Снисхождение. Том 2",13.0).copy(url="https://author.today/work/2")
+        val source=OfficialSource("Author.Today","Файролл",complete=true,books=listOf(v,second))
+        val audio=BookLink(title,"https://example.org/book",author=v.author,narrator="Александр Чайцын")
+        val result=AbLocalCatalog.match(BookCycle("Файролл"),listOf(v,second),listOf(source),listOf(audio))
+        assertEquals(listOf(v.title,second.title),result.books.map{it.title})
+        assertEquals(listOf("candidate","incomplete"),result.books.map{it.catalogState})
+        assertTrue(result.unmatched.isEmpty())
+    }
     @Test fun equivalentEditionsAndDifferentCycleLabels(){
         assertTrue(OfficialCycleSearch.seriesMatches("Файролл","Файролл. Хроники Хейгена"))
         assertTrue(OfficialCycleSearch.matches("Файролл","Файролл-11. Снисхождение. Том 1","Файролл. Снисхождение. Том 1 (+Бонус)"))
