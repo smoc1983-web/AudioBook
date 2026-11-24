@@ -1,0 +1,48 @@
+# Статус на 24.11.2026 и план продолжения
+
+## P0 — устранить блокирующий тест
+Последняя попытка 4.2.121: https://github.com/smoc1983-web/AudioBook/actions/runs/45462419012
+Commit 089b28fc4bf78f6d1cf7f6a253bed3047a4e9dc1. Job 138688317296. Итог: failure, публикация пропущена.
+Лог: 486 tests completed, 1 failed, 1 skipped; :app:testDebugUnitTest FAILED.
+Тест AbSourceAvailabilityJvmTest.fullSizeThresholdsAndPartialEvidenceAreDifferent — java.lang.RuntimeException, строка 113. Это вызов searchCandidates с BookLink без явного sources. Возможная причина: Android-зависимый bookSiteName/Uri в чистом JVM-тесте; это гипотеза, необходимо открыть XML отчёт/stacktrace и подтвердить. Не удалять тест и не менять пороги ради зелёного CI. Использовать явный BookSource в fixture, если это подтвердится, либо корректно вынести pure logic.
+Другой новый тест fullSizePreferredToShortAlternativeAndLegacyCacheCannotReject прошёл.
+Предыдущая попытка: https://github.com/smoc1983-web/AudioBook/actions/runs/45458276867 — компиляция, JVM, 45 Android-тестов прошли; workflow упал на adb uninstall com.audiobookdownloader.test с DELETE_FAILED_INTERNAL_ERROR. В 089b28fc исправлена проверка наличия пакета перед uninstall; результат ещё не проверен, потому что JVM остановил новую сборку.
+Не утверждать, что 4.2.121 опубликована. Следующий номер резервируется CI по последнему реально опубликованному тегу.
+
+## Подтверждённые релизы/QA
+- 4.2.118: https://github.com/smoc1983-web/AudioBook/actions/runs/45438252521 — success, APK 16 280 217 байт.
+- 4.2.119: https://github.com/smoc1983-web/AudioBook/actions/runs/45444571609 — success, APK 16 280 426 байт.
+- 4.2.120: https://github.com/smoc1983-web/AudioBook/actions/runs/45453121622 — success, APK 16 280 136 байт. Последний опубликованный.
+- QA 45447563919: 44 Android-теста прошли; два теста старых названий выявили дефект (JVM step тогда допускал ошибку).
+- QA 45452342347: 44 Android-теста и четыре теста импортированных названий прошли после исправления.
+- QA 45457657008 и release 45458276867: проверять фактические логи. Release лог подтверждает 45 Android-тестов до сбоя cleanup.
+- Следующий выпуск обязан пройти все модульные тесты и эмулятор, проверку установки/подписи. После success проверить GitHub release, APK и test-update.json.
+
+## Технические ориентиры
+- Kotlin/Java, Android Jetpack Compose, JDK 17, Gradle 8.11.1, compile/target SDK 36, min SDK 23. app/build.gradle.kts генерирует исходники из current; править current/MainActivity.kt, а не только сгенерированный файл.
+- current/PlaybackService.kt — сервис, состояние и управление воспроизведением. Не нарушать фоновое воспроизведение и сохранение позиции.
+- app/src/main/java/com/audiobookdownloader/AbPlayerScreen.kt — выделенный экран плеера. AbSwipeMiniPlayer.kt — свайп. AbPageTurn.kt — жесты перелистывания, следить за конфликтом.
+- AbBookQuery.kt, AbGlobalBookResults.kt, AbSearchPresentation.kt, AbSearchRows.kt, AbSearchCoordinator.kt — фильтрация, объединение, группировка и поиск.
+- OfficialCycleSearch.kt, SeriesAuthority.kt, SeriesAuthorityParser.java, OfficialSeriesCatalog.kt — библиография Author.Today/Литрес.
+- AbSearchCache.kt, AbLocalCatalog.kt, AbCatalogIndex — локальная база и кэш.
+- OpenedBookIdentity.java — проверка реального названия/автора. AbSourceAvailability.kt — размер, демо, пустой плейлист и TTL. current/MainActivity.kt: abCheckAudioMinimum, abProbePlaylist, AbBookSize, AbSearchResultCard, AbBookRow.
+- AdditionalBookSources.kt — реестр 24 дополнительных + 4 основных источника. Не смешивать с browserOnly. Наличие адаптера не доказывает доступность или права на контент.
+- PreviewUpdatesActivity.java, UpdateSession.kt, app/src/main/assets/release-notes.json — обновлятор.
+- .github/workflows/build-test.yml — обязательный CI Test, scripts/test-test-install.sh — проверка установки, scripts/package-test-release.py — APK и метаданные. Не публиковать вручную в обход проверки.
+- .github/workflows/qa-regression-20261124.yml — QA без публикации; в ранней версии step JVM был continue-on-error, сейчас убран.
+
+## P1 — поиск и демо
+- Проверить на эмуляторе и устройстве новые пороги 18, 20, 29.999, 30 МБ, неизвестный размер и частичный объём. Проверить реальное появление/обновление метки на карточке и фильтрацию при смене prefs. Проверить фильтр «скрыть демо», официальные placeholders и не скрывать локально сохранённые файлы.
+- Протестировать запрос «Таксист из Forbes 13»: исключить соседние тома, «Путь строителя 13» и рекомендации. Проверить точные названия, автора, цикл, Файролл/Снисхождение. При отсутствии нужной книги показать честный пустой результат.
+- Сверка Author.Today/Литрес до поиска; проверить живые ответы, ошибки, свежий и устаревший кэш. Наличие функции preflight не равно подтверждённой работе сайтов.
+- Nova: сопоставить семь уже подключённых адаптеров и настройки пользователя, фиксировать диагностику по источникам. Нельзя обещать легальный полный доступ только на основании Nova.
+- Проверить импорт двух проблемных книг, альтернативы и сохранение коллекции. Возможность безопасно заменить устаревшую ссылку в коллекции после подтверждения идентичности обсуждалась, реализация не подтверждена.
+- Измерить реальное ускорение повторного поиска и плавность прокрутки. Предыдущие изменения не являются измеренным доказательством ускорения.
+
+## P2 — архитектура/прочее
+- Продолжать выделение главной/поиска, книг, коллекций из MainActivity по одному экрану, не ломая состояние/сервис. Плеер уже выделен.
+- Сохранить работающие настройки плеера, уведомления, загрузки, эквалайзер, таймеры, обновлятор. Не перерабатывать без необходимости.
+- Устройство: дополнительно подтвердить длительное фоновое воспроизведение именно Test и точные живые сценарии поиска/импорта.
+
+## Ветки
+test — рабочая публикация Test, main — стабильная. Существуют pending/player-menu-20261124, pending/mini-player-swipe-20261124, qa/regression-20261124, прежние cloud/pending/audit ветки; не удалять и не вливать вслепую. Все предшествующие изменения последних этапов уже в истории текущего test. Handoff — снимок, не новый канал релиза.
