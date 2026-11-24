@@ -9876,6 +9876,11 @@ private fun AbModernApp(data: AbScreenData, actions: AbActions, sync: LibrarySyn
         }}
     }
     val state=data.playback
+    var searchMiniHidden by androidx.compose.runtime.saveable.rememberSaveable(
+        state.bookTitle,state.sourceType,state.tracks.firstOrNull()?.editionId.orEmpty()) {mutableStateOf(false)}
+    LaunchedEffect(data.page,state.hasSelection) {
+        if(data.page==AppPage.PLAYER||!state.hasSelection)searchMiniHidden=false
+    }
     val pages=androidx.compose.runtime.saveable.rememberSaveableStateHolder()
     androidx.activity.compose.BackHandler(enabled=data.page!=AppPage.SEARCH || data.searchActive) {
         if(data.page==AppPage.SEARCH) actions.backSearch() else actions.navigate(AppPage.SEARCH)
@@ -9926,7 +9931,13 @@ private fun AbModernApp(data: AbScreenData, actions: AbActions, sync: LibrarySyn
                 }
                 }
             }
-            if(state.hasSelection && shownPage!=AppPage.PLAYER) AbMiniPlayer(data,actions,sync.books.value,prefs,theme)
+            if(state.hasSelection && shownPage!=AppPage.PLAYER) {
+                if(shownPage==AppPage.SEARCH) {
+                    if(!searchMiniHidden)AbSwipeMiniPlayer(onDismiss={searchMiniHidden=true}) {
+                        AbMiniPlayer(data,actions,sync.books.value,prefs,theme)
+                    }
+                } else AbMiniPlayer(data,actions,sync.books.value,prefs,theme)
+            }
                     }
                 }
             }
