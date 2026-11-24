@@ -185,10 +185,12 @@ private data class AbGenreReturn(
     val externalVisited:Set<String>,val externalStatus:String,
     val visibleCount:Int,val pending:Set<String>,val native:AbNativeGenre?=null
 )
+internal data class AbSearchVisit(val url:String,val narratorScroll:Int=0,val sourceScroll:Int=0)
+
 private data class AbSearchReturn(
     val screenId:Int,val query:String,val books:List<BookLink>,val status:String,
     val cycle:BookCycle?,val cycleBrowsing:Boolean,val genre:AbGenreReturn,
-    val scrollIndex:Int,val scrollOffset:Int,val interrupted:Boolean,val source:String="",val selectedKey:String="",val selectedUrl:String=""
+    val scrollIndex:Int,val scrollOffset:Int,val interrupted:Boolean,val source:String="",val selectedKey:String="",val selectedUrl:String="",val scrollKey:String=""
 )
 
 class MainActivity : ComponentActivity() {
@@ -947,9 +949,12 @@ private class AbAppUiState(prefs: android.content.SharedPreferences) {
     var searchScreenId by mutableStateOf(0)
     var searchReturns by mutableStateOf<List<AbSearchReturn>>(emptyList())
     var searchScrollTarget by mutableStateOf(0 to 0)
+    var searchRestoreKey by mutableStateOf("")
     var searchSelectedKey by mutableStateOf("")
     var searchSelectedUrl by mutableStateOf("")
     var searchRestored by mutableStateOf(false)
+    var searchVisits by mutableStateOf<Map<String,AbSearchVisit>>(emptyMap())
+    var searchOpenedUrls by mutableStateOf<Set<String>>(emptySet())
     var selectedGenre by mutableStateOf("")
     var selectedNativeGenre by mutableStateOf<AbNativeGenre?>(null)
     var genreQuery by mutableStateOf("")
@@ -1835,7 +1840,8 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
             genreResultTarget,genrePending+genreDeferredPending,native=selectedNativeGenre)
         val saved=AbSearchReturn(searchScreenId,searchText,bookLinks.toList(),status,selectedCycle,cycleBrowsing,genre,
             searchListState.firstVisibleItemIndex,searchListState.firstVisibleItemScrollOffset,
-            unifiedQuery.isNotBlank() || cycleLoading || genreIsWorking() || unifiedMerging,source=selectedSearchSource,selectedKey=searchSelectedKey,selectedUrl=searchSelectedUrl)
+            unifiedQuery.isNotBlank() || cycleLoading || genreIsWorking() || unifiedMerging,source=selectedSearchSource,selectedKey=searchSelectedKey,selectedUrl=searchSelectedUrl,
+            scrollKey=searchListState.layoutInfo.visibleItemsInfo.firstOrNull{it.index==searchListState.firstVisibleItemIndex}?.key as? String ?: "")
         searchReturns=(searchReturns+saved).takeLast(8)
     }
 
@@ -1939,6 +1945,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
     fun openWebsiteCycle(cycle: BookCycle) {
         bookOpening=null;bookPageLoading=false;bookPageError=""
         rememberSearchResults()
+        searchSelectedKey="";searchSelectedUrl="";searchRestored=false
         cancelSearchMerges()
         searchScrollTarget=0 to 0
         genreExternalId++;genreExternalLoading=false
@@ -1980,7 +1987,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
             return
         }
         AbQueryHistory.add(prefs,query)
-        searchSelectedKey="";searchSelectedUrl="";searchRestored=false
+        searchSelectedKey="";searchSelectedUrl="";searchRestored=false;searchVisits=emptyMap();searchOpenedUrls=emptySet();searchRestoreKey=""
         val directUrl=if(ranked==null && narration==null)supportedBookUrl(query) else null
         if(ranked==null && narration==null && directUrl==null && (query.startsWith("http://",true) || query.startsWith("https://",true))) {
             status="Поддерживаются ссылки на сайты из раздела «Источники»"
@@ -2148,7 +2155,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
     }
 
     fun showSearchHome() {
-        searchSelectedKey="";searchSelectedUrl="";searchRestored=false
+        searchSelectedKey="";searchSelectedUrl="";searchRestored=false;searchVisits=emptyMap();searchOpenedUrls=emptySet();searchRestoreKey=""
         cancelSearchMerges()
         bookOpening=null;bookPageLoading=false;bookPageError=""
         searchReturns=emptyList();searchScrollTarget=0 to 0
@@ -2193,7 +2200,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
         status=if(saved.interrupted) "Сохранено результатов: ${saved.books.size}. Поиск был прерван открытием книги. Для обновления нажмите «Найти»."
             else saved.status
         searchSelectedKey=saved.selectedKey;searchSelectedUrl=saved.selectedUrl;searchRestored=true
-        searchScrollTarget=saved.scrollIndex to saved.scrollOffset
+        searchScrollTarget=saved.scrollIndex to saved.scrollOffset;searchRestoreKey=saved.scrollKey
         searchSessionActive=true;searchScreenId++;appPage=AppPage.SEARCH
     }
 
@@ -2479,6 +2486,10 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
         resetSearch = {showSearchHome()},
         refreshSearch = {val query=searchText.trim();modernWork.launch{AbSearchCache.invalidate(context,query);OfficialCycleSearch.invalidate(query);withContext(Dispatchers.IO){OfficialSeriesStore(context.applicationContext).remove("Цикл: "+query,"")};startCommonBookSearch()}},
         selectResult = {key,url->searchSelectedKey=key;searchSelectedUrl=url;searchRestored=false},
+        recordSearchVisit = {key,visit->
+            searchVisits=searchVisits+(key to visit)
+            searchOpenedUrls=searchOpenedUrls+visit.url.substringBefore('#').trimEnd('/')
+        },
         backSearch = {backToSearchResults()},
         retryBook = {bookOpening?.let{openWebsiteBook(it.book,it.sourceUrl)}},
         query = { searchText = it },
@@ -2560,6 +2571,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
         searchActive = searchSessionActive, searchScreenId = searchScreenId,
         canReturnResults = searchReturns.isNotEmpty(), searchListState = searchListState, searchRestoreIndex=searchScrollTarget.first,
         selectedResultKey=searchSelectedKey,selectedResultUrl=searchSelectedUrl,restoreSelection=searchRestored,
+        searchRestoreOffset=searchScrollTarget.second,searchRestoreKey=searchRestoreKey,searchVisits=searchVisits,searchOpenedUrls=searchOpenedUrls,
         genre = selectedGenre, genreVisibleCount=genreResultTarget,
         genreMore = genreResultTarget<AB_SEARCH_LIMIT && (bookLinks.size>genreResultTarget || genrePending.isNotEmpty() ||
             genreDeferredPending.isNotEmpty() || genreNext.isNotEmpty() || genreExternalMore || genreExternalLoading),
@@ -9286,6 +9298,7 @@ private data class AbScreenData(
     val searchActive: Boolean, val searchScreenId: Int,
     val canReturnResults:Boolean,val searchListState:androidx.compose.foundation.lazy.LazyListState,val searchRestoreIndex:Int,
     val selectedResultKey:String="",val selectedResultUrl:String="",val restoreSelection:Boolean=false,
+    val searchRestoreOffset:Int=0,val searchRestoreKey:String="",val searchVisits:Map<String,AbSearchVisit> = emptyMap(),val searchOpenedUrls:Set<String> = emptySet(),
     val genre: String, val genreMore: Boolean,val genreVisibleCount:Int,
     val coverRepairRunning: Boolean, val coverRepairStatus: String,
     val skin: Int, val backgroundUri: String?, val version: Int,
@@ -9301,6 +9314,7 @@ private data class AbActions(
     val resetSearch: () -> Unit,
     val refreshSearch: () -> Unit,
     val selectResult: (String,String) -> Unit,
+    val recordSearchVisit: (String,AbSearchVisit) -> Unit,
     val backSearch: () -> Unit,
     val retryBook: () -> Unit,
     val query: (String) -> Unit,
@@ -9924,12 +9938,13 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
         prefs.registerOnSharedPreferenceChangeListener(listener)
         onDispose{prefs.unregisterOnSharedPreferenceChangeListener(listener)}
     }
-    val prepared by androidx.compose.runtime.produceState<List<AbSearchRow>?>(null,
+    // Never restore against a previous screen’s prepared value.
+    val prepared by key(data.searchScreenId) { androidx.compose.runtime.produceState<List<AbSearchRow>?>(null,
         data.searchScreenId,data.results,books,seriesRevision,chapterRevision,data.cycle,data.cycleBrowsing,data.query,data.genre,hidePreviews,narratorFilter,seriesOnly,localOnly) {
         value=AbSearchRows.prepare(data.results,books,prefs,data.cycle.takeIf{data.cycleBrowsing},
             query=if(data.genre.isBlank()&&!data.cycleBrowsing)data.query else "",hidePreviews=hidePreviews,
             narrator=narratorFilter,seriesOnly=seriesOnly,localOnly=localOnly)
-    }
+    } }
     val hideFinished=prefs.getBoolean(AbListeningFeatures.HIDE_FINISHED,false)
     val resultBooks=remember(prepared,data.genre,hideFinished,data.version) {
         prepared.orEmpty().filterNot { hideFinished && data.genre.isNotBlank() &&
@@ -9956,10 +9971,16 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
             val header=(if(data.searchActive)2 else 0)+1+(if(data.searchActive||data.cycleBrowsing||data.genre.isNotBlank())1 else 0)+
                 (if(seriesStatus.isNotBlank())1 else 0)+(if(data.searching)1 else 0)+
                 (if(resultBooks.isNotEmpty()||data.cycleBrowsing||data.genre.isNotBlank())1 else 0)+(if(data.cycleBrowsing&&resultBooks.isNotEmpty())1 else 0)
-            val target=if(selectedIndex>=0)header+selectedIndex else data.searchRestoreIndex.coerceAtMost(maxOf(0,header+visibleResults.size-1))
+            val anchorIndex=visibleResults.indexOfFirst{it.key==data.searchRestoreKey}
+            val target=when {
+                selectedIndex>=0 -> header+selectedIndex
+                anchorIndex>=0 -> header+anchorIndex
+                else -> data.searchRestoreIndex.coerceAtMost(maxOf(0,header+visibleResults.size-1))
+            }
+            val offset=if(anchorIndex>=0&&(selectedIndex<0||selectedIndex==anchorIndex))data.searchRestoreOffset else 0
             androidx.compose.runtime.withFrameNanos{}
             androidx.compose.runtime.snapshotFlow{listState.layoutInfo.totalItemsCount}.first{it>target}
-            listState.scrollToItem(target);restored=true
+            listState.scrollToItem(target,offset);restored=true
         }
     }
     val searchHome=prepared!=null && !data.searchActive && data.onlineBook==null &&
@@ -10042,7 +10063,10 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
         }
         items(visibleResults,key={it.key},contentType={"search-book"}) { row ->
             val selected=data.restoreSelection&&(row.key==data.selectedResultKey||row.editions.any{e->bookSources(e).any{it.url==data.selectedResultUrl}})
-            AbSearchResultCard(row,theme,{book,url->actions.selectResult(row.key,url);actions.openSite(book,url)},onMenu,actions.cycle,selected,if(selected)data.selectedResultUrl else "")
+            AbSearchResultCard(row,theme,{book,url->actions.selectResult(row.key,url);actions.openSite(book,url)},onMenu,
+                {cycle->actions.selectResult(row.key,"");actions.cycle(cycle)},selected,if(selected)data.selectedResultUrl else "",
+                visit=data.searchVisits[row.key],openedUrls=data.searchOpenedUrls,
+                onVisit={visit->actions.recordSearchVisit(row.key,visit)})
         }
         if(data.genre.isBlank() && visibleCount<resultBooks.size) item {
             AbButton("Показать ещё · ${visibleCount.coerceAtMost(resultBooks.size)} из ${resultBooks.size}",theme) {
@@ -10284,10 +10308,17 @@ private fun AbManualSourceBrowser(name:String,home:String,data:AbScreenData,acti
 /** Shared with the native large-catalogue test: one lazy item per complete result. */
 @Composable
 internal fun AbSearchResultCard(row:AbSearchRow,theme:AbTheme,onOpen:(BookLink,String)->Unit,
-    onMenu:(BookRef)->Unit,onCycle:(BookCycle)->Unit,highlighted:Boolean=false,selectedUrl:String="") {
+    onMenu:(BookRef)->Unit,onCycle:(BookCycle)->Unit,highlighted:Boolean=false,selectedUrl:String="",
+    visit:AbSearchVisit?=null,openedUrls:Set<String> = emptySet(),onVisit:(AbSearchVisit)->Unit = {}) {
     val choices=row.editions.ifEmpty{listOf(row.book)}
-    var chosen by androidx.compose.runtime.saveable.rememberSaveable(row.key,selectedUrl) {mutableStateOf(choices.firstOrNull{e->bookSources(e).any{it.url==selectedUrl}}?.url.orEmpty())}
-    val book=choices.firstOrNull{it.url==chosen} ?: choices.first()
+    fun address(url:String)=url.substringBefore('#').trimEnd('/')
+    fun contains(edition:BookLink,url:String)=url.isNotBlank()&&bookSources(edition).any{address(it.url)==address(url)}
+    val lastUrl=visit?.url ?: selectedUrl
+    var chosen by androidx.compose.runtime.saveable.rememberSaveable(row.key) {mutableStateOf(lastUrl)}
+    val book=choices.firstOrNull{contains(it,chosen)} ?: choices.first()
+    val narratorScroll=rememberScrollState(visit?.narratorScroll ?: 0)
+    val sourceScroll=rememberScrollState(visit?.sourceScroll ?: 0)
+    fun open(url:String){onVisit(AbSearchVisit(url,narratorScroll.value,sourceScroll.value));onOpen(book,url)}
     val ref=BookRef(book.title,book.url,book.coverUrl)
     val sourcePrefs=androidx.compose.ui.platform.LocalContext.current.getSharedPreferences("audiobook_downloader",Context.MODE_PRIVATE)
     if(book.catalogState in setOf("pending","missing","incomplete")) {
@@ -10301,7 +10332,7 @@ internal fun AbSearchResultCard(row:AbSearchRow,theme:AbTheme,onOpen:(BookLink,S
     Column(modifier=if(highlighted)Modifier.fillMaxWidth().border(2.dp,theme.accent,RoundedCornerShape(15.dp)).padding(8.dp) else Modifier,verticalArrangement=Arrangement.spacedBy(5.dp)) {
         if(highlighted)Text("Последняя открытая книга",color=theme.accent,fontSize=12.sp)
         AbBookRow(ref,if(book.url==row.book.url)row.local else null,book.author.ifBlank{"Аудиокнига"},theme,
-            onClick={onOpen(book,book.url)},onMenu={onMenu(ref)})
+            onClick={open(book.url)},onMenu={onMenu(ref)})
         if(book.catalogState=="checked")Text("Главы проверены · запуск аудио проверяется при воспроизведении",color=theme.accent,fontSize=11.sp)
         if(book.catalogState=="candidate")Text("Аудиоиздание найдено · главы проверяются при открытии",color=theme.muted,fontSize=11.sp)
         if(AbSourceAvailability.isPreview(sourcePrefs,book))Text("Демо · ознакомительный фрагмент",color=theme.error,fontSize=12.sp)
@@ -10314,22 +10345,25 @@ internal fun AbSearchResultCard(row:AbSearchRow,theme:AbTheme,onOpen:(BookLink,S
         }
         if(choices.size>1) {
             Text("Озвучки и издания · ${choices.size}",color=theme.muted,fontSize=12.sp)
-            Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(6.dp)) {
+            Row(Modifier.horizontalScroll(narratorScroll),horizontalArrangement=Arrangement.spacedBy(6.dp)) {
                 choices.forEach {edition ->
                     val name=SearchEditionIdentity.narrator(edition.title,edition.narrator)
-                    AbButton(if(name.isBlank())"Чтец не указан · ${bookSiteName(edition.url)}" else "Читает: $name",
+                    val visited=bookSources(edition).any{address(it.url) in openedUrls}
+                    val label=if(name.isBlank())"Чтец не указан · ${bookSiteName(edition.url)}" else "Читает: $name"
+                    AbButton(label+(if(visited)" · ✓" else ""),
                         theme,primary=book.url==edition.url){chosen=edition.url}
                 }
             }
         } else {
             val name=SearchEditionIdentity.narrator(book.title,book.narrator)
-            if(name.isNotBlank())Text("Читает: $name",color=theme.muted,fontSize=12.sp)
+            if(name.isNotBlank())Text("Читает: $name"+(if(bookSources(book).any{address(it.url) in openedUrls})" · ✓" else ""),color=theme.muted,fontSize=12.sp)
         }
-        Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(6.dp)) {
+        Row(Modifier.horizontalScroll(sourceScroll),horizontalArrangement=Arrangement.spacedBy(6.dp)) {
             bookSources(book).forEach { source ->
-                Column(Modifier.abGlass(theme,9,field=true,selected=highlighted&&source.url==selectedUrl).clickable{onOpen(book,source.url)}
+                Column(Modifier.abGlass(theme,9,field=true,selected=lastUrl.isNotBlank()&&address(source.url)==address(lastUrl)).clickable{open(source.url)}
                     .padding(horizontal=12.dp,vertical=7.dp)) {
                     Text(source.site,color=theme.accent,fontSize=11.sp)
+                    if(address(source.url) in openedUrls)Text("✓ Открывали",color=theme.accent,fontSize=10.sp)
                     Text(AbSourceAvailability.get(androidx.compose.ui.platform.LocalContext.current.getSharedPreferences("audiobook_downloader",Context.MODE_PRIVATE),source.url).label,
                         color=theme.muted,fontSize=9.sp,maxLines=1)
                 }

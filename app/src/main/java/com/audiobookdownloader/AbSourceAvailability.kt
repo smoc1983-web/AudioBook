@@ -51,8 +51,9 @@ internal object AbSourceAvailability {
         if(EditionDownloadRules.isPreview(book.title,emptyList()))return null
         val sources=bookSources(book).filter{!hidden(get(prefs,it.url))&&!tooSmall(prefs,it.url)}
         if(sources.isEmpty())return null
-        val ordered=sources.sortedBy{get(prefs,it.url).priority}
-        val primary=ordered.first()
+        // Preserve source positions when the availability observations change.
+        val ordered=sources
+        val primary=ordered.firstOrNull{it.url==book.url} ?: ordered.first()
         return book.copy(url=primary.url,coverUrl=primary.coverUrl.ifBlank{book.coverUrl},sources=ordered,
             catalogState=if(book.catalogState=="checked"&&get(prefs,primary.url)!=AbChapterAvailability.AVAILABLE)"candidate" else book.catalogState)
     }

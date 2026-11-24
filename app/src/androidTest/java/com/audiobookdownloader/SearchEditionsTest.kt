@@ -46,6 +46,15 @@ class SearchEditionsTest {
             assertEquals(2,next.first().editions.size)
         } finally {p.edit().clear().commit()}
     }
+    @Test fun checkingLaterVoiceDoesNotReorderEditions()=runBlocking {
+        val p=ApplicationProvider.getApplicationContext<Context>().getSharedPreferences("search-stable-voices",0)
+        try {
+            val books=listOf(book("Иван","one"),book("Пётр","two"))
+            val before=AbSearchRows.prepare(books,emptyList(),p,null).single().editions.map{it.url}
+            AbSourceAvailability.record(p,before.last(),true)
+            assertEquals(before,AbSearchRows.prepare(books,emptyList(),p,null).single().editions.map{it.url})
+        }finally{p.edit().clear().commit()}
+    }
     @Test fun choosingVoiceOpensItsOwnSourceAndMetadata()=runBlocking {
         val p=ApplicationProvider.getApplicationContext<Context>().getSharedPreferences("search-editions-ui",0)
         try {

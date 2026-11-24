@@ -65,6 +65,14 @@ class AbSourceAvailabilityJvmTest {
         AbSourceAvailability.record(p,suspect,true)
         assertEquals(AbChapterAvailability.AVAILABLE,AbSourceAvailability.get(p,suspect))
     }
+    @Test fun chapterObservationsDoNotReorderVisibleSources() {
+        val p=preferences();val first="https://first.example/book";val last="https://last.example/book"
+        val book=BookLink("Книга",first,sources=listOf(BookSource("first",first),BookSource("last",last)))
+        AbSourceAvailability.record(p,last,true)
+        assertEquals(listOf(first,last),AbSourceAvailability.withoutPreviews(p,book)!!.sources.map{it.url})
+        AbSourceAvailability.record(p,first,false)
+        assertEquals(first,AbSourceAvailability.withoutPreviews(p,book)!!.url)
+    }
     @Test fun hidingDemoRetainsUnknownAndFullAlternativesWithoutLosingTheBook() {
         val p=preferences();val demo="https://source.example/demo";val full="https://other.example/book"
         AbSourceAvailability.record(p,demo,true,preview=true)
