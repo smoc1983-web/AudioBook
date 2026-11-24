@@ -10414,7 +10414,7 @@ internal fun AbCollectionShelf(shelf:Shelf,books:List<LibraryBook>,prefs:android
 
 @Composable
 internal fun AbCollectionContinuations(ref:BookRef,books:List<LibraryBook>,prefs:android.content.SharedPreferences,
-    version:Int,theme:AbTheme,onOpen:(BookRef)->Unit) {
+    version:Int,theme:AbTheme,onOpen:(BookRef)->Unit,onFindAudio:((String)->Unit)?=null) {
     val context=androidx.compose.ui.platform.LocalContext.current.applicationContext
     val store=remember(context){ContinuationStore(context)}
     var revision by remember{mutableStateOf(0)}
@@ -10460,7 +10460,7 @@ internal fun AbCollectionContinuations(ref:BookRef,books:List<LibraryBook>,prefs
             available.take(shown).forEach{book ->AbButton(book.title,theme){onOpen(BookRef(book.title,book.url,""))}}
             if(shown<available.size)AbButton("Ещё книги источника",theme){shown+=5}
         }
-        AbOfficialSeriesPanel(metadata.title,metadata.author,prefs,theme,compact=true)
+        AbOfficialSeriesPanel(metadata.title,metadata.author,prefs,theme,compact=true,onFindAudio=onFindAudio)
     }
 }
 
@@ -10471,7 +10471,7 @@ private fun AbCollectionsScreen(data: AbScreenData,actions: AbActions,books: Lis
     var continuationSettings by remember {mutableStateOf(false)}
     var management by remember {mutableStateOf(false)}
     if(continuationSettings) AbDialog("Продолжения",theme,{continuationSettings=false}) {
-        AbContinuationSettings(theme){ref -> continuationSettings=false;actions.openRef(ref)}
+        AbContinuationSettings(theme,onFindAudio={title->continuationSettings=false;actions.searchOfficial(title)}){ref -> continuationSettings=false;actions.openRef(ref)}
     }
     var downloadBooks by remember {mutableStateOf<List<BookRef>?>(null)}
     downloadBooks?.let {refs -> AbCollectionDownloads(refs,data.downloadedIndex,data.downloads,theme,
@@ -10515,7 +10515,7 @@ private fun AbCollectionsScreen(data: AbScreenData,actions: AbActions,books: Lis
                     onClick={actions.openRef(ref)},onMenu={showMenu=true})
                 if(showMenu)AbCollectionBookMenu(ref,theme,expanded,{downloadBooks=listOf(ref)},
                     {abRemoveShelfBook(prefs,selected.name,ref)},{expanded=!expanded},{showMenu=false})
-                if(expanded)AbCollectionContinuations(ref,books,prefs,data.version,theme,actions.openRef)
+                if(expanded)AbCollectionContinuations(ref,books,prefs,data.version,theme,actions.openRef,onFindAudio=actions.searchOfficial)
             }
             if(selected.books.isEmpty()) item {
                 Text("Добавьте книги через меню карточки → «Добавить в коллекцию».",color=theme.muted,fontSize=14.sp)
@@ -10892,7 +10892,7 @@ private fun AbSeekButton(seconds: Int,state: ServicePlaybackState,theme: AbTheme
 }
 
 @Composable
-private fun AbContinuationSettings(theme:AbTheme,onOpen:(BookRef)->Unit) {
+private fun AbContinuationSettings(theme:AbTheme,onFindAudio:(String)->Unit,onOpen:(BookRef)->Unit) {
     val context=androidx.compose.ui.platform.LocalContext.current
     val store=remember{ContinuationStore(context)}
     var revision by remember{mutableStateOf(0)}
@@ -10956,7 +10956,7 @@ private fun AbContinuationSettings(theme:AbTheme,onOpen:(BookRef)->Unit) {
     watched.forEach{seed->AbButton(seed.title+if(referenceTitle==seed.title)" · свернуть" else " · открыть каталог серии",theme){referenceTitle=if(referenceTitle==seed.title)"" else seed.title}}
     if(referenceTitle.isNotBlank()) {
         val settings=context.getSharedPreferences("audiobook_downloader",0)
-        AbOfficialSeriesPanel(referenceTitle,abStoredCatalog(settings,referenceTitle).author,settings,theme)
+        AbOfficialSeriesPanel(referenceTitle,abStoredCatalog(settings,referenceTitle).author,settings,theme,onFindAudio=onFindAudio)
     }
     AbHeading("Новые продолжения из моих коллекций",theme)
     Text("По умолчанию показан последний найденный том каждой серии отдельно для текста и аудио.",color=theme.muted,fontSize=12.sp)
@@ -11171,7 +11171,7 @@ private fun AbSettingsDialog(data: AbScreenData,prefs: android.content.SharedPre
             AbButton("Выбрать фон из галереи",theme,onClick=actions.chooseBackground)
             if(data.backgroundUri!=null) AbButton("Вернуть фон темы",theme,onClick=actions.clearBackground)
         }
-        if(section==AbSettingsSection.CONTINUATIONS) {AbContinuationSettings(theme) {ref -> dismiss();actions.openRef(ref)}}
+        if(section==AbSettingsSection.CONTINUATIONS) {AbContinuationSettings(theme,onFindAudio={title->dismiss();actions.searchOfficial(title)}) {ref -> dismiss();actions.openRef(ref)}}
         if(section==AbSettingsSection.WIDGETS) {AbWidgetSettings(theme)}
         if(section==AbSettingsSection.SUPPORT) {
             AbHeading("Поддержать разработчика",theme)
