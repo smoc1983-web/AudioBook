@@ -22,8 +22,6 @@ internal data class SourceHealthView(val state:SourceHealthState,val targets:Map
     val session=remember(context,sessionOverride){sessionOverride ?: SourceHealth.session(context)}
     val state by session.state.collectAsState()
     val scope=rememberCoroutineScope()
-    val vpnEvidence=remember(context){AbVpnEvidenceStore(context)}
-    var evidenceRevision by remember{mutableIntStateOf(0)}
     var reportPreview by remember{mutableStateOf<String?>(null)}
     var reporting by remember{mutableStateOf(false)}
     var reportError by remember{mutableStateOf("")}
@@ -40,25 +38,6 @@ internal data class SourceHealthView(val state:SourceHealthState,val targets:Map
     }
     Text("Последние ответы сайтов на этом устройстве — не проверка всех книг или скорости скачивания. Сеть, VPN и ограничения сайта могут изменить результат. Автоматических фоновых запросов нет.",color=theme.muted,fontSize=12.sp)
     Text("Через 15 минут результат помечается устаревшим. Повторный запрос — не чаще раза в минуту к сайту; ограничение сервера может увеличить паузу до суток.",color=theme.muted,fontSize=12.sp)
-    Text("Как проверить VPN: сначала отключите VPN и запустите пункт 1, затем включите VPN и запустите пункт 2. Между запросами к одному сайту должна пройти минимум минута. VPN приложение не включает.",color=theme.muted,fontSize=12.sp)
-    fun checkWithNetwork(mode:AbVpnCheckMode) {
-        if(job?.isActive==true)return
-        val selected=targets.filter{it.name in enabled}
-        reportPreview=null
-        job=scope.launch {
-            val completed=session.run(selected,force=true)
-            if(completed) {
-                val finished=session.state.value
-                withContext(Dispatchers.IO) {
-                    selected.filter{it.key in finished.refreshed}.forEach{target ->
-                        finished.values[target.key]?.let{vpnEvidence.record(target,mode,it)}
-                    }
-                }
-                evidenceRevision++
-            }
-            now=System.currentTimeMillis().coerceAtLeast(0)
-        }
-    }
     // Preserve the original neutral check; no VPN claim is recorded.
     AbButton("Проверить включённые источники",theme,enabled=!state.running&&!state.loading&&enabled.isNotEmpty()) {
         if(job?.isActive!=true) {
@@ -66,24 +45,18 @@ internal data class SourceHealthView(val state:SourceHealthState,val targets:Map
             job=scope.launch{session.run(selected,force=true);now=System.currentTimeMillis().coerceAtLeast(0)}
         }
     }
-    AbButton("1. VPN выключен · проверить",theme,enabled=!state.running&&!state.loading&&enabled.isNotEmpty()) {
-        checkWithNetwork(AbVpnCheckMode.DIRECT)
-    }
-    AbButton("2. VPN включён · проверить",theme,enabled=!state.running&&!state.loading&&enabled.isNotEmpty()) {
-        checkWithNetwork(AbVpnCheckMode.VPN)
-    }
     if(state.running) {
         Text("Обработано: ${state.done} из ${state.total}. Проверяется список, выбранный при запуске.",color=theme.muted,fontSize=12.sp)
         AbButton("Отменить проверку сайтов",theme){job?.cancel()}
     }
     if(state.message.isNotBlank())Text(state.message,color=theme.muted,fontSize=12.sp)
-    AbButton("Подготовить отчёт: VPN и поиск (.txt)",theme,enabled=!state.running&&!reporting) {
+    AbButton("Подготовить отчёт поиска (.txt)",theme,enabled=!state.running&&!reporting) {
         reporting=true
         reportPreview=null
         reportError=""
         scope.launch {
             try {
-                reportPreview=withContext(Dispatchers.IO){AbVpnDiagnosticReport.collect(context,targets)+AbSearchDiagnostics.collect(context)}
+                reportPreview=withContext(Dispatchers.IO){AbSearchDiagnostics.collect(context)}
             }catch(cancel:CancellationException){throw cancel}
             catch(_:Exception){reportError="Не удалось собрать отчёт. Повторите попытку."}
             finally{reporting=false}
@@ -91,7 +64,7 @@ internal data class SourceHealthView(val state:SourceHealthState,val targets:Map
     }
     val prepared=reportPreview
     if(prepared!=null) {
-        Text("Предпросмотр отчёта перед отправкой. Он содержит версию приложения, сравнение доступности сайтов и поисковых результатов; поисковые запросы и адреса книг не экспортируются.",color=theme.muted,fontSize=12.sp)
+        Text("Предпросмотр отчёта перед отправкой. Он содержит версию приложения, техническую статистику поисковых результатов; поисковые запросы и адреса книг не экспортируются.",color=theme.muted,fontSize=12.sp)
         SelectionContainer {
             Text(prepared,modifier=Modifier.heightIn(max=220.dp).verticalScroll(rememberScrollState()),
                 color=theme.text,fontSize=11.sp)
@@ -111,10 +84,7 @@ internal data class SourceHealthView(val state:SourceHealthState,val targets:Map
         AbButton("Скрыть отчёт",theme){reportPreview=null}
     }
     if(reportError.isNotBlank())Text(reportError,color=theme.error,fontSize=12.sp)
-    val vpnHelpful=remember(targets,now,evidenceRevision) {
-        targets.filter{vpnEvidence.vpnHelped(it,now)}.map{it.key}.toSet()
-    }
-    return SourceHealthView(state,targets.associateBy{it.name},now,vpnHelpful)
+    return SourceHealthView(state,targets.associateBy{it.name},now)
 }
 @Composable internal fun AbSourceHealthStatus(site:String,view:SourceHealthView,theme:AbTheme) {
     val target=view.targets[site] ?: return

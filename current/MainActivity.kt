@@ -206,6 +206,7 @@ class MainActivity : ComponentActivity() {
         get()=browserState.value
         set(value){browserState.value=value}
     private var activityVisible=false
+    internal fun searchWindowVisible()=activityVisible
     private val activityWork by lazy {
         kotlinx.coroutines.CoroutineScope(Dispatchers.Main+kotlinx.coroutines.SupervisorJob())
     }
@@ -1058,7 +1059,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
 
     LaunchedEffect(prefs) {
         // Migrate only appearance; a gallery background is an independent preference.
-        prefs.edit().putInt("glass_theme",appSkin).remove("app_skin").apply()
+        prefs.edit().putInt("glass_theme",appSkin).remove("app_skin").remove(AbSearchDiagnostics.MODE_KEY).apply()
         AbGlassWidgets.refreshAll(context)
     }
 
@@ -2548,6 +2549,9 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
         downloadPercent = downloadPercent, downloadedBytes = downloadBytesCurrent, totalBytes = downloadBytesTotal
     )
 
+    // Checkpoints live outside the foreground/browser-generation subtree.
+    // onStop closes WebViews; onStart resumes unfinished tasks without resetting completed rows.
+    val cycleCheckpoint=remember(cycleRequestId){AbCycleCheckpoint()}
     Box(Modifier.fillMaxSize()) {
         // Browser sessions keep their own viewport and are not measured by Compose.
         if(foreground) key(browserGeneration) {
@@ -2701,7 +2705,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                 if(cycle.referenceUrl.isNotBlank() || cycle.seedTitle.isNotBlank()) {
                     val fallback=remember(requestId){bookLinks.toList()}
                     LaunchedEffect(requestId) {
-                        abResolveCycleAudio(context,prefs,cycle,fallback,publish)
+                        abResolveCycleAudio(context,prefs,cycle,fallback,cycleCheckpoint,publish)
                     }
                 } else CycleBookBrowser(cycle) { books, finished, error ->
                     if (requestId == cycleRequestId && cycleBrowsing) {
@@ -8451,10 +8455,34 @@ private suspend fun abProbeCycleEdition(context:Context,volume:OfficialEdition,a
     }finally{task?.close();browser?.let{AbWebViews.release(it)}}
 }
 
+
+private class AbCycleCheckpoint {
+    var catalogs:List<OfficialSource>?=null
+    val broadReports=linkedMapOf<String,SiteSearchResult>()
+    val rows=linkedMapOf<Int,List<BookLink>>()
+    val exactDone=mutableSetOf<Int>()
+    val verified=mutableSetOf<String>()
+    var broadDone=false
+}
+private fun abRequireSearchWindow(context:Context){
+    var c=context
+    while(c is android.content.ContextWrapper && c !is android.app.Activity){
+        val base=c.baseContext;if(base===c)break;c=base
+    }
+    if(c is MainActivity && !c.searchWindowVisible())throw kotlinx.coroutines.CancellationException("Search paused in background")
+}
+private suspend fun abCycleSource(context:Context,prefs:android.content.SharedPreferences,site:String,query:String):SiteSearchResult {
+    abRequireSearchWindow(context)
+    return AbSearchCache.get(site,query) ?: abSearchOneSource(context,site,query,prefs).also{
+        abRequireSearchWindow(context)
+        AbSearchCache.put(site,query,it)
+    }
+}
 private suspend fun abResolveCycleAudio(context:Context,prefs:android.content.SharedPreferences,cycle:BookCycle,
-    fallback:List<BookLink>,publish:(List<BookLink>,Boolean,String)->Unit) {
-    val sources=AbBookSources.enabled(prefs)
-    val direct=OfficialCycleSearch.cached(cycle.title) ?: if(SeriesAuthorityRules.cycle(cycle.referenceUrl))
+    fallback:List<BookLink>,checkpoint:AbCycleCheckpoint,publish:(List<BookLink>,Boolean,String)->Unit) {
+    val sources=AbBookSources.enabled(prefs).filter{it!=AbBookSources.AZBYKA || AbBookSources.enabled(prefs).size==1}.ifEmpty{AbBookSources.enabled(prefs)}
+    abRequireSearchWindow(context)
+    val direct=if(checkpoint.catalogs!=null)null else OfficialCycleSearch.cached(cycle.title) ?: if(SeriesAuthorityRules.cycle(cycle.referenceUrl))
         OfficialCycleSearch.find(cycle.title) else null
     val snapshot=try {
         var title=cycle.seedTitle;var author=cycle.seedAuthor
@@ -8464,10 +8492,11 @@ private suspend fun abResolveCycleAudio(context:Context,prefs:android.content.Sh
             }
             title=detail.title;author=detail.authors.singleOrNull().orEmpty()
         }
-        if(direct!=null || title.isBlank()||author.isBlank())null else OfficialSeriesCatalog(context.applicationContext).refresh(title,author)
+        if(checkpoint.catalogs!=null || direct!=null || title.isBlank()||author.isBlank())null else OfficialSeriesCatalog(context.applicationContext).refresh(title,author)
     }catch(cancel:kotlinx.coroutines.CancellationException){throw cancel}catch(_:Exception){null}
     val key=AbSearchPresentation.seriesKey(cycle.title)
-    val catalogs=direct?.sources ?: snapshot?.sources.orEmpty().filter{OfficialCycleSearch.seriesMatches(cycle.title,it.series) && it.books.isNotEmpty()}
+    abRequireSearchWindow(context)
+    val catalogs=checkpoint.catalogs ?: (direct?.sources ?: snapshot?.sources.orEmpty().filter{OfficialCycleSearch.seriesMatches(cycle.title,it.series) && it.books.isNotEmpty()}).also{if(it.isNotEmpty())checkpoint.catalogs=it}
     val volumes=OfficialCycleSearch.template(cycle.title,catalogs)
     if(volumes.isEmpty()) {
         val backup=(if(fallback.isNotEmpty())fallback else {
@@ -8477,53 +8506,102 @@ private suspend fun abResolveCycleAudio(context:Context,prefs:android.content.Sh
         publish(backup,true,"Справочники недоступны: порядок цикла не подтверждён. Показаны результаты без номеров аудиоисточников.")
         return
     }
+
     fun reference(v:OfficialEdition)=cycle.copy(order=v.order,referenceUrl=v.url,referenceSite=v.provider,seedTitle=v.title,seedAuthor=v.author)
     fun placeholder(v:OfficialEdition,state:String)=BookLink(v.title,v.url,author=v.author,cycles=listOf(reference(v)),catalogState=state)
-    val rows=volumes.map{listOf(placeholder(it,"pending"))}.toMutableList()
     val partial=catalogs.none{it.complete&&it.error.isBlank()}
-    fun report(done:Int,finished:Boolean){
-        val found=rows.count{list->list.any{it.catalogState=="checked"}}
-        publish(rows.flatten(),finished,"Порядок: ${catalogs.joinToString(" + "){it.provider}}. ${volumes.size} книг${if(partial)" (список может быть неполным)" else ""}. Проверено: $done/${volumes.size}. Главы найдены: $found.")
-    }
-    report(0,false)
-    for((index,volume) in volumes.withIndex()) {
-        kotlinx.coroutines.currentCoroutineContext().ensureActive()
-        val query=OfficialCycleSearch.lookupTitle(cycle.title,volume.title)
-        val reports=abCycleSearch(context,prefs,query,sources)
-        var incomplete=reports.size<sources.size||reports.values.any{it.error.isNotBlank()}
-        val aliases=OfficialCycleSearch.aliases(cycle.title,volume,catalogs)
-        val candidates=AbSearchPresentation.merge(reports.values.flatMap{it.books}.filter{b->
-            aliases.any{alias->OfficialCycleSearch.matches(cycle.title,alias,b.title)} &&
-                (b.author.isBlank()||SeriesAuthorityRules.author(b.author)==SeriesAuthorityRules.author(volume.author))
-        })
-        // A reference page is bibliography only. Only exact audio-search results can be opened.
-        val checked=mutableListOf<BookLink>()
-        val examined=mutableSetOf<String>()
-        var probes=0
-        for(candidate in candidates) {
-            val verified=mutableListOf<BookSource>()
-            for(source in bookSources(candidate).sortedBy{AbSourceAvailability.get(prefs,it.url).priority}) {
-                kotlinx.coroutines.currentCoroutineContext().ensureActive()
-                if(probes>=6){incomplete=true;break}
-                if(SeriesAuthorityRules.provider(source.url).isNotBlank() || supportedBookUrl(source.url)==null ||
-                    AbSourceAvailability.get(prefs,source.url)==AbChapterAvailability.PREVIEW || !examined.add(source.url))continue
-                probes++
-                if(abProbeCycleEdition(context,volume,source.url,cycle.title,aliases,candidate.author)) {
-                    AbSourceAvailability.record(prefs,source.url,true)
-                    verified.add(source)
-                } else incomplete=true
-            }
-            if(verified.isNotEmpty()) {
-                val first=verified.first()
-                checked.add(candidate.copy(title=volume.title,author=volume.author,url=first.url,
-                    coverUrl=first.coverUrl.ifBlank{candidate.coverUrl},sources=verified,
-                    cycles=listOf(reference(volume)),catalogState="checked"))
-            }
-            if(probes>=6)break
+    val aliases=volumes.map{OfficialCycleSearch.aliases(cycle.title,it,catalogs)}
+    fun position(book:BookLink):Int? {
+        val matching=volumes.indices.filter{i->
+            (book.author.isBlank()||SeriesAuthorityRules.author(book.author)==SeriesAuthorityRules.author(volumes[i].author)) &&
+                aliases[i].any{OfficialCycleSearch.matches(cycle.title,it,book.title)}
         }
-        rows[index]=if(checked.isNotEmpty())checked else listOf(placeholder(volume,if(incomplete)"incomplete" else "missing"))
-        report(index+1,index==volumes.lastIndex)
+        return matching.singleOrNull()
     }
+    fun accept(i:Int,books:List<BookLink>){
+        val volume=volumes[i]
+        val candidates=books.filter{position(it)==i}.mapNotNull{candidate->
+            val links=bookSources(candidate).filter{source->
+                supportedBookUrl(source.url)!=null&&SeriesAuthorityRules.provider(source.url).isBlank()&&
+                    AbSourceAvailability.get(prefs,source.url)!=AbChapterAvailability.PREVIEW
+            }
+            if(links.isEmpty()||EditionDownloadRules.isPreview(candidate.title,emptyList()))null else {
+                val first=links.first()
+                candidate.copy(title=volume.title,author=volume.author,url=first.url,
+                    coverUrl=first.coverUrl.ifBlank{candidate.coverUrl},sources=links,cycles=listOf(reference(volume)),catalogState="candidate")
+            }
+        }
+        if(candidates.isNotEmpty()){
+            val previous=checkpoint.rows[i].orEmpty().filter{it.catalogState in setOf("candidate","checked")}
+            checkpoint.rows[i]=AbSearchPresentation.merge(previous+candidates)
+        }
+    }
+    fun report(stage:String,finished:Boolean=false){
+        abRequireSearchWindow(context)
+        val rows=volumes.indices.flatMap{i->checkpoint.rows[i].orEmpty().ifEmpty{
+            listOf(placeholder(volumes[i],if(finished)"incomplete" else "pending"))
+        }}
+        val found=checkpoint.rows.values.count{list->list.any{it.catalogState in setOf("candidate","checked")}}
+        publish(rows,finished,"Порядок: ${catalogs.joinToString(" + "){it.provider}} · ${volumes.size} книг${if(partial)" (список может быть неполным)" else ""}. Найдено аудио: $found/${volumes.size}. $stage")
+    }
+    report("Сверяю найденные книги…")
+    // Stage 1: one broad query per source; stream successful results into all slots.
+    if(!checkpoint.broadDone){
+        val remaining=sources.filter{it !in checkpoint.broadReports}
+        AbSearchCoordinator.search(remaining,{25_000L},{site->abCycleSource(context,prefs,site,cycle.title)},{site,result->
+            abRequireSearchWindow(context)
+            checkpoint.broadReports[site]=result
+            val grouped=result.books.groupBy{position(it)}
+            for((i,books) in grouped)if(i!=null)accept(i,books)
+            report("Общий поиск: ${checkpoint.broadReports.size}/${sources.size} источников.")
+        })
+        checkpoint.broadDone=true
+    }
+    // Stage 2: only missing works, priority for sources that actually returned this series.
+    // At most two WebViews, independent timeouts, and no waiting for every book on every site.
+    val priority=sources.sortedWith(compareByDescending<String>{site->
+        checkpoint.broadReports[site]?.books?.count{position(it)!=null} ?: 0
+    }.thenBy{if(checkpoint.broadReports[it]?.error.isNullOrBlank())0 else 1})
+    for(i in volumes.indices){
+        abRequireSearchWindow(context)
+        if(i in checkpoint.exactDone||checkpoint.rows[i].orEmpty().any{it.catalogState in setOf("candidate","checked")})continue
+        val query=OfficialCycleSearch.lookupTitle(cycle.title,volumes[i].title)
+        val preferred=priority.take(4)
+        report("Точечный поиск: ${i+1}/${volumes.size}.")
+        kotlinx.coroutines.withTimeoutOrNull(45_000L){
+            AbSearchCoordinator.search(preferred,{20_000L},{site->abCycleSource(context,prefs,site,query)},{_,result->
+                abRequireSearchWindow(context)
+                accept(i,result.books)
+                report("Точечный поиск: ${i+1}/${volumes.size}.")
+            })
+        }
+        abRequireSearchWindow(context)
+        checkpoint.exactDone.add(i)
+        if(checkpoint.rows[i].isNullOrEmpty())checkpoint.rows[i]=listOf(placeholder(volumes[i],"incomplete"))
+    }
+    // Candidate links are usable immediately. Validate one leading edition per work
+    // with a bounded budget, never block the catalogue on every alternative narration.
+    for(i in volumes.indices){
+        abRequireSearchWindow(context)
+        val list=checkpoint.rows[i].orEmpty()
+        val candidate=list.firstOrNull{it.catalogState=="candidate"} ?: continue
+        if(candidate.url in checkpoint.verified)continue
+        report("Проверка глав: ${i+1}/${volumes.size}.")
+        val ok=try {
+            kotlinx.coroutines.withTimeoutOrNull(15_000L){
+                abProbeCycleEdition(context,volumes[i],candidate.url,cycle.title,aliases[i],candidate.author)
+            }==true
+        }catch(cancel:kotlinx.coroutines.CancellationException){
+            checkpoint.verified.remove(candidate.url);throw cancel
+        }
+        abRequireSearchWindow(context)
+        checkpoint.verified.add(candidate.url)
+        if(ok){
+            AbSourceAvailability.record(prefs,candidate.url,true)
+            checkpoint.rows[i]=list.map{if(it.url==candidate.url)it.copy(catalogState="checked") else it}
+        }
+    }
+    report("Поиск завершён. Откройте книгу для проверки оставшихся озвучек.",true)
 }
 
 @Composable
@@ -9710,7 +9788,6 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
     }
     val history=remember(prefs,data.version) {getListeningHistory(prefs).map {bookRefFor(prefs,it)}}
     var showSources by remember {mutableStateOf(false)}
-    var searchNetworkMode by remember(prefs){mutableStateOf(AbSearchDiagnostics.mode(prefs))}
     var manualSource by remember {mutableStateOf<Pair<String,String>?>(null)}
     var hidePreviews by remember(prefs) {mutableStateOf(prefs.getBoolean("search_hide_previews",false))}
     var enabledSources by remember {mutableStateOf(AbBookSources.enabled(prefs).toSet())}
@@ -9788,16 +9865,7 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
             }
             Text(if(data.searchSource.isBlank())"Режим: включённые источники" else "Режим: только ${data.searchSource}",
                 color=theme.muted,fontSize=11.sp,modifier=Modifier.padding(top=5.dp))
-            Text("Диагностика поиска: укажите реальный режим сети до поиска. При VPN-проверке кэш не используется. Текст запроса в отчёт не попадёт.",
-                color=theme.muted,fontSize=11.sp,modifier=Modifier.padding(top=6.dp))
-            Row(Modifier.fillMaxWidth().padding(top=5.dp),horizontalArrangement=Arrangement.spacedBy(5.dp)) {
-                AbSearchNetworkMode.entries.forEach {option ->
-                    AbButton(option.title,theme,Modifier.weight(1f),primary=searchNetworkMode==option) {
-                        searchNetworkMode=option
-                        prefs.edit().putString(AbSearchDiagnostics.MODE_KEY,option.name).apply()
-                    }
-                }
-            }
+
         }
         if (data.searchActive || data.cycleBrowsing || data.genre.isNotBlank()) item(key="preview-filter") {
             AbButton(if (activeFilters == 0) "Фильтры поиска" else "Фильтры поиска · $activeFilters",theme) {
@@ -9811,7 +9879,7 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
         if(seriesStatus.isNotBlank()) item {Text(seriesStatus,color=theme.muted,fontSize=11.sp)}
         if(data.searching) item { Row(verticalAlignment=Alignment.CenterVertically) {
             androidx.compose.material3.CircularProgressIndicator(Modifier.size(18.dp),color=theme.accent,strokeWidth=2.dp)
-            Text(if(data.genre.isNotBlank()) "Ищем книги и проверяем жанры…" else "Ищем книги…",color=theme.muted,fontSize=13.sp,modifier=Modifier.padding(start=10.dp))
+            Text(if(data.cycleBrowsing) data.status.ifBlank{"Ищу аудиокниги цикла…"} else if(data.genre.isNotBlank()) "Ищем книги и проверяем жанры…" else "Ищем книги…",color=theme.muted,fontSize=13.sp,modifier=Modifier.padding(start=10.dp))
         } }
         if(data.onlineBook==null && data.bookOpening!=null && (data.bookPageLoading || data.bookPageError.isNotBlank()))
             item {AbPendingBookDetails(data,actions,books,theme)}
@@ -9825,7 +9893,7 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
                 "${if(data.genre.isNotBlank())minOf(resultBooks.size,visibleCount) else resultBooks.size} книг")
         }
         if(data.cycleBrowsing && resultBooks.isNotEmpty()) item {
-            Text("Тома с известными номерами идут по порядку. Книги без номера — после них, в порядке сайта.",
+            Text(if(data.results.any{it.catalogState.isNotBlank()})"Позиции из справочников. Найденные аудиоиздания появляются постепенно; непроверенные главы обозначены отдельно." else "Порядок по сведениям источника.",
                 color=theme.muted,fontSize=11.sp)
         }
         items(visibleResults,key={it.key},contentType={"search-book"}) { row ->
@@ -9839,7 +9907,7 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
         if(data.genre.isNotBlank() && visibleCount>=AB_SEARCH_LIMIT && resultBooks.size>=AB_SEARCH_LIMIT) item {
             Text("Показаны первые $AB_SEARCH_LIMIT книг. Уточните название или автора, чтобы найти нужное издание.",color=theme.muted,fontSize=12.sp)
         }
-        if(data.status.isNotBlank() && data.status!="Вставьте ссылку" &&
+        if(data.status.isNotBlank() && data.status!="Вставьте ссылку" && !(data.cycleBrowsing&&data.searching) &&
             !(data.bookOpening!=null && data.onlineBook==null && (data.bookPageLoading || data.bookPageError.isNotBlank()))) item {
             Text(data.status,color=theme.muted,fontSize=12.sp)
         }
@@ -9908,8 +9976,7 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
         AbBookSources.searchOrder.forEach { site ->
             Row(Modifier.fillMaxWidth().abGlass(theme,12,field=true).padding(horizontal=10.dp,vertical=4.dp),verticalAlignment=Alignment.CenterVertically) {
                 Column(Modifier.weight(1f).clickable{showSources=false;actions.searchScope(site)}.padding(vertical=8.dp)) {
-                    Text((if(data.searchSource==site)"✓ " else "")+site+
-                         (if(health.targets[site]?.key?.let{it in health.vpnHelpful}==true)" · VPN" else ""),color=theme.text,fontSize=14.sp)
+                    Text((if(data.searchSource==site)"✓ " else "")+site,color=theme.text,fontSize=14.sp)
                     val status=AbExtraSources.status(site)
                     if(status.isNotBlank())Text(status,color=theme.muted,fontSize=10.sp)
                     AbSourceHealthStatus(site,health,theme)
@@ -10090,6 +10157,7 @@ internal fun AbSearchResultCard(row:AbSearchRow,theme:AbTheme,onOpen:(BookLink,S
         AbBookRow(ref,if(book.url==row.book.url)row.local else null,book.author.ifBlank{"Аудиокнига"},theme,
             onClick={onOpen(book,book.url)},onMenu={onMenu(ref)})
         if(book.catalogState=="checked")Text("Главы проверены · запуск аудио проверяется при воспроизведении",color=theme.accent,fontSize=11.sp)
+        if(book.catalogState=="candidate")Text("Аудиоиздание найдено · главы проверяются при открытии",color=theme.muted,fontSize=11.sp)
         if(AbSourceAvailability.isPreview(sourcePrefs,book))Text("Демо · ознакомительный фрагмент",color=theme.error,fontSize=12.sp)
         if(book.genres.isNotEmpty()) Text(book.genres.joinToString(" · "),color=theme.muted,fontSize=11.sp)
         book.cycles.forEach {cycle ->
