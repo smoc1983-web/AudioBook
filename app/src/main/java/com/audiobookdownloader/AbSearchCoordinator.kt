@@ -14,7 +14,7 @@ import kotlinx.coroutines.withTimeout
 /** Independent, bounded source work. A slow/erroring site cannot cancel successful neighbours. */
 internal object AbSearchCoordinator {
     suspend fun search(sources: List<String>, timeoutMs: (String)->Long,
-        fetch: suspend (String)->SiteSearchResult, report: (String,SiteSearchResult)->Unit) = supervisorScope {
+        fetch: suspend (String)->SiteSearchResult, report: suspend (String,SiteSearchResult)->Unit) = supervisorScope {
         val slots=Semaphore(2)
         sources.distinct().map {site -> async {
             slots.withPermit {

@@ -8635,21 +8635,26 @@ private suspend fun abResolveCycleAudio(context:Context,prefs:android.content.Sh
     fun reference(v:OfficialEdition)=cycle.copy(order=v.order,referenceUrl=v.url,referenceSite=v.provider,seedTitle=v.title,seedAuthor=v.author)
     fun placeholder(v:OfficialEdition,state:String)=BookLink(v.title,v.url,author=v.author,cycles=listOf(reference(v)),catalogState=state)
     val partial=catalogs.map{it.provider}.toSet().size<2||catalogs.any{!it.complete||it.error.isNotBlank()}
-    val aliases=volumes.map{OfficialCycleSearch.aliases(cycle.title,it,catalogs)}
+    val aliases=withContext(Dispatchers.Default){volumes.map{OfficialCycleSearch.aliases(cycle.title,it,catalogs)}}
     val volumeAuthors=volumes.map{SeriesAuthorityRules.author(it.author)}
-    val aliasIndex=mutableMapOf<String,MutableSet<Int>>()
-    aliases.forEachIndexed{i,values->values.forEach{value->
-        val key=SeriesAuthorityRules.title(OfficialCycleSearch.lookupTitle(cycle.title,value))
-        if(key.isNotBlank())aliasIndex.getOrPut(key){linkedSetOf()}.add(i)
-    }}
+    val aliasIndex=withContext(Dispatchers.Default){
+        val index=mutableMapOf<String,MutableSet<Int>>()
+        aliases.forEachIndexed{i,values->values.forEach{value->
+            val key=OfficialCycleSearch.matchKey(cycle.title,value,volumes[i].author)
+            if(key.isNotBlank())index.getOrPut(key){linkedSetOf()}.add(i)
+        }}
+        index
+    }
     fun position(book:BookLink):Int? {
         val author=SeriesAuthorityRules.author(book.author)
-        val title=SeriesAuthorityRules.title(OfficialCycleSearch.lookupTitle(cycle.title,book.title))
+        val title=OfficialCycleSearch.matchKey(cycle.title,book.title,book.author)
         return aliasIndex[title].orEmpty().filter{i->author.isBlank()||author==volumeAuthors[i]}.singleOrNull()
     }
-    fun accept(i:Int,books:List<BookLink>){
+    suspend fun accept(i:Int,books:List<BookLink>,matched:Boolean=false){
         val volume=volumes[i]
-        val candidates=books.filter{position(it)==i}.mapNotNull{candidate->
+        val candidates=withContext(Dispatchers.Default){
+            val job=kotlinx.coroutines.currentCoroutineContext()
+            books.filter{job.ensureActive();matched||position(it)==i}.mapNotNull{candidate->
             val links=bookSources(candidate).filter{source->
                 supportedBookUrl(source.url)!=null&&SeriesAuthorityRules.provider(source.url).isBlank()&&
                     !AbSourceAvailability.hidden(AbSourceAvailability.get(prefs,source.url))&&!AbSourceAvailability.tooSmall(prefs,source.url)
@@ -8659,19 +8664,25 @@ private suspend fun abResolveCycleAudio(context:Context,prefs:android.content.Sh
                 candidate.copy(title=volume.title,author=volume.author,url=first.url,
                     coverUrl=first.coverUrl.ifBlank{candidate.coverUrl},sources=links,cycles=listOf(reference(volume)),catalogState="candidate")
             }
+            }
         }
         if(candidates.isNotEmpty()){
             val previous=checkpoint.rows[i].orEmpty().filter{it.catalogState in setOf("candidate","checked")}
             checkpoint.rows[i]=AbSearchPresentation.merge(previous+candidates)
         }
     }
-    fun report(stage:String,finished:Boolean=false){
+    val sourceSummary=OfficialCycleSearch.sourceSummary(catalogs)
+    var lastPublish=0L
+    fun report(stage:String,finished:Boolean=false,force:Boolean=false){
         abRequireSearchWindow(context)
+        val now=android.os.SystemClock.elapsedRealtime()
+        if(!finished&&!force&&lastPublish!=0L&&now-lastPublish<250L)return
+        lastPublish=now
         val rows=volumes.indices.flatMap{i->checkpoint.rows[i].orEmpty().ifEmpty{
             listOf(placeholder(volumes[i],if(finished)"incomplete" else "pending"))
         }}
         val found=checkpoint.rows.values.count{list->list.any{it.catalogState in setOf("candidate","checked")}}
-        publish(rows,finished,"По справочникам: ${volumes.size} книг${if(partial)" (сверка неполная)" else ""}. ${OfficialCycleSearch.sourceSummary(catalogs)}. Найдено аудио: $found/${volumes.size}. $stage")
+        publish(rows,finished,"По справочникам: ${volumes.size} книг${if(partial)" (сверка неполная)" else ""}. $sourceSummary. Найдено аудио: $found/${volumes.size}. $stage")
     }
     report("Сверяю найденные книги…")
     // Stage 1: one broad query per source; stream successful results into all slots.
@@ -8680,30 +8691,45 @@ private suspend fun abResolveCycleAudio(context:Context,prefs:android.content.Sh
         AbSearchCoordinator.search(remaining,{25_000L},{site->abCycleSource(context,prefs,site,cycle.title)},{site,result->
             abRequireSearchWindow(context)
             checkpoint.broadReports[site]=result
-            val grouped=result.books.groupBy{position(it)}
-            for((i,books) in grouped)if(i!=null)accept(i,books)
+            val grouped=withContext(Dispatchers.Default){result.books.groupBy{position(it)}}
+            for((i,books) in grouped)if(i!=null)accept(i,books,matched=true)
             report("Общий поиск: ${checkpoint.broadReports.size}/${sources.size} источников.")
         })
         checkpoint.broadDone=true
     }
     // Stage 2: only missing works, priority for sources that actually returned this series.
     // At most two WebViews, independent timeouts, and no waiting for every book on every site.
-    val priority=sources.sortedWith(compareByDescending<String>{site->
+    val priority=withContext(Dispatchers.Default){sources.sortedWith(compareByDescending<String>{site->
         checkpoint.broadReports[site]?.books?.count{position(it)!=null} ?: 0
-    }.thenBy{if(checkpoint.broadReports[it]?.error.isNullOrBlank())0 else 1})
+    }.thenBy{if(checkpoint.broadReports[it]?.error.isNullOrBlank())0 else 1})}
+    fun hasCandidate(i:Int)=checkpoint.rows[i].orEmpty().any{it.catalogState in setOf("candidate","checked")}
     for(i in volumes.indices){
         kotlinx.coroutines.yield()
         abRequireSearchWindow(context)
         if(i in checkpoint.exactDone||checkpoint.rows[i].orEmpty().any{it.catalogState in setOf("candidate","checked")})continue
-        val query=OfficialCycleSearch.lookupTitle(cycle.title,volumes[i].title)
+        val queries=OfficialCycleSearch.lookupQueries(cycle.title,volumes[i],aliases[i])
         val preferred=priority.take(4)
-        report("Точечный поиск: ${i+1}/${volumes.size}.")
-        kotlinx.coroutines.withTimeoutOrNull(45_000L){
-            AbSearchCoordinator.search(preferred,{20_000L},{site->abCycleSource(context,prefs,site,query)},{_,result->
-                abRequireSearchWindow(context)
-                accept(i,result.books)
-                report("Точечный поиск: ${i+1}/${volumes.size}.")
-            })
+        report("Точечный поиск: ${i+1}/${volumes.size}.",force=true)
+        suspend fun searchBatch(query:String,batch:List<String>){
+            if(batch.isEmpty()||hasCandidate(i))return
+            kotlinx.coroutines.withTimeoutOrNull(45_000L){
+                AbSearchCoordinator.search(batch,{20_000L},{site->abCycleSource(context,prefs,site,query)},{_,result->
+                    abRequireSearchWindow(context)
+                    accept(i,result.books)
+                    report("Точечный поиск: ${i+1}/${volumes.size}.")
+                })
+            }
+        }
+        // Alternate exact forms first, then the remaining configured sites; stop once a matching edition exists.
+        // Keep a hard budget per missing volume so an unavailable work cannot stall the entire cycle.
+        kotlinx.coroutines.withTimeoutOrNull(120_000L){
+            queries.forEach{query->if(!hasCandidate(i))searchBatch(query,preferred)}
+            queries.firstOrNull()?.let{query->
+                for(batch in priority.drop(4).chunked(4)){
+                    if(hasCandidate(i))break
+                    searchBatch(query,batch)
+                }
+            }
         }
         abRequireSearchWindow(context)
         checkpoint.exactDone.add(i)
@@ -9983,7 +10009,10 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
     val detail=remember(data.onlineBook,data.pageTitle,prefs,data.version) {
         if(data.onlineBook!=null) listOf(abStoredCatalog(prefs,cleanBookTitle(data.pageTitle))) else emptyList()
     }
-    val verificationTargets=remember(detail,data.results,visibleCount) {detail+data.results.take(visibleCount)}
+    val verificationTargets=remember(detail,data.results,visibleCount,data.cycleBrowsing) {
+        // A catalogue-confirmed cycle already has its bibliography; avoid redundant per-book lookups while it streams.
+        detail+if(data.cycleBrowsing)data.results.take(visibleCount).filter{it.catalogState.isBlank()} else data.results.take(visibleCount)
+    }
     val seriesStatus=SeriesAuthorityWatcher(verificationTargets,prefs)
     // Playback ticks and lazy-list recycling must not reparse every book's reference metadata.
     val seriesRevision=remember(prefs,data.version) {prefs.getInt("book_series_revision",0)}

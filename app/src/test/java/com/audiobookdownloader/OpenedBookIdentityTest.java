@@ -14,6 +14,11 @@ public class OpenedBookIdentityTest {
         assertTrue(OpenedBookIdentity.matches("Файролл-12. Квадратура круга. Том 1","Файролл-12. Квадратура круга. Том 1",a,a,"Файролл",14.0));
         assertFalse(OpenedBookIdentity.matches("Файролл-12. Квадратура круга. Том 1","Файролл-12. Квадратура круга. Том 2",a,a,"Файролл",14.0));
     }
+    @Test public void explicitOrdinalAndBonusDoNotChangeVolume(){
+        String a="Андрей Васильев";
+        assertTrue(OpenedBookIdentity.matches("Файролл-11. Снисхождение. Том 1","Снисхождение. Том первый (+Бонус)",a,a,"Файролл",12.0));
+        assertFalse(OpenedBookIdentity.matches("Файролл-11. Снисхождение. Том 1","Снисхождение. Том второй",a,a,"Файролл",12.0));
+    }
     @Test public void wrongBookAuthorAndVolumeStayRejected(){
         String a="Андрей Васильев";
         assertFalse(OpenedBookIdentity.matches("Файролл-1. Игра не ради игры","Право выбора",a,a,"Файролл",1.0));

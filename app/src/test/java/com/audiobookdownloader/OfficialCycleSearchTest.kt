@@ -19,6 +19,16 @@ class OfficialCycleSearchTest {
         assertTrue(OfficialCycleSearch.sourceSummary(listOf(source)).contains("Author.Today: 2"))
         assertTrue(OfficialCycleSearch.sourceSummary(listOf(source)).contains("Литрес: не подтверждён"))
     }
+    @Test fun missingVolumeUsesAlternateQueriesWithoutDroppingVolume(){
+        val v=book("Файролл-11. Снисхождение. Том 1",12.0)
+        val queries=OfficialCycleSearch.lookupQueries("Файролл",v,listOf(v.title,"Снисхождение. Том I"))
+        assertEquals("Снисхождение. Том 1",queries.first())
+        assertTrue(queries.any{it.contains("Файролл-11")})
+        assertTrue(queries.any{it.contains("Андрей Васильев")})
+        assertEquals(OfficialCycleSearch.matchKey("Файролл",v.title),OfficialCycleSearch.matchKey("Файролл","Снисхождение. Том первый"))
+        assertEquals(OfficialCycleSearch.matchKey("Файролл",v.title),OfficialCycleSearch.matchKey("Файролл","Снисхождение. Том I (+Бонус)"))
+        assertFalse(OfficialCycleSearch.matches("Файролл",v.title,"Снисхождение. Том 2"))
+    }
     @Test fun equivalentEditionsAndDifferentCycleLabels(){
         assertTrue(OfficialCycleSearch.seriesMatches("Файролл","Файролл. Хроники Хейгена"))
         assertTrue(OfficialCycleSearch.matches("Файролл","Файролл-11. Снисхождение. Том 1","Файролл. Снисхождение. Том 1 (+Бонус)"))

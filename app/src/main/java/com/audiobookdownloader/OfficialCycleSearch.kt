@@ -18,7 +18,7 @@ internal object OfficialCycleSearch {
         return q.isNotBlank()&&(q==h||h.startsWith(q+" "))
     }
     fun lookupTitle(cycle:String,title:String):String {
-        var t=SeriesAuthorityRules.queryTitle(title).trim().trim('«','»','"','“','”')
+        var t=SeriesAuthorityRules.queryTitle(OpenedBookIdentity.cleanPresentation(title,"")).trim().trim('«','»','"','“','”')
         t=bonus.replace(t,"").trim()
         val short=cycle.substringBefore(". ").trim().trim('«','»','"')
         if(short.isNotBlank()&&t.startsWith(short,true)&&
@@ -28,9 +28,18 @@ internal object OfficialCycleSearch {
         }
         return t.trim().trimEnd('.').ifBlank{title}
     }
+    fun matchKey(cycle:String,title:String,author:String="")=
+        OpenedBookIdentity.titleKey(lookupTitle(cycle,OpenedBookIdentity.cleanPresentation(title,author)))
     fun matches(cycle:String,first:String,second:String)=
-        SeriesAuthorityRules.title(lookupTitle(cycle,first))==SeriesAuthorityRules.title(lookupTitle(cycle,second)) &&
-            SeriesAuthorityRules.title(lookupTitle(cycle,first)).isNotBlank()
+        matchKey(cycle,first)==matchKey(cycle,second)&&matchKey(cycle,first).isNotBlank()
+    /** Keep the volume in every query. Never substitute an adjacent volume. */
+    fun lookupQueries(cycle:String,volume:OfficialEdition,aliases:List<String>):List<String> {
+        val short=lookupTitle(cycle,volume.title)
+        val variants=linkedSetOf(short,volume.title.trim().trim('«','»','"','“','”'))
+        if(volume.author.isNotBlank())variants.add(volume.author+" "+short)
+        aliases.forEach{variants.add(lookupTitle(cycle,it))}
+        return variants.filter{it.isNotBlank()}.distinctBy{SearchBookIndex.normal(it)}.take(4)
+    }
     @Synchronized fun cached(query:String):Template? =
         cache[key(query)]?.takeIf{System.currentTimeMillis()-it.at<15*60_000L}?.value
     @Synchronized fun invalidate(query:String){cache.remove(key(query))}

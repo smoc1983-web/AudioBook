@@ -11,7 +11,7 @@ public final class OpenedBookIdentity {
     private static final Pattern VOLUME=Pattern.compile("^\\s*(\\d+(?:[.,]\\d+)?)\\s*[.\\-–—:]\\s*(.+)$");
     private OpenedBookIdentity(){}
     private static String trim(String s){return s.trim().replaceAll("^[\\s«»\"“”]+|[\\s«»\"“”]+$","").trim();}
-    private static String unwrap(String raw,String author){
+    public static String cleanPresentation(String raw,String author){
         String s=trim(raw==null?"":raw);
         Matcher m=AUTHOR.matcher(s);
         if(m.find()&&!SeriesAuthorityRules.author(author).isEmpty()
@@ -19,14 +19,21 @@ public final class OpenedBookIdentity {
             s=s.substring(0,m.start());
         s=PREFIX.matcher(s).replaceFirst("");
         s=SEO.matcher(s).replaceFirst("");
+        s=s.replaceFirst("(?iu)\\s*\\(\\s*\\+?\\s*бонус\\s*\\)\\s*$","");
         return trim(s);
+    }
+    public static String titleKey(String value){
+        // Explicit volume words only; the work name and the volume number remain significant.
+        String s=value.replaceAll("(?iu)\\b(том|часть|книга)\\s+перв(?:ый|ая|ое)(?=\\s|[.!,]|$)","$1 1")
+            .replaceAll("(?iu)\\b(том|часть|книга)\\s+втор(?:ой|ая|ое)(?=\\s|[.!,]|$)","$1 2");
+        return SeriesAuthorityRules.title(s);
     }
     private static final class Part {
         final String key; final Double number;
         Part(String key,Double number){this.key=key;this.number=number;}
     }
     private static Part part(String raw,String author,String cycle){
-        String s=unwrap(raw,author);
+        String s=cleanPresentation(raw,author);
         String c=trim(cycle==null?"":cycle);
         if(!c.isEmpty()&&s.length()>c.length()&&s.regionMatches(true,0,c,0,c.length())
                 &&!Character.isLetterOrDigit(s.charAt(c.length()))){
@@ -35,11 +42,11 @@ public final class OpenedBookIdentity {
             if(m.matches()){
                 Double n=null;
                 try{n=Double.valueOf(m.group(1).replace(',','.'));}catch(NumberFormatException ignored){}
-                return new Part(SeriesAuthorityRules.title(m.group(2)),n);
+                return new Part(titleKey(m.group(2)),n);
             }
-            if(!rest.isEmpty())return new Part(SeriesAuthorityRules.title(rest),null);
+            if(!rest.isEmpty())return new Part(titleKey(rest),null);
         }
-        return new Part(SeriesAuthorityRules.title(s),null);
+        return new Part(titleKey(s),null);
     }
     public static boolean matches(String wanted,String actual,String wantedAuthor,String actualAuthor,String cycle,Double expectedOrder){
         String wa=SeriesAuthorityRules.author(wantedAuthor),aa=SeriesAuthorityRules.author(actualAuthor);
