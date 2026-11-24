@@ -13,7 +13,7 @@ internal object AbSourceAvailability {
     private const val MAX_AGE=30L*24*60*60*1000
     private fun key(url:String):String {
         val digest=MessageDigest.getInstance("SHA-256").digest(url.substringBefore('#').trimEnd('/').toByteArray(Charsets.UTF_8))
-        return PREFIX+digest.joinToString(""){"%02x".format(it)}
+        return PREFIX+buildString(digest.size*2){for(byte in digest){val n=byte.toInt() and 255;append("0123456789abcdef"[n ushr 4]);append("0123456789abcdef"[n and 15])}}
     }
     fun get(prefs:SharedPreferences,url:String,now:Long=System.currentTimeMillis()):AbChapterAvailability {
         val raw=prefs.getString(key(url),null)?:return AbChapterAvailability.UNKNOWN

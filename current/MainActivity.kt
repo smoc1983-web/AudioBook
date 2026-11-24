@@ -178,6 +178,12 @@ enum class AppPage {
 
 // The selected source belongs to this request; failures never replace it with another site.
 private data class AbBookOpen(val book:BookLink,val sourceUrl:String)
+private fun abOpenedBookMatches(book:BookLink,title:String,author:String):Boolean {
+    if(book.cycles.isEmpty())return OpenedBookIdentity.matches(book.title,title,book.author,author,"",null)
+    // Require a known cycle/volume; do not strip arbitrary words or numbers from titles.
+    return book.cycles.any{cycle->OpenedBookIdentity.matches(book.title,title,book.author,author,cycle.title,cycle.order)}
+}
+
 
 private data class AbGenreReturn(
     val name:String,val query:String,val pages:Map<String,AbGenrePage>,val next:Map<String,AbGenrePage>,
@@ -1886,7 +1892,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                 try {
                     val loaded=withContext(Dispatchers.IO){VerifiedBooks.load(sourceUrl)}
                     if(request!=bookOpenId)return@launch
-                    if(book.title.isNotBlank()&&!SeriesAuthorityRules.sameTitle(book.title,loaded.title,"") || book.author.isNotBlank()&&loaded.author.isNotBlank()&&SeriesAuthorityRules.author(book.author)!=SeriesAuthorityRules.author(loaded.author)){
+                    if(!abOpenedBookMatches(book,loaded.title,loaded.author)){
                         failBookOpening("Название или автор не совпадают с выбранной книгой");return@launch
                     }
                     pageTitle=loaded.title;currentBookAuthor=loaded.author;currentCoverUrl=loaded.cover;player=loaded.data
@@ -2870,8 +2876,8 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                                             parsed != null
                                         ) {
                                             val opening=bookOpening
-                                            if(opening!=null&&opening.book.title.isNotBlank()&&pageTitle.isNotBlank()&&!SeriesAuthorityRules.sameTitle(opening.book.title,pageTitle,"")){
-                                                failBookOpening("Название не совпадает с выбранной книгой");return@launch
+                                            if(opening!=null&&!abOpenedBookMatches(opening.book,pageTitle,root.optString("author"))){
+                                                failBookOpening("Название или автор не совпадают с выбранной книгой");return@launch
                                             }
                                             val availability=AbSourceAvailability.observe(prefs,url,pageTitle,parsed)
                                             if(opening!=null&&opening.sourceUrl!=url)AbSourceAvailability.record(prefs,opening.sourceUrl,parsed.tracks.isNotEmpty(),
@@ -8574,7 +8580,7 @@ private suspend fun abCheckAudioMinimum(prefs:android.content.SharedPreferences,
 private suspend fun abProbeCycleEdition(context:Context,volume:OfficialEdition,address:String,cycleTitle:String,aliases:List<String>,candidateAuthor:String,
     references:List<OfficialEdition> = emptyList()):Boolean {
     val loaded=abProbePlaylist(context,address)?:return false
-    if(!aliases.any{OfficialCycleSearch.matches(cycleTitle,it,loaded.title)} ||
+    if(!aliases.any{OpenedBookIdentity.matches(it,loaded.title,volume.author,loaded.author.ifBlank{candidateAuthor},cycleTitle,volume.order)} ||
         SeriesAuthorityRules.author(loaded.author.ifBlank{candidateAuthor})!=SeriesAuthorityRules.author(volume.author))return false
     val prefs=context.getSharedPreferences("audiobook_downloader",0)
     val observed=AbSourceAvailability.observe(prefs,address,loaded.title,loaded.player)
@@ -8643,12 +8649,16 @@ private suspend fun abResolveCycleAudio(context:Context,prefs:android.content.Sh
     fun placeholder(v:OfficialEdition,state:String)=BookLink(v.title,v.url,author=v.author,cycles=listOf(reference(v)),catalogState=state)
     val partial=catalogs.none{it.complete&&it.error.isBlank()}
     val aliases=volumes.map{OfficialCycleSearch.aliases(cycle.title,it,catalogs)}
+    val volumeAuthors=volumes.map{SeriesAuthorityRules.author(it.author)}
+    val aliasIndex=mutableMapOf<String,MutableSet<Int>>()
+    aliases.forEachIndexed{i,values->values.forEach{value->
+        val key=SeriesAuthorityRules.title(OfficialCycleSearch.lookupTitle(cycle.title,value))
+        if(key.isNotBlank())aliasIndex.getOrPut(key){linkedSetOf()}.add(i)
+    }}
     fun position(book:BookLink):Int? {
-        val matching=volumes.indices.filter{i->
-            (book.author.isBlank()||SeriesAuthorityRules.author(book.author)==SeriesAuthorityRules.author(volumes[i].author)) &&
-                aliases[i].any{OfficialCycleSearch.matches(cycle.title,it,book.title)}
-        }
-        return matching.singleOrNull()
+        val author=SeriesAuthorityRules.author(book.author)
+        val title=SeriesAuthorityRules.title(OfficialCycleSearch.lookupTitle(cycle.title,book.title))
+        return aliasIndex[title].orEmpty().filter{i->author.isBlank()||author==volumeAuthors[i]}.singleOrNull()
     }
     fun accept(i:Int,books:List<BookLink>){
         val volume=volumes[i]
@@ -8695,6 +8705,7 @@ private suspend fun abResolveCycleAudio(context:Context,prefs:android.content.Sh
         checkpoint.broadReports[site]?.books?.count{position(it)!=null} ?: 0
     }.thenBy{if(checkpoint.broadReports[it]?.error.isNullOrBlank())0 else 1})
     for(i in volumes.indices){
+        kotlinx.coroutines.yield()
         abRequireSearchWindow(context)
         if(i in checkpoint.exactDone||checkpoint.rows[i].orEmpty().any{it.catalogState in setOf("candidate","checked")})continue
         val query=OfficialCycleSearch.lookupTitle(cycle.title,volumes[i].title)
@@ -8714,6 +8725,7 @@ private suspend fun abResolveCycleAudio(context:Context,prefs:android.content.Sh
     // If a leading edition is an excerpt, check the next available source instead.
     // Keep the total per-volume budget bounded and retain every usable alternative.
     for(i in volumes.indices){
+        kotlinx.coroutines.yield()
         abRequireSearchWindow(context)
         val list=checkpoint.rows[i].orEmpty()
         val choices=list.filter{it.catalogState in setOf("candidate","checked")}
@@ -10017,8 +10029,7 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
         for((book,source) in targets){
             if(AbSourceAvailability.hidden(AbSourceAvailability.get(prefs,source.url))||AbSourceAvailability.tooSmall(prefs,source.url)||AbSourceAvailability.sizePassed(prefs,source.url))continue
             val loaded=kotlinx.coroutines.withTimeoutOrNull(18_000L){abProbePlaylist(sourceContext,source.url)}?:continue
-            if(!SeriesAuthorityRules.sameTitle(book.title,loaded.title,""))continue
-            if(book.author.isNotBlank()&&loaded.author.isNotBlank()&&SeriesAuthorityRules.author(book.author)!=SeriesAuthorityRules.author(loaded.author))continue
+            if(!abOpenedBookMatches(book,loaded.title,loaded.author))continue
             val observed=AbSourceAvailability.observe(prefs,source.url,loaded.title,loaded.player)
             if(!AbSourceAvailability.hidden(observed))kotlinx.coroutines.withTimeoutOrNull(12_000L){abCheckAudioMinimum(prefs,source.url,loaded.player)}
         }
