@@ -1836,6 +1836,16 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
         searchReturns=(searchReturns+saved).takeLast(8)
     }
 
+    fun failBookOpening(message:String) {
+        bookPageLoading=false
+        resumeAfterLoad=false
+        player=null
+        bookLinks=emptyList()
+        val source=bookOpening?.sourceUrl?.let{bookSiteName(it)}.orEmpty()
+        bookPageError=message.ifBlank{"Главы книги пока не удалось прочитать"}
+        status=if(source.isBlank())bookPageError else "$source: $bookPageError"
+    }
+
     fun openWebsiteBook(book: BookLink, sourceUrl: String = book.url,rememberResults:Boolean=true) {
         if(OpenAudioCatalog.fromPage(sourceUrl)!=null) {
             if(rememberResults)rememberSearchResults()
@@ -1853,7 +1863,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                     val loaded=withContext(Dispatchers.IO){VerifiedBooks.load(sourceUrl)}
                     if(request!=bookOpenId)return@launch
                     pageTitle=loaded.title;currentBookAuthor=loaded.author;currentCoverUrl=loaded.cover;player=loaded.data
-                    bookPageLoading=false;bookOpening=null;bookPageError="";status="Глав: ${loaded.data.tracks.size}"
+                    bookPageLoading=false;bookPageError="";status="Глав: ${loaded.data.tracks.size}"
                     val availability=AbSourceAvailability.observe(prefs,sourceUrl,loaded.title,loaded.data)
                     if(AbSourceAvailability.hidden(availability)){
                         status=availability.label
@@ -1863,6 +1873,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                             return@launch
                         }
                     }
+                    bookOpening=null
                     val title=cleanBookTitle(pageTitle)
                     abRememberCatalog(prefs,BookLink(title,sourceUrl,loaded.cover,loaded.author))
                     prefs.edit().putString(bookUrlKey(title),sourceUrl).putString(bookCoverKey(title),loaded.cover)
@@ -2093,15 +2104,6 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
         }
     }
 
-    fun failBookOpening(message:String) {
-        bookPageLoading=false
-        resumeAfterLoad=false
-        player=null
-        bookLinks=emptyList()
-        val source=bookOpening?.sourceUrl?.let{bookSiteName(it)}.orEmpty()
-        bookPageError=message.ifBlank{"Главы книги пока не удалось прочитать"}
-        status=if(source.isBlank())bookPageError else "$source: $bookPageError"
-    }
 
     fun updateGenreResults() {
         val name=selectedGenre
