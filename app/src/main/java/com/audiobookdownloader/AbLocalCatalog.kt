@@ -38,7 +38,7 @@ internal object AbLocalCatalog {
             val v=volumes[i]
             slots[i].ifEmpty{listOf(BookLink(v.title,v.url,author=v.author,
                 cycles=listOf(cycle.copy(order=v.order,referenceUrl=v.url,referenceSite=v.provider,seedTitle=v.title,seedAuthor=v.author)),
-                catalogState="incomplete"))}
+                catalogState=OfficialCycleSearch.missingState(cycle.title,v,sources)))}
         },rest)
     }
 

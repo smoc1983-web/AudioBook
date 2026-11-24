@@ -40,8 +40,15 @@ class OfficialCycleSearchTest {
         val audio=BookLink(title,"https://example.org/book",author=v.author,narrator="Александр Чайцын")
         val result=AbLocalCatalog.match(BookCycle("Файролл"),listOf(v,second),listOf(source),listOf(audio))
         assertEquals(listOf(v.title,second.title),result.books.map{it.title})
-        assertEquals(listOf("candidate","incomplete"),result.books.map{it.catalogState})
+        assertEquals(listOf("candidate","text_only"),result.books.map{it.catalogState})
         assertTrue(result.unmatched.isEmpty())
+    }
+    @Test fun textOnlyStatusRequiresTextAndNoListedAudio(){
+        val v=book("Снисхождение. Том 1",1.0)
+        val source=OfficialSource("Author.Today",complete=true,books=listOf(v))
+        assertEquals("text_only",OfficialCycleSearch.missingState("Файролл",v,listOf(source)))
+        assertEquals("incomplete",OfficialCycleSearch.missingState("Файролл",v,listOf(source.copy(books=listOf(v.copy(format="audio"))))))
+        assertEquals("incomplete",OfficialCycleSearch.missingState("Файролл",v,listOf(source.copy(books=listOf(v,v.copy(format="audio"))))))
     }
     @Test fun equivalentEditionsAndDifferentCycleLabels(){
         assertTrue(OfficialCycleSearch.seriesMatches("Файролл","Файролл. Хроники Хейгена"))

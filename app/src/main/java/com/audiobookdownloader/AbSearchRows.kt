@@ -23,7 +23,7 @@ internal object AbSearchRows {
             it.editionId.isNotBlank() && !it.identityAmbiguous
         }.groupBy { it.editionId } else emptyMap()
         val expected=cycle?.let{AbSearchPresentation.seriesKey(it.title)}
-        val missingStates=setOf("pending","missing","incomplete")
+        val missingStates=setOf("pending","missing","incomplete","text_only")
         fun officialPosition(book:BookLink)=book.cycles.firstOrNull{
             expected!=null&&AbSearchPresentation.seriesKey(it.title)==expected&&it.order!=null&&it.referenceUrl.isNotBlank()&&book.catalogState.isNotBlank()
         }
@@ -34,7 +34,7 @@ internal object AbSearchRows {
         }
         val rows=books.mapNotNull{input->
             currentCoroutineContext().ensureActive()
-            val raw=if(input.catalogState in setOf("pending","missing","incomplete"))input else {
+            val raw=if(input.catalogState in setOf("pending","missing","incomplete","text_only"))input else {
                 val sources=bookSources(input).filterNot{AbSourceAvailability.tooSmall(prefs,it.url)}
                 if(sources.isEmpty())unavailable(input)?:return@mapNotNull null
                 else {

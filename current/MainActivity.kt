@@ -2532,6 +2532,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
         query = { searchText = it },
         search = { runModernSearch() },
         searchRanked = { book ->
+            selectedSearchSource=""
             searchText=book.title
             startCommonBookSearch(book)
             appPage=AppPage.SEARCH
@@ -2701,13 +2702,19 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                 val requestQuery=unifiedQuery
                 val ranked=rankedSearch
                 val narration=narrationSearch
-                var referenceChecked by remember(requestId){mutableStateOf(ranked!=null||narration!=null)}
+                var referenceChecked by remember(requestId){mutableStateOf(narration!=null)}
                 LaunchedEffect(requestId) {
                     if(!referenceChecked) {
                         status="Сначала сверяю название цикла по Author.Today и Литрес…"
-                        val template=OfficialCycleSearch.find(requestQuery,context)
+                        val rankedSeries=if(ranked!=null)rankedCycle(prefs,ranked) else null
+                        val template=if(ranked==null)OfficialCycleSearch.find(requestQuery,context) else null
                         if(requestId==unifiedSearchId && unifiedQuery.isNotBlank()){
-                            if(template!=null){
+                            if(rankedSeries!=null){
+                                selectedCycle=rankedSeries;searchText=rankedSeries.title
+                                cycleBrowsing=true;cycleLoading=true;cycleRequestId++
+                                unifiedQuery="";bookLinks=emptyList()
+                                status="Цикл книги подтверждён. Ищу аудио всех томов…"
+                            }else if(template!=null){
                                 selectedCycle=BookCycle(requestQuery,referenceUrl=template.sources.first().seriesUrl,
                                     referenceSite=template.sources.first().provider,seedAuthor=template.author)
                                 cycleBrowsing=true;cycleLoading=true;cycleRequestId++
@@ -8017,7 +8024,7 @@ fun supportedBookUrl(value: String): String? {
 }
 
 fun bookSources(book: BookLink): List<BookSource> =
-    if(book.catalogState in setOf("pending","missing","incomplete")) emptyList() else
+    if(book.catalogState in setOf("pending","missing","incomplete","text_only")) emptyList() else
     (book.sources.ifEmpty { listOf(BookSource(bookSiteName(book.url), book.url, book.coverUrl)) })
         .distinctBy { it.url.substringBefore('#').trimEnd('/') }
 
@@ -8622,7 +8629,10 @@ private suspend fun abResolveCycleAudio(context:Context,prefs:android.content.Sh
     val key=AbSearchPresentation.seriesKey(cycle.title)
     abRequireSearchWindow(context)
     val catalogs=checkpoint.catalogs ?: (direct?.sources ?: snapshot?.sources.orEmpty().filter{OfficialCycleSearch.seriesMatches(cycle.title,it.series) && it.books.isNotEmpty()}).also{if(it.isNotEmpty())checkpoint.catalogs=it}
-    val volumes=OfficialCycleSearch.template(cycle.title,catalogs)
+    val volumes=withContext(Dispatchers.Default){OfficialCycleSearch.template(cycle.title,catalogs)}
+    if(catalogs.isNotEmpty()&&volumes.isNotEmpty())withContext(Dispatchers.IO){
+        runCatching{OfficialSeriesStore(context.applicationContext).save(OfficialSnapshot("Цикл: "+cycle.title,volumes.first().author,catalogs),"")}
+    }
     if(volumes.isEmpty()) {
         val backup=(if(fallback.isNotEmpty())fallback else {
             val reports=abCycleSearch(context,prefs,cycle.title,sources)
@@ -8679,12 +8689,18 @@ private suspend fun abResolveCycleAudio(context:Context,prefs:android.content.Sh
         if(!finished&&!force&&lastPublish!=0L&&now-lastPublish<250L)return
         lastPublish=now
         val rows=volumes.indices.flatMap{i->checkpoint.rows[i].orEmpty().ifEmpty{
-            listOf(placeholder(volumes[i],if(finished)"incomplete" else "pending"))
+            listOf(placeholder(volumes[i],if(finished)OfficialCycleSearch.missingState(cycle.title,volumes[i],catalogs) else "pending"))
         }}
         val found=checkpoint.rows.values.count{list->list.any{it.catalogState in setOf("candidate","checked")}}
         publish(rows,finished,"По справочникам: ${volumes.size} книг${if(partial)" (сверка неполная)" else ""}. $sourceSummary. Найдено аудио: $found/${volumes.size}. $stage")
     }
-    report("Сверяю найденные книги…")
+    // Show already cached editions immediately; network search still refreshes them.
+    if(!checkpoint.broadDone&&checkpoint.rows.isEmpty()){
+        val saved=AbSearchCache.localMatches(context.applicationContext,cycle.title,sources.toSet(),600)
+        val groups=withContext(Dispatchers.Default){saved.groupBy{position(it)}}
+        for((i,books) in groups)if(i!=null)accept(i,books,matched=true)
+    }
+    report("Сверяю найденные книги…",force=true)
     // Stage 1: one broad query per source; stream successful results into all slots.
     if(!checkpoint.broadDone){
         val remaining=sources.filter{it !in checkpoint.broadReports}
@@ -8733,7 +8749,7 @@ private suspend fun abResolveCycleAudio(context:Context,prefs:android.content.Sh
         }
         abRequireSearchWindow(context)
         checkpoint.exactDone.add(i)
-        if(checkpoint.rows[i].isNullOrEmpty())checkpoint.rows[i]=listOf(placeholder(volumes[i],"incomplete"))
+        if(checkpoint.rows[i].isNullOrEmpty())checkpoint.rows[i]=listOf(placeholder(volumes[i],OfficialCycleSearch.missingState(cycle.title,volumes[i],catalogs)))
     }
     // If a leading edition is an excerpt, check the next available source instead.
     // Keep the total per-volume budget bounded and retain every usable alternative.
@@ -8765,7 +8781,7 @@ private suspend fun abResolveCycleAudio(context:Context,prefs:android.content.Sh
                     book.copy(catalogState=if(AbSourceAvailability.get(prefs,book.url)==AbChapterAvailability.AVAILABLE)"checked" else "candidate")
                 }
         }.sortedBy{AbSourceAvailability.priority(prefs,bookSources(it))}
-        checkpoint.rows[i]=filtered.ifEmpty{listOf(placeholder(volumes[i],"incomplete"))}
+        checkpoint.rows[i]=filtered.ifEmpty{listOf(placeholder(volumes[i],OfficialCycleSearch.missingState(cycle.title,volumes[i],catalogs)))}
         report("Проверено изданий цикла: ${i+1}/${volumes.size}.")
     }
     report("Поиск завершён. Откройте книгу для проверки оставшихся озвучек.",true)
@@ -10466,18 +10482,18 @@ internal fun AbSearchResultCard(row:AbSearchRow,theme:AbTheme,onOpen:(BookLink,S
     val ref=BookRef(book.title,book.url,book.coverUrl)
     val sourcePrefs=androidx.compose.ui.platform.LocalContext.current.getSharedPreferences("audiobook_downloader",Context.MODE_PRIVATE)
     var expanded by androidx.compose.runtime.saveable.rememberSaveable(row.key){mutableStateOf(!collapsible||highlighted||visit!=null)}
-    if(collapsible&&!expanded&&book.catalogState !in setOf("pending","missing","incomplete")){
+    if(collapsible&&!expanded&&book.catalogState !in setOf("pending","missing","incomplete","text_only")){
         Column(Modifier.fillMaxWidth().abGlass(theme,13,field=true).clickable{expanded=true}.padding(12.dp)){
             Text(book.title,color=theme.text,fontSize=15.sp,fontWeight=FontWeight.SemiBold)
             Text("${choices.size} озвучки · ${choices.sumOf{bookSources(it).size}} источников · Развернуть",color=theme.muted,fontSize=12.sp)
         }
         return
     }
-    if(book.catalogState in setOf("pending","missing","incomplete")) {
+    if(book.catalogState in setOf("pending","missing","incomplete","text_only")) {
         Column(Modifier.fillMaxWidth().abGlass(theme,13,field=true).padding(12.dp),verticalArrangement=Arrangement.spacedBy(5.dp)) {
             Text(book.title,color=theme.text,fontSize=15.sp,fontWeight=FontWeight.SemiBold)
             Text(book.author+" · "+(book.cycles.firstOrNull()?.let{abVolumeLabel(it)} ?: "Порядок не указан"),color=theme.muted,fontSize=12.sp)
-            Text(when(book.catalogState){"pending"->"Поиск аудио ожидается";"incomplete"->"Аудио не подтверждено · часть источников недоступна";else->"Аудиоверсия не найдена"},color=theme.muted,fontSize=12.sp)
+            Text(when(book.catalogState){"pending"->"Поиск аудио ожидается";"text_only"->"Текстовая версия · озвучка пока не найдена";"incomplete"->"Аудио не подтверждено";else->"Аудиоверсия не найдена"},color=theme.muted,fontSize=12.sp)
         }
         return
     }
