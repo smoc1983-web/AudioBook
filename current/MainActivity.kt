@@ -2820,7 +2820,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                                                 resumeAfterLoad=false
                                                 if(prefs.getBoolean("search_hide_previews",false)){
                                                     val next=opening?.book?.let{bookSources(it)}?.firstOrNull{source->
-                                                        source.url!=url&&source.url!=opening.sourceUrl&&!AbSourceAvailability.hidden(AbSourceAvailability.get(prefs,source.url))
+                                                        source.url!=url&&source.url!=opening?.sourceUrl&&!AbSourceAvailability.hidden(AbSourceAvailability.get(prefs,source.url))
                                                     }
                                                     if(next!=null&&opening!=null)openWebsiteBook(opening.book,next.url,false)
                                                     else failBookOpening("Издание содержит демо или возможный фрагмент. Вернитесь к результатам и выберите другой источник.")
@@ -11767,7 +11767,7 @@ internal fun AbReadDownloadEdition(ref:BookRef,done:(AbDownloadEdition?,String)-
                 val loaded=withContext(Dispatchers.IO){VerifiedBooks.load(ref.url)}
                 val edition=AbDownloadEdition(ref.copy(cover=loaded.cover.ifBlank{ref.cover}),loaded.data.tracks,
                     EditionDownloadRules.isPreviewPlaylist(loaded.title,loaded.data.tracks.map{it.src},loaded.data.tracks.map{it.title}))
-                AbSourceAvailability.record(observationPrefs,ref.url,edition.tracks.isNotEmpty(),preview=edition.preview)
+                AbSourceAvailability.observe(observationPrefs,ref.url,loaded.title,loaded.data)
                 report(edition,"")
             }catch(cancel:kotlinx.coroutines.CancellationException){throw cancel}
             catch(_:Exception){report(null,"Не удалось проверить издание. Повторите позже.")}
@@ -11777,8 +11777,9 @@ internal fun AbReadDownloadEdition(ref:BookRef,done:(AbDownloadEdition?,String)-
             val parsed=root?.let{abDownloadEdition(ref,it,url)}
             if(error.isNotBlank()||parsed==null)report(null,error.ifBlank{"Источник не передал список глав. Скачивание не начато."})
             else {
-                AbSourceAvailability.record(observationPrefs,url,parsed.tracks.isNotEmpty(),preview=parsed.preview)
-                if(url!=ref.url)AbSourceAvailability.record(observationPrefs,ref.url,parsed.tracks.isNotEmpty(),preview=parsed.preview)
+                val playlist=root?.optJSONObject("player")?.let{parsePlayer(it)}
+                val availability=if(playlist!=null)AbSourceAvailability.observe(observationPrefs,url,parsed.sourceTitle.ifBlank{ref.title},playlist) else AbChapterAvailability.UNKNOWN
+                if(url!=ref.url)AbSourceAvailability.record(observationPrefs,ref.url,parsed.tracks.isNotEmpty(),preview=parsed.preview||availability==AbChapterAvailability.PREVIEW,suspected=availability==AbChapterAvailability.SUSPECTED)
                 report(parsed,"")
             }
         }

@@ -43,7 +43,14 @@ internal object AbSourceAvailability {
         val preview=EditionDownloadRules.isPreviewPlaylist(title,player.tracks.map{it.src},names)
         val previous=EditionMetadata.read(prefs,cleanBookTitle(title),ChapterIdentity.edition(cleanBookTitle(title),url))
         val duration=player.duration.takeIf{it>0} ?: player.tracks.sumOf{it.duration.coerceAtLeast(0)}
-        val suspected=!preview&&EditionDownloadRules.isSuspectedExcerpt(names,duration,if(previous.valid)previous.total else 0)
+        val known=if(previous.valid)previous.total else 0
+        // The old player may still have the complete work (e.g. 24 chapters versus 1).
+        // Use this only as a suspicion, never as proof that a different narration is a demo.
+        val earlier=try{
+            if(SeriesAuthorityRules.sameTitle(title,prefs.getString("widget_book","").orEmpty(),""))
+                org.json.JSONArray(prefs.getString("widget_playlist","[]")).length() else 0
+        }catch(_:Exception){0}
+        val suspected=!preview&&EditionDownloadRules.isSuspectedExcerpt(names,duration,maxOf(known,earlier))
         record(prefs,url,player.tracks.isNotEmpty(),preview=preview,suspected=suspected)
         return get(prefs,url)
     }
