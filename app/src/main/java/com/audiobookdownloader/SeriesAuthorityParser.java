@@ -153,6 +153,6 @@ public final class SeriesAuthorityParser {
   return out;
  }
  public static boolean matches(String title,String author,Record r){
-  return SeriesAuthorityRules.sameAuthor(author,r.authors)&&SeriesAuthorityRules.sameTitle(title,r.title,r.seriesTitle);
+  return SeriesAuthorityRules.sameAuthor(author,r.authors)&&SeriesAuthorityRules.referenceMatches(title,r.title,r.seriesTitle,author);
  }
 }
