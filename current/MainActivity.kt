@@ -10057,11 +10057,7 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
             query=if(data.genre.isBlank()&&!data.cycleBrowsing)data.query else "",hidePreviews=hidePreviews,
             narrator=narratorFilter,seriesOnly=seriesOnly,localOnly=localOnly,author=authorFilter,genre=genreFilter,exactOnly=exactOnly)
     } }
-    val hideFinished=prefs.getBoolean(AbListeningFeatures.HIDE_FINISHED,false)
-    val resultBooks=remember(prepared,data.genre,hideFinished,data.version) {
-        prepared.orEmpty().filterNot { hideFinished && data.genre.isNotBlank() &&
-            AbListeningFeatures.completed(prefs,it.ref) }
-    }
+    val resultBooks=prepared.orEmpty()
     val selectedIndex=if(data.restoreSelection)resultBooks.indexOfFirst{it.key==data.selectedResultKey||it.editions.any{e->bookSources(e).any{src->src.url==data.selectedResultUrl}}} else -1
     val visibleResults=remember(resultBooks,visibleCount,selectedIndex) {resultBooks.take(maxOf(visibleCount,selectedIndex+1))}
     val officialCycleCount=remember(data.results,data.cycle,data.cycleBrowsing){
@@ -10276,8 +10272,7 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
             }
             item(key="book-rankings") { AbBookRankings(rankings,theme,foreground,actions.searchRanked) }
             item(key="discoveries") {AbDiscoveries(catalogue,actions,theme,catalogueRequested,onLoadCatalogue,
-                if(data.searchSource.isBlank())AbBookSources.enabled(prefs) else listOf(data.searchSource),
-                prefs,hideFinished,data.version)}
+                if(data.searchSource.isBlank())AbBookSources.enabled(prefs) else listOf(data.searchSource))}
         }
     }
     } // Cover requests wait for this list to stop scrolling.
@@ -10651,13 +10646,11 @@ private fun AbDiscoveryLoaders(reports:Map<String,SiteSearchResult>,sources:List
 
 @Composable
 private fun AbDiscoveries(reports:Map<String,SiteSearchResult>,actions:AbActions,theme:AbTheme,
-    requested: Boolean,onLoad:()->Unit,sources:List<String>,prefs:android.content.SharedPreferences,
-    hideFinished:Boolean,version:Int) {
+    requested: Boolean,onLoad:()->Unit,sources:List<String>) {
     Column {
         AbHeading("На сайтах сейчас",theme)
-        val books=remember(reports,sources,hideFinished,version) {
+        val books=remember(reports,sources) {
             mergeSearchBooks(sources.flatMap{reports[it]?.books.orEmpty().take(24)})
-                .filterNot { hideFinished && AbListeningFeatures.completed(prefs,BookRef(it.title,it.url,it.coverUrl)) }
                 .take(18)
         }
         if(books.isNotEmpty()) androidx.compose.foundation.lazy.LazyRow(
@@ -10668,7 +10661,6 @@ private fun AbDiscoveries(reports:Map<String,SiteSearchResult>,actions:AbActions
             Text("Подборку можно загрузить отдельно. Поиск и библиотека доступны.",color=theme.muted,fontSize=12.sp)
             AbButton("Загрузить подборку",theme,onClick=onLoad)
         } else Text(if(sources.count{it in reports}<sources.size) "Загружаем каталоги…"
-            else if(hideFinished && reports.values.any{it.books.isNotEmpty()}) "В подборке остались только завершённые издания."
             else "Подборка сейчас недоступна. Найдите книгу через поиск.",
             color=theme.muted,fontSize=12.sp)
     }
@@ -11237,10 +11229,10 @@ internal fun AbContinuationSummary(notice:ContinuationNotice,theme:AbTheme) {
 
 internal enum class AbSettingsSection(val label:String,val subtitle:String,val icon:AbIcon) {
     HOME("Настройки","",AbIcon.SETTINGS),
+    PLAYER_HOME("Меню плеера","",AbIcon.PLAY),
     SPEED("Скорость","Темп прослушивания",AbIcon.PLAY),
     EQUALIZER("Эквалайзер","Профиль и усиление",AbIcon.EQUALIZER),
     TIMER("Таймер сна","Остановка по времени",AbIcon.TIMER),
-    SCHEDULE("Расписание","Ночной таймер",AbIcon.TIMER),
     SHAKE("Встряхивание","Перезапустить таймер",AbIcon.SYNC),
     REWIND("После паузы","Откат позиции",AbIcon.PREVIOUS),
     APPEARANCE("Оформление","Тема и фон",AbIcon.SETTINGS),
@@ -11252,13 +11244,12 @@ internal enum class AbSettingsSection(val label:String,val subtitle:String,val i
     STORAGE("Память устройства","Размер книг и очистка",AbIcon.DOWNLOAD),
     UPDATES("Обновления","Версия и установка",AbIcon.SYNC),
     DIAGNOSTICS("Диагностика","События и сбои",AbIcon.SYNC),
-    PLAYER_TOOLS("Панель плеера","Кнопки, время главы и книги",AbIcon.PLAY),
-    CATALOG_VIEW("Каталог","Завершённые книги",AbIcon.SEARCH)
+    PLAYER_TOOLS("Панель плеера","Кнопки, время главы и книги",AbIcon.PLAY)
 }
 
 @Composable
-private fun AbSettingsTiles(theme:AbTheme,onSelect:(AbSettingsSection)->Unit) {
-    AbSettingsSection.values().filter{it!=AbSettingsSection.HOME}.chunked(2).forEach {row ->
+private fun AbSettingsTiles(theme:AbTheme,sections:List<AbSettingsSection>,onSelect:(AbSettingsSection)->Unit) {
+    sections.chunked(2).forEach {row ->
         Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp)) {
             row.forEach {section ->
                 Column(Modifier.weight(1f).heightIn(min=92.dp).abGlass(theme,16)
@@ -11278,7 +11269,18 @@ private fun AbSettingsTiles(theme:AbTheme,onSelect:(AbSettingsSection)->Unit) {
 private fun AbSettingsDialog(data: AbScreenData,prefs: android.content.SharedPreferences,theme: AbTheme,
     actions: AbActions,sync:LibrarySyncState,initialSection:AbSettingsSection,onCrashReport:()->Unit,dismiss:()->Unit) {
     var section by androidx.compose.runtime.saveable.rememberSaveable(initialSection) {mutableStateOf(initialSection)}
-    androidx.activity.compose.BackHandler(enabled=section!=AbSettingsSection.HOME) {section=AbSettingsSection.HOME}
+    val playerSections=listOf(AbSettingsSection.EQUALIZER,AbSettingsSection.SPEED,AbSettingsSection.TIMER,
+        AbSettingsSection.REWIND,AbSettingsSection.SHAKE,AbSettingsSection.PLAYER_TOOLS)
+    val generalSections=listOf(AbSettingsSection.APPEARANCE,AbSettingsSection.WIDGETS,AbSettingsSection.SUPPORT,
+        AbSettingsSection.SOUND,AbSettingsSection.BACKUP,AbSettingsSection.STORAGE,AbSettingsSection.UPDATES,AbSettingsSection.DIAGNOSTICS)
+    fun back() {
+        when {
+            section in playerSections -> section=AbSettingsSection.PLAYER_HOME
+            section in generalSections -> section=AbSettingsSection.HOME
+            else -> dismiss()
+        }
+    }
+    androidx.activity.compose.BackHandler(enabled=section!=AbSettingsSection.HOME && section!=AbSettingsSection.PLAYER_HOME) {back()}
     val context=androidx.compose.ui.platform.LocalContext.current
     val title=data.playback.bookTitle
     val eq=loadEqSettings(prefs,title)
@@ -11292,18 +11294,21 @@ private fun AbSettingsDialog(data: AbScreenData,prefs: android.content.SharedPre
     key(section) { AbDialog(section.label,theme,dismiss) {
         if(section==AbSettingsSection.HOME) {
             Text("Выберите блок настроек",color=theme.muted,fontSize=13.sp)
-            AbSettingsTiles(theme){section=it}
+            AbSettingsTiles(theme,generalSections){section=it}
             AbButton("Telegram-канал ↗",theme) {
                 try {context.startActivity(Intent(Intent.ACTION_VIEW,Uri.parse("https://t.me/c/3702128532/1")))}
                 catch(_:android.content.ActivityNotFoundException) {
                     Toast.makeText(context,"Не удалось открыть Telegram-ссылку",Toast.LENGTH_LONG).show()
                 }
             }
+        } else if(section==AbSettingsSection.PLAYER_HOME) {
+            AbSettingsTiles(theme,playerSections){section=it}
         } else {
             Row(Modifier.fillMaxWidth().heightIn(min=48.dp).clip(RoundedCornerShape(12.dp))
-                .clickable{section=AbSettingsSection.HOME}.padding(horizontal=4.dp),verticalAlignment=Alignment.CenterVertically) {
+                .clickable{back()}.padding(horizontal=4.dp),verticalAlignment=Alignment.CenterVertically) {
                 AbIcon(AbIcon.BACK,theme.accent,Modifier.size(18.dp))
-                Text("Все настройки",color=theme.accent,fontSize=13.sp,modifier=Modifier.padding(start=10.dp))
+                Text(when {section in playerSections->"Меню плеера";section in generalSections->"Все настройки";else->"Назад"},
+                    color=theme.accent,fontSize=13.sp,modifier=Modifier.padding(start=10.dp))
             }
         }
 
@@ -11311,16 +11316,6 @@ private fun AbSettingsDialog(data: AbScreenData,prefs: android.content.SharedPre
         if(section==AbSettingsSection.STORAGE)AbStoragePanel(sync.books.value,prefs,theme,actions.deleteBook)
         if(section==AbSettingsSection.UPDATES)AbButton("Проверить обновления",theme){context.startActivity(Intent(context,PreviewUpdatesActivity::class.java))}
         if(section==AbSettingsSection.PLAYER_TOOLS)AbPlayerToolSettings(prefs,theme)
-        if(section==AbSettingsSection.CATALOG_VIEW) {
-            var hidden by remember(prefs){mutableStateOf(prefs.getBoolean(AbListeningFeatures.HIDE_FINISHED,false))}
-            Row(verticalAlignment=Alignment.CenterVertically) {
-                Text("Скрывать прослушанные издания",color=theme.text,modifier=Modifier.weight(1f))
-                androidx.compose.material3.Switch(hidden,onCheckedChange={checked ->
-                    hidden=checked
-                    prefs.edit().putBoolean(AbListeningFeatures.HIDE_FINISHED,checked).apply()
-                },modifier=Modifier.semantics{contentDescription="Скрывать прослушанные издания"})
-            }
-        }
         if(section==AbSettingsSection.SPEED) {
             AbHeading("Скорость воспроизведения",theme)
             val speed=PlaybackOptions.rate(if(data.playback.hasPlayer) data.playback.speed else
@@ -11381,20 +11376,6 @@ private fun AbSettingsDialog(data: AbScreenData,prefs: android.content.SharedPre
             AbButton("Повторить: "+formatSleepTime(previous),theme,enabled=data.playback.hasPlayer) {
                 PlaybackService.setSleepTimer(context,previous)
             }
-        }
-        if(section==AbSettingsSection.REWIND) {
-            AbHeading("Перемотка в плеере",theme)
-            Text("Короткий шаг",color=theme.text,fontSize=14.sp)
-            AbOptions(listOf("5 с","10 с","15 с","30 с"),listOf(5,10,15,30).indexOf(prefs.getInt("experience_seek_short",10)),theme){updateInt("experience_seek_short",listOf(5,10,15,30)[it])}
-            Text("Длинный шаг",color=theme.text,fontSize=14.sp)
-            AbOptions(listOf("30 с","1 мин","2 мин"),listOf(30,60,120).indexOf(prefs.getInt("experience_seek_long",60)),theme){updateInt("experience_seek_long",listOf(30,60,120)[it])}
-            AbHeading("Откат после паузы",theme)
-            Text("Вернуться немного назад после паузы длиннее 30 секунд",color=theme.muted,fontSize=12.sp)
-            AbOptions(listOf("Выкл","5 с","10 с","30 с"),listOf(0,5,10,30).indexOf(prefs.getInt("rewind_after_pause_sec",5)),theme) {
-                updateInt("rewind_after_pause_sec",listOf(0,5,10,30)[it])
-            }
-        }
-        if(section==AbSettingsSection.SCHEDULE) {
             AbHeading("Ночной таймер по расписанию",theme)
             val intervals=listOf(21 to 5,22 to 6,23 to 7,0 to 8)
             val enabled=prefs.getBoolean("sleep_sched_enabled",false)
@@ -11409,6 +11390,18 @@ private fun AbSettingsDialog(data: AbScreenData,prefs: android.content.SharedPre
             }
             AbOptions(listOf("15 мин","30 мин","45 мин","60 мин"),listOf(15,30,45,60).indexOf(prefs.getInt("sleep_sched_minutes",30)),theme) {
                 updateInt("sleep_sched_minutes",listOf(15,30,45,60)[it])
+            }
+        }
+        if(section==AbSettingsSection.REWIND) {
+            AbHeading("Перемотка в плеере",theme)
+            Text("Короткий шаг",color=theme.text,fontSize=14.sp)
+            AbOptions(listOf("5 с","10 с","15 с","30 с"),listOf(5,10,15,30).indexOf(prefs.getInt("experience_seek_short",10)),theme){updateInt("experience_seek_short",listOf(5,10,15,30)[it])}
+            Text("Длинный шаг",color=theme.text,fontSize=14.sp)
+            AbOptions(listOf("30 с","1 мин","2 мин"),listOf(30,60,120).indexOf(prefs.getInt("experience_seek_long",60)),theme){updateInt("experience_seek_long",listOf(30,60,120)[it])}
+            AbHeading("Откат после паузы",theme)
+            Text("Вернуться немного назад после паузы длиннее 30 секунд",color=theme.muted,fontSize=12.sp)
+            AbOptions(listOf("Выкл","5 с","10 с","30 с"),listOf(0,5,10,30).indexOf(prefs.getInt("rewind_after_pause_sec",5)),theme) {
+                updateInt("rewind_after_pause_sec",listOf(0,5,10,30)[it])
             }
         }
         if(section==AbSettingsSection.SHAKE) {

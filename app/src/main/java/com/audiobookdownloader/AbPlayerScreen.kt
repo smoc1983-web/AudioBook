@@ -46,6 +46,10 @@ internal fun AbPlayerScreen(data: AbScreenData,actions: AbActions,books: List<Li
 
     Column(Modifier.fillMaxSize().background(theme.background.copy(alpha=if(theme.light).96f else .90f))
         .padding(horizontal=12.dp,vertical=4.dp),verticalArrangement=Arrangement.spacedBy(4.dp)) {
+        Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
+            AbButton("Меню плеера",theme,Modifier.weight(1f)) {onSettings(AbSettingsSection.PLAYER_HOME)}
+            AbIconButton(AbIcon.SETTINGS,"Основные настройки",theme) {onSettings(AbSettingsSection.HOME)}
+        }
         if(!state.hasSelection) {
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.Center) {
                 Text("Выберите книгу в библиотеке или найдите её через поиск.",color=theme.muted,fontSize=14.sp,
