@@ -45,20 +45,20 @@ internal object AbContinuationAlerts {
         manager.enqueueUniquePeriodicWork(PERIODIC,ExistingPeriodicWorkPolicy.KEEP,work)
         if(baseline)enqueue(context,60)
     }
-    fun checkNow(context:Context){if(enabled(context))enqueue(context.applicationContext,0,true)}
-    private fun enqueue(context:Context,delay:Long,forceReferences:Boolean=false) {
+    fun checkNow(context:Context,seedId:String?=null){if(enabled(context))enqueue(context.applicationContext,0,true,seedId)}
+    private fun enqueue(context:Context,delay:Long,forceReferences:Boolean=false,seedId:String?=null) {
         val work=OneTimeWorkRequestBuilder<SeriesContinuationWorker>()
-            .setInputData(workDataOf("force_references" to forceReferences))
+            .setInputData(workDataOf("force_references" to forceReferences,"seed_id" to seedId.orEmpty()))
             .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
             .setInitialDelay(delay,TimeUnit.SECONDS).build()
         WorkManager.getInstance(context).enqueueUniqueWork(NOW,ExistingWorkPolicy.REPLACE,work)
     }
-    suspend fun check(context:Context,fetcher:ContinuationFetcher,forceReferences:Boolean=false):String=mutex.withLock {
+    suspend fun check(context:Context,fetcher:ContinuationFetcher,forceReferences:Boolean=false,seedId:String?=null):String=mutex.withLock {
         if(!enabled(context))return@withLock "Проверка выключена"
         val preferences=ContinuationStore(context).preferences
         preferences.edit().putBoolean("running",true).putString("status","Проверяю циклы в коллекциях…").apply()
         try {
-            val message=withTimeout(6*60*1000L){ContinuationScanner(context,fetcher,forceReferences).scan()}
+            val message=withTimeout(6*60*1000L){ContinuationScanner(context,fetcher,forceReferences,seedId).scan()}
             preferences.edit().putString("status",message).apply()
             deliver(context)
             message
@@ -116,7 +116,7 @@ internal object AbContinuationAlerts {
 class SeriesContinuationWorker(context:Context,parameters:WorkerParameters):CoroutineWorker(context,parameters) {
     internal var fetcher:ContinuationFetcher?=null
     override suspend fun doWork():Result=withContext(Dispatchers.IO) {
-        AbContinuationAlerts.check(applicationContext,fetcher ?: ContinuationHttp(ContinuationPolicy(AB_EXTRA_SOURCE_JSON),"Audiobook/"+BuildConfig.VERSION_NAME),inputData.getBoolean("force_references",false))
+        AbContinuationAlerts.check(applicationContext,fetcher ?: ContinuationHttp(ContinuationPolicy(AB_EXTRA_SOURCE_JSON),"Audiobook/"+BuildConfig.VERSION_NAME),inputData.getBoolean("force_references",false),inputData.getString("seed_id")?.ifBlank{null})
         Result.success()
     }
 }
