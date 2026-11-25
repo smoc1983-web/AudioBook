@@ -3,20 +3,19 @@ import re,json
 root=Path(__file__).parent
 s=(root/'MainActivity.kt').read_text()
 from tests.kotlin_delimiters import check_delimiters
-ns={'check_delimiters':check_delimiters}
-ns['check_delimiters'](s)
-print('Kotlin delimiter/string check passed (not compilation)')
-ns['check_delimiters']((root/'PlaybackService.kt').read_text())
-assert '@OptIn(androidx.compose.ui.ExperimentalComposeUiApi::class)\n@Composable\ninternal fun AbDialog' in (root.parent/"app/src/main/java/com/audiobookdownloader/AbSharedControls.kt").read_text()
-assert 'MediaPlayer()' not in s
-assert 'AB_PRODUCT_NAME=' in s
-assert "internal object AbBookSources" in s
-imports=re.findall(r'^import .+$',s,re.M)
-assert len(imports)==len(set(imports))
-print('Both Kotlin files structurally checked; version, support details and compile-error opt-in preserved')
-
-# Extract the actual JS bodies and the literal adapter tables from Kotlin.
 kotlin=root.parent/'app/src/main/java/com/audiobookdownloader'
+ui_root=(kotlin/'AudioBookRoot.kt').read_text()
+for source in (s,ui_root,(root/'PlaybackService.kt').read_text()):
+    check_delimiters(source)
+    imports=re.findall(r'^import .+$',source,re.M)
+    assert len(imports)==len(set(imports))
+assert '@OptIn(androidx.compose.ui.ExperimentalComposeUiApi::class)\n@Composable\ninternal fun AbDialog' in (kotlin/'AbSharedControls.kt').read_text()
+assert all('MediaPlayer()' not in source for source in (s,ui_root))
+assert 'AB_PRODUCT_NAME=' in (kotlin/'AbHomeNavigation.kt').read_text()
+assert 'internal object AbBookSources' in (kotlin/'AbSourceRegistry.kt').read_text()
+print('Kotlin structure checked for activity, root and playback service (not compilation)')
+
+# Extract actual JS bodies and literal adapter tables from Kotlin.
 genres=(kotlin/'AbGenreCatalog.kt').read_text()
 block=genres[genres.index('object AbSourceClassifier'):genres.index('fun abCatalogClassifierJs')]
 common={name:json.loads('['+values+']') for name,values in re.findall(r'"([^"]+)" to listOf\(([^\n]+)\)',block[:block.index('fun aliases')])}
@@ -67,7 +66,6 @@ print('Extracted actual JavaScript classifier, catalogue, category browser and a
 (out/'public-classifier.js').write_text(body('abPublicGenreClassifierJs').replace('$adapterJson',json.dumps(adapters,ensure_ascii=False)))
 (out/'public-search.js').write_text(body('abPublicSearchJs'))
 (out/'external-page.js').write_text(body('abExternalBookPageJs').replace('$analyzer',analyzer.rstrip(';')))
-ui_root=(kotlin/'AudioBookRoot.kt').read_text()
 assert 'AbExternalGenreSearch(name,genreQuery,genreExternalBatch' in ui_root
 assert all(marker in (kotlin/'AbPublicCatalogSource.kt').read_text() for marker in ('job.cancel()', 'slots.acquire()'))
 assert 'genreNeedsMore() && genreExternalLoading' in ui_root

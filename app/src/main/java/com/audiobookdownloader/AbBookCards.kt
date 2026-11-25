@@ -48,6 +48,10 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Alignment
 
+internal val LocalAbCoverScrollState=androidx.compose.runtime.compositionLocalOf<androidx.compose.foundation.lazy.LazyListState?> {null}
+internal val LocalAbCoverDataVersion=androidx.compose.runtime.compositionLocalOf {0}
+internal val LocalAbVisible=androidx.compose.runtime.compositionLocalOf {true}
+
 @Composable
 internal fun AbCover(title: String, local: LibraryBook?, remote: BookRef?, theme: AbTheme,
     modifier: Modifier = Modifier, widgetBook: Boolean = false, describe:Boolean=true) {

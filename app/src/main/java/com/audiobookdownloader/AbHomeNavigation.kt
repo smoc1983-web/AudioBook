@@ -31,6 +31,8 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.geometry.Offset
 
+internal const val AB_PRODUCT_NAME=BuildConfig.PRODUCT_NAME
+
 @Composable
 internal fun AbModernApp(data: AbScreenData, actions: AbActions, sync: LibrarySyncState,
     prefs: android.content.SharedPreferences,foreground: Boolean,browserGeneration: Int,automaticCatalogs: Boolean) {
