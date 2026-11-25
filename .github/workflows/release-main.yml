@@ -1,5 +1,10 @@
 name: AudioBook main - manual signed release
 on:
+  push:
+    branches: ['qa/main-release-125']
+    paths:
+      - '.github/workflows/release-main.yml'
+      - 'app/src/androidTest/**'
   workflow_dispatch:
     inputs:
       release_number:
@@ -10,14 +15,14 @@ permissions:
   contents: write
   actions: read
 concurrency:
-  group: audiobook-primary-signed-release
+  group: audiobook-primary-signed-release-${{ github.ref }}
   cancel-in-progress: false
 jobs:
   verified-release:
     runs-on: ubuntu-latest
     timeout-minutes: 50
     env:
-      APP_NUMBER: ${{ inputs.release_number }}
+      APP_NUMBER: ${{ inputs.release_number || '125' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -75,8 +80,17 @@ jobs:
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
-          test -r /dev/kvm && test -w /dev/kvm
-          # The emulator runner installs the emulator binary later.
+          sudo udevadm settle --timeout=30
+          if [ ! -c /dev/kvm ]; then
+            echo "::error::No KVM character device on this runner"
+            ls -l /dev/kvm || true
+            exit 1
+          fi
+          # This is a disposable hosted runner. Match the udev rule immediately.
+          sudo chmod a+rw /dev/kvm
+          ls -l /dev/kvm
+          test -r /dev/kvm
+          test -w /dev/kvm
       - name: Build, verify and lint
         run: |
           python3 current/check.py
@@ -90,7 +104,6 @@ jobs:
           arch: x86_64
           profile: pixel_6
           emulator-boot-timeout: 420
-          disable-linux-hw-accel: false
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -memory 2048 -cores 2
           script: |
             GITHUB_RUN_NUMBER="$APP_NUMBER" gradle :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.audiobookdownloader.CompactPlayerTest,com.audiobookdownloader.NovaListeningFeaturesTest,com.audiobookdownloader.BookProgressWidgetTest,com.audiobookdownloader.UpdateScreenTest,com.audiobookdownloader.CollectionTransferTest,com.audiobookdownloader.SearchScrollTest,com.audiobookdownloader.SearchEditionsTest,com.audiobookdownloader.SearchFiltersTest,com.audiobookdownloader.RankedAudioSearchTest,com.audiobookdownloader.OfficialSeriesTest,com.audiobookdownloader.EditionDownloadTest,com.audiobookdownloader.SourceHealthPanelTest,com.audiobookdownloader.SourceHealthAndroidTest --max-workers=2 --console=plain
@@ -100,6 +113,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: GITHUB_RUN_NUMBER="$APP_NUMBER" python3 scripts/preview-release.py
       - name: Publish only the new approved version
+        if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
