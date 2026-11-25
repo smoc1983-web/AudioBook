@@ -32,8 +32,12 @@ internal object AbSearchRows {
             // A missing audio edition does not remove a bibliographic volume.
             return book.copy(url=position.referenceUrl,sources=emptyList(),narrator="",catalogState="incomplete")
         }
-        val rows=books.mapNotNull{input->
+        val rows=books.mapNotNull{original->
             currentCoroutineContext().ensureActive()
+            // Resolve bibliographic identity before applying work-specific source observations.
+            val inputCycles=if(original.catalogState.isNotBlank())original.cycles else SeriesAuthorityCache.cycles(prefs,original.title,original.author,original.cycles,original.url)
+            val inputAuthor=original.author.ifBlank{inputCycles.firstOrNull{it.referenceUrl.isNotBlank()&&it.seedAuthor.isNotBlank()}?.seedAuthor.orEmpty()}
+            val input=original.copy(cycles=inputCycles,author=inputAuthor)
             val raw=if(input.catalogState in setOf("pending","missing","incomplete","text_only"))input else {
                 val sources=bookSources(input).filterNot{AbSourceAvailability.tooSmall(prefs,it.url)}
                 if(sources.isEmpty())unavailable(input)?:return@mapNotNull null
@@ -49,7 +53,7 @@ internal object AbSearchRows {
             if(genre.isNotBlank()&&raw.genres.none{SearchBookIndex.normal(it).contains(SearchBookIndex.normal(genre))})return@mapNotNull null
             if(exactOnly&&query.isNotBlank()&&SearchBookIndex.titleKey(cleanBookTitle(raw.title))!=SearchBookIndex.titleKey(query)&&raw.cycles.none{AbSearchPresentation.seriesKey(it.title)==AbSearchPresentation.seriesKey(query)})return@mapNotNull null
             if (narrator.isNotEmpty() && !SearchFilterRules.matchesNarrator(raw.title, raw.narrator, narrator)) return@mapNotNull null
-            val cycles=if(raw.catalogState.isNotBlank())raw.cycles else SeriesAuthorityCache.cycles(prefs,raw.title,raw.author,raw.cycles,raw.url)
+            val cycles=raw.cycles
             if(expected!=null && cycles.any{it.referenceUrl.isNotBlank()} &&
                 cycles.none{AbSearchPresentation.seriesKey(it.title)==expected})return@mapNotNull null
             if (seriesOnly && cycles.none { AbSearchPresentation.seriesKey(it.title).isNotBlank() }) return@mapNotNull null

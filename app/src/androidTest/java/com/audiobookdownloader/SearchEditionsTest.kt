@@ -83,13 +83,13 @@ class SearchEditionsTest {
                 val books=listOf(5,2,1,4,3).map { i ->
                     val raw=if(i==1)title else "$title $i"
                     val url="https://fixture.invalid/$i"
-                    val author=if(i%2==0)"Ник Тарасов" else ""
-                    SeriesAuthorityCache.save(p,raw,author,SeriesEvidence(raw,"Ник Тарасов",series,"https://author.today/work/series/900","https://author.today/work/${900+i}","Author.Today",i.toDouble()),"confirmed")
+                    val author=if(i%2==0)"Тест Автор" else ""
+                    SeriesAuthorityCache.save(p,raw,author,SeriesEvidence(raw,"Тест Автор",series,"https://author.today/work/series/900","https://author.today/work/${900+i}","Author.Today",i.toDouble()),"confirmed")
                     BookLink(raw,url,author=author,sources=listOf(BookSource("fixture",url)))
                 }
                 val rows=AbSearchRows.prepare(books,emptyList(),p,null,query=title)
                 assertEquals(listOf(1.0,2.0,3.0,4.0,5.0),rows.map{it.book.cycles.single().order})
-                assertTrue(rows.all{it.book.author=="Ник Тарасов"})
+                assertTrue(rows.all{it.book.author=="Тест Автор"})
             }
         }finally{p.edit().clear().commit()}
     }
