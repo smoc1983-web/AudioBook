@@ -1850,6 +1850,14 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
 
     }
 
+    LaunchedEffect(widgetRoute.serial) {
+        if(widgetRoute.target=="imported" && widgetRoute.edition.isNotBlank()) {
+            val local=withContext(Dispatchers.IO){SharedAudioStore.library(context).firstOrNull{it.editionId==widgetRoute.edition}}
+            if(local!=null){librarySync.requestSync();openDownloadedBook(local,false)}
+            else Toast.makeText(context,"Не удалось открыть импортированную книгу",Toast.LENGTH_LONG).show()
+        }
+    }
+
     fun rememberSearchResults() {
         if(appPage!=AppPage.SEARCH || !searchSessionActive) {
             searchReturns=emptyList()
@@ -9873,7 +9881,7 @@ private fun AbModernApp(data: AbScreenData, actions: AbActions, sync: LibrarySyn
     val widgetRoute by AbWidgetRoutes.requests.collectAsState()
     LaunchedEffect(widgetRoute.serial) {
         if(widgetRoute.target=="timer")settings=AbSettingsSection.TIMER
-        else if(widgetRoute.target=="player" || widgetRoute.target=="library")settings=null
+        else if(widgetRoute.target=="player" || widgetRoute.target=="library" || widgetRoute.target=="imported")settings=null
     }
     var downloads by remember { mutableStateOf(false) }
     var libraryAccess by remember { mutableStateOf(false) }
@@ -10911,9 +10919,10 @@ internal fun AbCollectionBookCard(ref:BookRef,local:LibraryBook?,theme:AbTheme,
 
 @Composable
 internal fun AbCollectionBookMenu(ref:BookRef,theme:AbTheme,expanded:Boolean,onDownload:()->Unit,
-    onRemove:()->Unit,onContinuations:()->Unit,dismiss:()->Unit) {
+    onRemove:()->Unit,onContinuations:()->Unit,dismiss:()->Unit,onDeleteFiles:(()->Unit)?=null) {
     AbDialog(ref.title,theme,dismiss) {
         AbButton("Скачать книгу",theme){dismiss();onDownload()}
+        if(onDeleteFiles!=null)AbButton("Удалить скачанные файлы",theme){dismiss();onDeleteFiles()}
         AbButton("Убрать из коллекции",theme){dismiss();onRemove()}
         AbButton(if(expanded) "Скрыть продолжения" else "Продолжения",theme){dismiss();onContinuations()}
     }
@@ -10922,7 +10931,7 @@ internal fun AbCollectionBookMenu(ref:BookRef,theme:AbTheme,expanded:Boolean,onD
 @Composable
 internal fun AbCollectionShelf(shelf:Shelf,books:List<LibraryBook>,prefs:android.content.SharedPreferences,
     version:Int,theme:AbTheme,onOpen:(BookRef)->Unit,onBookDownload:(BookRef)->Unit,onSelect:()->Unit,
-    onDownload:()->Unit,onRename:()->Unit,onDelete:()->Unit) {
+    onDownload:()->Unit,onRename:()->Unit,onDelete:()->Unit,onDeleteFiles:((LibraryBook)->Unit)?=null) {
     var expanded by androidx.compose.runtime.saveable.rememberSaveable(shelf.name){mutableStateOf<String?>(null)}
     var menu by remember(shelf.name){mutableStateOf(false)}
     var menuBook by remember(shelf.name){mutableStateOf<BookRef?>(null)}
@@ -10959,7 +10968,8 @@ internal fun AbCollectionShelf(shelf:Shelf,books:List<LibraryBook>,prefs:android
         val identity=bookRefIdentity(ref)
         AbCollectionBookMenu(ref,theme,expanded==identity,{onBookDownload(ref)},
             {abRemoveShelfBook(prefs,shelf.name,ref)},
-            {expanded=if(expanded==identity)null else identity},{menuBook=null})
+            {expanded=if(expanded==identity)null else identity},{menuBook=null},
+            onDeleteFiles=abFindLocal(books,ref.title,ref.editionId)?.takeIf{it.files.isNotEmpty()}?.let{local->onDeleteFiles?.let{delete->{delete(local)}}})
     }
     if(menu)AbDialog("Коллекция «${shelf.name}»",theme,{menu=false}) {
         AbButton("Открыть коллекцию",theme){menu=false;onSelect()}
@@ -11026,6 +11036,22 @@ internal fun AbCollectionContinuations(ref:BookRef,books:List<LibraryBook>,prefs
 }
 
 @Composable
+private fun AbCollectionFileDeletion(local:LibraryBook,theme:AbTheme,delete:(LibraryBook,(Boolean,String)->Unit)->Unit,dismiss:()->Unit) {
+    var busy by remember(local.bookId){mutableStateOf(false)}
+    var message by remember(local.bookId){mutableStateOf("")}
+    AbDialog("Удалить скачанные файлы?",theme,{if(!busy)dismiss()}) {
+        Text(local.title,color=theme.text,fontSize=17.sp)
+        Text("Будут удалены скачанные главы. Коллекция, закладки и другие документы сохранятся.",color=theme.muted,fontSize=14.sp)
+        if(message.isNotBlank())Text(message,color=theme.muted,fontSize=13.sp)
+        AbButton(if(busy)"Удаляем…" else "Удалить скачанные файлы",theme,enabled=!busy) {
+            busy=true;message=""
+            delete(local){success,result->busy=false;message=result;if(success)dismiss()}
+        }
+        AbButton("Отмена",theme,enabled=!busy,onClick=dismiss)
+    }
+}
+
+@Composable
 private fun AbCollectionsScreen(data: AbScreenData,actions: AbActions,books: List<LibraryBook>,
     prefs: android.content.SharedPreferences,theme: AbTheme) {
     val context=androidx.compose.ui.platform.LocalContext.current
@@ -11034,6 +11060,8 @@ private fun AbCollectionsScreen(data: AbScreenData,actions: AbActions,books: Lis
     if(continuationSettings) AbDialog("Подписки на циклы",theme,{continuationSettings=false}) {
         AbCycleSubscriptions(theme){ref -> continuationSettings=false;actions.openRef(ref)}
     }
+    var deleteFiles by remember {mutableStateOf<LibraryBook?>(null)}
+    deleteFiles?.let {local -> AbCollectionFileDeletion(local,theme,actions.deleteBook){deleteFiles=null} }
     var downloadBooks by remember {mutableStateOf<List<BookRef>?>(null)}
     downloadBooks?.let {refs -> AbCollectionDownloads(refs,data.downloadedIndex,data.downloads,theme,
         actions.downloadEdition,{downloadBooks=null},onBatch=actions.downloadBatch)}
@@ -11067,7 +11095,7 @@ private fun AbCollectionsScreen(data: AbScreenData,actions: AbActions,books: Lis
             itemsIndexed(shelves,key={_,shelf->shelf.name}) {_,shelf ->
                 AbCollectionShelf(shelf,books,prefs,data.version,theme,actions.openRef,{downloadBooks=listOf(it)},
                     {selectedShelf=shelf.name},{downloadBooks=shelf.books.toList()},
-                    {oldName=shelf.name;name=shelf.name;editing=true},{deleting=shelf.name})
+                    {oldName=shelf.name;name=shelf.name;editing=true},{deleting=shelf.name},onDeleteFiles={deleteFiles=it})
             }
         } else {
             itemsIndexed(selected.books,key={index,ref->"$index:${bookRefIdentity(ref)}"}) {_,ref ->
@@ -11076,7 +11104,8 @@ private fun AbCollectionsScreen(data: AbScreenData,actions: AbActions,books: Lis
                 AbBookRow(ref,abFindLocal(books,ref.title,ref.editionId),"",theme,
                     onClick={actions.openRef(ref)},onMenu={showMenu=true})
                 if(showMenu)AbCollectionBookMenu(ref,theme,expanded,{downloadBooks=listOf(ref)},
-                    {abRemoveShelfBook(prefs,selected.name,ref)},{expanded=!expanded},{showMenu=false})
+                    {abRemoveShelfBook(prefs,selected.name,ref)},{expanded=!expanded},{showMenu=false},
+                    onDeleteFiles=abFindLocal(books,ref.title,ref.editionId)?.takeIf{it.files.isNotEmpty()}?.let{local->{deleteFiles=local}})
                 if(expanded)AbCollectionContinuations(ref,books,prefs,data.version,theme,actions.openRef)
             }
             if(selected.books.isEmpty()) item {
@@ -11370,6 +11399,7 @@ private fun AbSettingsDialog(data: AbScreenData,prefs: android.content.SharedPre
         } else if(section==AbSettingsSection.PLAYER_HOME) {
             AbButton("Все настройки",theme){section=AbSettingsSection.HOME}
             AbSettingsTiles(theme,playerSections){section=it}
+            AbButton("Добавить свою книгу",theme){dismiss();context.startActivity(Intent(context,SharedAudioImportActivity::class.java).putExtra("open_import_in_player",true))}
         } else {
             Row(Modifier.fillMaxWidth().heightIn(min=48.dp).clip(RoundedCornerShape(12.dp))
                 .clickable{back()}.padding(horizontal=4.dp),verticalAlignment=Alignment.CenterVertically) {
