@@ -9975,7 +9975,7 @@ private fun AbModernApp(data: AbScreenData, actions: AbActions, sync: LibrarySyn
                     }
                 }
             }
-            AbBottomNavigation(data.page,theme,actions.navigate){settings=AbSettingsSection.HOME}
+            AbBottomNavigation(data.page,theme,actions.navigate){settings=if(data.page==AppPage.PLAYER) AbSettingsSection.PLAYER_HOME else AbSettingsSection.HOME}
         }
     }
     settings?.let { section -> AbSettingsDialog(data,prefs,theme,actions,sync,section,onCrashReport={
@@ -10078,7 +10078,6 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
     var genreFilter by remember(prefs) { mutableStateOf(prefs.getString("search_filter_genre","").orEmpty()) }
     var exactOnly by remember(prefs) { mutableStateOf(prefs.getBoolean("search_filter_exact",false)) }
     var showLocalIndex by remember {mutableStateOf(false)}
-    var showPeople by remember {mutableStateOf(false)}
     var indexedMatches by remember {mutableStateOf<List<BookLink>>(emptyList())}
     var localCatalog by remember(data.query,showLocalIndex){mutableStateOf<AbLocalCatalog.Result?>(null)}
     val chosenSites=if(data.searchSource.isBlank())enabledSources else setOf(data.searchSource)
@@ -10263,7 +10262,6 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
                 }
             }
             if(data.query.trim().length>=2)AbButton("Из локальной базы",theme){showLocalIndex=true}
-            AbButton("Любимые авторы и чтецы",theme){showPeople=true}
             if(!data.searchActive)AbButton("Восстановить последний поиск",theme,onClick=actions.restoreLastSearch)
             if(data.searchActive&&!data.searching&&data.onlineBook==null&&data.query.isNotBlank())AbButton("Обновить результаты",theme,onClick=actions.refreshSearch)
             Row(Modifier.fillMaxWidth().padding(top=6.dp),horizontalArrangement=Arrangement.spacedBy(8.dp)) {
@@ -10274,7 +10272,7 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
                 color=theme.muted,fontSize=11.sp,modifier=Modifier.padding(top=5.dp))
 
         }
-        if (data.searchActive || data.cycleBrowsing || data.genre.isNotBlank()) item(key="preview-filter") {
+        item(key="preview-filter") {
             AbButton(if (activeFilters == 0) "Фильтры поиска" else "Фильтры поиска · $activeFilters",theme) {
                 showFilters = true
             }
@@ -10404,9 +10402,6 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
             if(localShown<displayed.size)AbButton("Показать ещё · $localShown из ${displayed.size}",theme){localShown+=40}
         }
         AbButton("Закрыть",theme){showLocalIndex=false}
-    }
-    if(showPeople)AbFavoritePeopleDialog(prefs,theme,{showPeople=false}){name->
-        showPeople=false;actions.query(name);actions.search()
     }
     if (showFilters) AbSearchFilterDialog(narratorFilter, seriesOnly, localOnly, hidePreviews, theme,
         dismiss = { showFilters = false },author=authorFilter,genre=genreFilter,exact=exactOnly) { narrator, series, local, hideDemo,author,genre,exact ->
@@ -11310,7 +11305,6 @@ internal enum class AbSettingsSection(val label:String,val subtitle:String,val i
     CONTINUATIONS("Продолжения","Новинки циклов в коллекциях",AbIcon.BOOKS),
     WIDGETS("Виджеты","Главный экран Android",AbIcon.COLLECTIONS),
     SUPPORT("Поддержка","Реквизиты разработчика",AbIcon.HEART),
-    SOUND("Звук","Мультимедиа и MIUI",AbIcon.PLAY),
     BACKUP("Резервная копия","Коллекции, позиции и аудиофайлы",AbIcon.BOOKS),
     STORAGE("Память устройства","Размер книг и очистка",AbIcon.DOWNLOAD),
     UPDATES("Обновления","Версия и установка",AbIcon.SYNC),
@@ -11343,7 +11337,7 @@ private fun AbSettingsDialog(data: AbScreenData,prefs: android.content.SharedPre
     val playerSections=listOf(AbSettingsSection.EQUALIZER,AbSettingsSection.SPEED,AbSettingsSection.TIMER,
         AbSettingsSection.REWIND,AbSettingsSection.SHAKE,AbSettingsSection.PLAYER_TOOLS)
     val generalSections=listOf(AbSettingsSection.APPEARANCE,AbSettingsSection.WIDGETS,AbSettingsSection.SUPPORT,
-        AbSettingsSection.SOUND,AbSettingsSection.BACKUP,AbSettingsSection.STORAGE,AbSettingsSection.UPDATES,AbSettingsSection.DIAGNOSTICS)
+        AbSettingsSection.BACKUP,AbSettingsSection.STORAGE,AbSettingsSection.UPDATES,AbSettingsSection.DIAGNOSTICS)
     fun back() {
         when {
             section in playerSections -> section=AbSettingsSection.PLAYER_HOME
@@ -11365,14 +11359,16 @@ private fun AbSettingsDialog(data: AbScreenData,prefs: android.content.SharedPre
     key(section) { AbDialog(section.label,theme,dismiss) {
         if(section==AbSettingsSection.HOME) {
             Text("Выберите блок настроек",color=theme.muted,fontSize=13.sp)
+            AbButton("Меню плеера",theme){section=AbSettingsSection.PLAYER_HOME}
             AbSettingsTiles(theme,generalSections){section=it}
             AbButton("Telegram-канал ↗",theme) {
-                try {context.startActivity(Intent(Intent.ACTION_VIEW,Uri.parse("https://t.me/c/3702128532/1")))}
+                try {context.startActivity(Intent(Intent.ACTION_VIEW,Uri.parse("https://t.me/+IryIQ5fkmOszZWRi")))}
                 catch(_:android.content.ActivityNotFoundException) {
                     Toast.makeText(context,"Не удалось открыть Telegram-ссылку",Toast.LENGTH_LONG).show()
                 }
             }
         } else if(section==AbSettingsSection.PLAYER_HOME) {
+            AbButton("Все настройки",theme){section=AbSettingsSection.HOME}
             AbSettingsTiles(theme,playerSections){section=it}
         } else {
             Row(Modifier.fillMaxWidth().heightIn(min=48.dp).clip(RoundedCornerShape(12.dp))
@@ -11503,22 +11499,13 @@ private fun AbSettingsDialog(data: AbScreenData,prefs: android.content.SharedPre
             Text("Если приложение вам помогает, вы можете поддержать его развитие переводом по номеру телефона.",
                 color=theme.muted,fontSize=13.sp,lineHeight=20.sp)
             Text("+79128580680",color=theme.text,fontSize=22.sp,fontWeight=FontWeight.SemiBold)
-            Text("Тинькофф · Сбербанк · Ozon",color=theme.muted,fontSize=14.sp)
+            AbSupportBank.entries.forEach { bank ->
+                AbButton(bank.title,theme){AbSupportBanks.open(context,bank)}
+            }
             AbButton("Скопировать номер",theme) {
                 val clipboard=context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
                 clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Поддержка разработчика","+79128580680"))
                 Toast.makeText(context,"Номер скопирован",Toast.LENGTH_SHORT).show()
-            }
-        }
-        if(section==AbSettingsSection.SOUND) {
-            Text(AbMediaSound.describe(context),color=theme.muted,fontSize=13.sp,lineHeight=20.sp)
-            Text("Кнопки громкости в приложении управляют мультимедиа. Громкость звонка задаётся отдельно.",
-                color=theme.text,fontSize=13.sp,lineHeight=20.sp)
-            Text("Если на Xiaomi/Redmi беззвучный режим заглушает книгу, откройте «Настройки телефона → Звук и вибрация» и проверьте пункт «Отключать звук мультимедиа в беззвучном режиме». Название зависит от версии MIUI. Также проверьте ограничения режима «Не беспокоить».",
-                color=theme.muted,fontSize=13.sp,lineHeight=20.sp)
-            AbButton("Настройки звука телефона",theme) {
-                try {context.startActivity(Intent(android.provider.Settings.ACTION_SOUND_SETTINGS))}
-                catch(_:Exception){Toast.makeText(context,"Откройте настройки звука телефона вручную",Toast.LENGTH_LONG).show()}
             }
         }
         if(section==AbSettingsSection.HOME) {
