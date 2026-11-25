@@ -12,7 +12,10 @@ internal object AbCycleSourceRules {
         var count = 0
         val urls = books.asSequence()
             .filter { it.catalogState == "candidate" || it.catalogState == "checked" }
-            .flatMap { bookSources(it).asSequence() }
+            // Use explicit links without calling Android Uri.parse() from pure JVM unit tests.
+            .flatMap { book ->
+                (book.sources.ifEmpty { listOf(BookSource("", book.url, book.coverUrl)) }).asSequence()
+            }
             .map { it.url.substringBefore('#').trimEnd('/') }
             .filter { it.isNotBlank() }
             .distinct()
