@@ -10,14 +10,14 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 /** No UI/WebView or title guessing in background. Only completed, verified series snapshots advance. */
-internal class ContinuationScanner(private val context:Context,private val fetcher:ContinuationFetcher,private val forceReferences:Boolean=false) {
+internal class ContinuationScanner(private val context:Context,private val fetcher:ContinuationFetcher,private val forceReferences:Boolean=false,private val onlySeedId:String?=null) {
     private val policy=ContinuationPolicy(AB_EXTRA_SOURCE_JSON)
     private val parser=ContinuationParser(policy)
     private val store=ContinuationStore(context)
     private val settings=context.getSharedPreferences("audiobook_downloader",0)
     private val visited=mutableSetOf<String>()
     suspend fun scan():String {
-        val seeds=store.seeds()
+        val seeds=store.seeds().filter{onlySeedId==null||it.id==onlySeedId}
         var referenceChecked=0
         // Reference catalogues use a separate bounded client in production; source failures do not hide text books.
         if(seeds.isNotEmpty()) {
