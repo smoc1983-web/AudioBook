@@ -136,25 +136,4 @@ public final class PreviewUpdatesActivity extends Activity {
         }
         render();
     }
-    public static void checkInBackground(Activity activity){
-        PreviewUpdater updater=new PreviewUpdater(activity);
-        android.content.SharedPreferences prefs=activity.getSharedPreferences("preview_updates",0);
-        long now=System.currentTimeMillis();
-        if(!prefs.getBoolean("auto",true)||now-prefs.getLong("last_check",0)<86400000L)return;
-        if(now-prefs.getLong("last_attempt",0)<900000L)return;
-        prefs.edit().putLong("last_attempt",now).apply();
-        Thread thread=new Thread(()->{
-            try{
-                PreviewUpdater.Release release=updater.latest();
-                prefs.edit().putLong("last_check",System.currentTimeMillis()).apply();
-                if(!release.info.isNewer(BuildConfig.VERSION_CODE))return;
-                activity.runOnUiThread(()->{if(activity.isDestroyed()||activity.isFinishing()||!activity.hasWindowFocus())return;
-                    new AlertDialog.Builder(activity).setTitle("Обновление "+BuildConfig.PRODUCT_NAME)
-                        .setMessage("Доступна "+release.info.versionName+". Загрузить обновление в приложении?")
-                        .setPositiveButton("Обновления",(d,w)->activity.startActivity(new Intent(activity,PreviewUpdatesActivity.class)))
-                        .setNegativeButton("Позже",null).show();
-                });
-            }catch(Exception ignored){/* Check failures stay out of playback and diagnostics. */}
-        },"preview-update-check");thread.setDaemon(true);thread.start();
-    }
 }

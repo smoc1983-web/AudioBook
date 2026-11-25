@@ -223,6 +223,7 @@ class MainActivity : ComponentActivity() {
     private var appStarted=false
     private var launchToken=0L
     private var launchAnimationAllowed=true
+    private val startupUpdatePrompt by lazy { StartupUpdatePrompt(this) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         AbCrashReport.install(this)
@@ -235,7 +236,6 @@ class MainActivity : ComponentActivity() {
         AbCrashReport.install(this)
         val recover=AbLaunchState.needsRecovery(this)
         title=AB_PRODUCT_NAME
-        PreviewUpdatesActivity.checkInBackground(this)
         // Keep the fallback for a real startup failure; never open a report automatically.
         showStartup(false)
         readyJob=activityWork.launch {
@@ -399,6 +399,7 @@ class MainActivity : ComponentActivity() {
         super.onStop()
     }
     override fun onDestroy() {
+        startupUpdatePrompt.close()
         activityWork.coroutineContext[kotlinx.coroutines.Job]?.cancel()
         super.onDestroy()
     }
@@ -410,6 +411,15 @@ class MainActivity : ComponentActivity() {
         super.onResume()
         AbCrashReport.install(this)
         if(appStarted)libraryAccessVersion++
+        startupUpdatePrompt.resume()
+    }
+    override fun onPause() {
+        startupUpdatePrompt.pause()
+        super.onPause()
+    }
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        startupUpdatePrompt.focusChanged(hasFocus)
     }
     override fun onRequestPermissionsResult(requestCode: Int,permissions: Array<String>,grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode,permissions,grantResults)
