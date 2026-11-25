@@ -21,9 +21,10 @@ common={name:json.loads('['+values+']') for name,values in re.findall(r'"([^"]+)
 adapters={site:dict(common) for site in ['Bookinfo','Книгоблуд','Азбука веры','Audiokniga-online.ru']}
 for site,name,values in re.findall(r'"([^"]+)" to "([^"]+)" -> listOf\(([^\n]+)\)',block):
     adapters[site][name]=adapters[site][name]+json.loads('['+values+']')
-azbyka_src=(root.parent/"app/src/main/java/com/audiobookdownloader/AbAzbykaScripts.kt").read_text()
+kotlin=root.parent/'app/src/main/java/com/audiobookdownloader'
+script_sources=[s]+[(kotlin/name).read_text() for name in ('AbAzbykaScripts.kt','AbOnlineSource.kt','AbPublicCatalogSource.kt')]
 def body(name):
-    source=azbyka_src if name.startswith("abAzbyka") else s
+    source=next(src for src in script_sources if 'fun '+name+'(' in src)
     start=source.index('fun '+name+'(')
     begin=source.index('"""',start)+len('"""')
     end=source.index('""".trimIndent()',begin)
@@ -66,7 +67,7 @@ print('Extracted actual JavaScript classifier, catalogue, category browser and a
 (out/'public-search.js').write_text(body('abPublicSearchJs'))
 (out/'external-page.js').write_text(body('abExternalBookPageJs').replace('$analyzer',analyzer.rstrip(';')))
 assert 'AbExternalGenreSearch(name,genreQuery,genreExternalBatch' in s
-assert 'job.cancel()' in s and 'slots.acquire()' in s
+assert 'job.cancel()' in s and 'slots.acquire()' in (kotlin/'AbPublicCatalogSource.kt').read_text()
 assert 'genreNeedsMore() && genreExternalLoading' in s
 print('Extracted external classifier, public search and book verification scripts')
 
