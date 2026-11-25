@@ -93,8 +93,21 @@ class AbSourceAvailabilityJvmTest {
         val book=BookLink("Книга",dead,sources=listOf(BookSource("dead",dead),BookSource("demo",demo),BookSource("unknown",unknown),BookSource("live",live)))
         val filtered=AbSourceAvailability.searchCandidates(p,book,false)!!
         assertEquals(live,filtered.url)
-        assertEquals(listOf(unknown,live),filtered.sources.map{it.url})
+        assertEquals(listOf(live,unknown),filtered.sources.map{it.url})
         assertNull(AbSourceAvailability.searchCandidates(p,book.copy(sources=listOf(BookSource("dead",dead))),false))
+    }
+    @Test fun mismatchedTaxiCandidateDoesNotDisplaceValidAlternativeOrBanOtherWork() {
+        val p=preferences();val wrong="https://wrong.invalid/book";val good="https://good.invalid/book"
+        val book=BookLink("Таксист из Forbes",wrong,author="Ник Тарасов",sources=listOf(BookSource("wrong",wrong),BookSource("good",good)))
+        AbSourceAvailability.recordMismatch(p,book,wrong)
+        AbSourceAvailability.record(p,good,true)
+        val filtered=AbSourceAvailability.searchCandidates(p,book,false)!!
+        assertEquals(listOf(good),filtered.sources.map{it.url})
+        assertFalse(AbSourceAvailability.mismatched(p,book.copy(title="Таксист из Forbes 2"),wrong))
+        AbSourceAvailability.recordMismatch(p,book,wrong,1000L)
+        assertFalse(AbSourceAvailability.mismatched(p,book,wrong,901001L))
+        AbSourceAvailability.clearMismatch(p,book,wrong)
+        assertFalse(AbSourceAvailability.mismatched(p,book,wrong))
     }
     @Test fun emptyPlaylistCanBeRetriedAfterFifteenMinutes() {
         val p=preferences();val url="https://dead.example/book"

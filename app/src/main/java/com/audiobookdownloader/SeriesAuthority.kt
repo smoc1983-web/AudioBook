@@ -58,7 +58,7 @@ internal object SeriesAuthorityCache {
             (it.url.isBlank()||it.url.substringBefore('#').trimEnd('/')!=bookUrl.substringBefore('#').trimEnd('/'))}
         val e=evidence(prefs,title,author) ?: return clean
         val same=clean.firstOrNull{SeriesAuthorityRules.series(it.title)==SeriesAuthorityRules.series(e.series)}
-        return listOf(BookCycle(e.series,same?.url.orEmpty(),e.order ?: same?.order,e.bookUrl,e.provider,e.parent))
+        return listOf(BookCycle(e.series,same?.url.orEmpty(),e.order ?: same?.order,e.bookUrl,e.provider,e.parent,seedTitle=e.title,seedAuthor=e.author))
     }
 }
 

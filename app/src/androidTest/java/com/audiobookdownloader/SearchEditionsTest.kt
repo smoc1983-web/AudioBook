@@ -63,13 +63,34 @@ class SearchEditionsTest {
             assertTrue(result.first().sources.isEmpty())
         }finally{p.edit().clear().commit()}
     }
-    @Test fun checkingLaterVoiceDoesNotReorderEditions()=runBlocking {
+    @Test fun checkingLaterVoicePrioritizesEditionWithoutMovingWork()=runBlocking {
         val p=ApplicationProvider.getApplicationContext<Context>().getSharedPreferences("search-stable-voices",0)
         try {
             val books=listOf(book("Иван","one"),book("Пётр","two"))
-            val before=AbSearchRows.prepare(books,emptyList(),p,null).single().editions.map{it.url}
-            AbSourceAvailability.record(p,before.last(),true)
-            assertEquals(before,AbSearchRows.prepare(books,emptyList(),p,null).single().editions.map{it.url})
+            val before=AbSearchRows.prepare(books,emptyList(),p,null).single()
+            val verified=before.editions.last().url
+            AbSourceAvailability.record(p,verified,true)
+            val after=AbSearchRows.prepare(books,emptyList(),p,null).single()
+            assertEquals(verified,after.editions.first().url)
+            assertEquals(before.key,after.key)
+        }finally{p.edit().clear().commit()}
+    }
+    @Test fun confirmedAuthorKeepsTaxiAndBuilderVolumesTogether()=runBlocking {
+        val p=ApplicationProvider.getApplicationContext<Context>().getSharedPreferences("search-official-order",0)
+        try {
+            for(title in listOf("Таксист из Forbes","Путь строителя")){
+                val series=title
+                val books=listOf(5,2,1,4,3).map { i ->
+                    val raw=if(i==1)title else "$title $i"
+                    val url="https://fixture.invalid/$i"
+                    val author=if(i%2==0)"Ник Тарасов" else ""
+                    SeriesAuthorityCache.save(p,raw,author,SeriesEvidence(raw,"Ник Тарасов",series,"https://author.today/work/series/900","https://author.today/work/${900+i}","Author.Today",i.toDouble()),"confirmed")
+                    BookLink(raw,url,author=author,sources=listOf(BookSource("fixture",url)))
+                }
+                val rows=AbSearchRows.prepare(books,emptyList(),p,null,query=title)
+                assertEquals(listOf(1.0,2.0,3.0,4.0,5.0),rows.map{it.book.cycles.single().order})
+                assertTrue(rows.all{it.book.author=="Ник Тарасов"})
+            }
         }finally{p.edit().clear().commit()}
     }
     @Test fun choosingVoiceOpensItsOwnSourceAndMetadata()=runBlocking {

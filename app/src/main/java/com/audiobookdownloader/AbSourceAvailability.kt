@@ -16,6 +16,18 @@ internal object AbSourceAvailability {
         val digest=MessageDigest.getInstance("SHA-256").digest(url.substringBefore('#').trimEnd('/').toByteArray(Charsets.UTF_8))
         return PREFIX+buildString(digest.size*2){for(byte in digest){val n=byte.toInt() and 255;append("0123456789abcdef"[n ushr 4]);append("0123456789abcdef"[n and 15])}}
     }
+    // A rejected work/source pair is not a global ban on the website or even on this URL.
+    private fun mismatchKey(book:BookLink,url:String)=key(url)+"_identity_"+key(SeriesAuthorityRules.title(book.title)+"|"+SeriesAuthorityRules.author(book.author))
+    fun recordMismatch(prefs:SharedPreferences,book:BookLink,url:String,now:Long=System.currentTimeMillis()){
+        prefs.edit().putString(mismatchKey(book,url),now.toString()).apply()
+    }
+    fun clearMismatch(prefs:SharedPreferences,book:BookLink,url:String){
+        prefs.edit().remove(mismatchKey(book,url)).apply()
+    }
+    fun mismatched(prefs:SharedPreferences,book:BookLink,url:String,now:Long=System.currentTimeMillis()):Boolean {
+        val at=prefs.getString(mismatchKey(book,url),null)?.toLongOrNull() ?: return false
+        return now-at in 0..EMPTY_AGE
+    }
     fun get(prefs:SharedPreferences,url:String,now:Long=System.currentTimeMillis()):AbChapterAvailability {
         val raw=prefs.getString(key(url),null)?:return AbChapterAvailability.UNKNOWN
         val parts=raw.split(':',limit=2)
@@ -75,13 +87,14 @@ internal object AbSourceAvailability {
         if(EditionDownloadRules.isPreview(book.title,emptyList()))return null
         val sources=bookSources(book).filter{source->
             val state=get(prefs,source.url)
-            state!=AbChapterAvailability.EMPTY && state!=AbChapterAvailability.PREVIEW &&
+            !mismatched(prefs,book,source.url) && state!=AbChapterAvailability.EMPTY && state!=AbChapterAvailability.PREVIEW &&
                 (!hideSuspected||state!=AbChapterAvailability.SUSPECTED) && !tooSmall(prefs,source.url)
         }
         if(sources.isEmpty())return null
-        // Keep chip positions stable; only the default open target follows verified availability.
-        val primary=sources.minWithOrNull(compareBy<BookSource>{sizeRisk(prefs,it.url)}.thenBy{get(prefs,it.url).priority}.thenBy{it.url!=book.url}) ?: return null
-        return book.copy(url=primary.url,coverUrl=primary.coverUrl.ifBlank{book.coverUrl},sources=sources,
+        // Apply the same ranking to the default URL and the visible source chips.
+        val ordered=sources.sortedWith(compareBy<BookSource>{sizeRisk(prefs,it.url)}.thenBy{get(prefs,it.url).priority}.thenBy{it.url!=book.url})
+        val primary=ordered.first()
+        return book.copy(url=primary.url,coverUrl=primary.coverUrl.ifBlank{book.coverUrl},sources=ordered,
             catalogState=if(book.catalogState=="checked"&&get(prefs,primary.url)!=AbChapterAvailability.AVAILABLE)"candidate" else book.catalogState)
     }
 

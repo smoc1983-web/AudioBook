@@ -1905,8 +1905,10 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                     val loaded=withContext(Dispatchers.IO){VerifiedBooks.load(sourceUrl)}
                     if(request!=bookOpenId)return@launch
                     if(!abOpenedBookMatches(book,loaded.title,loaded.author)){
+                        AbSourceAvailability.recordMismatch(prefs,book,sourceUrl)
                         failBookOpening("Название или автор не совпадают с выбранной книгой");return@launch
                     }
+                    AbSourceAvailability.clearMismatch(prefs,book,sourceUrl)
                     pageTitle=loaded.title;currentBookAuthor=loaded.author;currentCoverUrl=loaded.cover;player=loaded.data
                     bookPageLoading=false;bookPageError="";status="Глав: ${loaded.data.tracks.size}"
                     val availability=AbSourceAvailability.observe(prefs,sourceUrl,loaded.title,loaded.data)
@@ -2916,8 +2918,10 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                                         ) {
                                             val opening=bookOpening
                                             if(opening!=null&&!abOpenedBookMatches(opening.book,pageTitle,root.optString("author"))){
+                                                AbSourceAvailability.recordMismatch(prefs,opening.book,opening.sourceUrl)
                                                 failBookOpening("Название или автор не совпадают с выбранной книгой");return@launch
                                             }
+                                            if(opening!=null)AbSourceAvailability.clearMismatch(prefs,opening.book,opening.sourceUrl)
                                             val availability=AbSourceAvailability.observe(prefs,url,pageTitle,parsed)
                                             if(opening!=null&&opening.sourceUrl!=url)AbSourceAvailability.record(prefs,opening.sourceUrl,parsed.tracks.isNotEmpty(),
                                                 preview=availability==AbChapterAvailability.PREVIEW,suspected=availability==AbChapterAvailability.SUSPECTED)
@@ -10097,11 +10101,12 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
     }
     val seriesStatus=SeriesAuthorityWatcher(verificationTargets,prefs)
     // Playback ticks and lazy-list recycling must not reparse every book's reference metadata.
-    val seriesRevision=remember(prefs,data.version) {prefs.getInt("book_series_revision",0)}
+    var seriesRevision by remember(prefs){mutableIntStateOf(prefs.getInt("book_series_revision",0))}
     var chapterRevision by remember(prefs){mutableIntStateOf(0)}
     DisposableEffect(prefs){
         val listener=android.content.SharedPreferences.OnSharedPreferenceChangeListener{_,key->
             if(key?.startsWith(AbSourceAvailability.OBSERVATION_PREFIX)==true)chapterRevision++
+            if(key=="book_series_revision")seriesRevision=prefs.getInt("book_series_revision",0)
         }
         prefs.registerOnSharedPreferenceChangeListener(listener)
         onDispose{prefs.unregisterOnSharedPreferenceChangeListener(listener)}
@@ -10144,9 +10149,11 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
                         return@async
                     }
                     if(!abOpenedBookMatches(book,loaded.title,loaded.author)){
+                        AbSourceAvailability.recordMismatch(prefs,book,source.url)
                         AbSourceTrace.check(sourceContext,source.site,"IDENTITY_MISMATCH",loaded.player.tracks.size)
                         return@async
                     }
+                    AbSourceAvailability.clearMismatch(prefs,book,source.url)
                     val observed=AbSourceAvailability.observe(prefs,source.url,loaded.title,loaded.player)
                     if(!AbSourceAvailability.hidden(observed))kotlinx.coroutines.withTimeoutOrNull(12_000L){abCheckAudioMinimum(prefs,source.url,loaded.player)}
                     val outcome=when {

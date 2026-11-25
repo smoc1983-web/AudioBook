@@ -46,7 +46,6 @@ internal object AbSearchRows {
                     } else AbSourceAvailability.searchCandidates(prefs,sized,hidePreviews)?:unavailable(input)?:return@mapNotNull null
                 }
             }
-            if(author.isNotBlank()&&!SearchBookIndex.normal(raw.author).contains(SearchBookIndex.normal(author)))return@mapNotNull null
             if(genre.isNotBlank()&&raw.genres.none{SearchBookIndex.normal(it).contains(SearchBookIndex.normal(genre))})return@mapNotNull null
             if(exactOnly&&query.isNotBlank()&&SearchBookIndex.titleKey(cleanBookTitle(raw.title))!=SearchBookIndex.titleKey(query)&&raw.cycles.none{AbSearchPresentation.seriesKey(it.title)==AbSearchPresentation.seriesKey(query)})return@mapNotNull null
             if (narrator.isNotEmpty() && !SearchFilterRules.matchesNarrator(raw.title, raw.narrator, narrator)) return@mapNotNull null
@@ -54,7 +53,9 @@ internal object AbSearchRows {
             if(expected!=null && cycles.any{it.referenceUrl.isNotBlank()} &&
                 cycles.none{AbSearchPresentation.seriesKey(it.title)==expected})return@mapNotNull null
             if (seriesOnly && cycles.none { AbSearchPresentation.seriesKey(it.title).isNotBlank() }) return@mapNotNull null
-            var book = if (cycles == raw.cycles) raw else raw.copy(cycles = cycles)
+            val confirmedAuthor=raw.author.ifBlank{cycles.firstOrNull{it.referenceUrl.isNotBlank()&&it.seedAuthor.isNotBlank()}?.seedAuthor.orEmpty()}
+            if(author.isNotBlank()&&!SearchBookIndex.normal(confirmedAuthor).contains(SearchBookIndex.normal(author)))return@mapNotNull null
+            var book = raw.copy(cycles=cycles,author=confirmedAuthor)
             val local = if (localOnly) {
                 val matches = bookSources(book).mapNotNull sourceMatch@ { source ->
                     if (source.url.isBlank()) return@sourceMatch null
@@ -85,10 +86,10 @@ internal object AbSearchRows {
         // Availability never reorders numbered volumes. Lazy keys identify the work,
         // not whichever server happened to finish first.
         groups.mapNotNull{(key,editions)->
-            // Availability changes badges, never the position of an existing voice.
+            // Availability changes edition priority, never the position of a numbered work.
             val playableEditions=editions.filter{it.catalogState !in missingStates}
             val visible=if(playableEditions.isNotEmpty())playableEditions else editions.take(1)
-            val ordered=visible.sortedWith(compareBy<BookLink>{SearchEditionIdentity.voiceKey(it.title,it.narrator)}.thenBy{it.url})
+            val ordered=visible.sortedWith(compareBy<BookLink>{AbSourceAvailability.sizeRisk(prefs,it.url)}.thenBy{AbSourceAvailability.priority(prefs,bookSources(it))}.thenBy{SearchEditionIdentity.voiceKey(it.title,it.narrator)}.thenBy{it.url})
             val book=ordered.first()
             indexed[book.url]?.copy(book=book,sources=bookSources(book),editions=ordered,key=key,
                 sizeLabels=ordered.flatMap{bookSources(it)}.associate{it.url to AbSourceAvailability.sizeWarning(prefs,it.url)}.filterValues{it.isNotBlank()})
