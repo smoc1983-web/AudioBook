@@ -1,3 +1,10 @@
+> **ОБЯЗАТЕЛЬНО ДЛЯ КАЖДОГО НОВОГО ЧАТА / АГЕНТА (25.11.2026):**
+> Перед работой с AudioBook открыть единственный [регламент в main](https://github.com/smoc1983-web/AudioBook/blob/main/docs/AI-WORKFLOW.md)
+> и [общий технический журнал в main](https://github.com/smoc1983-web/AudioBook/blob/main/docs/PROJECT-LOG.md).
+> Затем проверить текущие GitHub PR, ветки, Actions и Releases; при работе с подписками — [активный QA-журнал](https://github.com/smoc1983-web/AudioBook/blob/qa/series-subscriptions-navigation-20261125/docs/ACTIVE-QA.md).
+> Нижеследующие старые версии и отчёты — история, а не текущее состояние.
+> Разрешены документационные изменения в main, согласованные 25.11.2026; функциональный код и основной APK — только по отдельной команде владельца.
+>
 > **Для нового чата/агента (актуально с 25.11.2026):** сначала прочитать
 > [постоянный регламент](docs/AI-WORKFLOW.md) и
 > [состояние текущей QA-задачи](docs/ACTIVE-QA.md), проверить GitHub Actions и Releases.
