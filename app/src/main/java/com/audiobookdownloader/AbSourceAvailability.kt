@@ -83,11 +83,11 @@ internal object AbSourceAvailability {
         EditionDownloadRules.isPreview(book.title,emptyList()) || get(prefs,book.url)==AbChapterAvailability.PREVIEW
 
     /** Search hides recent empty playlists and confirmed samples; unknown remains eligible. */
-    fun searchCandidates(prefs:SharedPreferences,book:BookLink,hideSuspected:Boolean):BookLink? {
+    fun searchCandidates(prefs:SharedPreferences,book:BookLink,hideSuspected:Boolean,keepEmpty:Boolean=false):BookLink? {
         if(EditionDownloadRules.isPreview(book.title,emptyList()))return null
         val sources=bookSources(book).filter{source->
             val state=get(prefs,source.url)
-            !mismatched(prefs,book,source.url) && state!=AbChapterAvailability.EMPTY && state!=AbChapterAvailability.PREVIEW &&
+            !mismatched(prefs,book,source.url) && (keepEmpty||state!=AbChapterAvailability.EMPTY) && state!=AbChapterAvailability.PREVIEW &&
                 (!hideSuspected||state!=AbChapterAvailability.SUSPECTED) && !tooSmall(prefs,source.url)
         }
         if(sources.isEmpty())return null
