@@ -7,7 +7,7 @@ ns={'check_delimiters':check_delimiters}
 ns['check_delimiters'](s)
 print('Kotlin delimiter/string check passed (not compilation)')
 ns['check_delimiters']((root/'PlaybackService.kt').read_text())
-assert '@OptIn(androidx.compose.ui.ExperimentalComposeUiApi::class)\n@Composable\ninternal fun AbDialog' in s
+assert '@OptIn(androidx.compose.ui.ExperimentalComposeUiApi::class)\n@Composable\ninternal fun AbDialog' in (root.parent/"app/src/main/java/com/audiobookdownloader/AbSharedControls.kt").read_text()
 assert 'MediaPlayer()' not in s
 assert 'AB_PRODUCT_NAME=' in s
 assert "private object AbBookSources" in s
