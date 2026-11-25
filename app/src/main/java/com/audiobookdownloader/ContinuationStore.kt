@@ -16,10 +16,11 @@ internal data class ContinuationNotice(val id:String,val seed:String,val title:S
 internal class ContinuationStore(private val context:Context) {
     val preferences=context.getSharedPreferences("continuations_v1",0)
     private val folder=File(context.filesDir,"continuations-v1")
+    // Legacy explicit subscription records are retained for compatibility, but no longer scanned.
     fun seeds():List<ContinuationSeed> = ((if(preferences.getBoolean("collection_tracking_enabled",true))
         loadShelves(context.getSharedPreferences("audiobook_downloader",0)).flatMap{it.books} else emptyList())
         .filter{SeriesAuthorityRules.title(it.title) !in preferences.getStringSet("muted_titles",emptySet()).orEmpty()}
-        .map{ContinuationSeed(hash(it.url.ifBlank{SearchBookIndex.normal(it.title)}),it.title,it.url)}+ explicitSeeds()).distinctBy{it.id}
+        .map{ContinuationSeed(hash(it.url.ifBlank{SearchBookIndex.normal(it.title)}),it.title,it.url)}).distinctBy{it.id}
     private fun explicitSeeds():List<ContinuationSeed> = try{
         val a=JSONArray(preferences.getString("explicit_series_seeds","[]"));(0 until minOf(100,a.length())).mapNotNull{i->
             val j=a.optJSONObject(i)?:return@mapNotNull null;val url=j.optString("url");val title=j.optString("title")
