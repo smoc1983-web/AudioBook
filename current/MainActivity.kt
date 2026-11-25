@@ -2741,6 +2741,35 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                 val narration=narrationSearch
                 var referenceChecked by remember(requestId){mutableStateOf(false)}
                 var referenceAuthor by remember(requestId){mutableStateOf("")}
+                var cachedReports by remember(requestId){mutableStateOf<Map<String,SiteSearchResult>>(emptyMap())}
+                suspend fun presentCached(saved:Map<String,SiteSearchResult>) {
+                    if(requestId!=unifiedSearchId || unifiedQuery.isBlank() || searchReports.isNotEmpty())return
+                    cachedReports=saved
+                    val merged=withContext(Dispatchers.Default){
+                        val job=kotlinx.coroutines.currentCoroutineContext()
+                        val result=AbGlobalBookResults.prepare(saved,requestSources,requestQuery,AB_SEARCH_LIMIT,checkActive={job.ensureActive()})
+                        when {
+                            narration!=null -> result.mapNotNull{narration.match(prefs,it)}
+                            ranked!=null -> result.mapNotNull{rankedAudioResult(prefs,ranked,it)}
+                            else -> if(referenceAuthor.isBlank())result else result.filter{
+                                it.author.isBlank()||SeriesAuthorityRules.author(it.author)==SeriesAuthorityRules.author(referenceAuthor)
+                            }
+                        }
+                    }
+                    if(requestId==unifiedSearchId && unifiedQuery.isNotBlank() && searchReports.isEmpty() && merged.isNotEmpty()){
+                        bookLinks=merged
+                        status="Сохранённые результаты. Обновляю поиск…"
+                    }
+                }
+                LaunchedEffect(requestId) {
+                    if(AbSearchDiagnostics.mode(prefs)==AbSearchNetworkMode.NORMAL){
+                        val saved=linkedMapOf<String,SiteSearchResult>()
+                        for(site in requestSources){
+                            AbSearchCache.get(context,site,requestQuery)?.let{saved[site]=AbGlobalBookResults.nativeResult(it,requestQuery)}
+                        }
+                        if(saved.isNotEmpty())presentCached(saved)
+                    }
+                }
                 LaunchedEffect(requestId) {
                     if(!referenceChecked) {
                         status="Сначала сверяю книгу и цикл по Author.Today и Литрес…"
@@ -2765,7 +2794,8 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                         }
                     }
                 }
-                if(referenceChecked) UnifiedBookSearch(unifiedQuery, prefs,requestSources) { site, report ->
+                if(referenceChecked) UnifiedBookSearch(unifiedQuery, prefs,requestSources,refreshCached=true,
+                    onCached={saved->presentCached(saved)}) { site, report ->
                     if (requestId == unifiedSearchId && unifiedQuery.isNotBlank()) {
                         val limited=report.copy(books=report.books.take(AB_SEARCH_LIMIT))
                         modernWork.launch(Dispatchers.IO){limited.books.forEach{abRememberCatalog(prefs,it)}}
@@ -2778,7 +2808,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                             try {
                                 val merged=withContext(Dispatchers.Default) {
                                     val context=kotlinx.coroutines.currentCoroutineContext()
-                                    val result=AbGlobalBookResults.prepare(reports,requestSources,requestQuery,AB_SEARCH_LIMIT,checkActive={context.ensureActive()})
+                                    val result=AbGlobalBookResults.prepare(cachedReports+reports,requestSources,requestQuery,AB_SEARCH_LIMIT,checkActive={context.ensureActive()})
                                     when {
                                         narration!=null -> result.mapNotNull{narration.match(prefs,it)}
                                         ranked!=null -> result.mapNotNull{rankedAudioResult(prefs,ranked,it)}
@@ -8863,7 +8893,8 @@ private suspend fun abResolveCycleAudio(context:Context,prefs:android.content.Sh
 
 @Composable
 fun UnifiedBookSearch(query: String, prefs: android.content.SharedPreferences,
-    sources:List<String> = AbBookSources.searchOrder,onResult: (String, SiteSearchResult) -> Unit) {
+    sources:List<String> = AbBookSources.searchOrder,refreshCached:Boolean=false,
+    onCached:suspend (Map<String,SiteSearchResult>)->Unit={},onResult: (String, SiteSearchResult) -> Unit) {
     val context=androidx.compose.ui.platform.LocalContext.current
     val requested=sources.filter{it in AbBookSources.searchOrder}.distinct()
     val report by androidx.compose.runtime.rememberUpdatedState(onResult)
@@ -8873,15 +8904,26 @@ fun UnifiedBookSearch(query: String, prefs: android.content.SharedPreferences,
         val mode=AbSearchDiagnostics.mode(prefs)
         val session=runCatching{AbSearchDiagnostics.begin(context,query,scheduled,mode)}.getOrDefault("")
         try {
-            AbSearchCoordinator.search(scheduled,{site ->if(site==AbBookSources.AZBYKA)95_000L else 50_000L},
-                {site ->
+            val timeout:(String)->Long={site->if(site==AbBookSources.AZBYKA)95_000L else 50_000L}
+            val fetch:suspend (String)->SiteSearchResult={site->
+                abSearchOneSource(context,site,query,prefs).also{
+                    // A failed refresh must not overwrite a good saved result.
+                    if(it.error.isBlank())AbSearchCache.put(context,site,query,it)
+                }
+            }
+            val deliver:suspend (String,SiteSearchResult)->Unit={site,result->
+                if(session.isNotBlank())runCatching{AbSearchDiagnostics.result(context,session,site,result)}
+                report(site,AbGlobalBookResults.nativeResult(result,query))
+            }
+            if(refreshCached && mode==AbSearchNetworkMode.NORMAL){
+                AbSearchCoordinator.refresh(scheduled,timeout,{site->AbSearchCache.get(context,site,query)},fetch,
+                    {saved->onCached(saved.mapValues{(_,result)->AbGlobalBookResults.nativeResult(result,query)})},deliver)
+            }else{
+                AbSearchCoordinator.search(scheduled,timeout,{site->
                     val cached=if(mode==AbSearchNetworkMode.NORMAL)AbSearchCache.get(context,site,query) else null
-                    cached?.copy(fromCache=true) ?: abSearchOneSource(context,site,query,prefs)
-                        .also{AbSearchCache.put(context,site,query,it)}
-                }, {site,result ->
-                    if(session.isNotBlank())runCatching{AbSearchDiagnostics.result(context,session,site,result)}
-                    report(site,AbGlobalBookResults.nativeResult(result,query))
-                })
+                    cached?.copy(fromCache=true) ?: fetch(site)
+                },deliver)
+            }
         } finally {if(session.isNotBlank())runCatching{AbSearchDiagnostics.finish(context,session)}}
     }
 }
