@@ -8822,16 +8822,17 @@ private suspend fun abResolveCycleAudio(context:Context,prefs:android.content.Sh
     val priority=withContext(Dispatchers.Default){sources.sortedWith(compareByDescending<String>{site->
         checkpoint.broadReports[site]?.books?.count{position(it)!=null} ?: 0
     }.thenBy{if(checkpoint.broadReports[it]?.error.isNullOrBlank())0 else 1})}
-    fun hasCandidate(i:Int)=checkpoint.rows[i].orEmpty().any{it.catalogState in setOf("candidate","checked")}
+    // Do not stop at the first unverified audiobook link: other sites may have the complete edition.
+    fun enoughAlternatives(i:Int)=AbCycleSourceRules.enoughAlternatives(checkpoint.rows[i].orEmpty())
     for(i in volumes.indices){
         kotlinx.coroutines.yield()
         abRequireSearchWindow(context)
-        if(i in checkpoint.exactDone||checkpoint.rows[i].orEmpty().any{it.catalogState in setOf("candidate","checked")})continue
+        if(i in checkpoint.exactDone||enoughAlternatives(i))continue
         val queries=OfficialCycleSearch.lookupQueries(cycle.title,volumes[i],aliases[i])
         val preferred=priority.take(4)
         report("Точечный поиск: ${i+1}/${volumes.size}.",force=true)
         suspend fun searchBatch(query:String,batch:List<String>){
-            if(batch.isEmpty()||hasCandidate(i))return
+            if(batch.isEmpty()||enoughAlternatives(i))return
             kotlinx.coroutines.withTimeoutOrNull(45_000L){
                 AbSearchCoordinator.search(batch,{20_000L},{site->abCycleSource(context,prefs,site,query)},{_,result->
                     abRequireSearchWindow(context)
@@ -8843,10 +8844,10 @@ private suspend fun abResolveCycleAudio(context:Context,prefs:android.content.Sh
         // Alternate exact forms first, then the remaining configured sites; stop once a matching edition exists.
         // Keep a hard budget per missing volume so an unavailable work cannot stall the entire cycle.
         kotlinx.coroutines.withTimeoutOrNull(120_000L){
-            queries.forEach{query->if(!hasCandidate(i))searchBatch(query,preferred)}
+            queries.forEach{query->if(!enoughAlternatives(i))searchBatch(query,preferred)}
             queries.firstOrNull()?.let{query->
                 for(batch in priority.drop(4).chunked(4)){
-                    if(hasCandidate(i))break
+                    if(enoughAlternatives(i))break
                     searchBatch(query,batch)
                 }
             }
@@ -8879,13 +8880,19 @@ private suspend fun abResolveCycleAudio(context:Context,prefs:android.content.Sh
             checkpoint.verified.add(source.url)
             if(ok)break
         }
-        val filtered=list.mapNotNull{candidate->
-            if(candidate.catalogState !in setOf("candidate","checked"))candidate else
-                AbSourceAvailability.searchCandidates(prefs,candidate,true)?.let{book->
-                    book.copy(catalogState=if(AbSourceAvailability.get(prefs,book.url)==AbChapterAvailability.AVAILABLE)"checked" else "candidate")
-                }
+        // Keep every discovered source attached to its volume. Failed or inconclusive
+        // chapter probes update availability labels instead of deleting the source.
+        val checked=list.map{candidate->
+            if(candidate.catalogState !in setOf("candidate","checked"))candidate else {
+                val valid=AbSourceAvailability.searchCandidates(prefs,candidate,true)
+                val best=valid ?: candidate
+                val retained=(bookSources(best)+bookSources(candidate))
+                    .distinctBy{it.url.substringBefore('#').trimEnd('/')}
+                best.copy(sources=retained,
+                    catalogState=if(retained.any{AbSourceAvailability.get(prefs,it.url)==AbChapterAvailability.AVAILABLE})"checked" else "candidate")
+            }
         }.sortedBy{AbSourceAvailability.priority(prefs,bookSources(it))}
-        checkpoint.rows[i]=filtered.ifEmpty{listOf(placeholder(volumes[i],OfficialCycleSearch.missingState(cycle.title,volumes[i],catalogs)))}
+        checkpoint.rows[i]=checked.ifEmpty{listOf(placeholder(volumes[i],OfficialCycleSearch.missingState(cycle.title,volumes[i],catalogs)))}
         report("Проверено изданий цикла: ${i+1}/${volumes.size}.")
     }
     report("Поиск завершён. Откройте книгу для проверки оставшихся озвучек.",true)
@@ -10532,6 +10539,7 @@ internal fun AbSearchResultCard(row:AbSearchRow,theme:AbTheme,onOpen:(BookLink,S
         if(sizeWarning.isBlank())Text(when {
             chapterState==AbChapterAvailability.AVAILABLE&&AbSourceAvailability.sizePassed(sourcePrefs,book.url)->"Главы и объём проверены · воспроизведение не проверено"
             chapterState==AbChapterAvailability.AVAILABLE->"Главы найдены · полнота аудио не подтверждена"
+            chapterState==AbChapterAvailability.EMPTY->"Главы не найдены · повторная проверка источника"
             else->"Найдена карточка · главы и полнота не подтверждены"
         },color=if(chapterState==AbChapterAvailability.AVAILABLE)theme.accent else theme.muted,fontSize=11.sp)
         if(AbSourceAvailability.isPreview(sourcePrefs,book))Text("Демо · ознакомительный фрагмент",color=theme.error,fontSize=12.sp)
