@@ -32,4 +32,29 @@ internal object AbSearchCoordinator {
         }}.awaitAll()
         Unit
     }
+
+    /**
+     * Show local metadata before network I/O, then report one final result per source.
+     * A temporary failure must not erase previously saved books.
+     */
+    suspend fun refresh(sources: List<String>, timeoutMs: (String)->Long,
+        cached: suspend (String)->SiteSearchResult?,
+        fetch: suspend (String)->SiteSearchResult,
+        preview: suspend (Map<String,SiteSearchResult>)->Unit,
+        report: suspend (String,SiteSearchResult)->Unit) {
+        val saved=linkedMapOf<String,SiteSearchResult>()
+        for(site in sources.distinct()){
+            currentCoroutineContext().ensureActive()
+            cached(site)?.let{saved[site]=it.copy(fromCache=true)}
+        }
+        if(saved.isNotEmpty())preview(saved.toMap())
+        search(sources,timeoutMs,fetch){site,fresh->
+            val old=saved[site]
+            val result=if(old!=null && old.books.isNotEmpty() && fresh.error.isNotBlank()){
+                if(fresh.books.isEmpty())old.copy(error=fresh.error,fromCache=true,durationMs=fresh.durationMs)
+                else fresh.copy(books=(fresh.books+old.books).distinctBy{it.url},fromCache=true)
+            }else fresh
+            report(site,result)
+        }
+    }
 }
