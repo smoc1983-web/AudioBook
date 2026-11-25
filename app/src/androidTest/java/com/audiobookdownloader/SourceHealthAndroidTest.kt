@@ -32,6 +32,16 @@ class SourceHealthAndroidTest {
         }
         assertEquals(0,requests.get())
     }
+    @Test fun searchMenuHealthTargetsExcludeManualAndReferenceOnlyCatalogues() {
+        val menu=abSourceHealthTargets()
+        val legacy=AbExtraSources.browserOnly.map{it.first}.toSet()
+        assertTrue(menu.none{it.name in legacy})
+        assertFalse(menu.any{it.name=="Author.Today"||it.name=="Литрес"||it.name.contains("LibriVox")||it.name=="Internet Archive"})
+        assertEquals(28,menu.size)
+        assertTrue(menu.map{it.name}.containsAll(AbExtraSources.names))
+        assertTrue(SeriesAuthorityRules.work("https://author.today/work/72647"))
+        assertTrue(SeriesAuthorityRules.cycle("https://www.litres.ru/series/test-123"))
+    }
     @Test fun manualSitesCanBeCheckedButCannotRedirectToAnotherSite() {
         val manual=abSourceHealthTargets(includeManual=true).filter{AbExtraSources.manualName(it.home).isNotBlank()}
         assertEquals(AbExtraSources.browserOnly.size,manual.size)

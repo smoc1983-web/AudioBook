@@ -10045,7 +10045,6 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
     var queryHistory by remember(prefs,data.searchScreenId){mutableStateOf(AbQueryHistory.read(prefs))}
     var historyOpen by remember(data.searchScreenId){mutableStateOf(false)}
     var showSources by remember {mutableStateOf(false)}
-    var manualSource by remember {mutableStateOf<Pair<String,String>?>(null)}
     var hidePreviews by remember(prefs) {mutableStateOf(prefs.getBoolean("search_hide_previews",false))}
     var enabledSources by remember {mutableStateOf(AbBookSources.enabled(prefs).toSet())}
     val sourceContext=androidx.compose.ui.platform.LocalContext.current
@@ -10364,7 +10363,6 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
         }
     }
     } // Cover requests wait for this list to stop scrolling.
-    manualSource?.let { (name,url) -> AbManualSourceBrowser(name,url,data,actions,theme){manualSource=null} }
     if(showLocalIndex)AbDialog("Локальная база",theme,{showLocalIndex=false}){
         Text("Сохранённые метаданные; доступность аудио проверяется заново при открытии.",color=theme.muted,fontSize=12.sp)
         val catalog=localCatalog
@@ -10396,7 +10394,7 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
         showFilters = false
     }
     if(showSources) AbDialog("Источники поиска",theme,{showSources=false}) {
-        val healthTargets=remember{abSourceHealthTargets(includeManual=true)}
+        val healthTargets=remember{abSourceHealthTargets()}
         val health=AbSourceHealthControls(healthTargets,enabledSources,theme)
         Text("Нажмите название для поиска на одном сайте. В результатах откройте меню книги → «Скачать». Переключатели задают состав общего поиска. Проверка каталога не гарантирует доступность каждой книги.",color=theme.muted,fontSize=12.sp)
         AbButton("Общий поиск · ${enabledSources.size} из ${AbBookSources.searchOrder.size}",theme,primary=data.searchSource.isBlank()) {
@@ -10422,153 +10420,7 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
                 }
             }
         }
-        Text("Официальные каталоги",color=theme.text,fontSize=16.sp)
-        AbButton("LibriVox · Internet Archive",theme){
-            try{sourceContext.startActivity(Intent(Intent.ACTION_VIEW,Uri.parse(AbExtraSources.LIBRIVOX_CATALOG_URL)))}
-            catch(_:android.content.ActivityNotFoundException){Toast.makeText(sourceContext,"Не найден браузер",Toast.LENGTH_SHORT).show()}
-        }
-        Text("Записи общественного достояния в США. Учитывайте права в своей стране. Открывается в браузере; в общий поиск пока не входит.",color=theme.muted,fontSize=11.sp)
-        Text("Дополнительные сайты",color=theme.text,fontSize=16.sp)
-        Text("Откройте сайт внутри приложения, выберите книгу и нажмите «Проверить главы». Общий поиск для этих сайтов пока недоступен.",color=theme.muted,fontSize=12.sp)
-        AbExtraSources.browserOnly.forEach{(name,url,note)->
-            AbButton("Открыть в приложении · $name",theme){
-                showSources=false;manualSource=name to url
-            }
-            Text(note,color=theme.muted,fontSize=11.sp)
-            AbSourceHealthStatus(name,health,theme)
-        }
         AbButton("Готово",theme){showSources=false;if(data.searchSource.isBlank()&&data.query.isNotBlank())actions.searchScope("")}
-    }
-}
-
-/** Explicit user browsing, without a JS bridge or access to device files. */
-@Composable
-private fun AbManualSourceBrowser(name:String,home:String,data:AbScreenData,actions:AbActions,
-    theme:AbTheme,dismiss:()->Unit) {
-    val context=androidx.compose.ui.platform.LocalContext.current
-    val scope=androidx.compose.runtime.rememberCoroutineScope()
-    var browser by remember {mutableStateOf<WebView?>(null)}
-    var address by remember {mutableStateOf(home)}
-    var message by remember {mutableStateOf("Откройте страницу книги, затем проверьте доступные главы.")}
-    var busy by remember {mutableStateOf(false)}
-    var edition by remember {mutableStateOf<AbDownloadEdition?>(null)}
-    var generation by remember {mutableStateOf(0)}
-    var checking by remember {mutableStateOf<kotlinx.coroutines.Job?>(null)}
-    var reconnect by remember {mutableStateOf<kotlinx.coroutines.Job?>(null)}
-    val retryCounts=remember(home){mutableMapOf<String,Int>()}
-    var alive by remember {mutableStateOf(true)}
-    DisposableEffect(home) {onDispose{alive=false;reconnect?.cancel();checking?.cancel();browser?.let{AbWebViews.release(it)}}}
-    fun retryPage(view:WebView?,url:String,error:Exception) {
-        if(!alive||view==null||AbExtraSources.manualName(url)!=name)return
-        val count=retryCounts[url] ?: 0
-        val wait=SourceRequestRetry.waitMillis(error,count) ?: return
-        retryCounts[url]=count+1;reconnect?.cancel()
-        val token=generation
-        reconnect=scope.launch {
-            kotlinx.coroutines.delay(wait)
-            if(alive&&token==generation&&view===browser&&view.url==url)view.loadUrl(url)
-        }
-    }
-    fun inspect() {
-        val web=browser ?: return
-        val selected=web.url.orEmpty()
-        if(busy||AbExtraSources.manualName(selected)!=name)return
-        val token=generation
-        busy=true;message="Проверяем список глав…";edition=null
-        checking=scope.launch {
-            try {
-                val raw=kotlinx.coroutines.withTimeout(8000L) {
-                    kotlinx.coroutines.suspendCancellableCoroutine<String?> {reply ->
-                        web.evaluateJavascript(pageAnalyzerJs()){value->if(reply.isActive)reply.resumeWith(Result.success(value))}
-                    }
-                }
-                if(!alive||token!=generation||web.url!=selected)return@launch
-                val root=JSONObject(decodeJsString(raw))
-                abEnrichAudioOnline(web,root,selected)
-                if(!alive||token!=generation||web.url!=selected)return@launch
-                val title=cleanBookTitle(root.optString("title").ifBlank{web.title.orEmpty()})
-                val found=abDownloadEdition(BookRef(title,selected,root.optString("cover")),root,selected)
-                if(found==null||title.isBlank())message=root.optString("sourceError").ifBlank{
-                    "Сайт не передал полный читаемый список глав. Откройте плеер самой книги и повторите проверку. Доступность скачивания зависит от источника."}
-                else {
-                    context.applicationContext.getSharedPreferences("audiobook_downloader",Context.MODE_PRIVATE)
-                        .edit().putString("source_http_agent",web.settings.userAgentString).apply()
-                    edition=found;message="Доступное издание: $title"
-                }
-            }catch(_:kotlinx.coroutines.TimeoutCancellationException){if(token==generation)message="Страница не ответила на проверку глав. Повторите попытку."}
-            catch(cancel:kotlinx.coroutines.CancellationException){throw cancel}
-            catch(_:Exception){if(token==generation)message="Не удалось проверить главы. Повторите попытку."}
-            finally{if(token==generation)busy=false}
-        }
-    }
-    androidx.compose.ui.window.Dialog(onDismissRequest=dismiss,
-        properties=androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth=false)) {
-        Column(Modifier.fillMaxSize().padding(12.dp).background(theme.background).padding(8.dp),
-            verticalArrangement=Arrangement.spacedBy(8.dp)) {
-            Row(verticalAlignment=Alignment.CenterVertically) {
-                AbIconButton(AbIcon.BACK,"Назад на сайте",theme){browser?.let{if(it.canGoBack())it.goBack()}}
-                Text(name,color=theme.text,modifier=Modifier.weight(1f))
-                AbIconButton(AbIcon.CLOSE,"Закрыть сайт",theme,onClick=dismiss)
-            }
-            Text(Uri.parse(address).host.orEmpty(),color=theme.muted,fontSize=12.sp)
-            androidx.compose.ui.viewinterop.AndroidView(modifier=Modifier.weight(1f).fillMaxWidth(),factory={ctx ->
-                try {WebView(ctx).apply {
-                    AbWebViews.register(this);browser=this
-                    settings.javaScriptEnabled=true;settings.domStorageEnabled=true
-                    settings.allowFileAccess=false;settings.allowContentAccess=false
-                    settings.allowFileAccessFromFileURLs=false;settings.allowUniversalAccessFromFileURLs=false
-                    settings.mixedContentMode=android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW
-                    settings.mediaPlaybackRequiresUserGesture=true
-                    webViewClient=object:AbBookWebViewClient({message="Веб-страница закрыта системой. Закройте окно и откройте сайт снова.";browser=null}) {
-                        override fun shouldOverrideUrlLoading(view:WebView?,request:android.webkit.WebResourceRequest?):Boolean {
-                            if(request?.isForMainFrame!=true)return false
-                            val blocked=AbExtraSources.manualName(request.url.toString())!=name
-                            if(blocked)message="Переход на другой сайт остановлен. Выберите книгу в текущем источнике."
-                            return blocked
-                        }
-                        override fun onPageStarted(view:WebView?,url:String?,favicon:android.graphics.Bitmap?) {
-                            generation++;reconnect?.cancel();checking?.cancel();busy=false;edition=null;address=url.orEmpty()
-                            if(AbExtraSources.manualName(address)!=name){view?.stopLoading();message="Недопустимый адрес сайта."}
-                        }
-                        override fun onReceivedHttpError(view:WebView?,request:android.webkit.WebResourceRequest?,response:android.webkit.WebResourceResponse?) {
-                            if(request?.isForMainFrame==true) {
-                                message="Сайт вернул HTTP ${response?.statusCode}. Повторите позже."
-                                if(request.method=="GET")retryPage(view,request.url.toString(),SourceHttpFailure(response?.statusCode ?: 0,
-                                    response?.responseHeaders?.entries?.firstOrNull{it.key.equals("Retry-After",true)}?.value))
-                            }
-                        }
-                        override fun onReceivedError(view:WebView?,request:android.webkit.WebResourceRequest?,error:android.webkit.WebResourceError?) {
-                            if(request?.isForMainFrame==true) {
-                                message="Не удалось открыть сайт. Проверьте соединение или повторите позже."
-                                if(request.method=="GET"&&error?.errorCode in listOf(WebViewClient.ERROR_TIMEOUT,WebViewClient.ERROR_CONNECT))
-                                    retryPage(view,request.url.toString(),java.net.SocketTimeoutException())
-                            }
-                        }
-                        override fun onReceivedSslError(view:WebView?,handler:android.webkit.SslErrorHandler?,error:android.net.http.SslError?) {
-                            handler?.cancel();message="Не удалось подтвердить защищённое соединение с сайтом."
-                        }
-                    }
-                    loadUrl(home)
-                }}catch(_:RuntimeException){
-                    message="Не удалось запустить Android System WebView.";android.widget.TextView(ctx).apply{text=message}
-                }catch(_:LinkageError){
-                    message="Android System WebView недоступен на устройстве.";android.widget.TextView(ctx).apply{text=message}
-                }
-            })
-            Text(message,color=theme.muted,fontSize=12.sp,maxLines=4)
-            AbButton("Обновить страницу",theme,enabled=browser!=null&&!busy) {
-                reconnect?.cancel();browser?.url?.let{retryCounts.remove(it)};browser?.reload()
-            }
-            AbButton(if(busy)"Проверяем…" else "Проверить главы",theme,enabled=!busy&&browser!=null){inspect()}
-
-        }
-    }
-    edition?.let {loaded ->
-        AbDialog(loaded.ref.title,theme,{edition=null}) {
-            AbEditionDownloadControls(loaded,data.downloadedIndex,
-                data.downloads.filter{it.book==loaded.ref.title&&it.state==TrackState.DOWNLOADING}.map{it.track.title}.toSet(),
-                theme,actions.downloadEdition)
-        }
     }
 }
 
