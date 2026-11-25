@@ -66,9 +66,10 @@ print('Extracted actual JavaScript classifier, catalogue, category browser and a
 (out/'public-classifier.js').write_text(body('abPublicGenreClassifierJs').replace('$adapterJson',json.dumps(adapters,ensure_ascii=False)))
 (out/'public-search.js').write_text(body('abPublicSearchJs'))
 (out/'external-page.js').write_text(body('abExternalBookPageJs').replace('$analyzer',analyzer.rstrip(';')))
-assert 'AbExternalGenreSearch(name,genreQuery,genreExternalBatch' in s
+ui_root=(kotlin/'AudioBookRoot.kt').read_text()
+assert 'AbExternalGenreSearch(name,genreQuery,genreExternalBatch' in ui_root
 assert 'job.cancel()' in s and 'slots.acquire()' in (kotlin/'AbPublicCatalogSource.kt').read_text()
-assert 'genreNeedsMore() && genreExternalLoading' in s
+assert 'genreNeedsMore() && genreExternalLoading' in ui_root
 print('Extracted external classifier, public search and book verification scripts')
 
 (out/'azbyka-catalog.js').write_text(az_catalog)
