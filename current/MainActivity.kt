@@ -9948,7 +9948,7 @@ private fun AbModernApp(data: AbScreenData, actions: AbActions, sync: LibrarySyn
                         if(activeDownloads>0)Text("$activeDownloads",color=theme.accent,fontSize=10.sp,fontWeight=FontWeight.Bold,
                             modifier=Modifier.align(Alignment.TopEnd).padding(end=3.dp,top=2.dp))
                     }
-                    AbIconButton(AbIcon.SETTINGS,"Настройки",theme,onClick={settings=AbSettingsSection.HOME})
+
                 }
             }
             Box(Modifier.weight(1f).fillMaxWidth()) {
@@ -9975,7 +9975,7 @@ private fun AbModernApp(data: AbScreenData, actions: AbActions, sync: LibrarySyn
                     }
                 }
             }
-            AbBottomNavigation(data.page,theme,actions.navigate)
+            AbBottomNavigation(data.page,theme,actions.navigate){settings=AbSettingsSection.HOME}
         }
     }
     settings?.let { section -> AbSettingsDialog(data,prefs,theme,actions,sync,section,onCrashReport={
@@ -10000,7 +10000,7 @@ private fun AbModernApp(data: AbScreenData, actions: AbActions, sync: LibrarySyn
 }
 
 @Composable
-private fun AbBottomNavigation(page: AppPage, theme: AbTheme, navigate: (AppPage)->Unit) {
+private fun AbBottomNavigation(page: AppPage, theme: AbTheme, navigate: (AppPage)->Unit, onSettings:()->Unit) {
     val tabs=listOf(Triple(AppPage.SEARCH,AbIcon.SEARCH,"Поиск"),Triple(AppPage.LIBRARY,AbIcon.BOOKS,"Книги"),
         Triple(AppPage.PLAYER,AbIcon.PLAY,"Плеер"),Triple(AppPage.COLLECTIONS,AbIcon.COLLECTIONS,"Коллекции"))
     Row(Modifier.padding(horizontal=8.dp,vertical=5.dp).fillMaxWidth()
@@ -10014,6 +10014,11 @@ private fun AbBottomNavigation(page: AppPage, theme: AbTheme, navigate: (AppPage
                 AbIcon(icon,if(page==target) theme.accent else theme.muted)
                 Text(label,color=if(page==target) theme.accent else theme.muted,fontSize=10.sp,fontWeight=FontWeight.Medium)
             }
+        }
+        Column(Modifier.weight(1f).clip(RoundedCornerShape(17.dp)).heightIn(min=56.dp).clickable(onClick=onSettings).padding(vertical=6.dp),
+            horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(5.dp)) {
+            AbIcon(AbIcon.SETTINGS,theme.muted)
+            Text("Настройки",color=theme.muted,fontSize=10.sp,fontWeight=FontWeight.Medium)
         }
     }
 }
@@ -11031,7 +11036,7 @@ private fun AbCollectionsScreen(data: AbScreenData,actions: AbActions,books: Lis
     val context=androidx.compose.ui.platform.LocalContext.current
     var continuationSettings by remember {mutableStateOf(false)}
     var management by remember {mutableStateOf(false)}
-    if(continuationSettings) AbDialog("Продолжения",theme,{continuationSettings=false}) {
+    if(continuationSettings) AbDialog("Подписки на циклы",theme,{continuationSettings=false}) {
         AbContinuationSettings(theme){ref -> continuationSettings=false;actions.openRef(ref)}
     }
     var downloadBooks by remember {mutableStateOf<List<BookRef>?>(null)}
@@ -11055,6 +11060,7 @@ private fun AbCollectionsScreen(data: AbScreenData,actions: AbActions,books: Lis
             if(selected==null) {
                 AbChips(listOf("Список","Обложки"),if(prefs.getBoolean("experience_collection_list",true))0 else 1,theme){prefs.edit().putBoolean("experience_collection_list",it==0).apply()}
                 AbButton("Новая коллекция",theme) {name="";oldName=null;editing=true}
+                AbButton("Подписки на циклы",theme){continuationSettings=true}
             }
             if(selected!=null && selected.books.isNotEmpty())AbButton("Скачать книги",theme){downloadBooks=selected.books.toList()}
 
