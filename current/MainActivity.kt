@@ -8346,7 +8346,7 @@ internal fun AbBookRow(ref: BookRef, local: LibraryBook?, subtitle: String, them
 }
 
 @Composable
-private fun AbPoster(ref: BookRef, local: LibraryBook?, theme: AbTheme, progress: AbBookTimeRules.Result?,
+internal fun AbPoster(ref: BookRef, local: LibraryBook?, theme: AbTheme, progress: AbBookTimeRules.Result?,
     modifier: Modifier=Modifier, onClick: ()->Unit) {
     val display=abBookDisplay(ref,local)
     Column(modifier.abGlass(theme,15)
