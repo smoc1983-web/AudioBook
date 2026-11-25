@@ -94,8 +94,21 @@ public class CompactPlayerTest {
                 assertTrue("Playback controls belong between cover and actions",cover.bottom<=previous.top && next.bottom<=chapters.top);
                 for(String label:new String[]{"Главы","Закладки","Очередь","Таймер","Скорость"})control(By.text(label));
                 for(BySelector extra:new BySelector[]{By.text("Сейчас играет"),By.text("В коллекцию"),By.text("Продолжения"),
-                    By.desc("Настройки плеера"),By.desc("Позиция воспроизведения в главе"),By.textContains("До конца книги:")})
+                    By.desc("Настройки плеера"),By.desc("Позиция воспроизведения в главе")})
                     assertFalse("An extra control is on the player: "+extra,device.hasObject(extra));
+                control(By.textContains("До конца главы:"));
+                control(By.textContains("До конца книги:"));
+                // Each optional progress row must respond independently to its preference.
+                prefs.edit().putBoolean("experience_player_chapter_remaining",false).commit();
+                assertTrue(device.wait(Until.gone(By.textContains("До конца главы:")),5000));
+                control(By.textContains("До конца книги:"));
+                prefs.edit().putBoolean("experience_player_book_remaining",false).commit();
+                assertTrue(device.wait(Until.gone(By.textContains("До конца книги:")),5000));
+                prefs.edit().putBoolean("experience_player_chapter_remaining",true).commit();
+                control(By.textContains("До конца главы:"));
+                assertFalse(device.hasObject(By.textContains("До конца книги:")));
+                prefs.edit().putBoolean("experience_player_book_remaining",true).commit();
+                control(By.textContains("До конца книги:"));
                 click(By.text("Главы"));
                 control(By.desc("Позиция воспроизведения в главе"));
                 click(By.text("О книге"));control(By.text("Сведения о книге"));
