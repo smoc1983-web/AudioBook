@@ -70,18 +70,18 @@ jobs:
           python3 -m venv "$RUNNER_TEMP/audiobook-image-tools"
           "$RUNNER_TEMP/audiobook-image-tools/bin/pip" install --disable-pip-version-check Pillow==11.3.0
           "$RUNNER_TEMP/audiobook-image-tools/bin/python" scripts/optimize-test-resources.py
-      - name: Build, verify and lint
-        run: |
-          python3 current/check.py
-          GITHUB_RUN_NUMBER="$APP_NUMBER" gradle :app:testDebugUnitTest :app:testReleaseUnitTest :app:assembleDebug :app:assembleDebugAndroidTest :app:assembleRelease :app:lintRelease :upgradeProbe:assembleDebug -PaudiobookChannel=main --max-workers=2 --console=plain
-          python3 scripts/check-android-lint.py app/build/reports/lint-results-release.xml
       - name: Enable KVM access for Android emulator
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
           test -r /dev/kvm && test -w /dev/kvm
-          "$ANDROID_HOME/emulator/emulator" -accel-check
+          # The emulator runner installs the emulator binary later.
+      - name: Build, verify and lint
+        run: |
+          python3 current/check.py
+          GITHUB_RUN_NUMBER="$APP_NUMBER" gradle :app:testDebugUnitTest :app:testReleaseUnitTest :app:assembleDebug :app:assembleDebugAndroidTest :app:assembleRelease :app:lintRelease :upgradeProbe:assembleDebug -PaudiobookChannel=main --max-workers=2 --console=plain
+          python3 scripts/check-android-lint.py app/build/reports/lint-results-release.xml
       - name: Verify package replacement and data preservation on emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
