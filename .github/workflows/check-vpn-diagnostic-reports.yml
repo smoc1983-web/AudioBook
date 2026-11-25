@@ -123,3 +123,61 @@ jobs:
           # GITHUB_TOKEN merges do not trigger ordinary push workflows; workflow_dispatch does.
           gh workflow run build-test.yml --repo "$GITHUB_REPOSITORY" --ref test
           echo "Signed Test workflow dispatched. Test release publishes only after its own emulator/signature checks."
+
+  qa-failure-report:
+    name: Report QA failure automatically
+    needs: [checks, emulator, promote]
+    if: ${{ always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+      issues: write
+    steps:
+      - name: Store failing step and logs link in a GitHub issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          CHECKS_RESULT: ${{ needs.checks.result }}
+          EMULATOR_RESULT: ${{ needs.emulator.result }}
+          PROMOTE_RESULT: ${{ needs.promote.result }}
+        run: |
+          set -euo pipefail
+          issue_title="[AudioBook QA] Автоматический отчёт PR #$PR_NUMBER"
+          run_link="https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          issue_number="$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --limit 100 --json number,title             --jq ".[] | select(.title == \"$issue_title\") | .number" | head -n 1)"
+          if [[ "$CHECKS_RESULT" == success && "$EMULATOR_RESULT" == success && "$PROMOTE_RESULT" == success ]]; then
+            echo "All QA stages passed: $run_link" >> "$GITHUB_STEP_SUMMARY"
+            if [[ -n "$issue_number" ]]; then
+              gh issue comment "$issue_number" --repo "$GITHUB_REPOSITORY" --body "Устранено: все этапы QA завершены успешно. $run_link"
+              gh issue close "$issue_number" --repo "$GITHUB_REPOSITORY" --reason completed
+            fi
+            exit 0
+          fi
+          failing_jobs="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs?per_page=100"             --jq '.jobs[] | select(.conclusion=="failure" or .conclusion=="timed_out" or .conclusion=="cancelled") | "- **\(.name)**: \(.conclusion). Ошибочный шаг: \([.steps[]? | select(.conclusion=="failure" or .conclusion=="timed_out") | .name] | join(", ")). [Лог](\(.html_url))"' || true)"
+          if [[ -z "$failing_jobs" ]]; then failing_jobs="Ошибочный шаг не определён автоматически; см. ссылку на запуск."; fi
+          report="$(mktemp)"
+          cat > "$report" <<EOF
+          Обнаружена ошибка в QA-конвейере AudioBook, PR #$PR_NUMBER.
+
+          - Коммит: $GITHUB_SHA
+          - Прогон: $run_link
+          - Компиляция и unit-тесты: **$CHECKS_RESULT**
+          - Android-эмулятор: **$EMULATOR_RESULT**
+          - Перенос в Test: **$PROMOTE_RESULT**
+
+          **Остановившиеся задания и шаги**
+
+          $failing_jobs
+
+          Диагностика и результаты Android-тестов доступны в разделе Artifacts указанного прогона.
+          При настоящей ошибке кода исправить причину и повторить тесты.
+          Ни Test APK, ни основную версию нельзя считать выпущенными без успешной проверки.
+          EOF
+          cat "$report" >> "$GITHUB_STEP_SUMMARY"
+          if [[ -n "$issue_number" ]]; then
+            gh issue comment "$issue_number" --repo "$GITHUB_REPOSITORY" --body-file "$report"
+          else
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "$issue_title" --body-file "$report"
+          fi
