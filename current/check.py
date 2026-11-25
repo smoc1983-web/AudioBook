@@ -10,13 +10,13 @@ ns['check_delimiters']((root/'PlaybackService.kt').read_text())
 assert '@OptIn(androidx.compose.ui.ExperimentalComposeUiApi::class)\n@Composable\ninternal fun AbDialog' in (root.parent/"app/src/main/java/com/audiobookdownloader/AbSharedControls.kt").read_text()
 assert 'MediaPlayer()' not in s
 assert 'AB_PRODUCT_NAME=' in s
-assert "private object AbBookSources" in s
+assert "internal object AbBookSources" in s
 imports=re.findall(r'^import .+$',s,re.M)
 assert len(imports)==len(set(imports))
 print('Both Kotlin files structurally checked; version, support details and compile-error opt-in preserved')
 
 # Extract the actual JS bodies and the literal adapter tables from Kotlin.
-block=s[s.index('private object AbSourceClassifier'):s.index('private fun abCatalogClassifierJs')]
+block=s[s.index('internal object AbSourceClassifier'):s.index('private fun abCatalogClassifierJs')]
 common={name:json.loads('['+values+']') for name,values in re.findall(r'"([^"]+)" to listOf\(([^\n]+)\)',block[:block.index('fun aliases')])}
 adapters={site:dict(common) for site in ['Bookinfo','Книгоблуд','Азбука веры','Audiokniga-online.ru']}
 for site,name,values in re.findall(r'"([^"]+)" to "([^"]+)" -> listOf\(([^\n]+)\)',block):
