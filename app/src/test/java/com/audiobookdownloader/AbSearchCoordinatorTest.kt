@@ -59,4 +59,41 @@ class AbSearchCoordinatorTest {
         AbSearchCoordinator.search(listOf("Bookinfo","Bookinfo"),{1000},{calls.add(it);SiteSearchResult(emptyList())},{site,_->reports.add(site)})
         assertEquals(listOf("Bookinfo"),calls);assertEquals(calls,reports)
     }
+
+    @Test(timeout=5000) fun cachedPreviewPrecedesNetworkAndFreshResultsReplaceIt()=runBlocking {
+        val old=SiteSearchResult(listOf(BookLink("Old","https://example.org/old")))
+        val fresh=SiteSearchResult(listOf(BookLink("Fresh","https://example.org/new")))
+        val events=mutableListOf<String>()
+        val results=mutableMapOf<String,SiteSearchResult>()
+        AbSearchCoordinator.refresh(listOf("a","b"),{1000},{if(it=="a")old else null},{site->
+            assertEquals("preview",events.first());events.add("fetch:$site");fresh
+        },{saved->
+            assertEquals(setOf("a"),saved.keys);assertTrue(saved.getValue("a").fromCache);events.add("preview")
+        },{site,result->results[site]=result})
+        assertEquals(setOf("a","b"),results.keys)
+        assertEquals(fresh.books,results.getValue("a").books)
+        assertFalse(results.getValue("a").fromCache)
+    }
+    @Test(timeout=5000) fun refreshTimeoutRetainsCacheButSuccessfulEmptyReplacesIt()=runBlocking {
+        val old=SiteSearchResult(listOf(BookLink("Old","https://example.org/old")))
+        val results=mutableMapOf<String,SiteSearchResult>()
+        AbSearchCoordinator.refresh(listOf("timeout","empty"),{50},{old},{site->
+            if(site=="timeout")awaitCancellation()
+            SiteSearchResult(emptyList())
+        },{}, {site,result->results[site]=result})
+        assertEquals(old.books,results.getValue("timeout").books)
+        assertTrue(results.getValue("timeout").fromCache)
+        assertTrue(results.getValue("timeout").error.isNotBlank())
+        assertTrue(results.getValue("empty").books.isEmpty())
+        assertFalse(results.getValue("empty").fromCache)
+    }
+    @Test(timeout=5000) fun refreshCancellationNeverReportsFalseFailures()=runBlocking {
+        var previewed=false;var reports=0
+        val old=SiteSearchResult(listOf(BookLink("Old","https://example.org/old")))
+        withTimeoutOrNull(100){
+            AbSearchCoordinator.refresh(listOf("a","b"),{5000},{old},{awaitCancellation()},
+                {previewed=true},{_,_->reports++})
+        }
+        assertTrue(previewed);assertEquals(0,reports)
+    }
 }

@@ -20,7 +20,7 @@ class CycleSubscriptionsNavigationTest {
     @get:Rule val compose = createAndroidComposeRule<MainActivity>()
 
     @Test(timeout = 120000)
-    fun settingsAndSubscriptionsAreReachableFromBottomNavigation() {
+    fun settingsAndCollectionTrackingAreReachableWithoutCycleSubscriptions() {
         compose.waitUntil(60000) {
             compose.onAllNodesWithText("Настройки", useUnmergedTree = true)
                 .fetchSemanticsNodes().isNotEmpty()
@@ -31,9 +31,10 @@ class CycleSubscriptionsNavigationTest {
 
         compose.onNodeWithText("Коллекции", useUnmergedTree = true).performClick()
         compose.onNodeWithText("Мои коллекции", useUnmergedTree = true).assertIsDisplayed()
-        compose.onNodeWithText("Подписки на циклы", useUnmergedTree = true).performClick()
-
-        compose.onNodeWithText("Мои подписки на циклы", useUnmergedTree = true).assertExists()
+        check(compose.onAllNodesWithText("Подписки на циклы", useUnmergedTree = true).fetchSemanticsNodes().isEmpty())
+        compose.onNodeWithContentDescription("Управление коллекциями", useUnmergedTree = true).performClick()
+        compose.onNodeWithText("Настроить уведомления о продолжениях", useUnmergedTree = true).performClick()
+        check(compose.onAllNodesWithText("Мои подписки на циклы", useUnmergedTree = true).fetchSemanticsNodes().isEmpty())
         compose.onNodeWithText("Автоматическое отслеживание коллекций", useUnmergedTree = true).assertExists()
     }
 }

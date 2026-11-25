@@ -49,6 +49,8 @@ public final class PreviewUpdatesActivity extends Activity {
             view.setPadding(dp(22),dp(18)+insets.getSystemWindowInsetTop(),dp(22),dp(30)+insets.getSystemWindowInsetBottom());return insets;
         });
         scroll.addView(root);setContentView(scroll);
+        TextView back=text(root,"‹ Назад",17);
+        back.setContentDescription("Назад");back.setMinHeight(dp(48));back.setOnClickListener(v->finish());
         text(root,"Обновления "+BuildConfig.PRODUCT_NAME,25).setTypeface(null,Typeface.BOLD);
         text(root,"Установлена "+BuildConfig.VERSION_NAME+" · "+BuildConfig.VERSION_CODE,14);
         installedNotes=readInstalledNotes();

@@ -1850,6 +1850,14 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
 
     }
 
+    LaunchedEffect(widgetRoute.serial) {
+        if(widgetRoute.target=="imported" && widgetRoute.edition.isNotBlank()) {
+            val local=withContext(Dispatchers.IO){SharedAudioStore.library(context).firstOrNull{it.editionId==widgetRoute.edition}}
+            if(local!=null){librarySync.requestSync();openDownloadedBook(local,false)}
+            else Toast.makeText(context,"Не удалось открыть импортированную книгу",Toast.LENGTH_LONG).show()
+        }
+    }
+
     fun rememberSearchResults() {
         if(appPage!=AppPage.SEARCH || !searchSessionActive) {
             searchReturns=emptyList()
@@ -2733,6 +2741,35 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                 val narration=narrationSearch
                 var referenceChecked by remember(requestId){mutableStateOf(false)}
                 var referenceAuthor by remember(requestId){mutableStateOf("")}
+                var cachedReports by remember(requestId){mutableStateOf<Map<String,SiteSearchResult>>(emptyMap())}
+                suspend fun presentCached(saved:Map<String,SiteSearchResult>) {
+                    if(requestId!=unifiedSearchId || unifiedQuery.isBlank() || searchReports.isNotEmpty())return
+                    cachedReports=saved
+                    val merged=withContext(Dispatchers.Default){
+                        val job=kotlinx.coroutines.currentCoroutineContext()
+                        val result=AbGlobalBookResults.prepare(saved,requestSources,requestQuery,AB_SEARCH_LIMIT,checkActive={job.ensureActive()})
+                        when {
+                            narration!=null -> result.mapNotNull{narration.match(prefs,it)}
+                            ranked!=null -> result.mapNotNull{rankedAudioResult(prefs,ranked,it)}
+                            else -> if(referenceAuthor.isBlank())result else result.filter{
+                                it.author.isBlank()||SeriesAuthorityRules.author(it.author)==SeriesAuthorityRules.author(referenceAuthor)
+                            }
+                        }
+                    }
+                    if(requestId==unifiedSearchId && unifiedQuery.isNotBlank() && searchReports.isEmpty() && merged.isNotEmpty()){
+                        bookLinks=merged
+                        status="Сохранённые результаты. Обновляю поиск…"
+                    }
+                }
+                LaunchedEffect(requestId) {
+                    if(AbSearchDiagnostics.mode(prefs)==AbSearchNetworkMode.NORMAL){
+                        val saved=linkedMapOf<String,SiteSearchResult>()
+                        for(site in requestSources){
+                            AbSearchCache.get(context,site,requestQuery)?.let{saved[site]=AbGlobalBookResults.nativeResult(it,requestQuery)}
+                        }
+                        if(saved.isNotEmpty())presentCached(saved)
+                    }
+                }
                 LaunchedEffect(requestId) {
                     if(!referenceChecked) {
                         status="Сначала сверяю книгу и цикл по Author.Today и Литрес…"
@@ -2757,7 +2794,8 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                         }
                     }
                 }
-                if(referenceChecked) UnifiedBookSearch(unifiedQuery, prefs,requestSources) { site, report ->
+                if(referenceChecked) UnifiedBookSearch(unifiedQuery, prefs,requestSources,refreshCached=true,
+                    onCached={saved->presentCached(saved)}) { site, report ->
                     if (requestId == unifiedSearchId && unifiedQuery.isNotBlank()) {
                         val limited=report.copy(books=report.books.take(AB_SEARCH_LIMIT))
                         modernWork.launch(Dispatchers.IO){limited.books.forEach{abRememberCatalog(prefs,it)}}
@@ -2770,7 +2808,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                             try {
                                 val merged=withContext(Dispatchers.Default) {
                                     val context=kotlinx.coroutines.currentCoroutineContext()
-                                    val result=AbGlobalBookResults.prepare(reports,requestSources,requestQuery,AB_SEARCH_LIMIT,checkActive={context.ensureActive()})
+                                    val result=AbGlobalBookResults.prepare(cachedReports+reports,requestSources,requestQuery,AB_SEARCH_LIMIT,checkActive={context.ensureActive()})
                                     when {
                                         narration!=null -> result.mapNotNull{narration.match(prefs,it)}
                                         ranked!=null -> result.mapNotNull{rankedAudioResult(prefs,ranked,it)}
@@ -8855,7 +8893,8 @@ private suspend fun abResolveCycleAudio(context:Context,prefs:android.content.Sh
 
 @Composable
 fun UnifiedBookSearch(query: String, prefs: android.content.SharedPreferences,
-    sources:List<String> = AbBookSources.searchOrder,onResult: (String, SiteSearchResult) -> Unit) {
+    sources:List<String> = AbBookSources.searchOrder,refreshCached:Boolean=false,
+    onCached:suspend (Map<String,SiteSearchResult>)->Unit={},onResult: (String, SiteSearchResult) -> Unit) {
     val context=androidx.compose.ui.platform.LocalContext.current
     val requested=sources.filter{it in AbBookSources.searchOrder}.distinct()
     val report by androidx.compose.runtime.rememberUpdatedState(onResult)
@@ -8865,15 +8904,26 @@ fun UnifiedBookSearch(query: String, prefs: android.content.SharedPreferences,
         val mode=AbSearchDiagnostics.mode(prefs)
         val session=runCatching{AbSearchDiagnostics.begin(context,query,scheduled,mode)}.getOrDefault("")
         try {
-            AbSearchCoordinator.search(scheduled,{site ->if(site==AbBookSources.AZBYKA)95_000L else 50_000L},
-                {site ->
+            val timeout:(String)->Long={site->if(site==AbBookSources.AZBYKA)95_000L else 50_000L}
+            val fetch:suspend (String)->SiteSearchResult={site->
+                abSearchOneSource(context,site,query,prefs).also{
+                    // A failed refresh must not overwrite a good saved result.
+                    if(it.error.isBlank())AbSearchCache.put(context,site,query,it)
+                }
+            }
+            val deliver:suspend (String,SiteSearchResult)->Unit={site,result->
+                if(session.isNotBlank())runCatching{AbSearchDiagnostics.result(context,session,site,result)}
+                report(site,AbGlobalBookResults.nativeResult(result,query))
+            }
+            if(refreshCached && mode==AbSearchNetworkMode.NORMAL){
+                AbSearchCoordinator.refresh(scheduled,timeout,{site->AbSearchCache.get(context,site,query)},fetch,
+                    {saved->onCached(saved.mapValues{(_,result)->AbGlobalBookResults.nativeResult(result,query)})},deliver)
+            }else{
+                AbSearchCoordinator.search(scheduled,timeout,{site->
                     val cached=if(mode==AbSearchNetworkMode.NORMAL)AbSearchCache.get(context,site,query) else null
-                    cached?.copy(fromCache=true) ?: abSearchOneSource(context,site,query,prefs)
-                        .also{AbSearchCache.put(context,site,query,it)}
-                }, {site,result ->
-                    if(session.isNotBlank())runCatching{AbSearchDiagnostics.result(context,session,site,result)}
-                    report(site,AbGlobalBookResults.nativeResult(result,query))
-                })
+                    cached?.copy(fromCache=true) ?: fetch(site)
+                },deliver)
+            }
         } finally {if(session.isNotBlank())runCatching{AbSearchDiagnostics.finish(context,session)}}
     }
 }
@@ -9873,7 +9923,7 @@ private fun AbModernApp(data: AbScreenData, actions: AbActions, sync: LibrarySyn
     val widgetRoute by AbWidgetRoutes.requests.collectAsState()
     LaunchedEffect(widgetRoute.serial) {
         if(widgetRoute.target=="timer")settings=AbSettingsSection.TIMER
-        else if(widgetRoute.target=="player" || widgetRoute.target=="library")settings=null
+        else if(widgetRoute.target=="player" || widgetRoute.target=="library" || widgetRoute.target=="imported")settings=null
     }
     var downloads by remember { mutableStateOf(false) }
     var libraryAccess by remember { mutableStateOf(false) }
@@ -9975,7 +10025,7 @@ private fun AbModernApp(data: AbScreenData, actions: AbActions, sync: LibrarySyn
                     }
                 }
             }
-            AbBottomNavigation(data.page,theme,actions.navigate){settings=AbSettingsSection.HOME}
+            AbBottomNavigation(data.page,theme,actions.navigate){settings=if(data.page==AppPage.PLAYER) AbSettingsSection.PLAYER_HOME else AbSettingsSection.HOME}
         }
     }
     settings?.let { section -> AbSettingsDialog(data,prefs,theme,actions,sync,section,onCrashReport={
@@ -10078,7 +10128,6 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
     var genreFilter by remember(prefs) { mutableStateOf(prefs.getString("search_filter_genre","").orEmpty()) }
     var exactOnly by remember(prefs) { mutableStateOf(prefs.getBoolean("search_filter_exact",false)) }
     var showLocalIndex by remember {mutableStateOf(false)}
-    var showPeople by remember {mutableStateOf(false)}
     var indexedMatches by remember {mutableStateOf<List<BookLink>>(emptyList())}
     var localCatalog by remember(data.query,showLocalIndex){mutableStateOf<AbLocalCatalog.Result?>(null)}
     val chosenSites=if(data.searchSource.isBlank())enabledSources else setOf(data.searchSource)
@@ -10263,7 +10312,6 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
                 }
             }
             if(data.query.trim().length>=2)AbButton("Из локальной базы",theme){showLocalIndex=true}
-            AbButton("Любимые авторы и чтецы",theme){showPeople=true}
             if(!data.searchActive)AbButton("Восстановить последний поиск",theme,onClick=actions.restoreLastSearch)
             if(data.searchActive&&!data.searching&&data.onlineBook==null&&data.query.isNotBlank())AbButton("Обновить результаты",theme,onClick=actions.refreshSearch)
             Row(Modifier.fillMaxWidth().padding(top=6.dp),horizontalArrangement=Arrangement.spacedBy(8.dp)) {
@@ -10274,7 +10322,7 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
                 color=theme.muted,fontSize=11.sp,modifier=Modifier.padding(top=5.dp))
 
         }
-        if (data.searchActive || data.cycleBrowsing || data.genre.isNotBlank()) item(key="preview-filter") {
+        item(key="preview-filter") {
             AbButton(if (activeFilters == 0) "Фильтры поиска" else "Фильтры поиска · $activeFilters",theme) {
                 showFilters = true
             }
@@ -10404,9 +10452,6 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
             if(localShown<displayed.size)AbButton("Показать ещё · $localShown из ${displayed.size}",theme){localShown+=40}
         }
         AbButton("Закрыть",theme){showLocalIndex=false}
-    }
-    if(showPeople)AbFavoritePeopleDialog(prefs,theme,{showPeople=false}){name->
-        showPeople=false;actions.query(name);actions.search()
     }
     if (showFilters) AbSearchFilterDialog(narratorFilter, seriesOnly, localOnly, hidePreviews, theme,
         dismiss = { showFilters = false },author=authorFilter,genre=genreFilter,exact=exactOnly) { narrator, series, local, hideDemo,author,genre,exact ->
@@ -10916,9 +10961,10 @@ internal fun AbCollectionBookCard(ref:BookRef,local:LibraryBook?,theme:AbTheme,
 
 @Composable
 internal fun AbCollectionBookMenu(ref:BookRef,theme:AbTheme,expanded:Boolean,onDownload:()->Unit,
-    onRemove:()->Unit,onContinuations:()->Unit,dismiss:()->Unit) {
+    onRemove:()->Unit,onContinuations:()->Unit,dismiss:()->Unit,onDeleteFiles:(()->Unit)?=null) {
     AbDialog(ref.title,theme,dismiss) {
         AbButton("Скачать книгу",theme){dismiss();onDownload()}
+        if(onDeleteFiles!=null)AbButton("Удалить скачанные файлы",theme){dismiss();onDeleteFiles()}
         AbButton("Убрать из коллекции",theme){dismiss();onRemove()}
         AbButton(if(expanded) "Скрыть продолжения" else "Продолжения",theme){dismiss();onContinuations()}
     }
@@ -10927,7 +10973,7 @@ internal fun AbCollectionBookMenu(ref:BookRef,theme:AbTheme,expanded:Boolean,onD
 @Composable
 internal fun AbCollectionShelf(shelf:Shelf,books:List<LibraryBook>,prefs:android.content.SharedPreferences,
     version:Int,theme:AbTheme,onOpen:(BookRef)->Unit,onBookDownload:(BookRef)->Unit,onSelect:()->Unit,
-    onDownload:()->Unit,onRename:()->Unit,onDelete:()->Unit) {
+    onDownload:()->Unit,onRename:()->Unit,onDelete:()->Unit,onDeleteFiles:((LibraryBook)->Unit)?=null) {
     var expanded by androidx.compose.runtime.saveable.rememberSaveable(shelf.name){mutableStateOf<String?>(null)}
     var menu by remember(shelf.name){mutableStateOf(false)}
     var menuBook by remember(shelf.name){mutableStateOf<BookRef?>(null)}
@@ -10964,7 +11010,8 @@ internal fun AbCollectionShelf(shelf:Shelf,books:List<LibraryBook>,prefs:android
         val identity=bookRefIdentity(ref)
         AbCollectionBookMenu(ref,theme,expanded==identity,{onBookDownload(ref)},
             {abRemoveShelfBook(prefs,shelf.name,ref)},
-            {expanded=if(expanded==identity)null else identity},{menuBook=null})
+            {expanded=if(expanded==identity)null else identity},{menuBook=null},
+            onDeleteFiles=abFindLocal(books,ref.title,ref.editionId)?.takeIf{it.files.isNotEmpty()}?.let{local->onDeleteFiles?.let{delete->{delete(local)}}})
     }
     if(menu)AbDialog("Коллекция «${shelf.name}»",theme,{menu=false}) {
         AbButton("Открыть коллекцию",theme){menu=false;onSelect()}
@@ -11031,14 +11078,32 @@ internal fun AbCollectionContinuations(ref:BookRef,books:List<LibraryBook>,prefs
 }
 
 @Composable
+private fun AbCollectionFileDeletion(local:LibraryBook,theme:AbTheme,delete:(LibraryBook,(Boolean,String)->Unit)->Unit,dismiss:()->Unit) {
+    var busy by remember(local.bookId){mutableStateOf(false)}
+    var message by remember(local.bookId){mutableStateOf("")}
+    AbDialog("Удалить скачанные файлы?",theme,{if(!busy)dismiss()}) {
+        Text(local.title,color=theme.text,fontSize=17.sp)
+        Text("Будут удалены скачанные главы. Коллекция, закладки и другие документы сохранятся.",color=theme.muted,fontSize=14.sp)
+        if(message.isNotBlank())Text(message,color=theme.muted,fontSize=13.sp)
+        AbButton(if(busy)"Удаляем…" else "Удалить скачанные файлы",theme,enabled=!busy) {
+            busy=true;message=""
+            delete(local){success,result->busy=false;message=result;if(success)dismiss()}
+        }
+        AbButton("Отмена",theme,enabled=!busy,onClick=dismiss)
+    }
+}
+
+@Composable
 private fun AbCollectionsScreen(data: AbScreenData,actions: AbActions,books: List<LibraryBook>,
     prefs: android.content.SharedPreferences,theme: AbTheme) {
     val context=androidx.compose.ui.platform.LocalContext.current
     var continuationSettings by remember {mutableStateOf(false)}
     var management by remember {mutableStateOf(false)}
-    if(continuationSettings) AbDialog("Подписки на циклы",theme,{continuationSettings=false}) {
-        AbCycleSubscriptions(theme){ref -> continuationSettings=false;actions.openRef(ref)}
+    if(continuationSettings) AbDialog("Уведомления о продолжениях",theme,{continuationSettings=false}) {
+        AbCollectionTrackingSettings(theme){ref -> continuationSettings=false;actions.openRef(ref)}
     }
+    var deleteFiles by remember {mutableStateOf<LibraryBook?>(null)}
+    deleteFiles?.let {local -> AbCollectionFileDeletion(local,theme,actions.deleteBook){deleteFiles=null} }
     var downloadBooks by remember {mutableStateOf<List<BookRef>?>(null)}
     downloadBooks?.let {refs -> AbCollectionDownloads(refs,data.downloadedIndex,data.downloads,theme,
         actions.downloadEdition,{downloadBooks=null},onBatch=actions.downloadBatch)}
@@ -11060,7 +11125,6 @@ private fun AbCollectionsScreen(data: AbScreenData,actions: AbActions,books: Lis
             if(selected==null) {
                 AbChips(listOf("Список","Обложки"),if(prefs.getBoolean("experience_collection_list",true))0 else 1,theme){prefs.edit().putBoolean("experience_collection_list",it==0).apply()}
                 AbButton("Новая коллекция",theme) {name="";oldName=null;editing=true}
-                AbButton("Подписки на циклы",theme){continuationSettings=true}
             }
             if(selected!=null && selected.books.isNotEmpty())AbButton("Скачать книги",theme){downloadBooks=selected.books.toList()}
 
@@ -11072,7 +11136,7 @@ private fun AbCollectionsScreen(data: AbScreenData,actions: AbActions,books: Lis
             itemsIndexed(shelves,key={_,shelf->shelf.name}) {_,shelf ->
                 AbCollectionShelf(shelf,books,prefs,data.version,theme,actions.openRef,{downloadBooks=listOf(it)},
                     {selectedShelf=shelf.name},{downloadBooks=shelf.books.toList()},
-                    {oldName=shelf.name;name=shelf.name;editing=true},{deleting=shelf.name})
+                    {oldName=shelf.name;name=shelf.name;editing=true},{deleting=shelf.name},onDeleteFiles={deleteFiles=it})
             }
         } else {
             itemsIndexed(selected.books,key={index,ref->"$index:${bookRefIdentity(ref)}"}) {_,ref ->
@@ -11081,7 +11145,8 @@ private fun AbCollectionsScreen(data: AbScreenData,actions: AbActions,books: Lis
                 AbBookRow(ref,abFindLocal(books,ref.title,ref.editionId),"",theme,
                     onClick={actions.openRef(ref)},onMenu={showMenu=true})
                 if(showMenu)AbCollectionBookMenu(ref,theme,expanded,{downloadBooks=listOf(ref)},
-                    {abRemoveShelfBook(prefs,selected.name,ref)},{expanded=!expanded},{showMenu=false})
+                    {abRemoveShelfBook(prefs,selected.name,ref)},{expanded=!expanded},{showMenu=false},
+                    onDeleteFiles=abFindLocal(books,ref.title,ref.editionId)?.takeIf{it.files.isNotEmpty()}?.let{local->{deleteFiles=local}})
                 if(expanded)AbCollectionContinuations(ref,books,prefs,data.version,theme,actions.openRef)
             }
             if(selected.books.isEmpty()) item {
@@ -11114,96 +11179,22 @@ private fun AbCollectionsScreen(data: AbScreenData,actions: AbActions,books: Lis
 }
 
 @Composable
-private fun AbCycleSubscriptions(theme:AbTheme,onOpen:(BookRef)->Unit) {
+private fun AbCollectionTrackingSettings(theme:AbTheme,onOpen:(BookRef)->Unit) {
     val context=androidx.compose.ui.platform.LocalContext.current
     val prefs=remember(context){context.getSharedPreferences("audiobook_downloader",0)}
     val store=remember(context){ContinuationStore(context)}
-    val officialStore=remember(context){OfficialSeriesStore(context)}
-    var revision by remember{mutableStateOf(0)}
-    var notifications by remember{mutableStateOf(false)}
-    DisposableEffect(store,prefs,officialStore) {
-        val listener=android.content.SharedPreferences.OnSharedPreferenceChangeListener{_,_->revision++}
-        store.preferences.registerOnSharedPreferenceChangeListener(listener)
-        prefs.registerOnSharedPreferenceChangeListener(listener)
-        officialStore.preferences.registerOnSharedPreferenceChangeListener(listener)
-        onDispose{
-            store.preferences.unregisterOnSharedPreferenceChangeListener(listener)
-            prefs.unregisterOnSharedPreferenceChangeListener(listener)
-            officialStore.preferences.unregisterOnSharedPreferenceChangeListener(listener)
-        }
-    }
-    val manual=remember(revision){store.manualSubscriptions()}
-    val automatically=remember(revision) {
-        loadShelves(prefs).flatMap{it.books}.distinctBy{bookRefIdentity(it)}.size
-    }
-    val collectionTracking=store.preferences.getBoolean("collection_tracking_enabled",true)
-    AbHeading("Мои подписки на циклы",theme,manual.size.toString())
-    Text("Ручные подписки сохраняются независимо от коллекций. Скачивание не начинается автоматически.",color=theme.muted,fontSize=12.sp)
-    AbButton("Проверить все подписки",theme,enabled=AbContinuationAlerts.enabled(context)) {
-        AbContinuationAlerts.checkNow(context)
-    }
-    if(manual.isEmpty())Text("Ручных подписок пока нет. Откройте книгу с подтверждённым циклом и нажмите «Подписаться на цикл».",color=theme.muted,fontSize=13.sp)
-    manual.forEach { seed ->
-        key(seed.id) {
-            val catalog=abStoredCatalog(prefs,seed.title)
-            val author=seed.author.ifBlank{catalog.author}
-            val series=seed.series.ifBlank{catalog.cycles.firstOrNull()?.title.orEmpty()}.ifBlank{seed.title}
-            val volumes=remember(revision,seed.id,author) {
-                abSubscribedVolumes(officialStore.read(seed.title,author),store.available(seed.id))
-            }
-            var expanded by androidx.compose.runtime.saveable.rememberSaveable {mutableStateOf(false)}
-            var referencePanel by remember{mutableStateOf(false)}
-            var confirmRemoval by remember{mutableStateOf(false)}
-            Column(Modifier.fillMaxWidth().abGlass(theme,17).padding(12.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
-                Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(10.dp)) {
-                    AbCover(seed.title,null,BookRef(seed.title,seed.url,seed.cover),theme,Modifier.width(62.dp).height(86.dp))
-                    Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(3.dp)) {
-                        Text(series,color=theme.text,fontSize=16.sp,fontWeight=FontWeight.SemiBold)
-                        if(author.isNotBlank())Text(author,color=theme.muted,fontSize=12.sp)
-                        Text("Найдено томов: "+volumes.size,color=theme.muted,fontSize=12.sp)
-                        Text("Подписка активна",color=theme.accent,fontSize=12.sp)
-                    }
-                }
-                AbButton(if(expanded)"Свернуть список" else "Открыть книги цикла",theme){expanded=!expanded}
-                if(expanded) {
-                    AbButton("Проверить этот цикл",theme,enabled=AbContinuationAlerts.enabled(context)) {
-                        AbContinuationAlerts.checkNow(context,seed.id)
-                    }
-                    if(volumes.isEmpty())Text("Полный список ещё не подтверждён. Нажмите «Сверить справочники».",color=theme.muted,fontSize=12.sp)
-                    volumes.forEach{volume->
-                        val number=volume.order?.let{if(it%1.0==0.0)it.toInt().toString() else it.toString()}
-                        val label=(if(number==null)"" else number+". ")+volume.title+" · "+volume.status
-                        AbButton(label,theme) {
-                            if(SeriesAuthorityRules.work(volume.url))
-                                context.startActivity(Intent(Intent.ACTION_VIEW,Uri.parse(volume.url)))
-                            else onOpen(BookRef(volume.title,volume.url,""))
-                        }
-                    }
-                    AbButton(if(referencePanel)"Скрыть сверку справочников" else "Сверить справочники и порядок книг",theme){referencePanel=!referencePanel}
-                    if(referencePanel)AbOfficialSeriesPanel(seed.title,author,prefs,theme,compact=false,autoRefresh=false)
-                    AbButton("Отписаться от цикла",theme){confirmRemoval=true}
-                }
-            }
-            if(confirmRemoval)AbDialog("Отменить подписку?",theme,{confirmRemoval=false}) {
-                Text("Продолжения этого цикла больше не будут отслеживаться по ручной подписке. Книги из коллекций останутся на месте.",color=theme.muted,fontSize=13.sp)
-                AbButton("Отписаться",theme) {
-                    store.unsubscribe(seed.url)
-                    AbContinuationAlerts.deliver(context)
-                    confirmRemoval=false
-                }
-            }
-        }
-    }
+    var tracking by remember{mutableStateOf(store.preferences.getBoolean("collection_tracking_enabled",true))}
+    val count=loadShelves(prefs).flatMap{it.books}.distinctBy{bookRefIdentity(it)}.size
     AbHeading("Автоматическое отслеживание коллекций",theme)
-    Text("Книг в коллекциях: "+automatically+". Ручные подписки от этого переключателя не зависят.",color=theme.muted,fontSize=12.sp)
-    AbOptions(listOf("Включено","Выключено"),if(collectionTracking)0 else 1,theme){option->
+    Text("Книг в коллекциях: "+count,color=theme.muted,fontSize=12.sp)
+    AbOptions(listOf("Включено","Выключено"),if(tracking)0 else 1,theme){option->
         if(store.preferences.edit().putBoolean("collection_tracking_enabled",option==0).commit()) {
+            tracking=option==0
             AbContinuationAlerts.deliver(context)
-            if(option==0&&AbContinuationAlerts.enabled(context))AbContinuationAlerts.checkNow(context)
+            if(tracking&&AbContinuationAlerts.enabled(context))AbContinuationAlerts.checkNow(context)
         }
     }
-    AbButton(if(notifications)"Скрыть настройки уведомлений" else "Настроить уведомления",theme){notifications=!notifications}
-    if(notifications)AbContinuationSettings(theme,onOpen)
+    AbContinuationSettings(theme,onOpen)
 }
 
 @Composable
@@ -11310,7 +11301,6 @@ internal enum class AbSettingsSection(val label:String,val subtitle:String,val i
     CONTINUATIONS("Продолжения","Новинки циклов в коллекциях",AbIcon.BOOKS),
     WIDGETS("Виджеты","Главный экран Android",AbIcon.COLLECTIONS),
     SUPPORT("Поддержка","Реквизиты разработчика",AbIcon.HEART),
-    SOUND("Звук","Мультимедиа и MIUI",AbIcon.PLAY),
     BACKUP("Резервная копия","Коллекции, позиции и аудиофайлы",AbIcon.BOOKS),
     STORAGE("Память устройства","Размер книг и очистка",AbIcon.DOWNLOAD),
     UPDATES("Обновления","Версия и установка",AbIcon.SYNC),
@@ -11343,7 +11333,7 @@ private fun AbSettingsDialog(data: AbScreenData,prefs: android.content.SharedPre
     val playerSections=listOf(AbSettingsSection.EQUALIZER,AbSettingsSection.SPEED,AbSettingsSection.TIMER,
         AbSettingsSection.REWIND,AbSettingsSection.SHAKE,AbSettingsSection.PLAYER_TOOLS)
     val generalSections=listOf(AbSettingsSection.APPEARANCE,AbSettingsSection.WIDGETS,AbSettingsSection.SUPPORT,
-        AbSettingsSection.SOUND,AbSettingsSection.BACKUP,AbSettingsSection.STORAGE,AbSettingsSection.UPDATES,AbSettingsSection.DIAGNOSTICS)
+        AbSettingsSection.BACKUP,AbSettingsSection.STORAGE,AbSettingsSection.UPDATES,AbSettingsSection.DIAGNOSTICS)
     fun back() {
         when {
             section in playerSections -> section=AbSettingsSection.PLAYER_HOME
@@ -11365,15 +11355,18 @@ private fun AbSettingsDialog(data: AbScreenData,prefs: android.content.SharedPre
     key(section) { AbDialog(section.label,theme,dismiss) {
         if(section==AbSettingsSection.HOME) {
             Text("Выберите блок настроек",color=theme.muted,fontSize=13.sp)
+            AbButton("Меню плеера",theme){section=AbSettingsSection.PLAYER_HOME}
             AbSettingsTiles(theme,generalSections){section=it}
             AbButton("Telegram-канал ↗",theme) {
-                try {context.startActivity(Intent(Intent.ACTION_VIEW,Uri.parse("https://t.me/c/3702128532/1")))}
+                try {context.startActivity(Intent(Intent.ACTION_VIEW,Uri.parse("https://t.me/+IryIQ5fkmOszZWRi")))}
                 catch(_:android.content.ActivityNotFoundException) {
                     Toast.makeText(context,"Не удалось открыть Telegram-ссылку",Toast.LENGTH_LONG).show()
                 }
             }
         } else if(section==AbSettingsSection.PLAYER_HOME) {
+            AbButton("Все настройки",theme){section=AbSettingsSection.HOME}
             AbSettingsTiles(theme,playerSections){section=it}
+            AbButton("Добавить свою книгу",theme){dismiss();context.startActivity(Intent(context,SharedAudioImportActivity::class.java).putExtra("open_import_in_player",true))}
         } else {
             Row(Modifier.fillMaxWidth().heightIn(min=48.dp).clip(RoundedCornerShape(12.dp))
                 .clickable{back()}.padding(horizontal=4.dp),verticalAlignment=Alignment.CenterVertically) {
@@ -11503,22 +11496,13 @@ private fun AbSettingsDialog(data: AbScreenData,prefs: android.content.SharedPre
             Text("Если приложение вам помогает, вы можете поддержать его развитие переводом по номеру телефона.",
                 color=theme.muted,fontSize=13.sp,lineHeight=20.sp)
             Text("+79128580680",color=theme.text,fontSize=22.sp,fontWeight=FontWeight.SemiBold)
-            Text("Тинькофф · Сбербанк · Ozon",color=theme.muted,fontSize=14.sp)
+            AbSupportBank.entries.forEach { bank ->
+                AbButton(bank.title,theme){AbSupportBanks.open(context,bank)}
+            }
             AbButton("Скопировать номер",theme) {
                 val clipboard=context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
                 clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Поддержка разработчика","+79128580680"))
                 Toast.makeText(context,"Номер скопирован",Toast.LENGTH_SHORT).show()
-            }
-        }
-        if(section==AbSettingsSection.SOUND) {
-            Text(AbMediaSound.describe(context),color=theme.muted,fontSize=13.sp,lineHeight=20.sp)
-            Text("Кнопки громкости в приложении управляют мультимедиа. Громкость звонка задаётся отдельно.",
-                color=theme.text,fontSize=13.sp,lineHeight=20.sp)
-            Text("Если на Xiaomi/Redmi беззвучный режим заглушает книгу, откройте «Настройки телефона → Звук и вибрация» и проверьте пункт «Отключать звук мультимедиа в беззвучном режиме». Название зависит от версии MIUI. Также проверьте ограничения режима «Не беспокоить».",
-                color=theme.muted,fontSize=13.sp,lineHeight=20.sp)
-            AbButton("Настройки звука телефона",theme) {
-                try {context.startActivity(Intent(android.provider.Settings.ACTION_SOUND_SETTINGS))}
-                catch(_:Exception){Toast.makeText(context,"Откройте настройки звука телефона вручную",Toast.LENGTH_LONG).show()}
             }
         }
         if(section==AbSettingsSection.HOME) {
@@ -13229,20 +13213,6 @@ internal fun AbPlayerSeries(metadata:BookLink,ref:BookRef,books:List<LibraryBook
     val available=remember(continuationRevision,metadata.title){val seedIds=continuationStore.seeds().filter{SeriesAuthorityRules.title(it.title)==SeriesAuthorityRules.title(ref.title)}.map{it.id}.toSet()
         continuationStore.available().filter{it.seed in seedIds&&it.url.isNotBlank()}.distinctBy{it.url}}
     if(available.isNotEmpty()){AbHeading("Книги серии в источнике",theme);available.forEach{item->AbButton(item.title,theme){actions.openRef(BookRef(item.title,item.url,""))}}}
-    // An explicit cycle subscription is independent of collections and saved across updates.
-    if(metadata.cycles.isNotEmpty() && ContinuationPolicy(AB_EXTRA_SOURCE_JSON).book(metadata.url)) {
-        val subscribed=remember(continuationRevision,metadata.url){continuationStore.isSubscribed(metadata.url)}
-        AbButton(if(subscribed)"Отписаться от цикла" else "Подписаться на цикл",theme) {
-            try {
-                val added=continuationStore.toggleSubscription(metadata)
-                if(added)AbContinuationAlerts.setEnabled(context,true)
-                else AbContinuationAlerts.deliver(context)
-                Toast.makeText(context,if(added)"Цикл добавлен в подписки" else "Подписка отменена",Toast.LENGTH_SHORT).show()
-            }catch(error:Exception){
-                Toast.makeText(context,"Не удалось сохранить подписку",Toast.LENGTH_LONG).show()
-            }
-        }
-    }
     val inCollection=loadShelves(prefs).any{shelf->shelf.books.any{SeriesAuthorityRules.title(it.title)==SeriesAuthorityRules.title(ref.title)}}
     if(!inCollection)AbButton("Добавить в коллекцию для отслеживания",theme){onShelf(ref)}
     else {
