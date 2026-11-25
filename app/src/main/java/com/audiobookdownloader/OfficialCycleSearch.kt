@@ -27,7 +27,7 @@ internal object OfficialCycleSearch {
                 OpenedBookIdentity.matches(query,it.title,"","","",null)
             }.flatMap{it.authors}
         }.filter{it.isNotBlank()}.distinctBy{SeriesAuthorityRules.author(it)}
-        return Reference(if(authors.isNotEmpty())null else template,authors.singleOrNull().orEmpty())
+        return Reference(template,authors.singleOrNull().orEmpty())
     }
     private val prefixNumber=Regex("(?iu)^\\s*(?:[-–—:]\\s*)?\\d+(?:[.,]\\d+)?\\s*[.\\-–—:]?\\s*")
     private val bonus=Regex("(?iu)\\s*\\(\\s*\\+?\\s*бонус\\s*\\)\\s*$")
@@ -94,11 +94,14 @@ internal object OfficialCycleSearch {
     }
     private suspend fun read(query:String,provider:String):OfficialSource? {
         val http=OfficialSeriesHttp()
-        val (url,hint)=discover(query,provider,http) ?: return null
+        val discovered=discover(query,provider,http)
+        // Exact work titles must expand through a verified work-to-series link.
+        val seed=if(discovered==null)SeriesAuthorityResolver(http).resolveFrom(provider,query,"").first else null
+        val (url,hint)=discovered ?: seed?.let{it.seriesUrl to it.author} ?: return null
         val first=http.html(url)
         val doc=SeriesAuthorityParser.document(first,url,true)
         val heading=SeriesAuthorityRules.seriesLabel(doc.select("h1").text())
-        if(!seriesMatches(query,heading)&&known(query,provider)==null)return null
+        if(!seriesMatches(seed?.series ?: query,heading)&&known(query,provider)==null)return null
         val writers=SeriesAuthorityParser.search(first,url).flatMap{it.authors}.distinctBy{SeriesAuthorityRules.author(it)}
         val author=hint.ifBlank{writers.singleOrNull().orEmpty()}
         if(author.isBlank())return null
@@ -115,6 +118,7 @@ internal object OfficialCycleSearch {
             parsed.next.filter{it !in visited}.forEach{queue.add(it)}
         }
         if(items.isEmpty())return null
+        if(seed!=null&&items.values.none{it.order!=null&&SeriesAuthorityRules.author(it.author)==SeriesAuthorityRules.author(seed.author)&&SeriesAuthorityRules.referenceMatches(seed.title,it.title,heading,it.author)})return null
         return OfficialSource(provider,heading,url,checked=System.currentTimeMillis(),complete=complete,books=items.values.toList())
     }
     suspend fun find(query:String,context:android.content.Context?=null):Template?=withContext(Dispatchers.IO){
@@ -139,7 +143,7 @@ internal object OfficialCycleSearch {
         }
         val authors=sources.flatMap{it.books}.map{it.author}.distinctBy{SeriesAuthorityRules.author(it)}
         if(authors.size!=1)return@withContext null
-        Template(authors.single(),sources).also{save(query,it);runCatching{store?.save(OfficialSnapshot("Цикл: "+query,it.author,sources),"")}}
+        Template(authors.single(),sources).also{save(query,it);sources.forEach{s->save(s.series,it)};runCatching{store?.save(OfficialSnapshot("Цикл: "+query,it.author,sources),"")}}
     }
     private fun ordered(source:OfficialSource):List<OfficialEdition> {
         // A complete Author.Today list is preferred to a partial Litres catalogue.

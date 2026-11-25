@@ -2737,8 +2737,9 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                                 unifiedQuery="";bookLinks=emptyList()
                                 status="Цикл книги подтверждён. Ищу аудио всех томов…"
                             }else if(template!=null){
-                                selectedCycle=BookCycle(requestQuery,referenceUrl=template.sources.first().seriesUrl,
-                                    referenceSite=template.sources.first().provider,seedAuthor=template.author)
+                                val primary=template.sources.sortedWith(compareByDescending<OfficialSource>{it.complete&&it.error.isBlank()}.thenByDescending{it.books.mapNotNull{b->b.order}.distinct().size}.thenBy{it.provider!="Author.Today"}).first()
+                                selectedCycle=BookCycle(primary.series,referenceUrl=primary.seriesUrl,
+                                    referenceSite=primary.provider,seedAuthor=template.author)
                                 cycleBrowsing=true;cycleLoading=true;cycleRequestId++
                                 unifiedQuery="";bookLinks=emptyList()
                                 status="Цикл подтверждён справочниками. Ищу аудиокниги по порядку…"
@@ -8624,10 +8625,14 @@ private suspend fun abCheckAudioMinimum(prefs:android.content.SharedPreferences,
 
 private suspend fun abProbeCycleEdition(context:Context,volume:OfficialEdition,address:String,cycleTitle:String,aliases:List<String>,candidateAuthor:String,
     references:List<OfficialEdition> = emptyList()):Boolean {
-    val loaded=abProbePlaylist(context,address)?:return false
-    if(!aliases.any{OpenedBookIdentity.matches(it,loaded.title,volume.author,loaded.author.ifBlank{candidateAuthor},cycleTitle,volume.order)} ||
-        SeriesAuthorityRules.author(loaded.author.ifBlank{candidateAuthor})!=SeriesAuthorityRules.author(volume.author))return false
     val prefs=context.getSharedPreferences("audiobook_downloader",0)
+    val identity=BookLink(volume.title,address,author=volume.author)
+    val loaded=abProbePlaylist(context,address){AbSourceAvailability.record(prefs,address,false)}?:return false
+    if(!aliases.any{OpenedBookIdentity.matches(it,loaded.title,volume.author,loaded.author.ifBlank{candidateAuthor},cycleTitle,volume.order)} ||
+        SeriesAuthorityRules.author(loaded.author.ifBlank{candidateAuthor})!=SeriesAuthorityRules.author(volume.author)){
+        AbSourceAvailability.recordMismatch(prefs,identity,address);return false
+    }
+    AbSourceAvailability.clearMismatch(prefs,identity,address)
     val observed=AbSourceAvailability.observe(prefs,address,loaded.title,loaded.player)
     if(AbSourceAvailability.hidden(observed))return false
     if(!abCheckAudioMinimum(prefs,address,loaded.player))return false
@@ -8828,7 +8833,7 @@ private suspend fun abResolveCycleAudio(context:Context,prefs:android.content.Sh
         }
         val filtered=list.mapNotNull{candidate->
             if(candidate.catalogState !in setOf("candidate","checked"))candidate else
-                AbSourceAvailability.withoutPreviews(prefs,candidate)?.let{book->
+                AbSourceAvailability.searchCandidates(prefs,candidate,true)?.let{book->
                     book.copy(catalogState=if(AbSourceAvailability.get(prefs,book.url)==AbChapterAvailability.AVAILABLE)"checked" else "candidate")
                 }
         }.sortedBy{AbSourceAvailability.priority(prefs,bookSources(it))}

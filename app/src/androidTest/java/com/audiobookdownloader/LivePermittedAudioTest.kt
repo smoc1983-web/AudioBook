@@ -17,6 +17,23 @@ import org.junit.runner.RunWith
 class LivePermittedAudioTest {
     private val context=ApplicationProvider.getApplicationContext<Context>()
 
+    @Test(timeout=180000) fun actualBookTitlesResolveEntireOfficialCycles()=runBlocking {
+        // Real public bibliographic pages only; no commercial audio requested or downloaded.
+        for((query,expectedSeries,minimum) in listOf(Triple("Таксист из Forbes","Таксист",13),Triple("Путь строителя","Строитель",22))){
+            OfficialCycleSearch.invalidate(query)
+            val reference=OfficialCycleSearch.preflight(query,context)
+            val template=requireNotNull(reference.template){"No confirmed cycle for "+query}
+            val primary=template.sources.firstOrNull{it.provider=="Author.Today"&&it.complete&&it.error.isBlank()}
+                ?: error("Author.Today full list not confirmed for "+query)
+            assertTrue(OfficialCycleSearch.seriesMatches(expectedSeries,primary.series))
+            val rows=OfficialCycleSearch.template(primary.series,template.sources)
+            assertTrue("Official cycle has lost volumes: "+query,rows.size>=minimum)
+            assertEquals((1..rows.size).map{it.toDouble()},rows.map{it.order})
+            assertEquals(rows.size,rows.map{SeriesAuthorityRules.title(it.title)}.distinct().size)
+            val line="OFFICIAL_CYCLE_VERIFIED | "+query+" | "+OfficialCycleSearch.sourceSummary(template.sources)+" | volumes="+rows.size
+            Log.i("AudioBookLiveQA",line);println(line)
+        }
+    }
     @Test(timeout=720000) fun registeredSitesRespondAndPublicDomainEditionDownloads()=runBlocking {
         val targets=abSourceHealthTargets(includeManual=true)
         SourceHealthHttp().use { client ->

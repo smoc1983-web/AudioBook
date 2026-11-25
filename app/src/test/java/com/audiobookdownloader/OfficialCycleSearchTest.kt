@@ -50,6 +50,23 @@ class OfficialCycleSearchTest {
         assertEquals("incomplete",OfficialCycleSearch.missingState("Файролл",v,listOf(source.copy(books=listOf(v.copy(format="audio"))))))
         assertEquals("incomplete",OfficialCycleSearch.missingState("Файролл",v,listOf(source.copy(books=listOf(v,v.copy(format="audio"))))))
     }
+    @Test fun taxiAndBuilderFullBibliographyIncludesTextOnlyAndKeepsSourceAlternatives(){
+        // Fixtures reflect the 2026-11-25 public catalogue counts, not live audio.
+        for((title,cycle,count) in listOf(Triple("Таксист из Forbes","Таксист",13),Triple("Путь строителя","Строитель",22))){
+            val books=(1..count).reversed().map{i->book(if(i==1)title else "$title $i",i.toDouble()).copy(url="https://author.today/work/"+(900000+i),series=cycle)}
+            val source=OfficialSource("Author.Today",cycle,complete=true,books=books)
+            val volumes=OfficialCycleSearch.template(cycle,listOf(source))
+            val first=volumes.first()
+            val editions=listOf("one","two").map{host->BookLink(first.title,"https://$host.invalid/book",author=first.author,narrator="Чтец",sources=listOf(BookSource(host,"https://$host.invalid/book")))}
+            val matched=AbLocalCatalog.match(BookCycle(cycle),volumes,listOf(source),editions)
+            assertEquals(count,matched.books.map{it.cycles.single().order}.distinct().size)
+            assertEquals(count-1,matched.books.count{it.catalogState=="text_only"})
+            val merged=AbSearchPresentation.merge(matched.books)
+            assertEquals(count,merged.size)
+            assertEquals(2,bookSources(merged.first()).size)
+            assertEquals((1..count).map{it.toDouble()},merged.map{it.cycles.single().order})
+        }
+    }
     @Test fun equivalentEditionsAndDifferentCycleLabels(){
         assertTrue(OfficialCycleSearch.seriesMatches("Файролл","Файролл. Хроники Хейгена"))
         assertTrue(OfficialCycleSearch.matches("Файролл","Файролл-11. Снисхождение. Том 1","Файролл. Снисхождение. Том 1 (+Бонус)"))

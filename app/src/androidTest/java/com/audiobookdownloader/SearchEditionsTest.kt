@@ -78,9 +78,8 @@ class SearchEditionsTest {
     @Test fun confirmedAuthorKeepsTaxiAndBuilderVolumesTogether()=runBlocking {
         val p=ApplicationProvider.getApplicationContext<Context>().getSharedPreferences("search-official-order",0)
         try {
-            for(title in listOf("Таксист из Forbes","Путь строителя")){
-                val series=title
-                val books=listOf(5,2,1,4,3).map { i ->
+            for((title,series,count) in listOf(Triple("Таксист из Forbes","Таксист",13),Triple("Путь строителя","Строитель",22))){
+                val books=(1..count).reversed().map { i ->
                     val raw=if(i==1)title else "$title $i"
                     val url="https://fixture.invalid/$i"
                     val author=if(i%2==0)"Тест Автор" else ""
@@ -88,7 +87,7 @@ class SearchEditionsTest {
                     BookLink(raw,url,author=author,sources=listOf(BookSource("fixture",url)))
                 }
                 val rows=AbSearchRows.prepare(books,emptyList(),p,null,query=title)
-                assertEquals(listOf(1.0,2.0,3.0,4.0,5.0),rows.map{it.book.cycles.single().order})
+                assertEquals((1..count).map{it.toDouble()},rows.map{it.book.cycles.single().order})
                 assertTrue(rows.all{it.book.author=="Тест Автор"})
             }
         }finally{p.edit().clear().commit()}
@@ -108,11 +107,13 @@ class SearchEditionsTest {
             }
         } finally {p.edit().clear().commit()}
     }
-    @Test fun demoFilterIsOptionalAndDoesNotHideUnverifiedBooks()=runBlocking {
+    @Test fun confirmedDemoAlwaysHiddenAndSuspectedFilterIsOptional()=runBlocking {
         val p=ApplicationProvider.getApplicationContext<Context>().getSharedPreferences("search-demo",0)
         try {
             val demo=book("Иван","demo");val full=book("Пётр","full")
             AbSourceAvailability.record(p,demo.url,true,preview=true)
+            assertEquals(listOf(full.url),AbSearchRows.prepare(listOf(demo,full),emptyList(),p,null).single().editions.map{it.url})
+            AbSourceAvailability.record(p,demo.url,true,suspected=true)
             assertEquals(2,AbSearchRows.prepare(listOf(demo,full),emptyList(),p,null).single().editions.size)
             val filtered=AbSearchRows.prepare(listOf(demo,full),emptyList(),p,null,hidePreviews=true).single()
             assertEquals(listOf(full.url),filtered.editions.map{it.url})
