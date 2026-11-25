@@ -21,11 +21,13 @@ common={name:json.loads('['+values+']') for name,values in re.findall(r'"([^"]+)
 adapters={site:dict(common) for site in ['Bookinfo','Книгоблуд','Азбука веры','Audiokniga-online.ru']}
 for site,name,values in re.findall(r'"([^"]+)" to "([^"]+)" -> listOf\(([^\n]+)\)',block):
     adapters[site][name]=adapters[site][name]+json.loads('['+values+']')
+azbyka_src=(root.parent/"app/src/main/java/com/audiobookdownloader/AbAzbykaScripts.kt").read_text()
 def body(name):
-    start=s.index('fun '+name+'(')
-    begin=s.index('"""',start)+len('"""')
-    end=s.index('""".trimIndent()',begin)
-    return s[begin:end].replace("${'$'}",'$').strip()
+    source=azbyka_src if name.startswith("abAzbyka") else s
+    start=source.index('fun '+name+'(')
+    begin=source.index('"""',start)+len('"""')
+    end=source.index('""".trimIndent()',begin)
+    return source[begin:end].replace("${'$'}",'$').strip()
 extra_src=(root.parent/'app/src/main/java/com/audiobookdownloader/AdditionalBookSources.kt').read_text()
 config=extra_src.split('AB_EXTRA_SOURCE_JSON = """',1)[1].split('"""',1)[0]
 extra=extra_src.split('    return """',1)[1].split('""".trimIndent()',1)[0].strip().replace("${'$'}",'$').replace('$config',config)
