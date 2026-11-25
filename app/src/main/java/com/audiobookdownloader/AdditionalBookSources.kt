@@ -349,13 +349,13 @@ internal const val AB_EXTRA_SOURCE_JSON = """[
 ]"""
 
 internal object AbExtraSources {
+    // LibriVox's own catalogue timed out; the public Archive collection remains separate.
+    const val LIBRIVOX_CATALOG_URL="https://archive.org/details/librivoxaudio"
     // Listed for access in a browser, not advertised as working search adapters.
+    // Removed unavailable manual entries: Aume (repeated timeout), КнигиAudio (DNS),
+    // Lis10book and Audio-Lib (challenge instead of catalogue).
     val browserOnly=listOf(
         Triple("СлушКинВсем","https://slushkinvsem.ru/","Ручной доступ · общий поиск не подключён"),
-        Triple("Aume","https://aume.ru/","Ручной доступ · общий поиск не подключён"),
-        Triple("Lis10book","https://lis10book.com/","Ручной доступ · общий поиск не подключён"),
-        Triple("Audio-Lib","https://audio-lib.club/","Ручной доступ · общий поиск не подключён"),
-        Triple("КнигиAudio","https://knigiaudio.net/","Ручной доступ · общий поиск не подключён"),
         Triple("Author.Today","https://author.today/","Используется для сверки серий; аудио открывается на сайте")
     )
     // Manual browsing is intentionally separate from automatic search adapters.
