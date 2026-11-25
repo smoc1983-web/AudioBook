@@ -22,4 +22,15 @@ class AbCycleSourceRulesTest {
         val edition = BookLink("Игра не ради игры", "https://catalog.example/text", catalogState="text_only")
         assertFalse(AbCycleSourceRules.enoughAlternatives(listOf(edition)))
     }
+
+    @Test fun rejectedCandidatesDoNotStopSearching() {
+        val books = listOf("a","b","c").map { BookLink("Book", "https://example.org/$it", catalogState = "candidate") }
+        assertFalse(AbCycleSourceRules.enoughAlternatives(books, usable = { !it.endsWith("/a") && !it.endsWith("/b") }))
+    }
+
+    @Test fun previouslyVerifiedRecordingStopsUnneededSourceRequests() {
+        val book = BookLink("Book", "https://example.org/verified", catalogState = "checked")
+        assertTrue(AbCycleSourceRules.enoughAlternatives(listOf(book), verified = { it.endsWith("/verified") }))
+    }
+
 }
