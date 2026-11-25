@@ -4,6 +4,13 @@
 
 Это **техническая история решений и разработки**, не дословный автоматический экспорт всей переписки ChatGPT. Репозиторий публичный: личную переписку и секреты здесь не хранить. Сведения о статусе перепроверять через GitHub.
 
+## 2026-11-25 — этап 4 подтверждён, этап 5: Compose-сведения о книге
+
+- Этап 4 декомпозиции `MainActivity.kt` в черновом [PR #29 → test](https://github.com/smoc1983-web/AudioBook/pull/29) подтверждён [GitHub Actions 45670795539](https://github.com/smoc1983-web/AudioBook/actions/runs/45670795539): HEAD `7544af75e7e150edfe99cb7ce0d3afe998f12088`, **SUCCESS** для `checks` (компиляция, JVM, lint) и `Android 36 emulator regression`. Автоматический перенос в `test` пропущен, так как PR остаётся черновиком. Следует различать успех этапа 4 и этапа 5.
+- Начат этап 5 на той же независимой ветке `refactor/bookinfo-scripts-20261125`. В `AbBookDetailsScreen.kt` перенесены **без изменения логики** три Compose-компонента: `AbPendingBookDetails`, `AbOnlineBookDetails` и `AbOnlineChapter`. Из `MainActivity.kt` удалён исходный блок, общим `AbTransferLine` и `AbSeriesBlock` назначена видимость `internal`, чтобы извлечённый экран компилировался. Коммиты: `39c62567ba560d8cf1e77b1008cc892c9a1856f1` (новый файл), `8f783143b3e92fa259983e4cbc8ffc2d018653aa` (перенос и видимость).
+- Фактический размер `MainActivity.kt` в рабочей ветке: **13 603 строки** против 15 820 исходных (−2217 строк, около 14%). Это показатель исходника, не APK. Новый [QA 45673885314](https://github.com/smoc1983-web/AudioBook/actions/runs/45673885314) по HEAD `8f783143` **ещё не подтверждён** на момент записи. До успеха компиляции и Android-эмулятора этап 5 не считается проверенным; при сбое — изучить конкретный лог и исправить первопричину.
+- Функциональный код веток `test` и `main`, подписанный APK и пользовательские данные не затронуты. PR #29 не объединять без отдельного разрешения. В `main` разрешена только эта документальная запись.
+
 ## 2026-11-25 — четвёртый этап декомпозиции: экран настроек вынесен, QA запущен
 
 - В черновом [PR #29 → test](https://github.com/smoc1983-web/AudioBook/pull/29), рабочая ветка `refactor/bookinfo-scripts-20261125`, перенесены перечисление разделов, окно настроек и внутренние Compose-компоненты в `app/src/main/java/com/audiobookdownloader/AbSettingsScreen.kt`. Для доступности цветов `AbGlassThemes` изменено с `private` на `internal`, для вызова из `MainActivity` сам `AbSettingsDialog` — `internal`; тело UI и обработчики сохранены. Запись файла `869b35e`, удаление из `MainActivity.kt` `7544af75e7e150edfe99cb7ce0d3afe998f12088`.
