@@ -2,7 +2,9 @@ name: AudioBook main - manual signed release
 on:
   push:
     branches: ['qa/main-release-125']
-    paths: ['.github/workflows/release-main.yml']
+    paths:
+      - '.github/workflows/release-main.yml'
+      - 'app/src/androidTest/**'
   workflow_dispatch:
     inputs:
       release_number:
