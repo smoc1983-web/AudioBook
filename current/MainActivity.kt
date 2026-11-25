@@ -8605,54 +8605,7 @@ private fun AbModernApp(data: AbScreenData, actions: AbActions, sync: LibrarySyn
     }
 }
 
-@Composable
-private fun AbBottomNavigation(page: AppPage, theme: AbTheme, navigate: (AppPage)->Unit, onSettings:()->Unit) {
-    val tabs=listOf(Triple(AppPage.SEARCH,AbIcon.SEARCH,"Поиск"),Triple(AppPage.LIBRARY,AbIcon.BOOKS,"Книги"),
-        Triple(AppPage.PLAYER,AbIcon.PLAY,"Плеер"),Triple(AppPage.COLLECTIONS,AbIcon.COLLECTIONS,"Коллекции"))
-    Row(Modifier.padding(horizontal=8.dp,vertical=5.dp).fillMaxWidth()
-        .abGlass(theme,22,raised=true).padding(horizontal=5.dp,vertical=5.dp)) {
-        tabs.forEach { (target,icon,label) ->
-            Column(Modifier.weight(1f).then(if(page==target) Modifier.abGlass(theme,17,field=true,selected=true)
-                    else Modifier.clip(RoundedCornerShape(17.dp)))
-                .semantics { selected=page==target;role=androidx.compose.ui.semantics.Role.Tab }
-                .heightIn(min=56.dp).clickable {navigate(target)}.padding(vertical=6.dp),
-                horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(5.dp)) {
-                AbIcon(icon,if(page==target) theme.accent else theme.muted)
-                Text(label,color=if(page==target) theme.accent else theme.muted,fontSize=10.sp,fontWeight=FontWeight.Medium)
-            }
-        }
-        Column(Modifier.weight(1f).clip(RoundedCornerShape(17.dp)).heightIn(min=56.dp).clickable(onClick=onSettings).padding(vertical=6.dp),
-            horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(5.dp)) {
-            AbIcon(AbIcon.SETTINGS,theme.muted)
-            Text("Настройки",color=theme.muted,fontSize=10.sp,fontWeight=FontWeight.Medium)
-        }
-    }
-}
-
-@Composable
-private fun AbMiniPlayer(data: AbScreenData,actions: AbActions,books: List<LibraryBook>,
-    prefs: android.content.SharedPreferences,theme: AbTheme) {
-    val context=androidx.compose.ui.platform.LocalContext.current
-    val state=data.playback
-    val cached by AbAudioDurations.state.collectAsState()
-    val timing=AbBookProgress.playback(prefs,state,cached)
-    val ref=bookRefFor(prefs,state.bookTitle,state.tracks.firstOrNull()?.editionId.orEmpty())
-    Column(Modifier.padding(horizontal=12.dp,vertical=5.dp).abGlass(theme,20,raised=true)
-        .clickable {actions.navigate(AppPage.PLAYER)}) {
-        Row(Modifier.padding(8.dp),verticalAlignment=Alignment.CenterVertically) {
-            AbCover(ref.title,abFindLocal(books,ref.title),ref,theme,Modifier.size(47.dp))
-            Column(Modifier.weight(1f).padding(horizontal=12.dp)) {
-                Text(BookMetadata.playback(prefs,state.bookTitle,state.tracks).title,color=theme.text,fontSize=13.sp,fontWeight=FontWeight.SemiBold,maxLines=1,overflow=TextOverflow.Ellipsis)
-                Text(if(state.isLoading) "Загрузка главы…" else "${AbBookProgress.label(timing)} · Глава ${state.trackIndex+1} · ${state.tracks.getOrNull(state.trackIndex)?.title.orEmpty()}",
-                    color=theme.muted,fontSize=11.sp,maxLines=1,overflow=TextOverflow.Ellipsis)
-            }
-            AbIconButton(if(state.isPlaying) AbIcon.PAUSE else AbIcon.PLAY,
-                if(state.isPlaying) "Пауза" else "Продолжить",theme,active=true,
-                onClick={PlaybackService.command(context,PlaybackService.ACTION_TOGGLE)})
-        }
-        AbProgress(timing.progress,theme,Modifier.fillMaxWidth().semantics{contentDescription=AbBookProgress.description(timing)})
-    }
-}
+// Bottom navigation and mini player moved to AbAppChrome.kt.
 
 @Composable
 private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<LibraryBook>,
