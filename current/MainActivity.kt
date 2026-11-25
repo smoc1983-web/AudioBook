@@ -11037,7 +11037,7 @@ private fun AbCollectionsScreen(data: AbScreenData,actions: AbActions,books: Lis
     var continuationSettings by remember {mutableStateOf(false)}
     var management by remember {mutableStateOf(false)}
     if(continuationSettings) AbDialog("Подписки на циклы",theme,{continuationSettings=false}) {
-        AbContinuationSettings(theme){ref -> continuationSettings=false;actions.openRef(ref)}
+        AbCycleSubscriptions(theme){ref -> continuationSettings=false;actions.openRef(ref)}
     }
     var downloadBooks by remember {mutableStateOf<List<BookRef>?>(null)}
     downloadBooks?.let {refs -> AbCollectionDownloads(refs,data.downloadedIndex,data.downloads,theme,
@@ -11111,6 +11111,99 @@ private fun AbCollectionsScreen(data: AbScreenData,actions: AbActions,books: Lis
         Text("Коллекция «$value» будет удалена. Скачанные аудиофайлы сохранятся.",color=theme.muted,fontSize=14.sp)
         AbButton("Удалить коллекцию",theme) {deleteShelf(prefs,value);deleting=null}
     } }
+}
+
+@Composable
+private fun AbCycleSubscriptions(theme:AbTheme,onOpen:(BookRef)->Unit) {
+    val context=androidx.compose.ui.platform.LocalContext.current
+    val prefs=remember(context){context.getSharedPreferences("audiobook_downloader",0)}
+    val store=remember(context){ContinuationStore(context)}
+    val officialStore=remember(context){OfficialSeriesStore(context)}
+    var revision by remember{mutableStateOf(0)}
+    var notifications by remember{mutableStateOf(false)}
+    DisposableEffect(store,prefs,officialStore) {
+        val listener=android.content.SharedPreferences.OnSharedPreferenceChangeListener{_,_->revision++}
+        store.preferences.registerOnSharedPreferenceChangeListener(listener)
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        officialStore.preferences.registerOnSharedPreferenceChangeListener(listener)
+        onDispose{
+            store.preferences.unregisterOnSharedPreferenceChangeListener(listener)
+            prefs.unregisterOnSharedPreferenceChangeListener(listener)
+            officialStore.preferences.unregisterOnSharedPreferenceChangeListener(listener)
+        }
+    }
+    val manual=remember(revision){store.manualSubscriptions()}
+    val automatically=remember(revision) {
+        loadShelves(prefs).flatMap{it.books}.distinctBy{bookRefIdentity(it)}.size
+    }
+    val collectionTracking=store.preferences.getBoolean("collection_tracking_enabled",true)
+    AbHeading("Мои подписки на циклы",theme,manual.size.toString())
+    Text("Ручные подписки сохраняются независимо от коллекций. Скачивание не начинается автоматически.",color=theme.muted,fontSize=12.sp)
+    AbButton("Проверить все подписки",theme,enabled=AbContinuationAlerts.enabled(context)) {
+        AbContinuationAlerts.checkNow(context)
+    }
+    if(manual.isEmpty())Text("Ручных подписок пока нет. Откройте книгу с подтверждённым циклом и нажмите «Подписаться на цикл».",color=theme.muted,fontSize=13.sp)
+    manual.forEach { seed ->
+        key(seed.id) {
+            val catalog=abStoredCatalog(prefs,seed.title)
+            val author=seed.author.ifBlank{catalog.author}
+            val series=seed.series.ifBlank{catalog.cycles.firstOrNull()?.title.orEmpty()}.ifBlank{seed.title}
+            val volumes=remember(revision,seed.id,author) {
+                abSubscribedVolumes(officialStore.read(seed.title,author),store.available(seed.id))
+            }
+            var expanded by androidx.compose.runtime.saveable.rememberSaveable {mutableStateOf(false)}
+            var referencePanel by remember{mutableStateOf(false)}
+            var confirmRemoval by remember{mutableStateOf(false)}
+            Column(Modifier.fillMaxWidth().abGlass(theme,17).padding(12.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
+                Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(10.dp)) {
+                    AbCover(seed.title,null,BookRef(seed.title,seed.url,seed.cover),theme,Modifier.width(62.dp).height(86.dp))
+                    Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(3.dp)) {
+                        Text(series,color=theme.text,fontSize=16.sp,fontWeight=FontWeight.SemiBold)
+                        if(author.isNotBlank())Text(author,color=theme.muted,fontSize=12.sp)
+                        Text("Найдено томов: "+volumes.size,color=theme.muted,fontSize=12.sp)
+                        Text("Подписка активна",color=theme.accent,fontSize=12.sp)
+                    }
+                }
+                AbButton(if(expanded)"Свернуть список" else "Открыть книги цикла",theme){expanded=!expanded}
+                if(expanded) {
+                    AbButton("Проверить этот цикл",theme,enabled=AbContinuationAlerts.enabled(context)) {
+                        AbContinuationAlerts.checkNow(context,seed.id)
+                    }
+                    if(volumes.isEmpty())Text("Полный список ещё не подтверждён. Нажмите «Сверить справочники».",color=theme.muted,fontSize=12.sp)
+                    volumes.forEach{volume->
+                        val number=volume.order?.let{if(it%1.0==0.0)it.toInt().toString() else it.toString()}
+                        val label=(if(number==null)"" else number+". ")+volume.title+" · "+volume.status
+                        AbButton(label,theme) {
+                            if(SeriesAuthorityRules.work(volume.url))
+                                context.startActivity(Intent(Intent.ACTION_VIEW,Uri.parse(volume.url)))
+                            else onOpen(BookRef(volume.title,volume.url,""))
+                        }
+                    }
+                    AbButton(if(referencePanel)"Скрыть сверку справочников" else "Сверить справочники и порядок книг",theme){referencePanel=!referencePanel}
+                    if(referencePanel)AbOfficialSeriesPanel(seed.title,author,prefs,theme,compact=false,autoRefresh=false)
+                    AbButton("Отписаться от цикла",theme){confirmRemoval=true}
+                }
+            }
+            if(confirmRemoval)AbDialog("Отменить подписку?",theme,{confirmRemoval=false}) {
+                Text("Продолжения этого цикла больше не будут отслеживаться по ручной подписке. Книги из коллекций останутся на месте.",color=theme.muted,fontSize=13.sp)
+                AbButton("Отписаться",theme) {
+                    store.unsubscribe(seed.url)
+                    AbContinuationAlerts.deliver(context)
+                    confirmRemoval=false
+                }
+            }
+        }
+    }
+    AbHeading("Автоматическое отслеживание коллекций",theme)
+    Text("Книг в коллекциях: "+automatically+". Ручные подписки от этого переключателя не зависят.",color=theme.muted,fontSize=12.sp)
+    AbOptions(listOf("Включено","Выключено"),if(collectionTracking)0 else 1,theme){option->
+        if(store.preferences.edit().putBoolean("collection_tracking_enabled",option==0).commit()) {
+            AbContinuationAlerts.deliver(context)
+            if(option==0&&AbContinuationAlerts.enabled(context))AbContinuationAlerts.checkNow(context)
+        }
+    }
+    AbButton(if(notifications)"Скрыть настройки уведомлений" else "Настроить уведомления",theme){notifications=!notifications}
+    if(notifications)AbContinuationSettings(theme,onOpen)
 }
 
 @Composable
@@ -13136,6 +13229,20 @@ internal fun AbPlayerSeries(metadata:BookLink,ref:BookRef,books:List<LibraryBook
     val available=remember(continuationRevision,metadata.title){val seedIds=continuationStore.seeds().filter{SeriesAuthorityRules.title(it.title)==SeriesAuthorityRules.title(ref.title)}.map{it.id}.toSet()
         continuationStore.available().filter{it.seed in seedIds&&it.url.isNotBlank()}.distinctBy{it.url}}
     if(available.isNotEmpty()){AbHeading("Книги серии в источнике",theme);available.forEach{item->AbButton(item.title,theme){actions.openRef(BookRef(item.title,item.url,""))}}}
+    // An explicit cycle subscription is independent of collections and saved across updates.
+    if(metadata.cycles.isNotEmpty() && ContinuationPolicy(AB_EXTRA_SOURCE_JSON).book(metadata.url)) {
+        val subscribed=remember(continuationRevision,metadata.url){continuationStore.isSubscribed(metadata.url)}
+        AbButton(if(subscribed)"Отписаться от цикла" else "Подписаться на цикл",theme) {
+            try {
+                val added=continuationStore.toggleSubscription(metadata)
+                if(added)AbContinuationAlerts.setEnabled(context,true)
+                else AbContinuationAlerts.deliver(context)
+                Toast.makeText(context,if(added)"Цикл добавлен в подписки" else "Подписка отменена",Toast.LENGTH_SHORT).show()
+            }catch(error:Exception){
+                Toast.makeText(context,"Не удалось сохранить подписку",Toast.LENGTH_LONG).show()
+            }
+        }
+    }
     val inCollection=loadShelves(prefs).any{shelf->shelf.books.any{SeriesAuthorityRules.title(it.title)==SeriesAuthorityRules.title(ref.title)}}
     if(!inCollection)AbButton("Добавить в коллекцию для отслеживания",theme){onShelf(ref)}
     else {
