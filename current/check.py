@@ -16,13 +16,14 @@ assert len(imports)==len(set(imports))
 print('Both Kotlin files structurally checked; version, support details and compile-error opt-in preserved')
 
 # Extract the actual JS bodies and the literal adapter tables from Kotlin.
-block=s[s.index('internal object AbSourceClassifier'):s.index('private fun abCatalogClassifierJs')]
+kotlin=root.parent/'app/src/main/java/com/audiobookdownloader'
+genres=(kotlin/'AbGenreCatalog.kt').read_text()
+block=genres[genres.index('object AbSourceClassifier'):genres.index('fun abCatalogClassifierJs')]
 common={name:json.loads('['+values+']') for name,values in re.findall(r'"([^"]+)" to listOf\(([^\n]+)\)',block[:block.index('fun aliases')])}
 adapters={site:dict(common) for site in ['Bookinfo','Книгоблуд','Азбука веры','Audiokniga-online.ru']}
 for site,name,values in re.findall(r'"([^"]+)" to "([^"]+)" -> listOf\(([^\n]+)\)',block):
     adapters[site][name]=adapters[site][name]+json.loads('['+values+']')
-kotlin=root.parent/'app/src/main/java/com/audiobookdownloader'
-script_sources=[s]+[(kotlin/name).read_text() for name in ('AbAzbykaScripts.kt','AbOnlineSource.kt','AbPublicCatalogSource.kt')]
+script_sources=[s,genres]+[(kotlin/name).read_text() for name in ('AbCatalogScripts.kt','AbAzbykaScripts.kt','AbOnlineSource.kt','AbPublicCatalogSource.kt')]
 def body(name):
     source=next(src for src in script_sources if 'fun '+name+'(' in src)
     start=source.index('fun '+name+'(')
@@ -68,7 +69,7 @@ print('Extracted actual JavaScript classifier, catalogue, category browser and a
 (out/'external-page.js').write_text(body('abExternalBookPageJs').replace('$analyzer',analyzer.rstrip(';')))
 ui_root=(kotlin/'AudioBookRoot.kt').read_text()
 assert 'AbExternalGenreSearch(name,genreQuery,genreExternalBatch' in ui_root
-assert 'job.cancel()' in s and 'slots.acquire()' in (kotlin/'AbPublicCatalogSource.kt').read_text()
+assert all(marker in (kotlin/'AbPublicCatalogSource.kt').read_text() for marker in ('job.cancel()', 'slots.acquire()'))
 assert 'genreNeedsMore() && genreExternalLoading' in ui_root
 print('Extracted external classifier, public search and book verification scripts')
 
