@@ -10,7 +10,8 @@ internal class AbBookQuery(private val query:String) {
     private val phrase=normal(query)
     private val wanted=tokens(query)
     // Numeric/series queries remain exact: 'Отдел 15-К' must not match 'Отделение 15-К'.
-    private val allowPrefix=wanted.none{word->word.any{it.isDigit()}}
+    private val numeric=wanted.filter{word->word.any{it.isDigit()}}.toSet()
+    private val allowPrefix=numeric.isEmpty()
     private fun contains(tokens:Set<String>,prefix:Boolean)=wanted.all{word->
         word in tokens || (prefix && allowPrefix && word.length>=4 && tokens.any{it.startsWith(word)})
     }
@@ -21,6 +22,12 @@ internal class AbBookQuery(private val query:String) {
         val author=normal(book.author)
         val titleTokens=tokens(title);val authorTokens=tokens(author)
         if(phrase==title)return 0
+        if(numeric.isNotEmpty()) {
+            if(titleTokens.filter{it.any{c->c.isDigit()}}.toSet()!=numeric)return null
+            if(contains(titleTokens,false))return 2
+            if(contains(titleTokens+authorTokens,false)&&wanted.any{it !in numeric && it in titleTokens})return 3
+            return null
+        }
         if(wanted==authorTokens)return 1 // Name/surname order is immaterial.
         if(contains(titleTokens,false)||contains(authorTokens,false))return 2
         val bibliographic=titleTokens+authorTokens
@@ -29,6 +36,8 @@ internal class AbBookQuery(private val query:String) {
         // Preserve cycle discovery, but never rank cycle-only matches above title/author.
         val all=bibliographic+tokens(book.cycles.joinToString(" "){it.title})
         if(contains(all,false))return 5
-        return if(book.searchQuery.isNotBlank() && normal(book.searchQuery)==normal(query))6 else null
+        if(contains(tokens(SearchEditionIdentity.narrator(book.title,book.narrator)),false))return 5
+        // Native searchQuery is provenance only, never evidence of bibliographic identity.
+        return null
     }
 }

@@ -23,6 +23,13 @@ class AdditionalBookSourcesTest {
         assertEquals("",AbExtraSources.name("https://127.0.0.1/"))
         assertEquals("",AbExtraSources.name("not a URL"))
     }
+    @Test fun removedManualEntriesAreNotRecognizedAsSources() {
+        assertEquals(setOf("СлушКинВсем","Author.Today"),AbExtraSources.browserOnly.map{it.first}.toSet())
+        for(url in listOf("https://aume.ru/","https://lis10book.com/","https://audio-lib.club/","https://knigiaudio.net/")){
+            assertEquals("",AbExtraSources.manualName(url))
+            assertEquals("",AbExtraSources.name(url))
+        }
+    }
     @Test fun manualSitesHaveExactHttpsIdentityAndStayOutOfAutomaticSearch() {
         for((name,home,_) in AbExtraSources.browserOnly) {
             assertEquals(name,AbExtraSources.manualName(home+"book/example"))

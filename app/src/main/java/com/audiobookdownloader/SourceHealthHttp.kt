@@ -51,7 +51,8 @@ internal class SourceHealthHttp(private val factory:(URL)->HttpURLConnection={it
         {task->Thread(task,"source-health-close").apply{isDaemon=true}},ThreadPoolExecutor.AbortPolicy())
     init{require(deadline in 50..10000)}
     internal fun allowed(target:SourceHealthTarget,address:URL):Boolean =
-        address.protocol=="https"&&address.port in listOf(-1,443)&&NetworkAddressRules.publicAddress(address.toString())&&policy.same(target.home,address.toString())
+        address.protocol=="https"&&address.port in listOf(-1,443)&&NetworkAddressRules.publicAddress(address.toString())&&
+            (policy.same(target.home,address.toString())||AbExtraSources.manualName(target.home).let{it.isNotBlank()&&it==AbExtraSources.manualName(address.toString())})
     override suspend fun check(target:SourceHealthTarget):SourceHealthObservation {
         val start=System.nanoTime()
         val wire=try{withTimeout(deadline){request(target)}}
@@ -107,7 +108,7 @@ internal class SourceHealthHttp(private val factory:(URL)->HttpURLConnection={it
             val text=String(prefix,Charsets.UTF_8)
             val html=Regex("(?is)<(?:!doctype\\s+html|html|head|body)(?:\\s|>)").containsMatchIn(text)
             val doc=Jsoup.parse(text);val title=doc.title().lowercase(Locale.ROOT)
-            val challenge=listOf("just a moment","checking your browser","captcha","access denied","verify you are human","проверка браузера","доступ ограничен").any{title.contains(it)} || doc.getElementById("challenge-form")!=null
+            val challenge=listOf("just a moment","checking your browser","checking that you are human","i am not a robot","captcha","access denied","verify you are human","проверка браузера","доступ ограничен").any{title.contains(it)} || doc.getElementById("challenge-form")!=null
             return Wire(SourceHealthRules.response(code,html,challenge),code)
         }finally{active.compareAndSet(connection,null);connection.disconnect()}
     }

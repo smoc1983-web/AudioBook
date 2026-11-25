@@ -22,6 +22,7 @@ public final class PreviewUpdatesActivity extends Activity {
     private Button primary;
     private Button cancel;
     private TextView changes;
+    private String installedNotes;
     private boolean waitingForPermission;
     private static final int INSTALL_REQUEST=72;
     private boolean flat(){return getSharedPreferences("audiobook_downloader",0).getInt("glass_theme",2)==10;}
@@ -50,13 +51,26 @@ public final class PreviewUpdatesActivity extends Activity {
         scroll.addView(root);setContentView(scroll);
         text(root,"Обновления "+BuildConfig.PRODUCT_NAME,25).setTypeface(null,Typeface.BOLD);
         text(root,"Установлена "+BuildConfig.VERSION_NAME+" · "+BuildConfig.VERSION_CODE,14);
-        text(root,"Здесь можно проверить, скачать и установить обновление Audiobook. Удалять приложение перед обновлением не нужно.",15);
-        status=text(root,"После обновления новый номер версии появится вверху этого экрана. Проверка и загрузка выполняются здесь, без браузера.",15);status.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);
-        changes=text(root,"Список изменений появится после проверки нового выпуска.",14);
+        installedNotes=readInstalledNotes();
+        status=text(root,"",15);status.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);
+        changes=text(root,installedNotes,14);
         primary=button(root,"Проверить обновления",this::primaryAction);
         cancel=button(root,"Отменить",session::cancel);
         render();
-        text(root,"При первом обновлении Android попросит разрешить установку из приложения. Разрешение можно отозвать после установки. Проверка и загрузка сохраняются при повороте экрана и выходе из этого окна.",13);
+    }
+    private String readInstalledNotes(){
+        StringBuilder notes=new StringBuilder("Последнее обновление · ").append(BuildConfig.VERSION_NAME);
+        try(java.io.BufferedReader reader=new java.io.BufferedReader(new java.io.InputStreamReader(
+                getAssets().open("release-notes.json"),java.nio.charset.StandardCharsets.UTF_8))){
+            StringBuilder json=new StringBuilder();String line;
+            while((line=reader.readLine())!=null)json.append(line);
+            org.json.JSONArray list=new org.json.JSONObject(json.toString()).optJSONArray("changes");
+            if(list!=null)for(int i=0;i<Math.min(list.length(),12);i++){
+                String change=list.optString(i,"").trim();
+                if(!change.isEmpty())notes.append("\n• ").append(change);
+            }
+        }catch(Exception ignored){/* The installed version remains visible even without bundled notes. */}
+        return notes.toString();
     }
     private void primaryAction(){
         session.primary();
@@ -64,11 +78,18 @@ public final class PreviewUpdatesActivity extends Activity {
     private void render(){
         if(isDestroyed()||primary==null)return;
         UpdateUiState state=session.snapshot();
+        // Progress belongs to the status text only. While work runs, only Cancel is actionable.
+        primary.setVisibility(state.busy?View.GONE:View.VISIBLE);
         primary.setEnabled(!state.busy);
         primary.setText(session.primaryLabel());
-        if(cancel!=null)cancel.setVisibility(state.busy?View.VISIBLE:View.GONE);
+        if(cancel!=null){
+            cancel.setVisibility(state.busy?View.VISIBLE:View.GONE);
+            cancel.setEnabled(!"Отмена…".equals(state.busyLabel));
+        }
         status.setText(state.message);
-        changes.setText(session.notesText());
+        status.setVisibility(state.message.isEmpty()?View.GONE:View.VISIBLE);
+        String availableNotes=session.notesText();
+        changes.setText(availableNotes.isEmpty()?installedNotes:availableNotes);
         if(resumed){
             File prepared=session.claimInstaller();
             if(prepared!=null){verifiedInstallerFile=prepared;launchInstaller();}
@@ -94,7 +115,7 @@ public final class PreviewUpdatesActivity extends Activity {
     }
     static Intent installerIntent(Context context,File file){
         Uri apk=FileProvider.getUriForFile(context,context.getPackageName()+".updates",file);
-        Intent intent=new Intent(Intent.ACTION_VIEW).setDataAndType(apk,"application/vnd.android.package-archive")
+        Intent intent=new Intent(Intent.ACTION_INSTALL_PACKAGE).setData(apk)
             .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION).putExtra(Intent.EXTRA_RETURN_RESULT,true);
         intent.setClipData(ClipData.newRawUri(BuildConfig.PRODUCT_NAME,apk));return intent;
     }
@@ -114,24 +135,5 @@ public final class PreviewUpdatesActivity extends Activity {
             else session.message("Установка не разрешена. APK сохранён; можно повторить установку позже.");
         }
         render();
-    }
-    public static void checkInBackground(Activity activity){
-        PreviewUpdater updater=new PreviewUpdater(activity);
-        android.content.SharedPreferences prefs=activity.getSharedPreferences("preview_updates",0);
-        long now=System.currentTimeMillis();
-        if(!prefs.getBoolean("auto",true)||now-prefs.getLong("last_check",0)<86400000L)return;
-        prefs.edit().putLong("last_check",now).apply();
-        Thread thread=new Thread(()->{
-            try{
-                PreviewUpdater.Release release=updater.latest();
-                if(!release.info.isNewer(BuildConfig.VERSION_CODE))return;
-                activity.runOnUiThread(()->{if(activity.isDestroyed()||activity.isFinishing()||!activity.hasWindowFocus())return;
-                    new AlertDialog.Builder(activity).setTitle("Обновление "+BuildConfig.PRODUCT_NAME)
-                        .setMessage("Доступна "+release.info.versionName+". Загрузить обновление в приложении?")
-                        .setPositiveButton("Обновления",(d,w)->activity.startActivity(new Intent(activity,PreviewUpdatesActivity.class)))
-                        .setNegativeButton("Позже",null).show();
-                });
-            }catch(Exception ignored){/* Check failures stay out of playback and diagnostics. */}
-        },"preview-update-check");thread.setDaemon(true);thread.start();
     }
 }

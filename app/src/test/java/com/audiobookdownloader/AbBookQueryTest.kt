@@ -40,4 +40,11 @@ class AbBookQueryTest {
     @Test fun blankQueryDoesNotHideResults() {
         assertEquals(0,AbBookQuery("  —  ").rank(book("Любая книга")))
     }
+    @Test fun numberedTitleRejectsUnrelatedNativeHitsAndOtherVolumes() {
+        val query=AbBookQuery("Таксист из Forbes 13")
+        assertEquals(0,query.rank(book("Таксист из Forbes 13")))
+        for(title in listOf("Путь строителя 13","1000+ маленьких привычек","Таксист из Forbes","Таксист из Forbes 12","Таксист из Forbes 130"))
+            assertNull(title,query.rank(book(title,cycle="Таксист из Forbes").copy(searchQuery="Таксист из Forbes 13")))
+        assertNull(AbBookQuery("Файролл").rank(book("Посторонняя книга").copy(searchQuery="Файролл")))
+    }
 }

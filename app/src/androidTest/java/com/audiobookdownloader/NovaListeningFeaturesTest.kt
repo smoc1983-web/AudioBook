@@ -29,6 +29,30 @@ class NovaListeningFeaturesTest {
         } finally {prefs.edit().clear().commit()}
     }
 
+    @Test fun remainingTimesUsePlaybackSpeedAndCanBeHiddenSeparately(){
+        prefs.edit().clear().commit()
+        try {
+            val state=ServicePlaybackState(bookTitle="Тест времени",
+                tracks=listOf(ServiceTrack("Глава 1","/test/1.mp3",60000),ServiceTrack("Глава 2","/test/2.mp3",120000)),
+                trackIndex=0,positionMs=20000,durationMs=60000,speed=2f)
+            compose.setContent{Column{
+                AbPlayerProgress(state,emptyMap(),prefs,abTheme(2),resolveDurations=false)
+                AbPlayerProgressSettings(prefs,abTheme(2))
+            }}
+            compose.onNodeWithText("До конца главы: 0:20").assertIsDisplayed()
+            compose.onNodeWithText("До конца книги: 1:20").assertIsDisplayed()
+            compose.onNodeWithContentDescription("Показывать время до конца главы").performClick()
+            compose.onNodeWithText("До конца главы: 0:20").assertDoesNotExist()
+            compose.onNodeWithText("До конца книги: 1:20").assertIsDisplayed()
+            compose.onNodeWithContentDescription("Показывать время и прогресс книги").performClick()
+            compose.onNodeWithText("До конца книги: 1:20").assertDoesNotExist()
+            assertEquals(AbPlayerProgressVisibility(false,false),AbPlayerProgressVisibility.read(prefs))
+            compose.onNodeWithContentDescription("Показывать время до конца главы").performClick()
+            compose.onNodeWithText("До конца главы: 0:20").assertIsDisplayed()
+            compose.onNodeWithText("До конца книги: 1:20").assertDoesNotExist()
+        }finally{prefs.edit().clear().commit()}
+    }
+
     @Test fun shelfCoverStackOpensShelfAsOneAction() {
         val shelf=Shelf("Моя полка",listOf(BookRef("Первая книга","",""),BookRef("Вторая книга","","")))
         var opened=0

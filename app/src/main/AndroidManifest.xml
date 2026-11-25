@@ -29,7 +29,6 @@
         <data android:scheme="content" android:mimeType="application/ogg" />
       </intent-filter>
     </activity>
-    <activity android:name="com.audiobookdownloader.ReleaseNotesActivity" android:exported="false" android:label="Что нового" />
     <activity android:name="com.audiobookdownloader.CollectionTransferActivity" android:exported="false" android:label="Перенос коллекций" />
     <service android:name="com.audiobookdownloader.PlaybackService" android:exported="false" android:foregroundServiceType="mediaPlayback" android:stopWithTask="false" />
     <activity android:name="com.audiobookdownloader.PreviewUpdatesActivity" android:exported="false" android:label="Обновления Audiobook" />

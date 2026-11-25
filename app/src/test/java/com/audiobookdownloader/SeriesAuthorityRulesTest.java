@@ -7,4 +7,13 @@ public class SeriesAuthorityRulesTest {
  @Test public void authorityAddressesAreBounded(){assertTrue(SeriesAuthorityRules.work("https://author.today/work/72647"));assertFalse(SeriesAuthorityRules.work("https://author.today/work/series/7666"));assertFalse(SeriesAuthorityRules.work("https://author.today.evil/work/72647"));assertEquals("",SeriesAuthorityRules.provider("https://x@author.today/work/72647"));assertEquals("",SeriesAuthorityRules.provider("http://author.today/work/72647"));assertFalse(SeriesAuthorityRules.work("https://www.litres.ru/author/name/"));}
  @Test public void localHotelSecondVolumeAppearsWithoutAnOriginUrl(){assertEquals(List.of("Отель Перекресток","Отель Перекресток. Том 2"),LocalSeriesRules.siblings("Отель Перекресток",List.of("Новый каменный век. Том VI","Отель Перекресток. Том 2","Отель Перекресток")));assertTrue(LocalSeriesRules.siblings("Отдел 15-К",List.of("Отдел 15-К","Хранитель кладов","Золото мертвых")).isEmpty());}
  @Test public void mobileKnigobludUsesTheSameMetadataCycle(){String a="https://knigoblud.club/11111111-1111-1111-1111-111111111111";assertTrue(KnigobludSeriesParser.valid(a.replace("https://","https://mob.")));assertTrue(KnigobludSeriesParser.sameCycle(a,a.replace("https://","https://mob.")+"/"));assertFalse(KnigobludSeriesParser.sameCycle(a,a.replace("11111111-","22222222-")));assertFalse(KnigobludSeriesParser.valid(a.replace("knigoblud.club","knigoblud.club.evil")));}
+ @Test public void collectionTitleWithReversedAuthorUsesVerifiedIdentity(){
+  String raw="Таксист из Forbes - Тарасов Ник";
+  assertEquals("Таксист из Forbes",SeriesAuthorityRules.referenceTitle(raw,"Ник Тарасов"));
+  assertEquals(List.of(raw,"Таксист из Forbes"),SeriesAuthorityRules.referenceQueries(raw,""));
+  assertTrue(SeriesAuthorityRules.referenceMatches(raw,"Таксист из Forbes","Таксист","Ник Тарасов"));
+  assertFalse(SeriesAuthorityRules.referenceMatches(raw,"Таксист из Forbes 2","Таксист","Ник Тарасов"));
+  assertFalse(SeriesAuthorityRules.referenceMatches(raw,"Таксист из Forbes","Таксист","Другой Автор"));
+  assertFalse(SeriesAuthorityRules.referenceMatches("Роман - Другая история","Роман","","Ник Тарасов"));
+ }
 }

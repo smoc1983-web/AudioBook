@@ -106,7 +106,7 @@ private fun AbRankingCard(rank: Int, book: Book, theme: AbTheme, visible: Boolea
     }
     Column(
         Modifier.width(124.dp).abGlass(theme, 15).clickable(
-            role = Role.Button, onClickLabel = "Найти аудиокнигу", onClick = open
+            role = Role.Button, onClickLabel = "Найти книгу и её цикл", onClick = open
         ).padding(8.dp), verticalArrangement = Arrangement.spacedBy(5.dp)
     ) {
         Text(rank.toString(), color = theme.accent, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)

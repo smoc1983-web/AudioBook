@@ -1,0 +1,3 @@
+# Missing volume / scroll responsiveness
+
+Report: Fayroll 11, Снисхождение том 1 missing; brief scroll stalls, no crash. Existing exact stage searched only four sites and one query form. Add bounded alternate exact forms and remaining existing enabled sources, normalize explicit ordinal/bonus wrappers, keep distinct volume identity. Move title matching/grouping off main thread, coalesce cycle publications (250 ms), avoid redundant bibliography lookups for official rows. No new sources, no proof of live audio availability; exact cause of missing edition or scroll stall not established without on-device diagnostics. Tests added but not run; build deferred. User acceptance results retained in ACCEPTANCE.md.

@@ -1,0 +1,3 @@
+# Cycle count regression (reported after Test 4.2.115)
+
+User reports incorrect cycle totals. Confirmed code issues: header used filtered result rows; demo/size rejection could drop an official slot; opening identity compared printed series number with official ordinal. Old cache could also reuse a single complete provider for seven days. Keep official count separate, group official positions independent of narrations, retain unavailable placeholders, show provider counts and incomplete verification, avoid long-lived single-provider cache, retain explicitly marked offline fallback. No claim of correct live count without the concrete cycle and on-device verification. Tests added, not run; no build requested. Previous updater fix retained.

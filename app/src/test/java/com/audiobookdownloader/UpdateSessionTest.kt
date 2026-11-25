@@ -45,6 +45,27 @@ class UpdateSessionTest {
         assertEquals(1,backend.downloads);assertTrue(session.snapshot().message.contains("загружено"))
         assertNull("Download never launches an installer itself",session.claimInstaller())
     }
+    @Test fun primaryButtonDescribesActualOperationAndProgress() {
+        val backend=Backend();val tasks=Tasks();val session=session(backend,tasks)
+        assertTrue(session.check());assertEquals("Проверяем обновления…",session.primaryLabel())
+        tasks.finish();assertEquals("Загрузить обновление",session.primaryLabel())
+        backend.onDownload={progress->
+            progress(13);assertEquals("Скачивается…",session.primaryLabel())
+            assertEquals("Загрузка обновления: 13%",session.snapshot().message)
+            assertFalse(session.primaryLabel().contains("%"))
+            progress(100);assertEquals("Проверяем APK…",session.primaryLabel())
+            assertEquals("APK скачан. Проверяю целостность и подпись…",session.snapshot().message)
+        }
+        assertTrue(session.download());assertEquals("Подготовка загрузки…",session.primaryLabel())
+        tasks.finish()
+        assertTrue(session.install());assertEquals("Проверяем APK…",session.primaryLabel())
+        tasks.finish()
+    }
+    @Test fun cancellationChangesButtonImmediately() {
+        val backend=Backend();val tasks=Tasks();val session=session(backend,tasks)
+        session.check();session.cancel();assertEquals("Отмена…",session.primaryLabel())
+        tasks.finish();assertEquals("Проверить обновления",session.primaryLabel())
+    }
     @Test fun cancelledDownloadCannotFinishOrRequestAnInstaller() {
         val backend=Backend();val tasks=Tasks();val session=session(backend,tasks)
         session.check();tasks.finish()

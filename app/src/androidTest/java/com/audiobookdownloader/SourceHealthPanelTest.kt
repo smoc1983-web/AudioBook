@@ -37,6 +37,7 @@ class SourceHealthPanelTest {
         compose.onNodeWithText("Проверить включённые источники").performScrollTo().performClick()
         compose.waitUntil(5000){!session.state.value.running&&session.state.value.done==1}
         compose.onNodeWithText("Сайт ответил",substring=true).assertExists()
+        compose.onNodeWithText("Свежие ответы сайтов: 1 · свежие ошибки/ограничения: 0 · устарело: 0 · не проверено: 1").assertExists()
         compose.onAllNodesWithText("Сайт не проверен").assertCountEquals(1)
         compose.onNodeWithText("Проверить включённые источники").performScrollTo().performClick()
         compose.waitUntil(5000){!session.state.value.running&&session.state.value.cached==1}

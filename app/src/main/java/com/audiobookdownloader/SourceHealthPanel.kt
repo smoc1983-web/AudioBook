@@ -1,6 +1,12 @@
 package com.audiobookdownloader
 
 import androidx.compose.material3.Text
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.*
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.sp
@@ -8,13 +14,17 @@ import kotlinx.coroutines.*
 import java.text.DateFormat
 import java.util.Date
 
-internal data class SourceHealthView(val state:SourceHealthState,val targets:Map<String,SourceHealthTarget>,val now:Long)
+internal data class SourceHealthView(val state:SourceHealthState,val targets:Map<String,SourceHealthTarget>,val now:Long,
+    val vpnHelpful:Set<String> = emptySet())
 @Composable internal fun AbSourceHealthControls(targets:List<SourceHealthTarget>,enabled:Set<String>,theme:AbTheme,
     sessionOverride:SourceHealthSession?=null):SourceHealthView {
     val context=androidx.compose.ui.platform.LocalContext.current.applicationContext
     val session=remember(context,sessionOverride){sessionOverride ?: SourceHealth.session(context)}
     val state by session.state.collectAsState()
     val scope=rememberCoroutineScope()
+    var reportPreview by remember{mutableStateOf<String?>(null)}
+    var reporting by remember{mutableStateOf(false)}
+    var reportError by remember{mutableStateOf("")}
     var job by remember{mutableStateOf<Job?>(null)}
     var now by remember{mutableLongStateOf(System.currentTimeMillis().coerceAtLeast(0))}
     LaunchedEffect(session,targets){session.load(targets)}
@@ -28,22 +38,71 @@ internal data class SourceHealthView(val state:SourceHealthState,val targets:Map
     }
     Text("Последние ответы сайтов на этом устройстве — не проверка всех книг или скорости скачивания. Сеть, VPN и ограничения сайта могут изменить результат. Автоматических фоновых запросов нет.",color=theme.muted,fontSize=12.sp)
     Text("Через 15 минут результат помечается устаревшим. Повторный запрос — не чаще раза в минуту к сайту; ограничение сервера может увеличить паузу до суток.",color=theme.muted,fontSize=12.sp)
+    // Preserve the original neutral check; no VPN claim is recorded.
     AbButton("Проверить включённые источники",theme,enabled=!state.running&&!state.loading&&enabled.isNotEmpty()) {
         if(job?.isActive!=true) {
             val selected=targets.filter{it.name in enabled}
             job=scope.launch{session.run(selected,force=true);now=System.currentTimeMillis().coerceAtLeast(0)}
         }
     }
+    val additional=targets.filter{AbExtraSources.manualName(it.home).isNotBlank()}
+    if(additional.isNotEmpty())AbButton("Проверить дополнительные сайты · ${additional.size}",theme,enabled=!state.running&&!state.loading) {
+        if(job?.isActive!=true)job=scope.launch{session.run(additional,force=true);now=System.currentTimeMillis().coerceAtLeast(0)}
+    }
     if(state.running) {
         Text("Обработано: ${state.done} из ${state.total}. Проверяется список, выбранный при запуске.",color=theme.muted,fontSize=12.sp)
         AbButton("Отменить проверку сайтов",theme){job?.cancel()}
     }
     if(state.message.isNotBlank())Text(state.message,color=theme.muted,fontSize=12.sp)
+    val observations=targets.map{state.values[it.key]}
+    val fresh=observations.filterNotNull().filter{SourceHealthRules.fresh(it.checked,now)}
+    val answered=fresh.count{it.status==SourceHealthRules.Status.RESPONDED}
+    val stale=observations.filterNotNull().size-fresh.size
+    val unknown=observations.count{it==null}
+    Text("Свежие ответы сайтов: $answered · свежие ошибки/ограничения: ${fresh.size-answered} · устарело: $stale · не проверено: $unknown",color=theme.muted,fontSize=12.sp)
+    Text("Сетевой статус не подтверждает наличие полной аудиокниги или разрешение на скачивание.",color=theme.muted,fontSize=11.sp)
+    AbButton("Подготовить отчёт поиска (.txt)",theme,enabled=!state.running&&!reporting) {
+        reporting=true
+        reportPreview=null
+        reportError=""
+        scope.launch {
+            try {
+                reportPreview=withContext(Dispatchers.IO){AbSearchDiagnostics.collect(context)}
+            }catch(cancel:CancellationException){throw cancel}
+            catch(_:Exception){reportError="Не удалось собрать отчёт. Повторите попытку."}
+            finally{reporting=false}
+        }
+    }
+    val prepared=reportPreview
+    if(prepared!=null) {
+        Text("Предпросмотр отчёта перед отправкой. Он содержит версию приложения, техническую статистику поисковых результатов; поисковые запросы и адреса книг не экспортируются.",color=theme.muted,fontSize=12.sp)
+        SelectionContainer {
+            Text(prepared,modifier=Modifier.heightIn(max=220.dp).verticalScroll(rememberScrollState()),
+                color=theme.text,fontSize=11.sp)
+        }
+        AbButton("Отправить отчёт (.txt) в ChatGPT или другое приложение",theme,enabled=!reporting) {
+            reporting=true
+            reportError=""
+            scope.launch {
+                try {
+                    val uri=withContext(Dispatchers.IO){AbDiagnosticReportFiles.create(context,prepared)}
+                    AbDiagnosticReportFiles.share(context,uri)
+                }catch(cancel:CancellationException){throw cancel}
+                catch(_:Exception){reportError="Не удалось открыть отправку. Попробуйте из раздела «Диагностика»."}
+                finally{reporting=false}
+            }
+        }
+        AbButton("Скрыть отчёт",theme){reportPreview=null}
+    }
+    if(reportError.isNotBlank())Text(reportError,color=theme.error,fontSize=12.sp)
     return SourceHealthView(state,targets.associateBy{it.name},now)
 }
 @Composable internal fun AbSourceHealthStatus(site:String,view:SourceHealthView,theme:AbTheme) {
     val target=view.targets[site] ?: return
     if(target.key in view.state.active){Text("Проверка сайта…",color=theme.accent,fontSize=11.sp);return}
+    if(target.key in view.vpnHelpful) {
+        Text("VPN · сайт отвечал через VPN, но не напрямую (проверено на устройстве)",color=theme.accent,fontSize=11.sp)
+    }
     val value=view.state.values[target.key]
     if(value==null){Text("Сайт не проверен",color=theme.muted,fontSize=11.sp);return}
     val fresh=SourceHealthRules.fresh(value.checked,view.now)

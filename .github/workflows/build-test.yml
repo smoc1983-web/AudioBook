@@ -13,7 +13,7 @@ permissions:
   actions: read
 concurrency:
   group: audiobook-test-release
-  cancel-in-progress: false
+  cancel-in-progress: true
 jobs:
   test-release:
     runs-on: ubuntu-latest
@@ -72,9 +72,14 @@ jobs:
           python3 current/check.py
           node current/tests/test-additional-sources.cjs
           node current/tests/test-nova-sources.cjs
+      - name: Compress decorative backgrounds before packaging
+        run: |
+          python3 -m venv "$RUNNER_TEMP/audiobook-image-tools"
+          "$RUNNER_TEMP/audiobook-image-tools/bin/pip" install --disable-pip-version-check Pillow==11.3.0
+          "$RUNNER_TEMP/audiobook-image-tools/bin/python" scripts/optimize-test-resources.py
       - name: Build signed isolated Test APK and run checks
         run: |
-          GITHUB_RUN_NUMBER="$TEST_NUMBER" gradle :app:testDebugUnitTest :app:testReleaseUnitTest :app:assembleRelease :app:lintRelease -PaudiobookChannel=test --max-workers=2 --console=plain
+          GITHUB_RUN_NUMBER="$TEST_NUMBER" gradle :app:testDebugUnitTest :app:testReleaseUnitTest :app:assembleRelease :app:assembleDebug :app:assembleDebugAndroidTest :app:lintRelease -PaudiobookChannel=test --max-workers=2 --console=plain
           python3 scripts/check-android-lint.py app/build/reports/lint-results-release.xml
           python3 scripts/package-test-release.py
       - name: Confirm previous Test APK can be replaced without signer rotation
@@ -88,28 +93,30 @@ jobs:
           NEW_CERT=$("$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs dist-test/Audiobook-Test.apk | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')
           test -n "$OLD_CERT" && test "$OLD_CERT" = "$NEW_CERT"
           test "$NEW_CERT" = "3a4cecd14bb3e983843871766909c3f07b3dc64379800f3e270e4a27d39affb7"
-      - name: Verify install or upgrade in Android emulator
+          python3 - <<'PY'
+          from pathlib import Path
+          old=Path("prior-test/Audiobook-Test.apk").stat().st_size
+          new=Path("dist-test/Audiobook-Test.apk").stat().st_size
+          print(f"APK size: {old:,} -> {new:,} bytes ({(new-old)/old:+.1%})")
+          PY
+      - name: Enable KVM access for Android emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Verify functional regressions and signed upgrade in Android emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 36
           target: aosp_atd
           arch: x86_64
           profile: pixel_6
-          emulator-boot-timeout: 300
+          emulator-boot-timeout: 420
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -memory 2048 -cores 2
           script: |
-            if [ -f prior-test/Audiobook-Test.apk ]; then
-              adb install prior-test/Audiobook-Test.apk
-              adb install -r dist-test/Audiobook-Test.apk
-            else
-              adb install dist-test/Audiobook-Test.apk
-            fi
-            adb shell am start -n com.audiobookdownloader.test/com.audiobookdownloader.MainActivity
-            adb shell dumpsys package com.audiobookdownloader.test | grep -F "versionCode=$TEST_CODE"
-            if adb shell pm list packages | grep -F 'package:com.audiobookdownloader.preview'; then
-              echo 'Test APK must not install the main application package' >&2
-              exit 1
-            fi
+            GITHUB_RUN_NUMBER="$TEST_NUMBER" gradle :app:connectedDebugAndroidTest -PaudiobookChannel=test -Pandroid.testInstrumentationRunnerArguments.class=com.audiobookdownloader.CollectionTransferTest,com.audiobookdownloader.NovaListeningFeaturesTest,com.audiobookdownloader.SearchScrollTest,com.audiobookdownloader.SearchFiltersTest,com.audiobookdownloader.RankedAudioSearchTest,com.audiobookdownloader.UpdateScreenTest,com.audiobookdownloader.LatestMenuRegressionTest,com.audiobookdownloader.LibraryExperienceTest,com.audiobookdownloader.OfficialSeriesTest,com.audiobookdownloader.EditionDownloadTest,com.audiobookdownloader.MiniPlayerSwipeTest --max-workers=2 --console=plain
+            if adb shell pm path com.audiobookdownloader.test | grep -q "^package:"; then adb uninstall com.audiobookdownloader.test; fi
+            bash scripts/test-test-install.sh
       - name: Publish only verified Test channel assets
         env:
           GH_TOKEN: ${{ github.token }}
@@ -124,19 +131,33 @@ jobs:
           gh release upload "$TEST_TAG" dist-test/Audiobook-Test.apk dist-test/test-update.json --repo "$GITHUB_REPOSITORY"
           python3 - <<'PY'
           import hashlib,json,os,subprocess,time
+          from pathlib import Path
           tag=os.environ["TEST_TAG"]
           repo=os.environ["GITHUB_REPOSITORY"]
-          root="dist-test/"
-          expected={name:("sha256:"+hashlib.sha256(open(root+name,"rb").read()).hexdigest()) for name in ["Audiobook-Test.apk","test-update.json"]}
-          for attempt in range(8):
-            release=json.loads(subprocess.check_output(["gh","api",f"repos/{repo}/releases/tags/{tag}"],text=True))
-            values={a["name"]:a.get("digest") for a in release["assets"] if a["state"]=="uploaded"}
-            if values==expected and release["draft"]:break
+          root=Path("dist-test")
+          names=("Audiobook-Test.apk","test-update.json")
+          expected={name:("sha256:"+hashlib.sha256((root/name).read_bytes()).hexdigest()) for name in names}
+          for attempt in range(10):
+            # Draft releases cannot be fetched from /releases/tags/{tag};
+            # the authenticated releases listing includes them.
+            releases=json.loads(subprocess.check_output(["gh","api",f"repos/{repo}/releases?per_page=100"],text=True))
+            matches=[r for r in releases if r["tag_name"]==tag]
+            assert len(matches)<=1,"Ambiguous test release"
+            release=matches[0] if matches else None
+            if release:
+              assets={a["name"]:a.get("digest") for a in release["assets"] if a["state"]=="uploaded"}
+              if release["draft"] and release["prerelease"] and release["target_commitish"]==os.environ["GITHUB_SHA"] and assets==expected:
+                (root/"release-id.txt").write_text(str(release["id"]))
+                print("Verified draft release and all original SHA256 digests",tag)
+                break
             time.sleep(3)
-          else:raise RuntimeError("Verified GitHub sha256 digests not available; leaving draft unpublished")
-          print("Verified both immutable release assets:",tag)
+          else:
+            raise RuntimeError("Draft release assets were not fully verified; refusing publication")
           PY
-          gh release edit "$TEST_TAG" --repo "$GITHUB_REPOSITORY" --draft=false --prerelease --latest=false
+          RELEASE_ID="$(cat dist-test/release-id.txt)"
+          gh api --method PATCH "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID" -F draft=false -F prerelease=true -f make_latest=false >/dev/null
+          test "$(gh api "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID" --jq '.draft')" = false
+
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -144,6 +165,7 @@ jobs:
           path: |
             app/build/reports/
             app/build/test-results/
+            app/build/outputs/androidTest-results/
             dist-test/test-update.json
           if-no-files-found: warn
           retention-days: 14

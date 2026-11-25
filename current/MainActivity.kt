@@ -95,6 +95,7 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.flow.collectLatest
 import org.json.JSONArray
 import org.json.JSONObject
 import android.media.MediaMetadataRetriever
@@ -126,7 +127,8 @@ data class BookLink(
     val cycles: List<BookCycle> = emptyList(),
     val genreOrigin: String = "",
     val searchQuery: String = "",
-    val narrator: String = ""
+    val narrator: String = "",
+    val catalogState: String = ""
 )
 
 data class AudioTrack(
@@ -175,7 +177,13 @@ enum class AppPage {
 }
 
 // The selected source belongs to this request; failures never replace it with another site.
-private data class AbBookOpen(val book:BookLink,val sourceUrl:String)
+internal data class AbBookOpen(val book:BookLink,val sourceUrl:String)
+private fun abOpenedBookMatches(book:BookLink,title:String,author:String):Boolean {
+    if(book.cycles.isEmpty())return OpenedBookIdentity.matches(book.title,title,book.author,author,"",null)
+    // Require a known cycle/volume; do not strip arbitrary words or numbers from titles.
+    return book.cycles.any{cycle->OpenedBookIdentity.matches(book.title,title,book.author,author,cycle.title,cycle.order)}
+}
+
 
 private data class AbGenreReturn(
     val name:String,val query:String,val pages:Map<String,AbGenrePage>,val next:Map<String,AbGenrePage>,
@@ -184,10 +192,12 @@ private data class AbGenreReturn(
     val externalVisited:Set<String>,val externalStatus:String,
     val visibleCount:Int,val pending:Set<String>,val native:AbNativeGenre?=null
 )
+internal data class AbSearchVisit(val url:String,val narratorScroll:Int=0,val sourceScroll:Int=0)
+
 private data class AbSearchReturn(
     val screenId:Int,val query:String,val books:List<BookLink>,val status:String,
     val cycle:BookCycle?,val cycleBrowsing:Boolean,val genre:AbGenreReturn,
-    val scrollIndex:Int,val scrollOffset:Int,val interrupted:Boolean,val source:String=""
+    val scrollIndex:Int,val scrollOffset:Int,val interrupted:Boolean,val source:String="",val selectedKey:String="",val selectedUrl:String="",val scrollKey:String=""
 )
 
 class MainActivity : ComponentActivity() {
@@ -205,6 +215,7 @@ class MainActivity : ComponentActivity() {
         get()=browserState.value
         set(value){browserState.value=value}
     private var activityVisible=false
+    internal fun searchWindowVisible()=activityVisible
     private val activityWork by lazy {
         kotlinx.coroutines.CoroutineScope(Dispatchers.Main+kotlinx.coroutines.SupervisorJob())
     }
@@ -212,6 +223,7 @@ class MainActivity : ComponentActivity() {
     private var appStarted=false
     private var launchToken=0L
     private var launchAnimationAllowed=true
+    private val startupUpdatePrompt by lazy { StartupUpdatePrompt(this) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         AbCrashReport.install(this)
@@ -224,7 +236,6 @@ class MainActivity : ComponentActivity() {
         AbCrashReport.install(this)
         val recover=AbLaunchState.needsRecovery(this)
         title=AB_PRODUCT_NAME
-        PreviewUpdatesActivity.checkInBackground(this)
         // Keep the fallback for a real startup failure; never open a report automatically.
         showStartup(false)
         readyJob=activityWork.launch {
@@ -272,7 +283,6 @@ class MainActivity : ComponentActivity() {
                         androidx.compose.runtime.withFrameNanos { }
                         delay(2000L)
                         AbLaunchState.healthy(this@MainActivity,launchToken)
-                        ReleaseNotesActivity.schedule(this@MainActivity)
                         if(foreground && !isFinishing && !isDestroyed)requestMissingPermissions()
                     }
                 }
@@ -389,6 +399,7 @@ class MainActivity : ComponentActivity() {
         super.onStop()
     }
     override fun onDestroy() {
+        startupUpdatePrompt.close()
         activityWork.coroutineContext[kotlinx.coroutines.Job]?.cancel()
         super.onDestroy()
     }
@@ -399,7 +410,16 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         AbCrashReport.install(this)
-        if(appStarted){libraryAccessVersion++;ReleaseNotesActivity.schedule(this)}
+        if(appStarted)libraryAccessVersion++
+        startupUpdatePrompt.resume()
+    }
+    override fun onPause() {
+        startupUpdatePrompt.pause()
+        super.onPause()
+    }
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        startupUpdatePrompt.focusChanged(hasFocus)
     }
     override fun onRequestPermissionsResult(requestCode: Int,permissions: Array<String>,grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode,permissions,grantResults)
@@ -509,7 +529,8 @@ const val EQ_GLOBAL_KEY = "eq_global_v1"
  */
 data class EqSettings(
     val preset: Int,
-    val gainDb: Int
+    val gainDb: Int,
+    val custom:List<Int> = emptyList()
 )
 
 fun eqBookKey(
@@ -537,8 +558,9 @@ fun parseEqSettings(
             ?: 0
 
     return EqSettings(
-        preset.coerceIn(0, 3),
-        gain.coerceIn(0, 9)
+        preset.coerceIn(0, 4),
+        gain.coerceIn(0, 9),
+        parts.getOrNull(2)?.split(',')?.mapNotNull{it.toIntOrNull()?.coerceIn(-6,6)}?.takeIf{it.size==5}?:emptyList()
     )
 }
 
@@ -595,7 +617,7 @@ fun saveEqSettings(
     prefs.edit()
         .putString(
             key,
-            "${settings.preset}|${settings.gainDb}"
+            "${settings.preset}|${settings.gainDb}|${settings.custom.joinToString(",")}"
         )
         .apply()
 }
@@ -698,9 +720,11 @@ class AudioFx {
                         ).toInt()
                         .coerceIn(minLevel, maxLevel)
 
+                val customBand=when {hz<120->0;hz<400->1;hz<1500->2;hz<5000->3;else->4}
+                val applied=if(settings.preset==4) ((settings.custom.getOrNull(customBand)?:0)*100).coerceIn(minLevel,maxLevel) else level
                 eq.setBandLevel(
                     band.toShort(),
-                    level.toShort()
+                    applied.toShort()
                 )
             }
 
@@ -934,6 +958,7 @@ private class AbAppUiState(prefs: android.content.SharedPreferences) {
     var unifiedQuery by mutableStateOf("")
     var unifiedSearchId by mutableStateOf(0)
     var searchReports by mutableStateOf<Map<String, SiteSearchResult>>(emptyMap())
+    var attemptedAudioSources=emptySet<String>()
     var rankedSearch by mutableStateOf<BookRankingRules.Book?>(null)
     var narrationSearch by mutableStateOf<NarrationLookup?>(null)
     var detectedCycle by mutableStateOf<BookCycle?>(null)
@@ -945,6 +970,12 @@ private class AbAppUiState(prefs: android.content.SharedPreferences) {
     var searchScreenId by mutableStateOf(0)
     var searchReturns by mutableStateOf<List<AbSearchReturn>>(emptyList())
     var searchScrollTarget by mutableStateOf(0 to 0)
+    var searchRestoreKey by mutableStateOf("")
+    var searchSelectedKey by mutableStateOf("")
+    var searchSelectedUrl by mutableStateOf("")
+    var searchRestored by mutableStateOf(false)
+    var searchVisits by mutableStateOf<Map<String,AbSearchVisit>>(emptyMap())
+    var searchOpenedUrls by mutableStateOf<Set<String>>(emptySet())
     var selectedGenre by mutableStateOf("")
     var selectedNativeGenre by mutableStateOf<AbNativeGenre?>(null)
     var genreQuery by mutableStateOf("")
@@ -1052,12 +1083,13 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
     // Keep mutable state in one observed holder, rather than 100+ local delegates.
     // Large Composer/register frames were rejected by Android's DEX verifier.
     val uiState=remember(prefs) {AbAppUiState(prefs)}
+    LaunchedEffect(context.applicationContext){AbSearchCache.warmIndex(context.applicationContext)}
     with(uiState) {
 
 
     LaunchedEffect(prefs) {
         // Migrate only appearance; a gallery background is an independent preference.
-        prefs.edit().putInt("glass_theme",appSkin).remove("app_skin").apply()
+        prefs.edit().putInt("glass_theme",appSkin).remove("app_skin").remove(AbSearchDiagnostics.MODE_KEY).apply()
         AbGlassWidgets.refreshAll(context)
     }
 
@@ -1136,7 +1168,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
     val searchListState=androidx.compose.foundation.lazy.rememberLazyListState()
 
     // Runs in the app composition: switching tabs does not reset the results viewport.
-    LaunchedEffect(searchScreenId) {searchListState.scrollToItem(searchScrollTarget.first,searchScrollTarget.second)}
+    LaunchedEffect(searchScreenId) {if(!searchRestored)searchListState.scrollToItem(0)}
 
 
 
@@ -1830,11 +1862,43 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
             genreResultTarget,genrePending+genreDeferredPending,native=selectedNativeGenre)
         val saved=AbSearchReturn(searchScreenId,searchText,bookLinks.toList(),status,selectedCycle,cycleBrowsing,genre,
             searchListState.firstVisibleItemIndex,searchListState.firstVisibleItemScrollOffset,
-            unifiedQuery.isNotBlank() || cycleLoading || genreIsWorking() || unifiedMerging,source=selectedSearchSource)
+            unifiedQuery.isNotBlank() || cycleLoading || genreIsWorking() || unifiedMerging,source=selectedSearchSource,selectedKey=searchSelectedKey,selectedUrl=searchSelectedUrl,
+            scrollKey=searchListState.layoutInfo.visibleItemsInfo.firstOrNull{it.index==searchListState.firstVisibleItemIndex}?.key as? String ?: "")
         searchReturns=(searchReturns+saved).takeLast(8)
+        if(saved.genre.name.isBlank()){
+            val snapshot=AbSavedSearch(saved.query,saved.source,saved.books,saved.cycle.takeIf{saved.cycleBrowsing},saved.scrollIndex,saved.scrollOffset,saved.scrollKey,saved.selectedKey,saved.selectedUrl,searchVisits,searchOpenedUrls)
+            modernWork.launch(Dispatchers.IO){runCatching{AbSearchResume.save(context.applicationContext,snapshot)}}
+        }
+    }
+
+    fun failBookOpening(message:String) {
+        bookOpening?.let{AbSourceTrace.check(context,bookSiteName(it.sourceUrl),"OPEN_ERROR")}
+        bookPageLoading=false
+        resumeAfterLoad=false
+        player=null
+        bookLinks=emptyList()
+        val source=bookOpening?.sourceUrl?.let{bookSiteName(it)}.orEmpty()
+        bookPageError=message.ifBlank{"Главы книги пока не удалось прочитать"}
+        status=if(source.isBlank())bookPageError else "$source: $bookPageError"
+    }
+
+    fun nextAudioSource(book:BookLink,failedUrl:String):BookSource? {
+        if(attemptedAudioSources.size>=8)return null
+        val failed=failedUrl.substringBefore('#').trimEnd('/')
+        return bookSources(book).filter { source ->
+            val address=source.url.substringBefore('#').trimEnd('/')
+            val availability=AbSourceAvailability.get(prefs,source.url)
+            address!=failed && address !in attemptedAudioSources &&
+                availability!=AbChapterAvailability.EMPTY && !AbSourceAvailability.hidden(availability) &&
+                !AbSourceAvailability.tooSmall(prefs,source.url) && supportedBookUrl(source.url)!=null
+        }.minByOrNull{AbSourceAvailability.get(prefs,it.url).priority}
     }
 
     fun openWebsiteBook(book: BookLink, sourceUrl: String = book.url,rememberResults:Boolean=true) {
+        if(rememberResults)attemptedAudioSources=emptySet()
+        val attempt=sourceUrl.substringBefore('#').trimEnd('/')
+        if(attempt in attemptedAudioSources || attemptedAudioSources.size>=8){failBookOpening("Подходящие резервные источники исчерпаны");return}
+        attemptedAudioSources=attemptedAudioSources+attempt
         if(OpenAudioCatalog.fromPage(sourceUrl)!=null) {
             if(rememberResults)rememberSearchResults()
             cancelSearchMerges()
@@ -1850,15 +1914,30 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                 try {
                     val loaded=withContext(Dispatchers.IO){VerifiedBooks.load(sourceUrl)}
                     if(request!=bookOpenId)return@launch
+                    if(!abOpenedBookMatches(book,loaded.title,loaded.author)){
+                        AbSourceAvailability.recordMismatch(prefs,book,sourceUrl)
+                        failBookOpening("Название или автор не совпадают с выбранной книгой");return@launch
+                    }
+                    AbSourceAvailability.clearMismatch(prefs,book,sourceUrl)
                     pageTitle=loaded.title;currentBookAuthor=loaded.author;currentCoverUrl=loaded.cover;player=loaded.data
-                    bookPageLoading=false;bookOpening=null;bookPageError="";status="Глав: ${loaded.data.tracks.size}"
-                    AbSourceAvailability.record(prefs,sourceUrl,loaded.data.tracks.isNotEmpty(),
-                        preview=EditionDownloadRules.isPreview(loaded.title,loaded.data.tracks.map{it.src}))
+                    bookPageLoading=false;bookPageError="";status="Глав: ${loaded.data.tracks.size}"
+                    val availability=AbSourceAvailability.observe(prefs,sourceUrl,loaded.title,loaded.data)
+                    val sizeOk=kotlinx.coroutines.withTimeoutOrNull(12_000L){abCheckAudioMinimum(prefs,sourceUrl,loaded.data)}!=false
+                    if(request!=bookOpenId)return@launch
+                    if(!sizeOk||AbSourceAvailability.hidden(availability)){
+                        status=availability.label
+                        if(!sizeOk||prefs.getBoolean("search_hide_previews",false)){
+                            val next=bookSources(book).firstOrNull{it.url!=sourceUrl&&it.url.substringBefore('#').trimEnd('/') !in attemptedAudioSources&&!AbSourceAvailability.hidden(AbSourceAvailability.get(prefs,it.url))&&!AbSourceAvailability.tooSmall(prefs,it.url)}
+                            if(next!=null)openWebsiteBook(book,next.url,false) else failBookOpening("Издание содержит демо или возможный фрагмент. Выберите другой источник.")
+                            return@launch
+                        }
+                    }
+                    bookOpening=null
                     val title=cleanBookTitle(pageTitle)
                     abRememberCatalog(prefs,BookLink(title,sourceUrl,loaded.cover,loaded.author))
                     prefs.edit().putString(bookUrlKey(title),sourceUrl).putString(bookCoverKey(title),loaded.cover)
                         .putString(abAuthorKey(title),loaded.author).apply()
-                    StableProgress.observe(prefs,title,loaded.data.tracks,true)
+                    if(!AbSourceAvailability.hidden(availability))StableProgress.observe(prefs,title,loaded.data.tracks,true)
                     loaded.data.tracks.forEach{track->trackStates[track.title]=if(isTrackDownloaded(track,title,downloadedIndex))TrackState.DOWNLOADED else TrackState.READY}
                 }catch(cancel:kotlinx.coroutines.CancellationException){throw cancel}
                 catch(error:Exception){if(request==bookOpenId){bookPageLoading=false;bookPageError=error.message?:"Не удалось получить главы";status=bookPageError}}
@@ -1914,6 +1993,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
     fun openWebsiteCycle(cycle: BookCycle) {
         bookOpening=null;bookPageLoading=false;bookPageError=""
         rememberSearchResults()
+        searchSelectedKey="";searchSelectedUrl="";searchRestored=false
         cancelSearchMerges()
         searchScrollTarget=0 to 0
         genreExternalId++;genreExternalLoading=false
@@ -1954,6 +2034,8 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
             status="Введите название книги, автора или ссылку"
             return
         }
+        AbQueryHistory.add(prefs,query)
+        searchSelectedKey="";searchSelectedUrl="";searchRestored=false;searchVisits=emptyMap();searchOpenedUrls=emptySet();searchRestoreKey=""
         val directUrl=if(ranked==null && narration==null)supportedBookUrl(query) else null
         if(ranked==null && narration==null && directUrl==null && (query.startsWith("http://",true) || query.startsWith("https://",true))) {
             status="Поддерживаются ссылки на сайты из раздела «Источники»"
@@ -1994,7 +2076,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
         unifiedQuery = query
         unifiedSources=if(selectedSearchSource.isBlank() || narration!=null)AbBookSources.enabled(prefs) else listOf(selectedSearchSource)
         AbSourceTrace.recordSearch(context,query,emptyMap(),unifiedSources)
-        status=if(selectedSearchSource.isBlank())"Ищу по включённым источникам…" else "Ищу: $selectedSearchSource…"
+        status=unifiedSearchStatus(emptyMap(),0,unifiedSources)
     }
 
     /*
@@ -2015,7 +2097,11 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
         if(libraryBook!=null) {
             openDownloadedBook(libraryBook,autoPlay)
         } else if (ref.url.isNotBlank()) {
-            bookOpening=AbBookOpen(BookLink(ref.title,ref.url,ref.cover),ref.url)
+            attemptedAudioSources=setOf(ref.url.substringBefore('#').trimEnd('/'))
+            val savedAuthor=prefs.getString(abAuthorKey(ref.title),"").orEmpty()
+                .ifBlank{OpenedBookIdentity.presentationAuthor(ref.title)}
+            val displayTitle=OpenedBookIdentity.cleanPresentation(ref.title,savedAuthor).ifBlank{ref.title}
+            bookOpening=AbBookOpen(BookLink(displayTitle,ref.url,ref.cover,savedAuthor),ref.url)
             bookPageLoading=true;bookPageError=""
             rememberSearchResults()
             cancelSearchMerges()
@@ -2040,11 +2126,10 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
             currentUrl =
                 ref.url
 
-            pageTitle =
-                ref.title
+            pageTitle = displayTitle
 
             currentCoverUrl = ref.cover
-            currentBookAuthor = prefs.getString(abAuthorKey(ref.title), "").orEmpty()
+            currentBookAuthor = savedAuthor
 
             player =
                 null
@@ -2084,15 +2169,6 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
         }
     }
 
-    fun failBookOpening(message:String) {
-        bookPageLoading=false
-        resumeAfterLoad=false
-        player=null
-        bookLinks=emptyList()
-        val source=bookOpening?.sourceUrl?.let{bookSiteName(it)}.orEmpty()
-        bookPageError=message.ifBlank{"Главы книги пока не удалось прочитать"}
-        status=if(source.isBlank())bookPageError else "$source: $bookPageError"
-    }
 
     fun updateGenreResults() {
         val name=selectedGenre
@@ -2130,6 +2206,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
     }
 
     fun showSearchHome() {
+        searchSelectedKey="";searchSelectedUrl="";searchRestored=false;searchVisits=emptyMap();searchOpenedUrls=emptySet();searchRestoreKey=""
         cancelSearchMerges()
         bookOpening=null;bookPageLoading=false;bookPageError=""
         searchReturns=emptyList();searchScrollTarget=0 to 0
@@ -2173,7 +2250,8 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
         prefs.edit().putString("search_source",selectedSearchSource).apply()
         status=if(saved.interrupted) "Сохранено результатов: ${saved.books.size}. Поиск был прерван открытием книги. Для обновления нажмите «Найти»."
             else saved.status
-        searchScrollTarget=saved.scrollIndex to saved.scrollOffset
+        searchSelectedKey=saved.selectedKey;searchSelectedUrl=saved.selectedUrl;searchRestored=true
+        searchScrollTarget=saved.scrollIndex to saved.scrollOffset;searchRestoreKey=saved.scrollKey
         searchSessionActive=true;searchScreenId++;appPage=AppPage.SEARCH
     }
 
@@ -2286,6 +2364,9 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
     }
 
     fun requestModernDownload(track: AudioTrack, book: String) {
+        if(AbSourceAvailability.get(prefs,currentUrl)==AbChapterAvailability.PREVIEW && player?.tracks?.any{it.src==track.src}==true){
+            Toast.makeText(context,"Ознакомительный фрагмент: скачивание недоступно",Toast.LENGTH_SHORT).show();return
+        }
         if(isTrackDownloaded(track,book,downloadedIndex)) {
             trackStates[track.title]=TrackState.DOWNLOADED
             return
@@ -2453,12 +2534,32 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
     val modernActions = AbActions(
         navigate = { if(it==AppPage.SEARCH && appPage==AppPage.SEARCH && searchSessionActive) backToSearchResults() else appPage=it },
         home = {showSearchHome()},
-        resetSearch = {AbSearchCache.clear();AbCoverStore.clearMemory();showSearchHome()},
+        resetSearch = {showSearchHome()},
+        refreshSearch = {val query=searchText.trim();modernWork.launch{AbSearchCache.invalidate(context,query);OfficialCycleSearch.invalidate(query);withContext(Dispatchers.IO){OfficialSeriesStore(context.applicationContext).remove("Цикл: "+query,"")};startCommonBookSearch()}},
+        selectResult = {key,url->searchSelectedKey=key;searchSelectedUrl=url;searchRestored=false},
+        recordSearchVisit = {key,visit->
+            searchVisits=searchVisits+(key to visit)
+            searchOpenedUrls=searchOpenedUrls+visit.url.substringBefore('#').trimEnd('/')
+        },
+        restoreLastSearch = {modernWork.launch{
+            val saved=withContext(Dispatchers.IO){AbSearchResume.load(context.applicationContext)}
+            if(saved==null)Toast.makeText(context,"Сохранённого поиска пока нет",Toast.LENGTH_SHORT).show()
+            else {
+                showSearchHome();searchText=saved.query;selectedSearchSource=saved.source.takeIf{it in AbBookSources.searchOrder}.orEmpty()
+                prefs.edit().putString("search_source",selectedSearchSource).apply()
+                selectedCycle=saved.cycle;cycleBrowsing=saved.cycle!=null;bookLinks=saved.books
+                searchScrollTarget=saved.index to saved.offset;searchRestoreKey=saved.anchor
+                searchSelectedKey=saved.selectedKey;searchSelectedUrl=saved.selectedUrl;searchRestored=true
+                searchVisits=saved.visits;searchOpenedUrls=saved.opened;searchSessionActive=true
+                status="Восстановлены сохранённые результаты · доступность аудио проверяется при открытии"
+            }
+        }},
         backSearch = {backToSearchResults()},
         retryBook = {bookOpening?.let{openWebsiteBook(it.book,it.sourceUrl)}},
         query = { searchText = it },
         search = { runModernSearch() },
         searchRanked = { book ->
+            selectedSearchSource=""
             searchText=book.title
             startCommonBookSearch(book)
             appPage=AppPage.SEARCH
@@ -2476,11 +2577,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
         repairCovers = {repairModernCovers()},
         openSite = { book, source -> openWebsiteBook(book, source) },
         openRef = { openBookRef(it) },
-        cycle = { cycle ->
-            if(cycle.referenceUrl.isNotBlank()) {
-                searchText=cycle.title;startCommonBookSearch();selectedCycle=cycle;cycleBrowsing=true;appPage=AppPage.SEARCH
-            } else openWebsiteCycle(cycle)
-        },
+        cycle = { cycle -> openWebsiteCycle(cycle) },
         playOnline = { index ->
             player?.let { book ->
                 val state = PlaybackService.state.value
@@ -2538,12 +2635,16 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
         cycle = detectedCycle ?: selectedCycle, cycleBrowsing = cycleBrowsing,
         searchActive = searchSessionActive, searchScreenId = searchScreenId,
         canReturnResults = searchReturns.isNotEmpty(), searchListState = searchListState, searchRestoreIndex=searchScrollTarget.first,
+        selectedResultKey=searchSelectedKey,selectedResultUrl=searchSelectedUrl,restoreSelection=searchRestored,
+        searchRestoreOffset=searchScrollTarget.second,searchRestoreKey=searchRestoreKey,searchVisits=searchVisits,searchOpenedUrls=searchOpenedUrls,
         genre = selectedGenre, genreVisibleCount=genreResultTarget,
         genreMore = genreResultTarget<AB_SEARCH_LIMIT && (bookLinks.size>genreResultTarget || genrePending.isNotEmpty() ||
             genreDeferredPending.isNotEmpty() || genreNext.isNotEmpty() || genreExternalMore || genreExternalLoading),
         coverRepairRunning = coverRepairRunning, coverRepairStatus = coverRepairStatus,
         searching = unifiedQuery.isNotBlank() || cycleLoading || unifiedMerging || genreIsWorking(),
-        status = status, skin = appSkin, backgroundUri = customBackgroundUri,
+        status = status,
+        sourceProgress=if(unifiedQuery.isNotBlank()||unifiedMerging)abSourceProgress(searchReports,unifiedSources) else null,
+        skin = appSkin, backgroundUri = customBackgroundUri,
         version = userDataVersion + bookmarksVersion + coverRefresh,
         playback = playbackState, durations = modernDurations,
         downloadedIndex = downloadedIndex, trackStates = modernTrackStates,
@@ -2551,6 +2652,9 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
         downloadPercent = downloadPercent, downloadedBytes = downloadBytesCurrent, totalBytes = downloadBytesTotal
     )
 
+    // Checkpoints live outside the foreground/browser-generation subtree.
+    // onStop closes WebViews; onStart resumes unfinished tasks without resetting completed rows.
+    val cycleCheckpoint=remember(cycleRequestId){AbCycleCheckpoint()}
     Box(Modifier.fillMaxSize()) {
         // Browser sessions keep their own viewport and are not measured by Compose.
         if(foreground) key(browserGeneration) {
@@ -2627,7 +2731,33 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                 val requestQuery=unifiedQuery
                 val ranked=rankedSearch
                 val narration=narrationSearch
-                UnifiedBookSearch(unifiedQuery, prefs,requestSources) { site, report ->
+                var referenceChecked by remember(requestId){mutableStateOf(false)}
+                var referenceAuthor by remember(requestId){mutableStateOf("")}
+                LaunchedEffect(requestId) {
+                    if(!referenceChecked) {
+                        status="Сначала сверяю книгу и цикл по Author.Today и Литрес…"
+                        val reference=OfficialCycleSearch.preflight(requestQuery,context)
+                        val rankedSeries=if(ranked!=null&&narration==null)rankedCycle(prefs,ranked) else null
+                        val template=if(ranked==null&&narration==null)reference.template else null
+                        if(requestId==unifiedSearchId && unifiedQuery.isNotBlank()){
+                            referenceAuthor=reference.author
+                            if(rankedSeries!=null){
+                                selectedCycle=rankedSeries;searchText=rankedSeries.title
+                                cycleBrowsing=true;cycleLoading=true;cycleRequestId++
+                                unifiedQuery="";bookLinks=emptyList()
+                                status="Цикл книги подтверждён. Ищу аудио всех томов…"
+                            }else if(template!=null){
+                                val primary=template.sources.sortedWith(compareByDescending<OfficialSource>{it.complete&&it.error.isBlank()}.thenByDescending{it.books.mapNotNull{b->b.order}.distinct().size}.thenBy{it.provider!="Author.Today"}).first()
+                                selectedCycle=BookCycle(primary.series,referenceUrl=primary.seriesUrl,
+                                    referenceSite=primary.provider,seedAuthor=template.author)
+                                cycleBrowsing=true;cycleLoading=true;cycleRequestId++
+                                unifiedQuery="";bookLinks=emptyList()
+                                status="Цикл подтверждён справочниками. Ищу аудиокниги по порядку…"
+                            }else referenceChecked=true
+                        }
+                    }
+                }
+                if(referenceChecked) UnifiedBookSearch(unifiedQuery, prefs,requestSources) { site, report ->
                     if (requestId == unifiedSearchId && unifiedQuery.isNotBlank()) {
                         val limited=report.copy(books=report.books.take(AB_SEARCH_LIMIT))
                         modernWork.launch(Dispatchers.IO){limited.books.forEach{abRememberCatalog(prefs,it)}}
@@ -2644,14 +2774,14 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                                     when {
                                         narration!=null -> result.mapNotNull{narration.match(prefs,it)}
                                         ranked!=null -> result.mapNotNull{rankedAudioResult(prefs,ranked,it)}
-                                        else -> result
+                                        else -> if(referenceAuthor.isBlank())result else result.filter{
+                                            it.author.isBlank()||SeriesAuthorityRules.author(it.author)==SeriesAuthorityRules.author(referenceAuthor)
+                                        }
                                     }
                                 }
                                 if(version!=unifiedMergeVersion || requestId!=unifiedSearchId || unifiedQuery.isBlank())return@launch
                                 bookLinks=merged
-                                status=(if(requestSources.size==1)requestSources.first()+": " else "Общий поиск: ")+unifiedSearchStatus(reports,merged.size,requestSources)+
-                                    if(merged.size>=AB_SEARCH_LIMIT) ". Показаны первые $AB_SEARCH_LIMIT книг; уточните запрос." else ""
-                                if(narration!=null)status="Та же озвучка · "+unifiedSearchStatus(reports,merged.size,requestSources)
+                                status=unifiedSearchStatus(reports,merged.size,requestSources)
                                 if(requestSources.all{it in reports}) {
                                     if(ranked!=null && merged.isEmpty()) {
                                         val local=libraryBooks.any { it.files.isNotEmpty() &&
@@ -2660,6 +2790,12 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                                             requestSources.all{reports[it]?.error.isNullOrBlank()})?.let {status=it}
                                     }
                                     unifiedQuery=""
+                                    if(ranked==null && narration==null && !cycleBrowsing) {
+                                        abExactCycleSeed(merged,requestQuery)?.let { target ->
+                                            selectedCycle=target;cycleBrowsing=true;cycleLoading=true;cycleRequestId++
+                                            status="Сверяю состав цикла по справочникам…"
+                                        }
+                                    }
                                 }
                             }finally{if(version==unifiedMergeVersion)unifiedMerging=false}
                         }
@@ -2672,16 +2808,23 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
             key(cycleRequestId) {
                 val requestId = cycleRequestId
                 val cycle = selectedCycle!!
-                CycleBookBrowser(cycle) { books, finished, error ->
+                val publish:(List<BookLink>,Boolean,String)->Unit = { books,finished,message ->
+                    if(requestId==cycleRequestId && cycleBrowsing) {
+                        bookLinks=abOrderSeries(books,cycle)
+                        status=message
+                        if(finished)cycleLoading=false
+                    }
+                }
+                if(cycle.referenceUrl.isNotBlank() || cycle.seedTitle.isNotBlank()) {
+                    val fallback=remember(requestId){bookLinks.toList()}
+                    LaunchedEffect(requestId) {
+                        abResolveCycleAudio(context,prefs,cycle,fallback,cycleCheckpoint,publish)
+                    }
+                } else CycleBookBrowser(cycle) { books, finished, error ->
                     if (requestId == cycleRequestId && cycleBrowsing) {
-                        bookLinks = abOrderSeries(books,cycle)
-                        bookLinks.forEach {abRememberCatalog(prefs,it)}
-                        status = if (error.isNotBlank()) {
-                            "Книг цикла: ${books.size}. $error"
-                        } else if (finished) {
-                            "Книг цикла: ${books.size}"
-                        } else "Книг цикла: ${books.size}. Загружаю остальные…"
-                        if (finished) cycleLoading = false
+                        books.forEach {abRememberCatalog(prefs,it)}
+                        publish(books,finished,if(error.isNotBlank())"Книг цикла: ${books.size}. $error"
+                            else if(finished)"Книг цикла: ${books.size}" else "Книг цикла: ${books.size}. Загружаю остальные…")
                     }
                 }
             }
@@ -2724,8 +2867,20 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                         },timeoutMs=45_000L) {root,url,message ->
                         if(navigationActive[0] && navigationId==loadId) {
                             if(root==null||message.isNotBlank()) {
-                                if(message=="Страница открылась, но источник не передал читаемый список глав.")
+                                if(message=="Страница открылась, но источник не передал читаемый список глав.") {
                                     AbSourceAvailability.record(prefs,url,false)
+                                    val opening=bookOpening
+                                    if(opening!=null) {
+                                        AbSourceAvailability.record(prefs,opening.sourceUrl,false)
+                                        val alternate=nextAudioSource(opening.book,opening.sourceUrl)
+                                        if(alternate!=null) {
+                                            modernWork.launch {
+                                                if(navigationActive[0] && navigationId==loadId)openWebsiteBook(opening.book,alternate.url,false)
+                                            }
+                                            return@AbOpenPageTask
+                                        }
+                                    }
+                                }
                                 if(root!=null&&AbBookSources.isAudioOnline(url)) {
                                     pageTitle=root.optString("title").ifBlank{pageTitle}
                                     currentCoverUrl=root.optString("cover")
@@ -2772,8 +2927,29 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                                         if (
                                             parsed != null
                                         ) {
-                                            AbSourceAvailability.record(prefs,url,parsed.tracks.isNotEmpty(),
-                                                preview=EditionDownloadRules.isPreview(root.optString("title"),parsed.tracks.map{it.src}))
+                                            val opening=bookOpening
+                                            if(opening!=null&&!abOpenedBookMatches(opening.book,pageTitle,root.optString("author"))){
+                                                AbSourceAvailability.recordMismatch(prefs,opening.book,opening.sourceUrl)
+                                                failBookOpening("Название или автор не совпадают с выбранной книгой");return@launch
+                                            }
+                                            if(opening!=null)AbSourceAvailability.clearMismatch(prefs,opening.book,opening.sourceUrl)
+                                            val availability=AbSourceAvailability.observe(prefs,url,pageTitle,parsed)
+                                            if(opening!=null&&opening.sourceUrl!=url)AbSourceAvailability.record(prefs,opening.sourceUrl,parsed.tracks.isNotEmpty(),
+                                                preview=availability==AbChapterAvailability.PREVIEW,suspected=availability==AbChapterAvailability.SUSPECTED)
+                                            val sizeOk=kotlinx.coroutines.withTimeoutOrNull(12_000L){abCheckAudioMinimum(prefs,url,parsed)}!=false
+                                            if(!navigationActive[0]||navigationId!=loadId)return@launch
+                                            if(opening!=null&&opening.sourceUrl!=url)AbSourceAvailability.copySize(prefs,url,opening.sourceUrl)
+                                            if(!sizeOk||AbSourceAvailability.hidden(availability)){
+                                                resumeAfterLoad=false
+                                                if(!sizeOk||prefs.getBoolean("search_hide_previews",false)){
+                                                    val next=opening?.book?.let{bookSources(it)}?.firstOrNull{source->
+                                                        source.url!=url&&source.url!=opening?.sourceUrl&&source.url.substringBefore('#').trimEnd('/') !in attemptedAudioSources&&!AbSourceAvailability.hidden(AbSourceAvailability.get(prefs,source.url))&&!AbSourceAvailability.tooSmall(prefs,source.url)
+                                                    }
+                                                    if(next!=null&&opening!=null)openWebsiteBook(opening.book,next.url,false)
+                                                    else failBookOpening("Издание содержит демо или возможный фрагмент. Вернитесь к результатам и выберите другой источник.")
+                                                    return@launch
+                                                }
+                                            }
 
                                             player =
                                                 parsed
@@ -2809,7 +2985,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                                                 )
                                                 .apply()
 
-                                            StableProgress.observe(prefs,realBookTitle,parsed.tracks,true)
+                                            if(!AbSourceAvailability.hidden(availability))StableProgress.observe(prefs,realBookTitle,parsed.tracks,true)
                                             parsed.tracks.forEach { track ->
 
                                                 trackStates[
@@ -2842,7 +3018,7 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
                                             librarySync.requestSync()
 
                                             status =
-                                                if (
+                                                if(AbSourceAvailability.hidden(availability)) availability.label else if (
                                                     already > 0
                                                 ) {
 
@@ -2855,8 +3031,10 @@ fun AudioBookApp(libraryAccessVersion: Int = 0,foreground: Boolean = true,browse
 
                                         } else {
                                             AbSourceAvailability.record(prefs,url,false)
-                                            status =
-                                                "Плейлист пуст"
+                                            val opening=bookOpening
+                                            val alternate=opening?.let{nextAudioSource(it.book,it.sourceUrl)}
+                                            if(opening!=null&&alternate!=null)openWebsiteBook(opening.book,alternate.url,false)
+                                            else failBookOpening("Источник не передал список глав.")
                                         }
 
                                     } else {
@@ -7866,8 +8044,10 @@ fun formatSleepTime(
 
 data class BookSource(val site: String, val url: String, val coverUrl: String = "")
 data class BookCycle(val title: String, val url: String = "", val order: Double? = null,
-    val referenceUrl:String="",val referenceSite:String="",val parentTitle:String="")
-data class SiteSearchResult(val books: List<BookLink>, val error: String = "")
+    val referenceUrl:String="",val referenceSite:String="",val parentTitle:String="",
+    val seedTitle:String="",val seedAuthor:String="")
+data class SiteSearchResult(val books: List<BookLink>, val error: String = "",
+    val pagesVisited:Int=0, val morePages:Boolean=false, val fromCache:Boolean=false, val durationMs:Long=0)
 
 fun bookSiteName(url: String): String = when {
     AbExtraSources.manualName(url).isNotBlank() -> AbExtraSources.manualName(url)
@@ -7895,6 +8075,7 @@ fun supportedBookUrl(value: String): String? {
 }
 
 fun bookSources(book: BookLink): List<BookSource> =
+    if(book.catalogState in setOf("pending","missing","incomplete","text_only")) emptyList() else
     (book.sources.ifEmpty { listOf(BookSource(bookSiteName(book.url), book.url, book.coverUrl)) })
         .distinctBy { it.url.substringBefore('#').trimEnd('/') }
 
@@ -7908,18 +8089,17 @@ fun searchBookIdentity(book:BookLink):String = SearchBookIndex.keys(cleanBookTit
 fun mergeSearchBooks(books:List<BookLink>,checkActive:()->Unit={}):List<BookLink> =
     AbSearchPresentation.merge(books,checkActive)
 
-fun unifiedSearchStatus(reports: Map<String, SiteSearchResult>, count: Int,
-    sources:List<String> = AbBookSources.searchOrder): String {
-    val pending=sources.filter{it !in reports}
-    val errors=reports.filterKeys{it in sources}.filterValues{it.error.isNotBlank()}.entries
-        .joinToString("; "){it.key+": "+it.value.error}
-    val progress=when {
-        pending.isNotEmpty() -> "Найдено: "+count+". Ещё ищу: "+pending.joinToString()+"…"
-        count==0 && errors.isBlank() -> "В доступных источниках книги не найдены"
-        else -> "Найдено книг: "+count
-    }
-    return progress+if(errors.isBlank()) "" else ". "+errors
+internal data class AbSourceProgress(val completed:Int,val total:Int) {
+    val fraction:Float get()=if(total<=0)0f else (completed.toFloat()/total).coerceIn(0f,1f)
+    val percent:Int get()=if(total<=0)0 else ((completed.toLong()*100/total).toInt()).coerceIn(0,100)
+    val label:String get()="Проверено источников: $completed из $total"
 }
+internal fun abSourceProgress(reports:Map<String,SiteSearchResult>,sources:List<String>):AbSourceProgress {
+    val requested=sources.distinct()
+    return AbSourceProgress(requested.count{it in reports},requested.size)
+}
+fun unifiedSearchStatus(reports: Map<String, SiteSearchResult>, count: Int,
+    sources:List<String> = AbBookSources.searchOrder): String = abSourceProgress(reports,sources).label
 
 @Composable
 fun BookSourceButtons(book: BookLink, green: Color, onOpen: (String) -> Unit) {
@@ -8174,12 +8354,19 @@ class BookSearchTask(
     private var stableSamples = 0
     private var submittedAt = 0L
     private var bookinfoToken = -1
+    private val searchPages=SearchPaginationPolicy(AB_EXTRA_SOURCE_JSON)
+    private val seenSearchPages=HashSet<String>()
+    private val discovered=LinkedHashMap<String,BookLink>()
+    private var rootSearchPage=""
+    private var completedSearchPages=0
 
     init {
         web.webViewClient = object:AbBookWebViewClient({finish(emptyList(),"","Браузер поиска закрыт системой. Повторите поиск.")}) {
             override fun onPageStarted(view: WebView?, url: String?, favicon: android.graphics.Bitmap?) {
                 pageToken++
                 pageReady = false
+                stableSamples = 0
+                signature = ""
                 if (site == "Bookinfo" && active) web.evaluateJavascript(bookinfoHookJs(), null)
             }
             override fun onPageCommitVisible(view:WebView?,url:String?) {
@@ -8266,7 +8453,7 @@ class BookSearchTask(
     private fun collect(token: Int) {
         if (!active || finished || token != pageToken) return
         if (!pageReady) { scheduleCollect(token); return }
-        evaluate(bookCatalogJs(web.url.orEmpty().ifBlank{home})) { raw ->
+        evaluate(bookCatalogJs(rootSearchPage.ifBlank{web.url.orEmpty().ifBlank{home}})) { raw ->
             if (!active || finished || token != pageToken) return@evaluate
             try {
                 val root = JSONObject(decodeJsString(raw))
@@ -8279,7 +8466,28 @@ class BookSearchTask(
                 val elapsed = android.os.SystemClock.elapsedRealtime() - submittedAt
                 when {
                     root.optBoolean("blocked") -> finish(emptyList(),"","Сайт требует проверки соединения в браузере")
-                    books.isNotEmpty() && stableSamples >= 1 -> finish(books, "", "")
+                    books.isNotEmpty() && stableSamples >= 1 -> {
+                        books.forEach{book ->
+                            discovered.putIfAbsent(book.url.substringBefore('#').trimEnd('/'),book)
+                        }
+                        val address=web.url.orEmpty().ifBlank{home}
+                        if(rootSearchPage.isBlank())rootSearchPage=address
+                        seenSearchPages.add(searchPages.canonical(address))
+                        completedSearchPages++
+                        // Follow at most four safe HTTPS search pages on the registered site.
+                        val next=if(completedSearchPages<4 && discovered.size<AB_SEARCH_LIMIT)
+                            searchPages.next(rootSearchPage,root.optJSONArray("nextUrls"),seenSearchPages) else ""
+                        if(next.isNotBlank()) {
+                            seenSearchPages.add(searchPages.canonical(next))
+                            web.loadUrl(next)
+                        } else {
+                            val mightHaveMore=(completedSearchPages>=4 &&
+                                (root.optJSONArray("nextUrls")?.length() ?: 0)>0) ||
+                                root.optBoolean("hasNextButton")
+                            finish(discovered.values.toList(),"",if(mightHaveMore)
+                                "На сайте могут быть ещё страницы результатов. Уточните запрос." else "")
+                        }
+                    }
                     root.optBoolean("noResults") && elapsed > 1000L -> finish(emptyList(), "", "")
                     books.isEmpty() && elapsed >= 20_000L -> finish(emptyList(), "", "Поиск не вернул результаты")
                     else -> scheduleCollect(token)
@@ -8297,7 +8505,10 @@ class BookSearchTask(
         if (finished || !active) return
         finished = true
         handler.removeCallbacksAndMessages(null)
-        done(SiteSearchResult(books, error), endpoint)
+        val available=if(discovered.isEmpty())books else
+            (discovered.values+books).distinctBy{it.url.substringBefore('#').trimEnd('/')}
+        done(SiteSearchResult(available, error, pagesVisited=completedSearchPages,
+            morePages=error.contains("ещё страницы") || error.contains("еще страницы")), endpoint)
     }
 }
 
@@ -8334,6 +8545,314 @@ private suspend fun abSearchOneSource(context:Context,site:String,query:String,
     }
 }
 
+
+/** Exact cycle discovery is deliberately conservative: a title search must remain a title search. */
+internal fun abExactCycleSeed(books:List<BookLink>,query:String):BookCycle? {
+    val key=AbSearchPresentation.seriesKey(query)
+    if(key.isBlank() || books.any{SeriesAuthorityRules.sameTitle(query,it.title,"")})return null
+    val matches=books.filter{it.author.isNotBlank()}.flatMap{b->b.cycles
+        .filter{AbSearchPresentation.seriesKey(it.title)==key}
+        .map{it.copy(seedTitle=b.title,seedAuthor=b.author)}}
+    if(matches.map{SeriesAuthorityRules.author(it.seedAuthor)}.distinct().size!=1)return null
+    return matches.sortedBy{it.referenceUrl.isBlank()}.firstOrNull()
+}
+
+internal fun abCycleVolumeMatch(volume:OfficialEdition,candidate:BookLink):Boolean =
+    SeriesAuthorityRules.sameTitle(volume.title,cleanBookTitle(candidate.title),volume.series) &&
+        (candidate.author.isBlank() || SeriesAuthorityRules.author(candidate.author)==SeriesAuthorityRules.author(volume.author))
+
+private suspend fun abCycleSearch(context:Context,prefs:android.content.SharedPreferences,query:String,
+    sources:List<String>):Map<String,SiteSearchResult> {
+    val reports=linkedMapOf<String,SiteSearchResult>()
+    val mode=AbSearchDiagnostics.mode(prefs)
+    val scheduled=sources.distinct().sortedBy{if(it==AbBookSources.AZBYKA)1 else 0}
+    AbSearchCoordinator.search(scheduled,{if(it==AbBookSources.AZBYKA)95_000L else 50_000L},
+        {site->
+            val cached=if(mode==AbSearchNetworkMode.NORMAL)AbSearchCache.get(context,site,query) else null
+            cached ?: abSearchOneSource(context,site,query,prefs).also{AbSearchCache.put(context,site,query,it)}
+        },{site,result->reports[site]=AbGlobalBookResults.nativeResult(result,query)})
+    return reports
+}
+
+/** Use the same page analyzer as a tap on a search result. Never start a player or a download. */
+private data class AbProbedPlaylist(val title:String,val author:String,val player:PlayerData)
+private suspend fun abProbePlaylist(context:Context,address:String,onEmpty:()->Unit={}):AbProbedPlaylist? {
+    if(OpenAudioCatalog.fromPage(address)!=null){
+        return try{withContext(Dispatchers.IO){VerifiedBooks.load(address).let{AbProbedPlaylist(it.title,it.author,it.data)}}}
+        catch(c:kotlinx.coroutines.CancellationException){throw c}catch(_:Exception){null}
+    }
+    if(supportedBookUrl(address)==null)return null
+    var browser:WebView?=null
+    var task:BookWebsiteTask?=null
+    try {
+        return kotlinx.coroutines.withTimeoutOrNull(25_000L) {
+            kotlinx.coroutines.suspendCancellableCoroutine<AbProbedPlaylist?> { reply ->
+                fun finish(value:AbProbedPlaylist?){if(reply.isActive)reply.resumeWith(Result.success(value))}
+                browser=abCreateBrowser(context,{finish(null)}) {
+                    settings.javaScriptEnabled=true;settings.domStorageEnabled=true;settings.loadsImagesAutomatically=false
+                    val created=AbOpenPageTask(this,address,{},23_000L){root,_,error->
+                        if(reply.isActive&&error=="Страница открылась, но источник не передал читаемый список глав.")onEmpty()
+                        val parsed=root?.optJSONObject("player")?.let{parsePlayer(it)}
+                        finish(if(error.isBlank()&&parsed!=null&&parsed.tracks.isNotEmpty())
+                            AbProbedPlaylist(root?.optString("title").orEmpty(),root?.optString("author").orEmpty(),parsed) else null)
+                    }
+                    task=created
+                    AbWebViews.onClose(this){created.close();finish(null)}
+                }
+            }
+        }
+    }finally{task?.close();browser?.let{AbWebViews.release(it)}}
+}
+
+/** Determine only what the server actually reports. No full audio downloads. */
+private suspend fun abCheckAudioMinimum(prefs:android.content.SharedPreferences,address:String,player:PlayerData):Boolean {
+    if(AbSourceAvailability.tooSmall(prefs,address))return false
+    if(AbSourceAvailability.sizePassed(prefs,address))return true
+    val tracks=player.tracks.distinctBy{it.src}
+    if(tracks.isEmpty())return false
+    for(batch in tracks.chunked(3)){
+        kotlinx.coroutines.currentCoroutineContext().ensureActive()
+        AbAudioSizes.fetch(batch,address)
+        val sizes=AbAudioSizes.state.value
+        val sum=tracks.mapNotNull{sizes[it.src]}.sum()
+        val complete=tracks.all{(sizes[it.src]?:0)>0}
+        if(complete){
+            AbSourceAvailability.recordSize(prefs,address,sum)
+            return sum>=AbSourceAvailability.MIN_AUDIO_BYTES
+        }
+        if(sum>=AbSourceAvailability.WARN_AUDIO_BYTES){
+            AbSourceAvailability.recordSize(prefs,address,sum,complete=false);return true
+        }
+    }
+    val sizes=AbAudioSizes.state.value
+    if(tracks.all{(sizes[it.src]?:0)>0}){
+        val sum=tracks.mapNotNull{sizes[it.src]}.sum()
+        AbSourceAvailability.recordSize(prefs,address,sum)
+        return sum>=AbSourceAvailability.MIN_AUDIO_BYTES
+    }
+    return true
+}
+
+private suspend fun abProbeCycleEdition(context:Context,volume:OfficialEdition,address:String,cycleTitle:String,aliases:List<String>,candidateAuthor:String,
+    references:List<OfficialEdition> = emptyList()):Boolean {
+    val prefs=context.getSharedPreferences("audiobook_downloader",0)
+    val identity=BookLink(volume.title,address,author=volume.author)
+    val loaded=abProbePlaylist(context,address){AbSourceAvailability.record(prefs,address,false)}?:return false
+    if(!aliases.any{OpenedBookIdentity.matches(it,loaded.title,volume.author,loaded.author.ifBlank{candidateAuthor},cycleTitle,volume.order)} ||
+        SeriesAuthorityRules.author(loaded.author.ifBlank{candidateAuthor})!=SeriesAuthorityRules.author(volume.author)){
+        AbSourceAvailability.recordMismatch(prefs,identity,address);return false
+    }
+    AbSourceAvailability.clearMismatch(prefs,identity,address)
+    val observed=AbSourceAvailability.observe(prefs,address,loaded.title,loaded.player)
+    if(AbSourceAvailability.hidden(observed))return false
+    if(!abCheckAudioMinimum(prefs,address,loaded.player))return false
+    val reference=AbOfficialAudioReference.read(context,references)
+    if(reference.isExcerpt(loaded.player)){
+        AbSourceAvailability.record(prefs,address,true,suspected=true);return false
+    }
+    return true
+}
+
+
+private class AbCycleCheckpoint {
+    var catalogs:List<OfficialSource>?=null
+    val broadReports=linkedMapOf<String,SiteSearchResult>()
+    val rows=linkedMapOf<Int,List<BookLink>>()
+    val exactDone=mutableSetOf<Int>()
+    val verified=mutableSetOf<String>()
+    var broadDone=false
+}
+private fun abRequireSearchWindow(context:Context){
+    var c=context
+    while(c is android.content.ContextWrapper && c !is android.app.Activity){
+        val base=c.baseContext;if(base===c)break;c=base
+    }
+    if(c is MainActivity && !c.searchWindowVisible())throw kotlinx.coroutines.CancellationException("Search paused in background")
+}
+private suspend fun abCycleSource(context:Context,prefs:android.content.SharedPreferences,site:String,query:String):SiteSearchResult {
+    abRequireSearchWindow(context)
+    return AbSearchCache.get(context,site,query) ?: abSearchOneSource(context,site,query,prefs).also{
+        abRequireSearchWindow(context)
+        AbSearchCache.put(context,site,query,it)
+    }
+}
+private suspend fun abResolveCycleAudio(context:Context,prefs:android.content.SharedPreferences,cycle:BookCycle,
+    fallback:List<BookLink>,checkpoint:AbCycleCheckpoint,publish:(List<BookLink>,Boolean,String)->Unit) {
+    val sources=AbBookSources.enabled(prefs).filter{it!=AbBookSources.AZBYKA || AbBookSources.enabled(prefs).size==1}.ifEmpty{AbBookSources.enabled(prefs)}
+    abRequireSearchWindow(context)
+    val direct=if(checkpoint.catalogs!=null)null else OfficialCycleSearch.cached(cycle.title) ?: if(SeriesAuthorityRules.cycle(cycle.referenceUrl))
+        OfficialCycleSearch.find(cycle.title,context) else null
+    val snapshot=try {
+        var title=cycle.seedTitle;var author=cycle.seedAuthor
+        if((title.isBlank()||author.isBlank())&&SeriesAuthorityRules.work(cycle.referenceUrl)) {
+            val detail=withContext(Dispatchers.IO){
+                SeriesAuthorityParser.detail(OfficialSeriesHttp().html(cycle.referenceUrl),cycle.referenceUrl)
+            }
+            title=detail.title;author=detail.authors.singleOrNull().orEmpty()
+        }
+        if(checkpoint.catalogs!=null || direct!=null || title.isBlank()||author.isBlank())null else OfficialSeriesCatalog(context.applicationContext).refresh(title,author)
+    }catch(cancel:kotlinx.coroutines.CancellationException){throw cancel}catch(_:Exception){null}
+    val key=AbSearchPresentation.seriesKey(cycle.title)
+    abRequireSearchWindow(context)
+    val catalogs=checkpoint.catalogs ?: (direct?.sources ?: snapshot?.sources.orEmpty().filter{OfficialCycleSearch.seriesMatches(cycle.title,it.series) && it.books.isNotEmpty()}).also{if(it.isNotEmpty())checkpoint.catalogs=it}
+    val volumes=withContext(Dispatchers.Default){OfficialCycleSearch.template(cycle.title,catalogs)}
+    if(catalogs.isNotEmpty()&&volumes.isNotEmpty())withContext(Dispatchers.IO){
+        runCatching{OfficialSeriesStore(context.applicationContext).save(OfficialSnapshot("Цикл: "+cycle.title,volumes.first().author,catalogs),"")}
+    }
+    if(volumes.isEmpty()) {
+        val backup=(if(fallback.isNotEmpty())fallback else {
+            val reports=abCycleSearch(context,prefs,cycle.title,sources)
+            AbGlobalBookResults.prepare(reports,sources,cycle.title).filter{b->b.cycles.any{AbSearchPresentation.seriesKey(it.title)==key}}
+        }).map{b->b.copy(cycles=b.cycles.map{c->if(AbSearchPresentation.seriesKey(c.title)==key)c.copy(order=null) else c})}
+        publish(backup,true,"Справочники недоступны: порядок цикла не подтверждён. Показаны результаты без номеров аудиоисточников.")
+        return
+    }
+
+    fun reference(v:OfficialEdition)=cycle.copy(order=v.order,referenceUrl=v.url,referenceSite=v.provider,seedTitle=v.title,seedAuthor=v.author)
+    fun placeholder(v:OfficialEdition,state:String)=BookLink(v.title,v.url,author=v.author,cycles=listOf(reference(v)),catalogState=state)
+    val partial=catalogs.map{it.provider}.toSet().size<2||catalogs.any{!it.complete||it.error.isNotBlank()}
+    val aliases=withContext(Dispatchers.Default){volumes.map{OfficialCycleSearch.aliases(cycle.title,it,catalogs)}}
+    val volumeAuthors=volumes.map{SeriesAuthorityRules.author(it.author)}
+    val aliasIndex=withContext(Dispatchers.Default){
+        val index=mutableMapOf<String,MutableSet<Int>>()
+        aliases.forEachIndexed{i,values->values.forEach{value->
+            val key=OfficialCycleSearch.matchKey(cycle.title,value,volumes[i].author)
+            if(key.isNotBlank())index.getOrPut(key){linkedSetOf()}.add(i)
+        }}
+        index
+    }
+    fun position(book:BookLink):Int? {
+        val author=SeriesAuthorityRules.author(book.author)
+        val title=OfficialCycleSearch.matchKey(cycle.title,book.title,book.author)
+        return aliasIndex[title].orEmpty().filter{i->author.isBlank()||author==volumeAuthors[i]}.singleOrNull()
+    }
+    suspend fun accept(i:Int,books:List<BookLink>,matched:Boolean=false){
+        val volume=volumes[i]
+        val candidates=withContext(Dispatchers.Default){
+            val job=kotlinx.coroutines.currentCoroutineContext()
+            books.filter{job.ensureActive();matched||position(it)==i}.mapNotNull{candidate->
+            val links=bookSources(candidate).filter{source->
+                supportedBookUrl(source.url)!=null&&SeriesAuthorityRules.provider(source.url).isBlank()&&
+                    !AbSourceAvailability.hidden(AbSourceAvailability.get(prefs,source.url))&&!AbSourceAvailability.tooSmall(prefs,source.url)
+            }
+            if(links.isEmpty()||EditionDownloadRules.isPreview(candidate.title,emptyList()))null else {
+                val first=links.first()
+                candidate.copy(title=volume.title,author=volume.author,url=first.url,
+                    coverUrl=first.coverUrl.ifBlank{candidate.coverUrl},sources=links,cycles=listOf(reference(volume)),catalogState="candidate")
+            }
+            }
+        }
+        if(candidates.isNotEmpty()){
+            val previous=checkpoint.rows[i].orEmpty().filter{it.catalogState in setOf("candidate","checked")}
+            checkpoint.rows[i]=AbSearchPresentation.merge(previous+candidates)
+        }
+    }
+    val sourceSummary=OfficialCycleSearch.sourceSummary(catalogs)
+    var lastPublish=0L
+    fun report(stage:String,finished:Boolean=false,force:Boolean=false){
+        abRequireSearchWindow(context)
+        val now=android.os.SystemClock.elapsedRealtime()
+        if(!finished&&!force&&lastPublish!=0L&&now-lastPublish<250L)return
+        lastPublish=now
+        val rows=volumes.indices.flatMap{i->checkpoint.rows[i].orEmpty().ifEmpty{
+            listOf(placeholder(volumes[i],if(finished)OfficialCycleSearch.missingState(cycle.title,volumes[i],catalogs) else "pending"))
+        }}
+        val found=checkpoint.rows.values.count{list->list.any{it.catalogState in setOf("candidate","checked")}}
+        publish(rows,finished,"По справочникам: ${volumes.size} книг${if(partial)" (сверка неполная)" else ""}. $sourceSummary. Найдено аудио: $found/${volumes.size}. $stage")
+    }
+    // Show already cached editions immediately; network search still refreshes them.
+    if(!checkpoint.broadDone&&checkpoint.rows.isEmpty()){
+        val saved=AbSearchCache.localMatches(context.applicationContext,cycle.title,sources.toSet(),600)
+        val groups=withContext(Dispatchers.Default){saved.groupBy{position(it)}}
+        for((i,books) in groups)if(i!=null)accept(i,books,matched=true)
+    }
+    report("Сверяю найденные книги…",force=true)
+    // Stage 1: one broad query per source; stream successful results into all slots.
+    if(!checkpoint.broadDone){
+        val remaining=sources.filter{it !in checkpoint.broadReports}
+        AbSearchCoordinator.search(remaining,{25_000L},{site->abCycleSource(context,prefs,site,cycle.title)},{site,result->
+            abRequireSearchWindow(context)
+            checkpoint.broadReports[site]=result
+            val grouped=withContext(Dispatchers.Default){result.books.groupBy{position(it)}}
+            for((i,books) in grouped)if(i!=null)accept(i,books,matched=true)
+            report("Общий поиск: ${checkpoint.broadReports.size}/${sources.size} источников.")
+        })
+        checkpoint.broadDone=true
+    }
+    // Stage 2: only missing works, priority for sources that actually returned this series.
+    // At most two WebViews, independent timeouts, and no waiting for every book on every site.
+    val priority=withContext(Dispatchers.Default){sources.sortedWith(compareByDescending<String>{site->
+        checkpoint.broadReports[site]?.books?.count{position(it)!=null} ?: 0
+    }.thenBy{if(checkpoint.broadReports[it]?.error.isNullOrBlank())0 else 1})}
+    fun hasCandidate(i:Int)=checkpoint.rows[i].orEmpty().any{it.catalogState in setOf("candidate","checked")}
+    for(i in volumes.indices){
+        kotlinx.coroutines.yield()
+        abRequireSearchWindow(context)
+        if(i in checkpoint.exactDone||checkpoint.rows[i].orEmpty().any{it.catalogState in setOf("candidate","checked")})continue
+        val queries=OfficialCycleSearch.lookupQueries(cycle.title,volumes[i],aliases[i])
+        val preferred=priority.take(4)
+        report("Точечный поиск: ${i+1}/${volumes.size}.",force=true)
+        suspend fun searchBatch(query:String,batch:List<String>){
+            if(batch.isEmpty()||hasCandidate(i))return
+            kotlinx.coroutines.withTimeoutOrNull(45_000L){
+                AbSearchCoordinator.search(batch,{20_000L},{site->abCycleSource(context,prefs,site,query)},{_,result->
+                    abRequireSearchWindow(context)
+                    accept(i,result.books)
+                    report("Точечный поиск: ${i+1}/${volumes.size}.")
+                })
+            }
+        }
+        // Alternate exact forms first, then the remaining configured sites; stop once a matching edition exists.
+        // Keep a hard budget per missing volume so an unavailable work cannot stall the entire cycle.
+        kotlinx.coroutines.withTimeoutOrNull(120_000L){
+            queries.forEach{query->if(!hasCandidate(i))searchBatch(query,preferred)}
+            queries.firstOrNull()?.let{query->
+                for(batch in priority.drop(4).chunked(4)){
+                    if(hasCandidate(i))break
+                    searchBatch(query,batch)
+                }
+            }
+        }
+        abRequireSearchWindow(context)
+        checkpoint.exactDone.add(i)
+        if(checkpoint.rows[i].isNullOrEmpty())checkpoint.rows[i]=listOf(placeholder(volumes[i],OfficialCycleSearch.missingState(cycle.title,volumes[i],catalogs)))
+    }
+    // If a leading edition is an excerpt, check the next available source instead.
+    // Keep the total per-volume budget bounded and retain every usable alternative.
+    for(i in volumes.indices){
+        kotlinx.coroutines.yield()
+        abRequireSearchWindow(context)
+        val list=checkpoint.rows[i].orEmpty()
+        val choices=list.filter{it.catalogState in setOf("candidate","checked")}
+            .flatMap{candidate->bookSources(candidate).map{source->candidate to source}}
+            .distinctBy{it.second.url}
+            .filter{!AbSourceAvailability.hidden(AbSourceAvailability.get(prefs,it.second.url))&&!AbSourceAvailability.tooSmall(prefs,it.second.url)}
+            .sortedBy{AbSourceAvailability.get(prefs,it.second.url).priority}
+        for((candidate,source) in choices.take(3)){
+            abRequireSearchWindow(context)
+            if(AbSourceAvailability.get(prefs,source.url)==AbChapterAvailability.AVAILABLE&&AbSourceAvailability.sizePassed(prefs,source.url))break
+            if(source.url in checkpoint.verified)continue
+            report("Проверка глав: ${i+1}/${volumes.size}.")
+            val references=catalogs.flatMap{it.books}.filter{b->aliases[i].any{OfficialCycleSearch.matches(cycle.title,it,b.title)}&&SeriesAuthorityRules.author(b.author)==SeriesAuthorityRules.author(volumes[i].author)}
+            val ok=kotlinx.coroutines.withTimeoutOrNull(40_000L){
+                abProbeCycleEdition(context,volumes[i],source.url,cycle.title,aliases[i],candidate.author,references)
+            }==true
+            abRequireSearchWindow(context)
+            checkpoint.verified.add(source.url)
+            if(ok)break
+        }
+        val filtered=list.mapNotNull{candidate->
+            if(candidate.catalogState !in setOf("candidate","checked"))candidate else
+                AbSourceAvailability.searchCandidates(prefs,candidate,true)?.let{book->
+                    book.copy(catalogState=if(AbSourceAvailability.get(prefs,book.url)==AbChapterAvailability.AVAILABLE)"checked" else "candidate")
+                }
+        }.sortedBy{AbSourceAvailability.priority(prefs,bookSources(it))}
+        checkpoint.rows[i]=filtered.ifEmpty{listOf(placeholder(volumes[i],OfficialCycleSearch.missingState(cycle.title,volumes[i],catalogs)))}
+        report("Проверено изданий цикла: ${i+1}/${volumes.size}.")
+    }
+    report("Поиск завершён. Откройте книгу для проверки оставшихся озвучек.",true)
+}
+
 @Composable
 fun UnifiedBookSearch(query: String, prefs: android.content.SharedPreferences,
     sources:List<String> = AbBookSources.searchOrder,onResult: (String, SiteSearchResult) -> Unit) {
@@ -8343,8 +8862,19 @@ fun UnifiedBookSearch(query: String, prefs: android.content.SharedPreferences,
     LaunchedEffect(query,requested,prefs) {
         // Two browsers at most; slow sitemap enumeration never occupies the first slot.
         val scheduled=requested.sortedBy{if(it==AbBookSources.AZBYKA)1 else 0}
-        AbSearchCoordinator.search(scheduled,{site ->if(site==AbBookSources.AZBYKA)95_000L else 50_000L},
-            {site ->AbSearchCache.get(site,query) ?: abSearchOneSource(context,site,query,prefs).also{AbSearchCache.put(site,query,it)}}, {site,result ->report(site,AbGlobalBookResults.nativeResult(result,query))})
+        val mode=AbSearchDiagnostics.mode(prefs)
+        val session=runCatching{AbSearchDiagnostics.begin(context,query,scheduled,mode)}.getOrDefault("")
+        try {
+            AbSearchCoordinator.search(scheduled,{site ->if(site==AbBookSources.AZBYKA)95_000L else 50_000L},
+                {site ->
+                    val cached=if(mode==AbSearchNetworkMode.NORMAL)AbSearchCache.get(context,site,query) else null
+                    cached?.copy(fromCache=true) ?: abSearchOneSource(context,site,query,prefs)
+                        .also{AbSearchCache.put(context,site,query,it)}
+                }, {site,result ->
+                    if(session.isNotBlank())runCatching{AbSearchDiagnostics.result(context,session,site,result)}
+                    report(site,AbGlobalBookResults.nativeResult(result,query))
+                })
+        } finally {if(session.isNotBlank())runCatching{AbSearchDiagnostics.finish(context,session)}}
     }
 }
 
@@ -8898,21 +9428,23 @@ private fun AbThemeBackdrop(theme: AbTheme, uri: String?, modifier: Modifier = M
 
 internal fun abAuthorKey(title: String) = "book_author_" + safeFileName(title)
 
-private fun abFindLocal(books: List<LibraryBook>, title: String,editionId:String=""): LibraryBook? =
+internal fun abFindLocal(books: List<LibraryBook>, title: String,editionId:String=""): LibraryBook? =
     findDownloadedBook(books,title,editionId)
 
-private fun abHasDownloadedChapter(index: DownloadedChapterIndex, title: String, track: AudioTrack): Boolean =
+internal fun abHasDownloadedChapter(index: DownloadedChapterIndex, title: String, track: AudioTrack): Boolean =
     isTrackDownloaded(track,title,index)
 
 internal data class AbDownloadItem(val track: AudioTrack,val book:String,val state:TrackState,val error:String,
     val phase:String="",val downloadedBytes:Long=0L,val totalBytes:Long=-1L)
-private data class AbScreenData(
+internal data class AbScreenData(
     val page: AppPage, val query: String, val searchSource:String,val results: List<BookLink>,
     val onlineBook: PlayerData?, val pageTitle: String, val pageUrl: String, val pageCover: String,
     val bookOpening:AbBookOpen?,val bookPageLoading:Boolean,val bookPageError:String,
     val cycle: BookCycle?, val cycleBrowsing: Boolean, val searching: Boolean, val status: String,
-    val searchActive: Boolean, val searchScreenId: Int,
+    val searchActive: Boolean, val searchScreenId: Int, val sourceProgress:AbSourceProgress?=null,
     val canReturnResults:Boolean,val searchListState:androidx.compose.foundation.lazy.LazyListState,val searchRestoreIndex:Int,
+    val selectedResultKey:String="",val selectedResultUrl:String="",val restoreSelection:Boolean=false,
+    val searchRestoreOffset:Int=0,val searchRestoreKey:String="",val searchVisits:Map<String,AbSearchVisit> = emptyMap(),val searchOpenedUrls:Set<String> = emptySet(),
     val genre: String, val genreMore: Boolean,val genreVisibleCount:Int,
     val coverRepairRunning: Boolean, val coverRepairStatus: String,
     val skin: Int, val backgroundUri: String?, val version: Int,
@@ -8922,10 +9454,14 @@ private data class AbScreenData(
     val downloadPercent: Int, val downloadedBytes: Long, val totalBytes: Long
 )
 
-private data class AbActions(
+internal data class AbActions(
     val navigate: (AppPage) -> Unit,
     val home: () -> Unit,
     val resetSearch: () -> Unit,
+    val refreshSearch: () -> Unit,
+    val selectResult: (String,String) -> Unit,
+    val recordSearchVisit: (String,AbSearchVisit) -> Unit,
+    val restoreLastSearch: () -> Unit,
     val backSearch: () -> Unit,
     val retryBook: () -> Unit,
     val query: (String) -> Unit,
@@ -8951,12 +9487,12 @@ private data class AbActions(
     val clearBackground: () -> Unit
 )
 
-private enum class AbIcon { SEARCH, BOOKS, PLAY, PAUSE, COLLECTIONS, SETTINGS, MORE, BACK,
+internal enum class AbIcon { SEARCH, BOOKS, PLAY, PAUSE, COLLECTIONS, SETTINGS, MORE, BACK,
     NEXT, PREVIOUS, DOWNLOAD, TIMER, BOOKMARK, HEART, PLUS, CLOSE, QUEUE, SYNC, CHECK, UP, DOWN, EQUALIZER }
 
 /** Vector strokes avoid a dependency on material-icons-extended and keep every icon consistent. */
 @Composable
-private fun AbIcon(icon: AbIcon, color: Color, modifier: Modifier = Modifier) {
+internal fun AbIcon(icon: AbIcon, color: Color, modifier: Modifier = Modifier) {
     Canvas(modifier.size(23.dp)) {
         val scale = size.minDimension / 24f
         val stroke = 1.7f * scale
@@ -9048,7 +9584,7 @@ private fun AbIcon(icon: AbIcon, color: Color, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun AbIconButton(icon: AbIcon, label: String, theme: AbTheme,
+internal fun AbIconButton(icon: AbIcon, label: String, theme: AbTheme,
     modifier: Modifier = Modifier, enabled: Boolean = true, active: Boolean = false, onClick: () -> Unit) {
     Box(modifier.size(48.dp).then(if(active) Modifier.abGlass(theme,24,selected=true,primary=true)
             else Modifier.clip(RoundedCornerShape(16.dp)))
@@ -9106,7 +9642,7 @@ internal fun AbHeading(title: String, theme: AbTheme, count: String = "", onClic
 }
 
 @Composable
-private fun AbCover(title: String, local: LibraryBook?, remote: BookRef?, theme: AbTheme,
+internal fun AbCover(title: String, local: LibraryBook?, remote: BookRef?, theme: AbTheme,
     modifier: Modifier = Modifier, widgetBook: Boolean = false, describe:Boolean=true) {
     val context=androidx.compose.ui.platform.LocalContext.current
     val prefs=remember(context) {context.getSharedPreferences("audiobook_downloader",Context.MODE_PRIVATE)}
@@ -9179,11 +9715,15 @@ internal fun AbProgress(value: Float, theme: AbTheme, modifier: Modifier=Modifie
 
 @Composable
 internal fun AbBookRow(ref: BookRef, local: LibraryBook?, subtitle: String, theme: AbTheme,
-    progress: AbBookTimeRules.Result?=null, playing: Boolean=false, onClick: ()->Unit, onMenu: ()->Unit) {
+    progress: AbBookTimeRules.Result?=null, playing: Boolean=false, coverWarning:String="", onClick: ()->Unit, onMenu: ()->Unit) {
     val display=abBookDisplay(ref,local)
     Row(Modifier.fillMaxWidth().abGlass(theme,18,raised=true)
         .clickable(onClick=onClick).padding(10.dp),verticalAlignment=Alignment.CenterVertically) {
-        AbCover(ref.title,local,ref,theme,Modifier.width(66.dp).height(94.dp))
+        Box {
+            AbCover(ref.title,local,ref,theme,Modifier.width(66.dp).height(94.dp))
+            if(coverWarning.isNotBlank())Text("ДЕМО?",color=Color.White,fontSize=10.sp,fontWeight=FontWeight.Bold,
+                modifier=Modifier.align(Alignment.BottomCenter).background(Color(0xffa34b16),RoundedCornerShape(4.dp)).padding(horizontal=5.dp,vertical=3.dp))
+        }
         Column(Modifier.weight(1f).padding(horizontal=13.dp),verticalArrangement=Arrangement.spacedBy(6.dp)) {
             Text(display.title,color=theme.text,fontSize=15.sp,fontWeight=FontWeight.SemiBold,
                 maxLines=2,overflow=TextOverflow.Ellipsis)
@@ -9370,6 +9910,11 @@ private fun AbModernApp(data: AbScreenData, actions: AbActions, sync: LibrarySyn
         }}
     }
     val state=data.playback
+    var searchMiniHidden by androidx.compose.runtime.saveable.rememberSaveable(
+        state.bookTitle,state.sourceType,state.tracks.firstOrNull()?.editionId.orEmpty()) {mutableStateOf(false)}
+    LaunchedEffect(data.page,state.hasSelection) {
+        if(data.page==AppPage.PLAYER||!state.hasSelection)searchMiniHidden=false
+    }
     val pages=androidx.compose.runtime.saveable.rememberSaveableStateHolder()
     androidx.activity.compose.BackHandler(enabled=data.page!=AppPage.SEARCH || data.searchActive) {
         if(data.page==AppPage.SEARCH) actions.backSearch() else actions.navigate(AppPage.SEARCH)
@@ -9420,7 +9965,13 @@ private fun AbModernApp(data: AbScreenData, actions: AbActions, sync: LibrarySyn
                 }
                 }
             }
-            if(state.hasSelection && shownPage!=AppPage.PLAYER) AbMiniPlayer(data,actions,sync.books.value,prefs,theme)
+            if(state.hasSelection && shownPage!=AppPage.PLAYER) {
+                if(shownPage==AppPage.SEARCH) {
+                    if(!searchMiniHidden)AbSwipeMiniPlayer(onDismiss={searchMiniHidden=true}) {
+                        AbMiniPlayer(data,actions,sync.books.value,prefs,theme)
+                    }
+                } else AbMiniPlayer(data,actions,sync.books.value,prefs,theme)
+            }
                     }
                 }
             }
@@ -9506,23 +10057,46 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
         }
     }
     val history=remember(prefs,data.version) {getListeningHistory(prefs).map {bookRefFor(prefs,it)}}
+    var queryHistory by remember(prefs,data.searchScreenId){mutableStateOf(AbQueryHistory.read(prefs))}
+    var historyOpen by remember(data.searchScreenId){mutableStateOf(false)}
     var showSources by remember {mutableStateOf(false)}
-    var manualSource by remember {mutableStateOf<Pair<String,String>?>(null)}
     var hidePreviews by remember(prefs) {mutableStateOf(prefs.getBoolean("search_hide_previews",false))}
     var enabledSources by remember {mutableStateOf(AbBookSources.enabled(prefs).toSet())}
     val sourceContext=androidx.compose.ui.platform.LocalContext.current
     val listState=data.searchListState
     val filterScope = androidx.compose.runtime.rememberCoroutineScope()
     var showFilters by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
-    var narratorFilter by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf("") }
-    var seriesOnly by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
-    var localOnly by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
-    val activeFilters = listOf(hidePreviews, narratorFilter.isNotEmpty(), seriesOnly, localOnly).count { it }
+    var narratorFilter by remember(prefs) { mutableStateOf(prefs.getString("search_filter_narrator","").orEmpty()) }
+    var seriesOnly by remember(prefs) { mutableStateOf(prefs.getBoolean("search_filter_series",false)) }
+    var localOnly by remember(prefs) { mutableStateOf(prefs.getBoolean("search_filter_local",false)) }
+    var authorFilter by remember(prefs) { mutableStateOf(prefs.getString("search_filter_author","").orEmpty()) }
+    var genreFilter by remember(prefs) { mutableStateOf(prefs.getString("search_filter_genre","").orEmpty()) }
+    var exactOnly by remember(prefs) { mutableStateOf(prefs.getBoolean("search_filter_exact",false)) }
+    var showLocalIndex by remember {mutableStateOf(false)}
+    var showPeople by remember {mutableStateOf(false)}
+    var indexedMatches by remember {mutableStateOf<List<BookLink>>(emptyList())}
+    var localCatalog by remember(data.query,showLocalIndex){mutableStateOf<AbLocalCatalog.Result?>(null)}
+    val chosenSites=if(data.searchSource.isBlank())enabledSources else setOf(data.searchSource)
+    LaunchedEffect(data.query,chosenSites,historyOpen){
+        indexedMatches=emptyList()
+        if(data.query.trim().length>=2&&historyOpen){
+            delay(250)
+            indexedMatches=AbSearchCache.localMatches(sourceContext.applicationContext,data.query,chosenSites,40)
+        }
+    }
+    LaunchedEffect(data.query,chosenSites,showLocalIndex,hidePreviews){
+        if(showLocalIndex)localCatalog=AbLocalCatalog.prepare(sourceContext.applicationContext,prefs,data.query,chosenSites,books,hidePreviews)
+    }
+    val activeFilters = listOf(hidePreviews, narratorFilter.isNotEmpty(), seriesOnly, localOnly,authorFilter.isNotBlank(),genreFilter.isNotBlank(),exactOnly).count { it }
     var shownResults by androidx.compose.runtime.saveable.rememberSaveable(data.query,data.genre,data.cycle?.url) {mutableStateOf(AB_RESULTS_PAGE)}
-    fun applyFilters(narrator: String, series: Boolean, local: Boolean, hideDemo: Boolean) {
+    fun applyFilters(narrator: String, series: Boolean, local: Boolean, hideDemo: Boolean,author:String="",genre:String="",exact:Boolean=false) {
         narratorFilter = narrator.trim().take(100).takeIf { SearchBookIndex.normal(it).isNotEmpty() }.orEmpty()
         seriesOnly = series
         localOnly = local
+        authorFilter=author.trim().take(100);genreFilter=genre.trim().take(100);exactOnly=exact
+        prefs.edit().putString("search_filter_narrator",narratorFilter).putBoolean("search_filter_series",seriesOnly)
+            .putBoolean("search_filter_local",localOnly).putString("search_filter_author",authorFilter)
+            .putString("search_filter_genre",genreFilter).putBoolean("search_filter_exact",exactOnly).apply()
         if (hidePreviews != hideDemo) {
             hidePreviews = hideDemo
             prefs.edit().putBoolean("search_hide_previews", hideDemo).apply()
@@ -9535,22 +10109,108 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
     val detail=remember(data.onlineBook,data.pageTitle,prefs,data.version) {
         if(data.onlineBook!=null) listOf(abStoredCatalog(prefs,cleanBookTitle(data.pageTitle))) else emptyList()
     }
-    val verificationTargets=remember(detail,data.results,visibleCount) {detail+data.results.take(visibleCount)}
+    val verificationTargets=remember(detail,data.results,visibleCount,data.cycleBrowsing) {
+        // A catalogue-confirmed cycle already has its bibliography; avoid redundant per-book lookups while it streams.
+        detail+if(data.cycleBrowsing)data.results.take(visibleCount).filter{it.catalogState.isBlank()} else data.results.take(visibleCount)
+    }
     val seriesStatus=SeriesAuthorityWatcher(verificationTargets,prefs)
     // Playback ticks and lazy-list recycling must not reparse every book's reference metadata.
-    val seriesRevision=remember(prefs,data.version) {prefs.getInt("book_series_revision",0)}
-    val prepared by androidx.compose.runtime.produceState<List<AbSearchRow>?>(null,
-        data.results,books,seriesRevision,data.cycle,data.cycleBrowsing,data.query,data.genre,hidePreviews,narratorFilter,seriesOnly,localOnly) {
+    var seriesRevision by remember(prefs){mutableIntStateOf(prefs.getInt("book_series_revision",0))}
+    var chapterRevision by remember(prefs){mutableIntStateOf(0)}
+    DisposableEffect(prefs){
+        val listener=android.content.SharedPreferences.OnSharedPreferenceChangeListener{_,key->
+            if(key?.startsWith(AbSourceAvailability.OBSERVATION_PREFIX)==true)chapterRevision++
+            if(key=="book_series_revision")seriesRevision=prefs.getInt("book_series_revision",0)
+        }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        onDispose{prefs.unregisterOnSharedPreferenceChangeListener(listener)}
+    }
+    // Never restore against a previous screen’s prepared value.
+    val prepared by key(data.searchScreenId) { androidx.compose.runtime.produceState<List<AbSearchRow>?>(null,
+        data.searchScreenId,data.results,books,seriesRevision,chapterRevision,data.cycle,data.cycleBrowsing,data.query,data.genre,hidePreviews,narratorFilter,seriesOnly,localOnly,authorFilter,genreFilter,exactOnly) {
         value=AbSearchRows.prepare(data.results,books,prefs,data.cycle.takeIf{data.cycleBrowsing},
             query=if(data.genre.isBlank()&&!data.cycleBrowsing)data.query else "",hidePreviews=hidePreviews,
-            narrator=narratorFilter,seriesOnly=seriesOnly,localOnly=localOnly)
+            narrator=narratorFilter,seriesOnly=seriesOnly,localOnly=localOnly,author=authorFilter,genre=genreFilter,exactOnly=exactOnly)
+    } }
+    val resultBooks=prepared.orEmpty()
+    val selectedIndex=if(data.restoreSelection)resultBooks.indexOfFirst{it.key==data.selectedResultKey||it.editions.any{e->bookSources(e).any{src->src.url==data.selectedResultUrl}}} else -1
+    val visibleResults=remember(resultBooks,visibleCount,selectedIndex) {resultBooks.take(maxOf(visibleCount,selectedIndex+1))}
+    val officialCycleCount=remember(data.results,data.cycle,data.cycleBrowsing){
+        if(!data.cycleBrowsing||data.cycle==null)0 else {
+            val key=AbSearchPresentation.seriesKey(data.cycle.title)
+            data.results.asSequence().filter{it.catalogState.isNotBlank()}.flatMap{it.cycles.asSequence()}
+                .filter{AbSearchPresentation.seriesKey(it.title)==key&&it.referenceUrl.isNotBlank()}
+                .mapNotNull{it.order}.distinct().count()
+        }
     }
-    val hideFinished=prefs.getBoolean(AbListeningFeatures.HIDE_FINISHED,false)
-    val resultBooks=remember(prepared,data.genre,hideFinished,data.version) {
-        prepared.orEmpty().filterNot { hideFinished && data.genre.isNotBlank() &&
-            AbListeningFeatures.completed(prefs,it.ref) }
+    val searchForeground=LocalAbVisible.current
+    LaunchedEffect(data.searchScreenId,data.searching,visibleCount,searchForeground,hidePreviews,prepared!=null) {
+        if(!searchForeground||data.onlineBook!=null||data.cycleBrowsing||data.searching||!data.searchActive||prepared==null)return@LaunchedEffect
+        val candidates=visibleResults.flatMap{it.editions}.flatMap{b->bookSources(b).map{b to it}}.distinctBy{it.second.url}
+            .filter {(_,source)->
+                val known=AbSourceAvailability.get(prefs,source.url)
+                known!=AbChapterAvailability.EMPTY&&!AbSourceAvailability.hidden(known)&&
+                    !AbSourceAvailability.tooSmall(prefs,source.url)&&!AbSourceAvailability.sizePassed(prefs,source.url)
+            }
+        val targets=AbEditionCheckOrder.interleave(candidates,{it.second.site},48)
+        for(batch in targets.chunked(2))kotlinx.coroutines.supervisorScope {
+            batch.map{(book,source)->async{
+                try {
+                    var empty=false
+                    val loaded=abProbePlaylist(sourceContext,source.url){empty=true;AbSourceAvailability.record(prefs,source.url,false)}
+                    if(loaded==null){
+                        AbSourceTrace.check(sourceContext,source.site,if(empty)"EMPTY" else "UNCONFIRMED")
+                        return@async
+                    }
+                    if(!abOpenedBookMatches(book,loaded.title,loaded.author)){
+                        AbSourceAvailability.recordMismatch(prefs,book,source.url)
+                        AbSourceTrace.check(sourceContext,source.site,"IDENTITY_MISMATCH",loaded.player.tracks.size)
+                        return@async
+                    }
+                    AbSourceAvailability.clearMismatch(prefs,book,source.url)
+                    val observed=AbSourceAvailability.observe(prefs,source.url,loaded.title,loaded.player)
+                    if(!AbSourceAvailability.hidden(observed))kotlinx.coroutines.withTimeoutOrNull(12_000L){abCheckAudioMinimum(prefs,source.url,loaded.player)}
+                    val outcome=when {
+                        AbSourceAvailability.tooSmall(prefs,source.url)||observed==AbChapterAvailability.PREVIEW->"DEMO"
+                        observed==AbChapterAvailability.SUSPECTED||AbSourceAvailability.sizeWarning(prefs,source.url).isNotBlank()->"POSSIBLE_DEMO"
+                        AbSourceAvailability.sizePassed(prefs,source.url)->"CHAPTERS_AND_SIZE"
+                        else->"CHAPTERS_ONLY"
+                    }
+                    AbSourceTrace.check(sourceContext,source.site,outcome,loaded.player.tracks.size)
+                }catch(c:kotlinx.coroutines.CancellationException){throw c}
+                catch(_:Exception){AbSourceTrace.check(sourceContext,source.site,"UNCONFIRMED")}
+            }}.awaitAll()
+        }
     }
-    val visibleResults=remember(resultBooks,visibleCount) {resultBooks.take(visibleCount)}
+    var restored by remember(data.searchScreenId){mutableStateOf(false)}
+    LaunchedEffect(data.searchScreenId,prepared,selectedIndex){
+        if(data.restoreSelection&&!restored&&prepared!=null&&data.onlineBook==null){
+            val header=(if(data.searchActive)2 else 0)+1+(if(data.searchActive||data.cycleBrowsing||data.genre.isNotBlank())1 else 0)+
+                (if(seriesStatus.isNotBlank())1 else 0)+(if(data.searching)1 else 0)+
+                (if(resultBooks.isNotEmpty()||data.cycleBrowsing||data.genre.isNotBlank())1 else 0)+(if(data.cycleBrowsing&&resultBooks.isNotEmpty())1 else 0)
+            val anchorIndex=visibleResults.indexOfFirst{it.key==data.searchRestoreKey}
+            val target=when {
+                selectedIndex>=0 -> header+selectedIndex
+                anchorIndex>=0 -> header+anchorIndex
+                else -> data.searchRestoreIndex.coerceAtMost(maxOf(0,header+visibleResults.size-1))
+            }
+            val offset=if(anchorIndex>=0&&(selectedIndex<0||selectedIndex==anchorIndex))data.searchRestoreOffset else 0
+            androidx.compose.runtime.withFrameNanos{}
+            androidx.compose.runtime.snapshotFlow{listState.layoutInfo.totalItemsCount}.first{it>target}
+            listState.scrollToItem(target,offset);restored=true
+        }
+    }
+    LaunchedEffect(data.searchScreenId,data.results,data.searching,data.onlineBook,data.cycleBrowsing){
+        if(data.searchActive&&!data.searching&&data.onlineBook==null&&data.bookOpening==null&&data.genre.isBlank()&&data.results.isNotEmpty()){
+            androidx.compose.runtime.snapshotFlow{Triple(listState.firstVisibleItemIndex,listState.firstVisibleItemScrollOffset,listState.layoutInfo.visibleItemsInfo.firstOrNull()?.key as? String ?: "")}
+                .collectLatest{(index,offset,anchor)->
+                    if(anchor.isBlank())return@collectLatest
+                    val snapshot=AbSavedSearch(data.query,data.searchSource,data.results,data.cycle.takeIf{data.cycleBrowsing},index,offset,anchor,data.selectedResultKey,data.selectedResultUrl,data.searchVisits,data.searchOpenedUrls)
+                    delay(400)
+                    withContext(Dispatchers.IO){runCatching{AbSearchResume.save(sourceContext.applicationContext,snapshot)}}
+                }
+        }
+    }
     val searchHome=prepared!=null && !data.searchActive && data.onlineBook==null &&
         resultBooks.isEmpty() && !data.searching && !data.cycleBrowsing
     val foreground=LocalAbVisible.current
@@ -9577,13 +10237,37 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
             }
         }
         item {
-            AbTextField(data.query,"Название, автор или ссылка",theme,actions.query,actions.search)
+            AbTextField(data.query,"Название, автор или ссылка",theme,{actions.query(it);historyOpen=true},{historyOpen=false;actions.search()})
+            if(historyOpen||data.query.isBlank()){
+                val suggestions=AbQueryHistory.suggestions(queryHistory,data.query)
+                if(suggestions.isNotEmpty()){
+                    Row(verticalAlignment=Alignment.CenterVertically){
+                        Text("История поиска",color=theme.muted,fontSize=12.sp,modifier=Modifier.weight(1f))
+                        Text("Очистить",color=theme.accent,fontSize=12.sp,modifier=Modifier.clickable{AbQueryHistory.clear(prefs);queryHistory=emptyList()}.padding(8.dp))
+                    }
+                    suggestions.forEach{q->Row(verticalAlignment=Alignment.CenterVertically){
+                        Text(q,color=theme.text,fontSize=13.sp,modifier=Modifier.weight(1f).clickable{actions.query(q);historyOpen=false;actions.search()}.padding(10.dp))
+                        Text("×",color=theme.muted,fontSize=18.sp,modifier=Modifier.clickable{AbQueryHistory.remove(prefs,q);queryHistory=AbQueryHistory.read(prefs)}.padding(8.dp))
+                    }}
+                }
+            }
+            if(historyOpen&&indexedMatches.isNotEmpty()){
+                Text("Подсказки из локальной базы",color=theme.muted,fontSize=12.sp)
+                indexedMatches.map{it.title}.distinct().take(5).forEach{title->
+                    Text(title,color=theme.accent,fontSize=13.sp,modifier=Modifier.fillMaxWidth().clickable{actions.query(title);historyOpen=false;actions.search()}.padding(7.dp))
+                }
+            }
+            if(data.query.trim().length>=2)AbButton("Из локальной базы",theme){showLocalIndex=true}
+            AbButton("Любимые авторы и чтецы",theme){showPeople=true}
+            if(!data.searchActive)AbButton("Восстановить последний поиск",theme,onClick=actions.restoreLastSearch)
+            if(data.searchActive&&!data.searching&&data.onlineBook==null&&data.query.isNotBlank())AbButton("Обновить результаты",theme,onClick=actions.refreshSearch)
             Row(Modifier.fillMaxWidth().padding(top=6.dp),horizontalArrangement=Arrangement.spacedBy(8.dp)) {
                 AbButton("Общий поиск",theme,Modifier.weight(1f),primary=data.searchSource.isBlank()) {actions.searchScope("")}
                 AbButton("Источники · ${AbBookSources.searchOrder.size}",theme,Modifier.weight(1f),primary=data.searchSource.isNotBlank()) {showSources=true}
             }
             Text(if(data.searchSource.isBlank())"Режим: включённые источники" else "Режим: только ${data.searchSource}",
                 color=theme.muted,fontSize=11.sp,modifier=Modifier.padding(top=5.dp))
+
         }
         if (data.searchActive || data.cycleBrowsing || data.genre.isNotBlank()) item(key="preview-filter") {
             AbButton(if (activeFilters == 0) "Фильтры поиска" else "Фильтры поиска · $activeFilters",theme) {
@@ -9595,10 +10279,22 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
             }
         }
         if(seriesStatus.isNotBlank()) item {Text(seriesStatus,color=theme.muted,fontSize=11.sp)}
-        if(data.searching) item { Row(verticalAlignment=Alignment.CenterVertically) {
-            androidx.compose.material3.CircularProgressIndicator(Modifier.size(18.dp),color=theme.accent,strokeWidth=2.dp)
-            Text(if(data.genre.isNotBlank()) "Ищем книги и проверяем жанры…" else "Ищем книги…",color=theme.muted,fontSize=13.sp,modifier=Modifier.padding(start=10.dp))
-        } }
+        if(data.searching) item(key="search-progress") {
+            val progress=data.sourceProgress
+            if(progress!=null&&!data.cycleBrowsing&&data.genre.isBlank()){
+                Column(Modifier.fillMaxWidth().abGlass(theme,13,field=true).padding(12.dp),
+                    verticalArrangement=Arrangement.spacedBy(8.dp)){
+                    Row(verticalAlignment=Alignment.CenterVertically){
+                        Text(progress.label,color=theme.text,fontSize=13.sp,modifier=Modifier.weight(1f))
+                        Text("${progress.percent}%",color=theme.accent,fontSize=13.sp,fontWeight=FontWeight.SemiBold)
+                    }
+                    AbProgress(progress.fraction,theme,Modifier.fillMaxWidth())
+                }
+            }else Row(verticalAlignment=Alignment.CenterVertically) {
+                androidx.compose.material3.CircularProgressIndicator(Modifier.size(18.dp),color=theme.accent,strokeWidth=2.dp)
+                Text(if(data.cycleBrowsing) data.status.ifBlank{"Ищу аудиокниги цикла…"} else if(data.genre.isNotBlank()) "Ищем книги и проверяем жанры…" else "Ищем книги…",color=theme.muted,fontSize=13.sp,modifier=Modifier.padding(start=10.dp))
+            }
+        }
         if(data.onlineBook==null && data.bookOpening!=null && (data.bookPageLoading || data.bookPageError.isNotBlank()))
             item {AbPendingBookDetails(data,actions,books,theme)}
         data.onlineBook?.let { book ->
@@ -9608,14 +10304,19 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
         if(resultBooks.isNotEmpty() || data.cycleBrowsing || data.genre.isNotBlank()) item {
             AbHeading(if(data.genre.isNotBlank()) "Жанр: ${data.genre}"
                 else if(data.cycleBrowsing) data.cycle?.title ?: "Книги цикла" else "Результаты",theme,
-                "${if(data.genre.isNotBlank())minOf(resultBooks.size,visibleCount) else resultBooks.size} книг")
+                if(officialCycleCount>0)"$officialCycleCount книг по справочникам · ${resultBooks.size} после фильтров"
+                else "${if(data.genre.isNotBlank())minOf(resultBooks.size,visibleCount) else resultBooks.size} книг")
         }
         if(data.cycleBrowsing && resultBooks.isNotEmpty()) item {
-            Text("Тома с известными номерами идут по порядку. Книги без номера — после них, в порядке сайта.",
+            Text(if(data.results.any{it.catalogState.isNotBlank()})"Позиции из справочников. Найденные аудиоиздания появляются постепенно; непроверенные главы обозначены отдельно." else "Порядок по сведениям источника.",
                 color=theme.muted,fontSize=11.sp)
         }
         items(visibleResults,key={it.key},contentType={"search-book"}) { row ->
-            AbSearchResultCard(row,theme,actions.openSite,onMenu,actions.cycle)
+            val selected=data.restoreSelection&&(row.key==data.selectedResultKey||row.editions.any{e->bookSources(e).any{it.url==data.selectedResultUrl}})
+            AbSearchResultCard(row,theme,{book,url->actions.selectResult(row.key,url);actions.openSite(book,url)},onMenu,
+                {cycle->actions.selectResult(row.key,"");actions.cycle(cycle)},selected,if(selected)data.selectedResultUrl else "",
+                visit=data.searchVisits[row.key],openedUrls=data.searchOpenedUrls,
+                onVisit={visit->actions.recordSearchVisit(row.key,visit)},collapsible=data.cycleBrowsing)
         }
         if(data.genre.isBlank() && visibleCount<resultBooks.size) item {
             AbButton("Показать ещё · ${visibleCount.coerceAtMost(resultBooks.size)} из ${resultBooks.size}",theme) {
@@ -9625,7 +10326,7 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
         if(data.genre.isNotBlank() && visibleCount>=AB_SEARCH_LIMIT && resultBooks.size>=AB_SEARCH_LIMIT) item {
             Text("Показаны первые $AB_SEARCH_LIMIT книг. Уточните название или автора, чтобы найти нужное издание.",color=theme.muted,fontSize=12.sp)
         }
-        if(data.status.isNotBlank() && data.status!="Вставьте ссылку" &&
+        if(data.status.isNotBlank() && data.status!="Вставьте ссылку" && !(data.cycleBrowsing&&data.searching) && !(data.searching&&data.sourceProgress!=null) &&
             !(data.bookOpening!=null && data.onlineBook==null && (data.bookPageLoading || data.bookPageError.isNotBlank()))) item {
             Text(data.status,color=theme.muted,fontSize=12.sp)
         }
@@ -9673,15 +10374,38 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
             }
             item(key="book-rankings") { AbBookRankings(rankings,theme,foreground,actions.searchRanked) }
             item(key="discoveries") {AbDiscoveries(catalogue,actions,theme,catalogueRequested,onLoadCatalogue,
-                if(data.searchSource.isBlank())AbBookSources.enabled(prefs) else listOf(data.searchSource),
-                prefs,hideFinished,data.version)}
+                if(data.searchSource.isBlank())AbBookSources.enabled(prefs) else listOf(data.searchSource))}
         }
     }
     } // Cover requests wait for this list to stop scrolling.
-    manualSource?.let { (name,url) -> AbManualSourceBrowser(name,url,data,actions,theme){manualSource=null} }
+    if(showLocalIndex)AbDialog("Локальная база",theme,{showLocalIndex=false}){
+        Text("Сохранённые метаданные; доступность аудио проверяется заново при открытии.",color=theme.muted,fontSize=12.sp)
+        val catalog=localCatalog
+        if(catalog==null)Text("Подготавливаю список…",color=theme.muted,fontSize=13.sp)
+        else {
+            Text(if(catalog.officialCount>0)"Книг по сохранённым справочникам: ${catalog.officialCount}" else "Найдено книг: ${catalog.rows.size}",color=theme.text,fontSize=13.sp)
+            if(catalog.officialCount>0)Text("Сохранённый порядок · "+catalog.sourceSummary,color=theme.muted,fontSize=11.sp)
+            var localShown by remember(data.query){mutableStateOf(40)}
+            val displayed=catalog.rows+catalog.unmatched
+            displayed.take(localShown).forEachIndexed{index,row->
+                if(index==catalog.rows.size&&catalog.unmatched.isNotEmpty())
+                    Text("Другие результаты · позиция не подтверждена",color=theme.muted,fontSize=13.sp)
+                key(row.key){
+                    AbSearchResultCard(row,theme,{book,url->
+                        showLocalIndex=false;actions.selectResult(row.key,url);actions.openSite(book,url)
+                    },onMenu,{cycle->showLocalIndex=false;actions.cycle(cycle)},collapsible=true)
+                }
+            }
+            if(localShown<displayed.size)AbButton("Показать ещё · $localShown из ${displayed.size}",theme){localShown+=40}
+        }
+        AbButton("Закрыть",theme){showLocalIndex=false}
+    }
+    if(showPeople)AbFavoritePeopleDialog(prefs,theme,{showPeople=false}){name->
+        showPeople=false;actions.query(name);actions.search()
+    }
     if (showFilters) AbSearchFilterDialog(narratorFilter, seriesOnly, localOnly, hidePreviews, theme,
-        dismiss = { showFilters = false }) { narrator, series, local, hideDemo ->
-        applyFilters(narrator, series, local, hideDemo)
+        dismiss = { showFilters = false },author=authorFilter,genre=genreFilter,exact=exactOnly) { narrator, series, local, hideDemo,author,genre,exact ->
+        applyFilters(narrator, series, local, hideDemo,author,genre,exact)
         showFilters = false
     }
     if(showSources) AbDialog("Источники поиска",theme,{showSources=false}) {
@@ -9711,187 +10435,86 @@ private fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Lib
                 }
             }
         }
-        Text("Дополнительные сайты",color=theme.text,fontSize=16.sp)
-        Text("Откройте сайт внутри приложения, выберите книгу и нажмите «Проверить главы». Общий поиск для этих сайтов пока недоступен.",color=theme.muted,fontSize=12.sp)
-        AbExtraSources.browserOnly.forEach{(name,url,note)->
-            AbButton("Открыть в приложении · $name",theme){
-                showSources=false;manualSource=name to url
-            }
-            Text(note,color=theme.muted,fontSize=11.sp)
-        }
         AbButton("Готово",theme){showSources=false;if(data.searchSource.isBlank()&&data.query.isNotBlank())actions.searchScope("")}
-    }
-}
-
-/** Explicit user browsing, without a JS bridge or access to device files. */
-@Composable
-private fun AbManualSourceBrowser(name:String,home:String,data:AbScreenData,actions:AbActions,
-    theme:AbTheme,dismiss:()->Unit) {
-    val context=androidx.compose.ui.platform.LocalContext.current
-    val scope=androidx.compose.runtime.rememberCoroutineScope()
-    var browser by remember {mutableStateOf<WebView?>(null)}
-    var address by remember {mutableStateOf(home)}
-    var message by remember {mutableStateOf("Откройте страницу книги, затем проверьте доступные главы.")}
-    var busy by remember {mutableStateOf(false)}
-    var edition by remember {mutableStateOf<AbDownloadEdition?>(null)}
-    var generation by remember {mutableStateOf(0)}
-    var checking by remember {mutableStateOf<kotlinx.coroutines.Job?>(null)}
-    var reconnect by remember {mutableStateOf<kotlinx.coroutines.Job?>(null)}
-    val retryCounts=remember(home){mutableMapOf<String,Int>()}
-    var alive by remember {mutableStateOf(true)}
-    DisposableEffect(home) {onDispose{alive=false;reconnect?.cancel();checking?.cancel();browser?.let{AbWebViews.release(it)}}}
-    fun retryPage(view:WebView?,url:String,error:Exception) {
-        if(!alive||view==null||AbExtraSources.manualName(url)!=name)return
-        val count=retryCounts[url] ?: 0
-        val wait=SourceRequestRetry.waitMillis(error,count) ?: return
-        retryCounts[url]=count+1;reconnect?.cancel()
-        val token=generation
-        reconnect=scope.launch {
-            kotlinx.coroutines.delay(wait)
-            if(alive&&token==generation&&view===browser&&view.url==url)view.loadUrl(url)
-        }
-    }
-    fun inspect() {
-        val web=browser ?: return
-        val selected=web.url.orEmpty()
-        if(busy||AbExtraSources.manualName(selected)!=name)return
-        val token=generation
-        busy=true;message="Проверяем список глав…";edition=null
-        checking=scope.launch {
-            try {
-                val raw=kotlinx.coroutines.withTimeout(8000L) {
-                    kotlinx.coroutines.suspendCancellableCoroutine<String?> {reply ->
-                        web.evaluateJavascript(pageAnalyzerJs()){value->if(reply.isActive)reply.resumeWith(Result.success(value))}
-                    }
-                }
-                if(!alive||token!=generation||web.url!=selected)return@launch
-                val root=JSONObject(decodeJsString(raw))
-                abEnrichAudioOnline(web,root,selected)
-                if(!alive||token!=generation||web.url!=selected)return@launch
-                val title=cleanBookTitle(root.optString("title").ifBlank{web.title.orEmpty()})
-                val found=abDownloadEdition(BookRef(title,selected,root.optString("cover")),root,selected)
-                if(found==null||title.isBlank())message=root.optString("sourceError").ifBlank{
-                    "Сайт не передал полный читаемый список глав. Откройте плеер самой книги и повторите проверку. Доступность скачивания зависит от источника."}
-                else {
-                    context.applicationContext.getSharedPreferences("audiobook_downloader",Context.MODE_PRIVATE)
-                        .edit().putString("source_http_agent",web.settings.userAgentString).apply()
-                    edition=found;message="Доступное издание: $title"
-                }
-            }catch(_:kotlinx.coroutines.TimeoutCancellationException){if(token==generation)message="Страница не ответила на проверку глав. Повторите попытку."}
-            catch(cancel:kotlinx.coroutines.CancellationException){throw cancel}
-            catch(_:Exception){if(token==generation)message="Не удалось проверить главы. Повторите попытку."}
-            finally{if(token==generation)busy=false}
-        }
-    }
-    androidx.compose.ui.window.Dialog(onDismissRequest=dismiss,
-        properties=androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth=false)) {
-        Column(Modifier.fillMaxSize().padding(12.dp).background(theme.background).padding(8.dp),
-            verticalArrangement=Arrangement.spacedBy(8.dp)) {
-            Row(verticalAlignment=Alignment.CenterVertically) {
-                AbIconButton(AbIcon.BACK,"Назад на сайте",theme){browser?.let{if(it.canGoBack())it.goBack()}}
-                Text(name,color=theme.text,modifier=Modifier.weight(1f))
-                AbIconButton(AbIcon.CLOSE,"Закрыть сайт",theme,onClick=dismiss)
-            }
-            Text(Uri.parse(address).host.orEmpty(),color=theme.muted,fontSize=12.sp)
-            androidx.compose.ui.viewinterop.AndroidView(modifier=Modifier.weight(1f).fillMaxWidth(),factory={ctx ->
-                try {WebView(ctx).apply {
-                    AbWebViews.register(this);browser=this
-                    settings.javaScriptEnabled=true;settings.domStorageEnabled=true
-                    settings.allowFileAccess=false;settings.allowContentAccess=false
-                    settings.allowFileAccessFromFileURLs=false;settings.allowUniversalAccessFromFileURLs=false
-                    settings.mixedContentMode=android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW
-                    settings.mediaPlaybackRequiresUserGesture=true
-                    webViewClient=object:AbBookWebViewClient({message="Веб-страница закрыта системой. Закройте окно и откройте сайт снова.";browser=null}) {
-                        override fun shouldOverrideUrlLoading(view:WebView?,request:android.webkit.WebResourceRequest?):Boolean {
-                            if(request?.isForMainFrame!=true)return false
-                            val blocked=AbExtraSources.manualName(request.url.toString())!=name
-                            if(blocked)message="Переход на другой сайт остановлен. Выберите книгу в текущем источнике."
-                            return blocked
-                        }
-                        override fun onPageStarted(view:WebView?,url:String?,favicon:android.graphics.Bitmap?) {
-                            generation++;reconnect?.cancel();checking?.cancel();busy=false;edition=null;address=url.orEmpty()
-                            if(AbExtraSources.manualName(address)!=name){view?.stopLoading();message="Недопустимый адрес сайта."}
-                        }
-                        override fun onReceivedHttpError(view:WebView?,request:android.webkit.WebResourceRequest?,response:android.webkit.WebResourceResponse?) {
-                            if(request?.isForMainFrame==true) {
-                                message="Сайт вернул HTTP ${response?.statusCode}. Повторите позже."
-                                if(request.method=="GET")retryPage(view,request.url.toString(),SourceHttpFailure(response?.statusCode ?: 0,
-                                    response?.responseHeaders?.entries?.firstOrNull{it.key.equals("Retry-After",true)}?.value))
-                            }
-                        }
-                        override fun onReceivedError(view:WebView?,request:android.webkit.WebResourceRequest?,error:android.webkit.WebResourceError?) {
-                            if(request?.isForMainFrame==true) {
-                                message="Не удалось открыть сайт. Проверьте соединение или повторите позже."
-                                if(request.method=="GET"&&error?.errorCode in listOf(WebViewClient.ERROR_TIMEOUT,WebViewClient.ERROR_CONNECT))
-                                    retryPage(view,request.url.toString(),java.net.SocketTimeoutException())
-                            }
-                        }
-                        override fun onReceivedSslError(view:WebView?,handler:android.webkit.SslErrorHandler?,error:android.net.http.SslError?) {
-                            handler?.cancel();message="Не удалось подтвердить защищённое соединение с сайтом."
-                        }
-                    }
-                    loadUrl(home)
-                }}catch(_:RuntimeException){
-                    message="Не удалось запустить Android System WebView.";android.widget.TextView(ctx).apply{text=message}
-                }catch(_:LinkageError){
-                    message="Android System WebView недоступен на устройстве.";android.widget.TextView(ctx).apply{text=message}
-                }
-            })
-            Text(message,color=theme.muted,fontSize=12.sp,maxLines=4)
-            AbButton("Обновить страницу",theme,enabled=browser!=null&&!busy) {
-                reconnect?.cancel();browser?.url?.let{retryCounts.remove(it)};browser?.reload()
-            }
-            AbButton(if(busy)"Проверяем…" else "Проверить главы",theme,enabled=!busy&&browser!=null){inspect()}
-
-        }
-    }
-    edition?.let {loaded ->
-        AbDialog(loaded.ref.title,theme,{edition=null}) {
-            AbEditionDownloadControls(loaded,data.downloadedIndex,
-                data.downloads.filter{it.book==loaded.ref.title&&it.state==TrackState.DOWNLOADING}.map{it.track.title}.toSet(),
-                theme,actions.downloadEdition)
-        }
     }
 }
 
 /** Shared with the native large-catalogue test: one lazy item per complete result. */
 @Composable
 internal fun AbSearchResultCard(row:AbSearchRow,theme:AbTheme,onOpen:(BookLink,String)->Unit,
-    onMenu:(BookRef)->Unit,onCycle:(BookCycle)->Unit) {
+    onMenu:(BookRef)->Unit,onCycle:(BookCycle)->Unit,highlighted:Boolean=false,selectedUrl:String="",
+    visit:AbSearchVisit?=null,openedUrls:Set<String> = emptySet(),onVisit:(AbSearchVisit)->Unit = {},collapsible:Boolean=false) {
     val choices=row.editions.ifEmpty{listOf(row.book)}
-    var chosen by androidx.compose.runtime.saveable.rememberSaveable(row.key) {mutableStateOf("")}
-    val book=choices.firstOrNull{it.url==chosen} ?: choices.first()
-    val ref=BookRef(book.title,book.url,book.coverUrl)
+    fun address(url:String)=url.substringBefore('#').trimEnd('/')
+    fun contains(edition:BookLink,url:String)=url.isNotBlank()&&bookSources(edition).any{address(it.url)==address(url)}
+    val lastUrl=visit?.url ?: selectedUrl
+    var chosen by androidx.compose.runtime.saveable.rememberSaveable(row.key) {mutableStateOf(lastUrl)}
     val sourcePrefs=androidx.compose.ui.platform.LocalContext.current.getSharedPreferences("audiobook_downloader",Context.MODE_PRIVATE)
-    Column(verticalArrangement=Arrangement.spacedBy(5.dp)) {
+    val book=choices.firstOrNull{contains(it,chosen)} ?: choices.minWithOrNull(compareBy<BookLink>{AbSourceAvailability.sizeRisk(sourcePrefs,it.url)}.thenBy{AbSourceAvailability.priority(sourcePrefs,bookSources(it))}) ?: choices.first()
+    val narratorScroll=rememberScrollState(visit?.narratorScroll ?: 0)
+    val sourceScroll=rememberScrollState(visit?.sourceScroll ?: 0)
+    fun open(url:String){onVisit(AbSearchVisit(url,narratorScroll.value,sourceScroll.value));onOpen(book,url)}
+    val ref=BookRef(book.title,book.url,book.coverUrl)
+    var expanded by androidx.compose.runtime.saveable.rememberSaveable(row.key){mutableStateOf(!collapsible||highlighted||visit!=null)}
+    if(collapsible&&!expanded&&book.catalogState !in setOf("pending","missing","incomplete","text_only")){
+        Column(Modifier.fillMaxWidth().abGlass(theme,13,field=true).clickable{expanded=true}.padding(12.dp)){
+            Text(book.title,color=theme.text,fontSize=15.sp,fontWeight=FontWeight.SemiBold)
+            Text("${choices.size} озвучки · ${choices.sumOf{bookSources(it).size}} источников · Развернуть",color=theme.muted,fontSize=12.sp)
+        }
+        return
+    }
+    if(book.catalogState in setOf("pending","missing","incomplete","text_only")) {
+        Column(Modifier.fillMaxWidth().abGlass(theme,13,field=true).padding(12.dp),verticalArrangement=Arrangement.spacedBy(5.dp)) {
+            Text(book.title,color=theme.text,fontSize=15.sp,fontWeight=FontWeight.SemiBold)
+            Text(book.author+" · "+(book.cycles.firstOrNull()?.let{abVolumeLabel(it)} ?: "Порядок не указан"),color=theme.muted,fontSize=12.sp)
+            Text(when(book.catalogState){"pending"->"Поиск аудио ожидается";"text_only"->"Текстовая версия · озвучка пока не найдена";"incomplete"->"Аудио не подтверждено";else->"Аудиоверсия не найдена"},color=theme.muted,fontSize=12.sp)
+        }
+        return
+    }
+    Column(modifier=if(highlighted)Modifier.fillMaxWidth().border(2.dp,theme.accent,RoundedCornerShape(15.dp)).padding(8.dp) else Modifier,verticalArrangement=Arrangement.spacedBy(5.dp)) {
+        if(collapsible)AbButton("Свернуть озвучки",theme){expanded=false}
+        if(highlighted)Text("Последняя открытая книга",color=theme.accent,fontSize=12.sp)
+        val sizeWarning=row.sizeLabels[book.url].orEmpty()
         AbBookRow(ref,if(book.url==row.book.url)row.local else null,book.author.ifBlank{"Аудиокнига"},theme,
-            onClick={onOpen(book,book.url)},onMenu={onMenu(ref)})
+            coverWarning=sizeWarning,onClick={open(book.url)},onMenu={onMenu(ref)})
+        if(sizeWarning.isNotBlank())Text(sizeWarning,color=theme.error,fontSize=12.sp)
+        val chapterState=AbSourceAvailability.get(sourcePrefs,book.url)
+        if(sizeWarning.isBlank())Text(when {
+            chapterState==AbChapterAvailability.AVAILABLE&&AbSourceAvailability.sizePassed(sourcePrefs,book.url)->"Главы и объём проверены · воспроизведение не проверено"
+            chapterState==AbChapterAvailability.AVAILABLE->"Главы найдены · полнота аудио не подтверждена"
+            else->"Найдена карточка · главы и полнота не подтверждены"
+        },color=if(chapterState==AbChapterAvailability.AVAILABLE)theme.accent else theme.muted,fontSize=11.sp)
         if(AbSourceAvailability.isPreview(sourcePrefs,book))Text("Демо · ознакомительный фрагмент",color=theme.error,fontSize=12.sp)
+        else if(AbSourceAvailability.get(sourcePrefs,book.url)==AbChapterAvailability.SUSPECTED)Text("Возможный фрагмент · полнота не подтверждена",color=theme.muted,fontSize=12.sp)
         if(book.genres.isNotEmpty()) Text(book.genres.joinToString(" · "),color=theme.muted,fontSize=11.sp)
         book.cycles.forEach {cycle ->
             Text("${if(cycle.referenceUrl.isNotBlank()) "Сверено" else "По источнику"}: ${cycle.title} · ${abVolumeLabel(cycle)}",
                 color=theme.accent,fontSize=12.sp,modifier=Modifier.fillMaxWidth().abGlass(theme,9,field=true)
-                    .clickable(enabled=cycle.url.isNotBlank()){onCycle(cycle)}.padding(10.dp))
+                    .clickable(enabled=cycle.url.isNotBlank()||cycle.referenceUrl.isNotBlank()){onCycle(cycle.copy(seedTitle=book.title,seedAuthor=book.author))}.padding(10.dp))
         }
+        AbPeopleAndSeriesActions(book,sourcePrefs,theme)
         if(choices.size>1) {
             Text("Озвучки и издания · ${choices.size}",color=theme.muted,fontSize=12.sp)
-            Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(6.dp)) {
+            Row(Modifier.horizontalScroll(narratorScroll),horizontalArrangement=Arrangement.spacedBy(6.dp)) {
                 choices.forEach {edition ->
                     val name=SearchEditionIdentity.narrator(edition.title,edition.narrator)
-                    AbButton(if(name.isBlank())"Чтец не указан · ${bookSiteName(edition.url)}" else "Читает: $name",
+                    val visited=bookSources(edition).any{address(it.url) in openedUrls}
+                    val label=if(name.isBlank())"Чтец не указан · ${bookSiteName(edition.url)}" else "Читает: $name"
+                    AbButton(label+(if(visited)" · ✓" else ""),
                         theme,primary=book.url==edition.url){chosen=edition.url}
                 }
             }
         } else {
             val name=SearchEditionIdentity.narrator(book.title,book.narrator)
-            if(name.isNotBlank())Text("Читает: $name",color=theme.muted,fontSize=12.sp)
+            if(name.isNotBlank())Text("Читает: $name"+(if(bookSources(book).any{address(it.url) in openedUrls})" · ✓" else ""),color=theme.muted,fontSize=12.sp)
         }
-        Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(6.dp)) {
+        Row(Modifier.horizontalScroll(sourceScroll),horizontalArrangement=Arrangement.spacedBy(6.dp)) {
             bookSources(book).forEach { source ->
-                Column(Modifier.abGlass(theme,9,field=true).clickable{onOpen(book,source.url)}
+                Column(Modifier.abGlass(theme,9,field=true,selected=lastUrl.isNotBlank()&&address(source.url)==address(lastUrl)).clickable{open(source.url)}
                     .padding(horizontal=12.dp,vertical=7.dp)) {
                     Text(source.site,color=theme.accent,fontSize=11.sp)
-                    Text(AbSourceAvailability.get(androidx.compose.ui.platform.LocalContext.current.getSharedPreferences("audiobook_downloader",Context.MODE_PRIVATE),source.url).label,
+                    if(address(source.url) in openedUrls)Text("✓ Открывали",color=theme.accent,fontSize=10.sp)
+                    Text(row.sizeLabels[source.url]?.takeIf{it.isNotBlank()} ?: AbSourceAvailability.get(sourcePrefs,source.url).label,
                         color=theme.muted,fontSize=9.sp,maxLines=1)
                 }
             }
@@ -9990,13 +10613,11 @@ private fun AbDiscoveryLoaders(reports:Map<String,SiteSearchResult>,sources:List
 
 @Composable
 private fun AbDiscoveries(reports:Map<String,SiteSearchResult>,actions:AbActions,theme:AbTheme,
-    requested: Boolean,onLoad:()->Unit,sources:List<String>,prefs:android.content.SharedPreferences,
-    hideFinished:Boolean,version:Int) {
+    requested: Boolean,onLoad:()->Unit,sources:List<String>) {
     Column {
         AbHeading("На сайтах сейчас",theme)
-        val books=remember(reports,sources,hideFinished,version) {
+        val books=remember(reports,sources) {
             mergeSearchBooks(sources.flatMap{reports[it]?.books.orEmpty().take(24)})
-                .filterNot { hideFinished && AbListeningFeatures.completed(prefs,BookRef(it.title,it.url,it.coverUrl)) }
                 .take(18)
         }
         if(books.isNotEmpty()) androidx.compose.foundation.lazy.LazyRow(
@@ -10007,7 +10628,6 @@ private fun AbDiscoveries(reports:Map<String,SiteSearchResult>,actions:AbActions
             Text("Подборку можно загрузить отдельно. Поиск и библиотека доступны.",color=theme.muted,fontSize=12.sp)
             AbButton("Загрузить подборку",theme,onClick=onLoad)
         } else Text(if(sources.count{it in reports}<sources.size) "Загружаем каталоги…"
-            else if(hideFinished && reports.values.any{it.books.isNotEmpty()}) "В подборке остались только завершённые издания."
             else "Подборка сейчас недоступна. Найдите книгу через поиск.",
             color=theme.muted,fontSize=12.sp)
     }
@@ -10017,7 +10637,9 @@ private fun AbDiscoveries(reports:Map<String,SiteSearchResult>,actions:AbActions
 private fun AbPendingBookDetails(data:AbScreenData,actions:AbActions,books:List<LibraryBook>,theme:AbTheme) {
     val request=data.bookOpening ?: return
     val context=androidx.compose.ui.platform.LocalContext.current
-    val title=data.pageTitle.ifBlank{request.book.title}.ifBlank{"Страница источника"}
+    val rawTitle=request.book.title.ifBlank{data.pageTitle}
+    val author=request.book.author.ifBlank{OpenedBookIdentity.presentationAuthor(rawTitle)}
+    val title=OpenedBookIdentity.cleanPresentation(rawTitle,author).ifBlank{"Страница источника"}
     val ref=BookRef(title,request.sourceUrl, data.pageCover.ifBlank{request.book.coverUrl})
     Column(Modifier.fillMaxWidth().abGlass(theme,18).padding(14.dp),
         verticalArrangement=Arrangement.spacedBy(10.dp)) {
@@ -10025,7 +10647,7 @@ private fun AbPendingBookDetails(data:AbScreenData,actions:AbActions,books:List<
             AbCover(title,abFindLocal(books,title),ref,theme,Modifier.width(68.dp).height(96.dp))
             Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(5.dp)) {
                 Text(title,color=theme.text,fontSize=17.sp,fontWeight=FontWeight.SemiBold)
-                if(request.book.author.isNotBlank())Text(request.book.author,color=theme.muted,fontSize=12.sp)
+                if(author.isNotBlank())Text(author,color=theme.muted,fontSize=12.sp)
                 Text(bookSiteName(request.sourceUrl),color=theme.muted,fontSize=11.sp)
             }
         }
@@ -10033,9 +10655,12 @@ private fun AbPendingBookDetails(data:AbScreenData,actions:AbActions,books:List<
             androidx.compose.material3.CircularProgressIndicator(Modifier.size(18.dp),color=theme.accent,strokeWidth=2.dp)
             Text("Загружаем сведения и главы…",color=theme.muted,fontSize=13.sp)
         } else {
-            Text("Главы пока не удалось прочитать. Это может быть ошибка загрузки или изменение страницы источника.",color=theme.muted,fontSize=13.sp)
             Text(data.bookPageError,color=theme.error,fontSize=12.sp)
-            AbButton("Повторить открытие",theme,primary=true,onClick=actions.retryBook)
+            if(title!="Страница источника")AbButton("Найти в других источниках",theme,primary=true) {
+                actions.query(title)
+                actions.searchScope("")
+            }
+            AbButton("Повторить открытие",theme,onClick=actions.retryBook)
             Text(request.sourceUrl,color=theme.muted,fontSize=11.sp,maxLines=3,overflow=TextOverflow.Ellipsis)
             AbButton("Скопировать ссылку",theme) {
                 val clipboard=context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
@@ -10064,6 +10689,7 @@ private fun AbOnlineBookDetails(data: AbScreenData,actions: AbActions,books: Lis
     val book=data.onlineBook ?: return
     val title=cleanBookTitle(data.pageTitle)
     val ref=BookRef(title,data.pageUrl,data.pageCover)
+    val availability=AbSourceAvailability.get(prefs,data.pageUrl)
     val downloaded=book.tracks.count{data.trackStates[it.title]==TrackState.DOWNLOADED}
     val active=data.downloads.any{AbLibraryHousekeeping.bookKey(it.book)==AbLibraryHousekeeping.bookKey(title) && it.state==TrackState.DOWNLOADING}
     Column(verticalArrangement=Arrangement.spacedBy(13.dp)) {
@@ -10079,6 +10705,7 @@ private fun AbOnlineBookDetails(data: AbScreenData,actions: AbActions,books: Lis
                 AbIconButton(AbIcon.MORE,"Действия с книгой",theme,onClick={onMenu(ref)})
             }
         }
+        if(AbSourceAvailability.hidden(availability))Text(availability.label,color=theme.error,fontSize=13.sp)
         Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
             AbButton("Слушать",theme,Modifier.weight(1f),primary=true,enabled=book.tracks.isNotEmpty()) {
                 val index=StableProgress.resume(prefs,title,book.tracks.map {
@@ -10086,7 +10713,7 @@ private fun AbOnlineBookDetails(data: AbScreenData,actions: AbActions,books: Lis
                 actions.playOnline(index)
             }
             AbButton(if(active) "Загружается…" else if(downloaded>=book.tracks.size) "Скачана" else if(downloaded>0) "Дозагрузить" else "Скачать",
-                theme,Modifier.weight(1f),enabled=downloaded<book.tracks.size && !active) {
+                theme,Modifier.weight(1f),enabled=downloaded<book.tracks.size && !active && availability!=AbChapterAvailability.PREVIEW) {
                 book.tracks.forEach{actions.download(it,title)}
             }
         }
@@ -10480,350 +11107,6 @@ private fun AbCollectionsScreen(data: AbScreenData,actions: AbActions,books: Lis
     } }
 }
 
-private enum class AbPlayerPanel(val title:String) {
-    CHAPTERS("Главы книги"), BOOKMARKS("Закладки книги"), QUEUE("Очередь прослушивания"),
-    BOOK("Сведения о книге"), SERIES("Серия книги"), HISTORY("История перемоток")
-}
-
-@Composable
-private fun AbPlayerScreen(data: AbScreenData,actions: AbActions,books: List<LibraryBook>,
-    prefs: android.content.SharedPreferences,theme: AbTheme,
-    onSettings:(AbSettingsSection)->Unit,onMenu:(BookRef)->Unit,onShelf:(BookRef)->Unit) {
-    val context=androidx.compose.ui.platform.LocalContext.current
-    var editingBookmark by remember {mutableStateOf<Pair<String,Bookmark>?>(null)}
-    val state=data.playback
-    var panel by androidx.compose.runtime.saveable.rememberSaveable {mutableStateOf<AbPlayerPanel?>(null)}
-    var shownDetails by remember(state.bookTitle,panel){mutableStateOf(20)}
-    val bookmarkEdition=state.tracks.firstOrNull()?.editionId.orEmpty()
-    val ref=remember(prefs,state.bookTitle,bookmarkEdition,data.version) {bookRefFor(prefs,state.bookTitle,bookmarkEdition)}
-    val local=remember(books,state.bookTitle,bookmarkEdition) {abFindLocal(books,state.bookTitle,bookmarkEdition)}
-    val marks=remember(prefs,state.bookTitle,bookmarkEdition,data.version) {loadBookmarks(prefs,state.bookTitle,bookmarkEdition)}
-    val queue=remember(prefs,data.version) {loadQueue(prefs)}
-
-    Column(Modifier.fillMaxSize().background(theme.background.copy(alpha=if(theme.light).96f else .90f))
-        .padding(horizontal=12.dp,vertical=4.dp),verticalArrangement=Arrangement.spacedBy(4.dp)) {
-        if(!state.hasSelection) {
-            Column(Modifier.weight(1f).verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.Center) {
-                Text("Выберите книгу в библиотеке или найдите её через поиск.",color=theme.muted,fontSize=14.sp,
-                    modifier=Modifier.padding(vertical=12.dp))
-                if(state.error.isNotBlank())Text(state.error,color=theme.error,fontSize=13.sp)
-                AbButton("Открыть библиотеку",theme,primary=true) {actions.navigate(AppPage.LIBRARY)}
-            }
-        } else {
-            BoxWithConstraints(Modifier.weight(1f).fillMaxWidth(),contentAlignment=Alignment.Center) {
-                val height=minOf(maxHeight,maxWidth/.72f)
-                AbCover(state.bookTitle,local,ref,theme,Modifier.height(height).width(height*.72f),widgetBook=true)
-            }
-            if(state.error.isNotBlank())Text(state.error,color=theme.error,fontSize=12.sp,maxLines=2)
-            AbPlayerTransport(state,prefs,theme)
-            AbPlayerTools(state,prefs.getString(AbListeningFeatures.TOOLS,null),theme,panel,{panel=it},onSettings)
-        }
-    }
-
-    if(state.hasSelection)panel?.let { open ->
-        key(open) {
-            AbDialog(open.title,theme,{panel=null}) {
-                when(open) {
-                    AbPlayerPanel.HISTORY -> AbSeekHistoryPanel(state,theme) {id ->
-                        panel=null
-                        PlaybackService.returnToSeek(context,id)
-                    }
-                    AbPlayerPanel.CHAPTERS -> {
-                        AbPlayerChapterSeek(state,theme,prefs.getBoolean(AbListeningFeatures.ELAPSED,true))
-                        if(state.playbackNote.isNotBlank())Text(state.playbackNote,color=theme.accent,fontSize=12.sp)
-                        AbButton("О книге",theme) {panel=AbPlayerPanel.BOOK}
-                        state.tracks.take(shownDetails).forEachIndexed {index,track ->
-                            val active=index==state.trackIndex
-                            Row(Modifier.fillMaxWidth().abGlass(theme,12,selected=active)
-                                .clickable{panel=null;PlaybackService.selectChapter(context,index,0)}.padding(12.dp),
-                                verticalAlignment=Alignment.CenterVertically) {
-                                Text(if(active) "▶" else "${index+1}",color=if(active) theme.accent else theme.muted,
-                                    fontSize=12.sp,modifier=Modifier.width(27.dp))
-                                Text(track.title,color=if(active) theme.accent else theme.text,fontSize=13.sp,
-                                    modifier=Modifier.weight(1f),maxLines=2,overflow=TextOverflow.Ellipsis)
-                                val duration=track.durationMs.takeIf{it>0} ?: data.durations[track.src] ?: 0
-                                if(duration>0) Text(formatMillis(duration),color=theme.muted,fontSize=10.sp)
-                            }
-                        }
-                    }
-
-                    AbPlayerPanel.BOOK -> {
-                        AbPlayerIdentity(data,prefs,ref,theme,{panel=null;onShelf(it)},{panel=AbPlayerPanel.SERIES})
-                        val downloading=data.downloads.any {
-                            AbLibraryHousekeeping.bookKey(it.book)==AbLibraryHousekeeping.bookKey(state.bookTitle) &&
-                                it.state==TrackState.DOWNLOADING
-                        }
-                        val networkTracks=state.tracks.filter{isNetworkAudio(it.src)}
-                            .map{AudioTrack(it.title,it.durationMs/1000,it.src)}
-                        if(state.sourceType=="online" && networkTracks.any {
-                            !abHasDownloadedChapter(data.downloadedIndex,state.bookTitle,it)
-                        }) AbButton("Скачать недостающие главы",theme,enabled=!downloading) {
-                            actions.downloadEdition(ref,networkTracks)
-                        }
-                        AbButton("Действия с книгой",theme) {panel=null;onMenu(ref)}
-                    }
-                    AbPlayerPanel.SERIES -> {
-                        val metadata=remember(prefs,state.bookTitle,data.version) {abStoredCatalog(prefs,state.bookTitle)}
-                        AbPlayerSeries(metadata,ref,books,prefs,theme,actions.copy(
-                            openRef={panel=null;actions.openRef(it)},cycle={panel=null;actions.cycle(it)},
-                            openSite={book,url->panel=null;actions.openSite(book,url)}),
-                            {panel=null;onShelf(it)},{panel=null;onSettings(it)})
-                    }
-                    AbPlayerPanel.BOOKMARKS -> {
-                        AbButton("История перемоток",theme){panel=AbPlayerPanel.HISTORY}
-                        AbButton("Добавить закладку",theme,primary=true) {
-                            val ok=addBookmark(prefs,state.bookTitle,state.trackIndex,
-                                state.tracks.getOrNull(state.trackIndex)?.title.orEmpty(),state.positionMs,state.tracks.getOrNull(state.trackIndex)?.editionId.orEmpty())
-                            Toast.makeText(context,if(ok)"Закладка сохранена" else "Рядом уже есть закладка",Toast.LENGTH_SHORT).show()
-                        }
-                        if(marks.isEmpty()) {Text("Сохраните текущий момент кнопкой выше.",color=theme.muted,fontSize=13.sp)}
-                        marks.take(shownDetails).forEach {mark ->
-                            AbBookmarkRow("",mark,theme,{
-                                val at=resolveBookmark(mark,state.tracks)
-                                if(at>=0){panel=null;PlaybackService.selectChapter(context,at,mark.position)}
-                                else Toast.makeText(context,"Глава закладки не найдена в этой озвучке.",Toast.LENGTH_SHORT).show()
-                            },{editingBookmark=state.bookTitle to mark},{removeBookmark(prefs,state.bookTitle,mark)})
-                        }
-                    }
-                    AbPlayerPanel.QUEUE -> {
-                        if(state.nextBookTitle.isNotBlank())AbButton("Следующий том · "+state.nextBookTitle,theme,primary=true) {
-                            panel=null
-                            PlaybackService.playNextLocal(context)
-                        }
-                        if(queue.isEmpty()) {Text("Добавьте скачанные книги в очередь через меню карточки.",color=theme.muted,fontSize=13.sp)}
-                        queue.take(shownDetails).forEachIndexed {index,title ->
-                            Row(Modifier.fillMaxWidth().abGlass(theme,13).padding(start=12.dp),
-                                verticalAlignment=Alignment.CenterVertically) {
-                                Text(title,color=theme.text,fontSize=13.sp,modifier=Modifier.weight(1f)
-                                    .clickable{panel=null;actions.openRef(bookRefFor(prefs,title))},maxLines=2,overflow=TextOverflow.Ellipsis)
-                                AbIconButton(AbIcon.UP,"Выше в очереди",theme,enabled=index>0) {
-                                    val moved=queue.toMutableList();java.util.Collections.swap(moved,index,index-1);saveQueue(prefs,moved)
-                                }
-                                AbIconButton(AbIcon.DOWN,"Ниже в очереди",theme,enabled=index<queue.lastIndex) {
-                                    val moved=queue.toMutableList();java.util.Collections.swap(moved,index,index+1);saveQueue(prefs,moved)
-                                }
-                                AbIconButton(AbIcon.CLOSE,"Убрать из очереди",theme){saveQueue(prefs,queue.filter{it!=title})}
-                            }
-                        }
-                    }
-                }
-                val more=when(open) {
-                    AbPlayerPanel.BOOKMARKS -> marks.size
-                    AbPlayerPanel.QUEUE -> queue.size
-                    AbPlayerPanel.CHAPTERS -> state.tracks.size
-                    else -> 0
-                }
-                if(more>shownDetails)AbButton("Ещё записи",theme){shownDetails+=20}
-            }
-        }
-    }
-
-    editingBookmark?.let{(book,mark)->AbBookmarkEditor(book,mark,prefs,theme){editingBookmark=null}}
-}
-
-@Composable
-private fun AbPlayerTools(state:ServicePlaybackState,raw:String?,theme:AbTheme,
-    panel:AbPlayerPanel?,open:(AbPlayerPanel)->Unit,onSettings:(AbSettingsSection)->Unit) {
-    val tools=remember(raw) {AbListeningFeatures.parseTools(raw).filter{it.visible}}
-    if(tools.isEmpty())return
-    Row(Modifier.fillMaxWidth().abGlass(theme,16),horizontalArrangement=Arrangement.SpaceEvenly) {
-        for((tool) in tools) when(tool) {
-            AbListeningFeatures.Tool.CHAPTERS -> AbPlayerAction(AbIcon.BOOKS,tool.label,theme,panel==AbPlayerPanel.CHAPTERS,Modifier.weight(1f)) {open(AbPlayerPanel.CHAPTERS)}
-            AbListeningFeatures.Tool.BOOKMARKS -> AbPlayerAction(AbIcon.BOOKMARK,tool.label,theme,panel==AbPlayerPanel.BOOKMARKS,Modifier.weight(1f)) {open(AbPlayerPanel.BOOKMARKS)}
-            AbListeningFeatures.Tool.QUEUE -> AbPlayerAction(AbIcon.QUEUE,tool.label,theme,panel==AbPlayerPanel.QUEUE,Modifier.weight(1f)) {open(AbPlayerPanel.QUEUE)}
-            AbListeningFeatures.Tool.TIMER -> AbPlayerAction(AbIcon.TIMER,if(state.sleepSeconds>0)formatSleepTime(state.sleepSeconds)
-                else if(state.sleepChapterTarget.isNotBlank())"До конца главы" else tool.label,theme,
-                state.sleepSeconds>0||state.sleepChapterTarget.isNotBlank(),Modifier.weight(1f)) {onSettings(AbSettingsSection.TIMER)}
-            AbListeningFeatures.Tool.SPEED ->
-                Column(Modifier.weight(1f).heightIn(min=54.dp).clip(RoundedCornerShape(13.dp))
-                    .semantics{contentDescription="Скорость воспроизведения ${state.speed}";role=androidx.compose.ui.semantics.Role.Button}
-                    .clickable{onSettings(AbSettingsSection.SPEED)}.padding(horizontal=3.dp,vertical=7.dp),
-                    horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(4.dp)) {
-                    Text("${state.speed}×",color=theme.accent,fontSize=17.sp,fontWeight=FontWeight.Medium)
-                    Text("Скорость",color=theme.muted,fontSize=10.sp)
-                }
-        }
-    }
-}
-
-@Composable
-internal fun AbPlayerToolSettings(prefs:android.content.SharedPreferences,theme:AbTheme) {
-    var tools by remember(prefs){mutableStateOf(AbListeningFeatures.parseTools(prefs.getString(AbListeningFeatures.TOOLS,null)))}
-    var elapsed by remember(prefs){mutableStateOf(prefs.getBoolean(AbListeningFeatures.ELAPSED,true))}
-    fun apply(value:List<AbListeningFeatures.Entry>) {
-        tools=value
-        prefs.edit().putString(AbListeningFeatures.TOOLS,AbListeningFeatures.encodeTools(value)).apply()
-    }
-    tools.forEachIndexed {index,entry ->
-        key(entry.tool) {
-            Row(verticalAlignment=Alignment.CenterVertically) {
-                Text(entry.tool.label,color=theme.text,modifier=Modifier.weight(1f))
-                androidx.compose.material3.Switch(entry.visible,onCheckedChange={checked ->
-                    apply(tools.map{if(it.tool==entry.tool)it.copy(visible=checked) else it})
-                },modifier=Modifier.semantics{contentDescription="Показывать: ${entry.tool.label}"})
-                AbIconButton(AbIcon.UP,"Выше: ${entry.tool.label}",theme,enabled=index>0) {
-                    apply(AbListeningFeatures.move(tools,index,index-1))
-                }
-                AbIconButton(AbIcon.DOWN,"Ниже: ${entry.tool.label}",theme,enabled=index<tools.lastIndex) {
-                    apply(AbListeningFeatures.move(tools,index,index+1))
-                }
-            }
-        }
-    }
-    AbButton("Вернуть порядок и кнопки",theme) {apply(AbListeningFeatures.defaults())}
-    Row(verticalAlignment=Alignment.CenterVertically) {
-        Text("Прошедшее время главы",color=theme.text,modifier=Modifier.weight(1f))
-        androidx.compose.material3.Switch(elapsed,onCheckedChange={checked ->
-            elapsed=checked
-            prefs.edit().putBoolean(AbListeningFeatures.ELAPSED,checked).apply()
-        },modifier=Modifier.semantics{contentDescription="Показывать прошедшее время главы"})
-    }
-}
-
-@Composable
-private fun AbPlayerIdentity(data:AbScreenData,prefs:android.content.SharedPreferences,ref:BookRef,
-    theme:AbTheme,onShelf:(BookRef)->Unit,onSeries:()->Unit) {
-    val title=data.playback.bookTitle
-    val display=BookMetadata.playback(prefs,title,data.playback.tracks)
-    val author=display.author
-    val shelves=prefs.getString(SHELVES_KEY,"[]")
-    val collected=remember(prefs,title,shelves){loadShelves(prefs).any{shelf->shelf.books.any{it.title.equals(title,true)}}}
-    Column(Modifier.fillMaxWidth(),horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(3.dp)) {
-        Text(display.title,color=theme.text,fontSize=21.sp,fontWeight=FontWeight.SemiBold,maxLines=2,
-            overflow=TextOverflow.Ellipsis,textAlign=androidx.compose.ui.text.style.TextAlign.Center)
-        if(author.isNotBlank())Text(author,color=theme.accent,fontSize=13.sp,maxLines=1,overflow=TextOverflow.Ellipsis)
-        if(display.narrator.isNotBlank())Text("Читает: ${display.narrator}",color=theme.muted,fontSize=12.sp,maxLines=1,overflow=TextOverflow.Ellipsis)
-        if(display.series.isNotBlank())Text(display.seriesLabel,color=theme.muted,fontSize=12.sp,maxLines=1,overflow=TextOverflow.Ellipsis)
-        Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(10.dp)) {
-            AbButton(if(collected)"В коллекции" else "В коллекцию",theme,Modifier.weight(1f)) {onShelf(ref)}
-            AbButton("Продолжения",theme,Modifier.weight(1f).semantics{contentDescription="Продолжения серии"},onClick=onSeries)
-        }
-        AbBookPlaybackProgress(data,theme,compact=true)
-        AbBookDownloadFeedback(data,title,theme)
-    }
-}
-
-@Composable
-private fun AbPlayerChapterSeek(state:ServicePlaybackState,theme:AbTheme,showElapsed:Boolean) {
-    val context=androidx.compose.ui.platform.LocalContext.current
-    var dragging by remember(state.bookTitle,state.trackIndex){mutableStateOf<Float?>(null)}
-    Column(Modifier.fillMaxWidth()) {
-        Row(Modifier.fillMaxWidth().heightIn(min=24.dp).padding(horizontal=2.dp),verticalAlignment=Alignment.CenterVertically) {
-            Text("Глава ${state.trackIndex+1} из ${state.tracks.size}",color=theme.text,fontSize=13.sp,fontWeight=FontWeight.Medium)
-            Spacer(Modifier.width(10.dp))
-            Text(state.tracks.getOrNull(state.trackIndex)?.title.orEmpty(),color=theme.muted,fontSize=11.sp,
-                maxLines=1,overflow=TextOverflow.Ellipsis,modifier=Modifier.weight(1f))
-        }
-        androidx.compose.material3.Slider(modifier=Modifier.fillMaxWidth().height(32.dp)
-            .semantics{contentDescription="Позиция воспроизведения в главе"},
-            value=dragging?:state.positionMs.toFloat().coerceIn(0f,state.durationMs.coerceAtLeast(1).toFloat()),
-            onValueChange={dragging=it},onValueChangeFinished={dragging?.let{PlaybackService.seek(context,it.toLong())};dragging=null},
-            valueRange=0f..state.durationMs.coerceAtLeast(1).toFloat(),enabled=state.durationMs>0,
-            colors=androidx.compose.material3.SliderDefaults.colors(thumbColor=theme.accent,activeTrackColor=theme.accent,inactiveTrackColor=theme.border))
-        val shown=(dragging?:state.positionMs.toFloat()).toInt().coerceIn(0,state.durationMs.coerceAtLeast(0))
-        Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween) {
-            if(showElapsed)Text(formatMillis(shown),color=theme.muted,fontSize=11.sp)
-            else Spacer(Modifier.width(1.dp))
-            Text("−"+formatMillis((state.durationMs-shown).coerceAtLeast(0)),color=theme.muted,fontSize=11.sp)
-        }
-    }
-}
-
-@Composable
-private fun AbPlayerTransport(state:ServicePlaybackState,prefs:android.content.SharedPreferences,theme:AbTheme) {
-    val context=androidx.compose.ui.platform.LocalContext.current
-    val short=prefs.getInt("experience_seek_short",10)
-    val long=prefs.getInt("experience_seek_long",60)
-    Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceEvenly,verticalAlignment=Alignment.CenterVertically) {
-        AbSeekButton(-short,state,theme,Modifier.weight(1f),
-            onLongClick={PlaybackService.seek(context,(state.positionMs.toLong()-long*1000L).coerceAtLeast(0L))},
-            longLabel="Назад на $long с") {
-            PlaybackService.seek(context,(state.positionMs.toLong()-short*1000L).coerceAtLeast(0L))
-        }
-        AbIconButton(AbIcon.PREVIOUS,"Предыдущая глава",theme,enabled=state.trackIndex>0) {
-            PlaybackService.command(context,PlaybackService.ACTION_PREVIOUS)
-        }
-        Box(Modifier.padding(horizontal=8.dp).size(64.dp).clip(RoundedCornerShape(32.dp)).background(theme.primary)
-            .border(1.dp,theme.accent,RoundedCornerShape(32.dp))
-            .semantics{contentDescription=if(state.isPlaying)"Пауза" else "Продолжить";role=androidx.compose.ui.semantics.Role.Button}
-            .clickable{PlaybackService.command(context,PlaybackService.ACTION_TOGGLE)},contentAlignment=Alignment.Center) {
-            if(state.isLoading)androidx.compose.material3.CircularProgressIndicator(Modifier.size(27.dp),color=theme.onAccent,strokeWidth=2.dp)
-            else AbIcon(if(state.isPlaying)AbIcon.PAUSE else AbIcon.PLAY,theme.onAccent,Modifier.size(30.dp))
-        }
-        AbIconButton(AbIcon.NEXT,"Следующая глава",theme,enabled=state.trackIndex<state.tracks.lastIndex) {
-            PlaybackService.command(context,PlaybackService.ACTION_NEXT)
-        }
-        AbSeekButton(short,state,theme,Modifier.weight(1f),
-            onLongClick={PlaybackService.seek(context,(state.positionMs.toLong()+long*1000L).coerceAtMost(state.durationMs.coerceAtLeast(0).toLong()))},
-            longLabel="Вперёд на $long с") {
-            PlaybackService.seek(context,(state.positionMs.toLong()+short*1000L).coerceAtMost(state.durationMs.coerceAtLeast(0).toLong()))
-        }
-    }
-}
-
-@Composable
-private fun AbPlayerAction(icon: AbIcon,label: String,theme: AbTheme,active: Boolean,modifier:Modifier,onClick:()->Unit) {
-    Column(modifier.heightIn(min=54.dp).clip(RoundedCornerShape(13.dp))
-        .semantics{contentDescription=label;role=androidx.compose.ui.semantics.Role.Button}.clickable(onClick=onClick)
-        .padding(horizontal=4.dp,vertical=7.dp),horizontalAlignment=Alignment.CenterHorizontally,
-        verticalArrangement=Arrangement.spacedBy(4.dp)) {
-        AbIcon(icon,if(active) theme.accent else theme.text)
-        Text(label,color=if(active) theme.accent else theme.muted,fontSize=10.sp,maxLines=2,
-            textAlign=androidx.compose.ui.text.style.TextAlign.Center)
-    }
-}
-
-@Composable
-private fun AbBookPlaybackProgress(data: AbScreenData,theme: AbTheme,compact:Boolean=false) {
-    val state=data.playback
-    val context=androidx.compose.ui.platform.LocalContext.current.applicationContext
-    val cached by AbAudioDurations.state.collectAsState()
-    var checking by remember(state.bookTitle){mutableStateOf(false)}
-    var retry by remember(state.bookTitle){mutableStateOf(0)}
-    val prefs=remember(context){context.getSharedPreferences("audiobook_downloader",0)}
-    val timing=AbBookProgress.playback(prefs,state,data.durations+cached)
-    val sourceKey=remember(state.tracks){state.tracks.map{it.src}}
-    LaunchedEffect(state.bookTitle,sourceKey,state.trackIndex,retry) {
-        checking=true
-        try {AbAudioDurations.resolve(context,state.bookTitle,(state.tracks.drop(state.trackIndex.coerceAtLeast(0))+state.tracks.take(state.trackIndex.coerceAtLeast(0))),retry>0)}
-        finally{checking=false}
-    }
-    Column(Modifier.padding(top=6.dp),verticalArrangement=Arrangement.spacedBy(5.dp)) {
-        AbProgress(timing.progress,theme,Modifier.fillMaxWidth().semantics{contentDescription=AbBookProgress.description(timing)})
-        val text=when {
-            timing.remainingMs>=0 -> "До конца книги: "+AbBookTimeRules.time(timing.remainingMs)+
-                (if(timing.elapsedMs>=0)" · прослушано "+AbBookTimeRules.time(timing.elapsedMs) else "")
-            else -> (if(timing.chapterRemainingMs>=0)"До конца главы: "+AbBookTimeRules.time(timing.chapterRemainingMs)+" · " else "")+
-                if(checking)"Уточняем время книги: ${timing.knownRemaining} из ${timing.totalRemaining} оставшихся глав"
-                else "Время до конца книги пока не определено"
-        }
-        val visibleText=if(compact)AbBookProgress.description(timing)+" · "+text else text
-        Text(visibleText,color=theme.muted,fontSize=11.sp,maxLines=if(compact)2 else 3,modifier=Modifier.fillMaxWidth()
-            .semantics{contentDescription=visibleText},textAlign=androidx.compose.ui.text.style.TextAlign.Center)
-        if(!compact)Text(AbBookProgress.description(timing),
-            color=theme.muted,fontSize=10.sp,modifier=Modifier.fillMaxWidth(),
-            textAlign=androidx.compose.ui.text.style.TextAlign.Center)
-        if(timing.remainingMs<0 && !checking && state.tracks.any{isNetworkAudio(it.src)})
-            Text("Уточнить время книги",color=theme.accent,fontSize=11.sp,
-                modifier=Modifier.heightIn(min=36.dp).clickable{retry++}.padding(vertical=8.dp))
-    }
-}
-
-@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
-@Composable
-private fun AbSeekButton(seconds: Int,state: ServicePlaybackState,theme: AbTheme,modifier: Modifier,
-    onLongClick:(()->Unit)?=null,longLabel:String?=null,onClick:()->Unit) {
-    val amount=if(kotlin.math.abs(seconds)%60==0) "${kotlin.math.abs(seconds)/60} мин" else "${kotlin.math.abs(seconds)} с"
-    val label=(if(seconds<0) "Назад на " else "Вперёд на ")+amount
-    Column(modifier.heightIn(min=48.dp).clip(RoundedCornerShape(12.dp))
-        .semantics{contentDescription=label;role=androidx.compose.ui.semantics.Role.Button}
-        .alpha(if(state.durationMs>0) 1f else .45f).combinedClickable(enabled=state.durationMs>0,onClick=onClick,onLongClick=onLongClick,onLongClickLabel=longLabel)
-        .padding(vertical=5.dp),horizontalAlignment=Alignment.CenterHorizontally) {
-        Text(if(seconds<0) "↶" else "↷",color=theme.text,fontSize=20.sp)
-        Text(amount,color=theme.muted,fontSize=10.sp)
-    }
-}
-
 @Composable
 private fun AbContinuationSettings(theme:AbTheme,onOpen:(BookRef)->Unit) {
     val context=androidx.compose.ui.platform.LocalContext.current
@@ -10916,12 +11199,12 @@ internal fun AbContinuationSummary(notice:ContinuationNotice,theme:AbTheme) {
         .format(java.util.Date(notice.at)),color=theme.muted,fontSize=11.sp)
 }
 
-private enum class AbSettingsSection(val label:String,val subtitle:String,val icon:AbIcon) {
+internal enum class AbSettingsSection(val label:String,val subtitle:String,val icon:AbIcon) {
     HOME("Настройки","",AbIcon.SETTINGS),
+    PLAYER_HOME("Меню плеера","",AbIcon.PLAY),
     SPEED("Скорость","Темп прослушивания",AbIcon.PLAY),
     EQUALIZER("Эквалайзер","Профиль и усиление",AbIcon.EQUALIZER),
     TIMER("Таймер сна","Остановка по времени",AbIcon.TIMER),
-    SCHEDULE("Расписание","Ночной таймер",AbIcon.TIMER),
     SHAKE("Встряхивание","Перезапустить таймер",AbIcon.SYNC),
     REWIND("После паузы","Откат позиции",AbIcon.PREVIOUS),
     APPEARANCE("Оформление","Тема и фон",AbIcon.SETTINGS),
@@ -10933,13 +11216,12 @@ private enum class AbSettingsSection(val label:String,val subtitle:String,val ic
     STORAGE("Память устройства","Размер книг и очистка",AbIcon.DOWNLOAD),
     UPDATES("Обновления","Версия и установка",AbIcon.SYNC),
     DIAGNOSTICS("Диагностика","События и сбои",AbIcon.SYNC),
-    PLAYER_TOOLS("Панель плеера","Кнопки и время главы",AbIcon.PLAY),
-    CATALOG_VIEW("Каталог","Завершённые книги",AbIcon.SEARCH)
+    PLAYER_TOOLS("Панель плеера","Кнопки, время главы и книги",AbIcon.PLAY)
 }
 
 @Composable
-private fun AbSettingsTiles(theme:AbTheme,onSelect:(AbSettingsSection)->Unit) {
-    AbSettingsSection.values().filter{it!=AbSettingsSection.HOME}.chunked(2).forEach {row ->
+private fun AbSettingsTiles(theme:AbTheme,sections:List<AbSettingsSection>,onSelect:(AbSettingsSection)->Unit) {
+    sections.chunked(2).forEach {row ->
         Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp)) {
             row.forEach {section ->
                 Column(Modifier.weight(1f).heightIn(min=92.dp).abGlass(theme,16)
@@ -10959,7 +11241,18 @@ private fun AbSettingsTiles(theme:AbTheme,onSelect:(AbSettingsSection)->Unit) {
 private fun AbSettingsDialog(data: AbScreenData,prefs: android.content.SharedPreferences,theme: AbTheme,
     actions: AbActions,sync:LibrarySyncState,initialSection:AbSettingsSection,onCrashReport:()->Unit,dismiss:()->Unit) {
     var section by androidx.compose.runtime.saveable.rememberSaveable(initialSection) {mutableStateOf(initialSection)}
-    androidx.activity.compose.BackHandler(enabled=section!=AbSettingsSection.HOME) {section=AbSettingsSection.HOME}
+    val playerSections=listOf(AbSettingsSection.EQUALIZER,AbSettingsSection.SPEED,AbSettingsSection.TIMER,
+        AbSettingsSection.REWIND,AbSettingsSection.SHAKE,AbSettingsSection.PLAYER_TOOLS)
+    val generalSections=listOf(AbSettingsSection.APPEARANCE,AbSettingsSection.WIDGETS,AbSettingsSection.SUPPORT,
+        AbSettingsSection.SOUND,AbSettingsSection.BACKUP,AbSettingsSection.STORAGE,AbSettingsSection.UPDATES,AbSettingsSection.DIAGNOSTICS)
+    fun back() {
+        when {
+            section in playerSections -> section=AbSettingsSection.PLAYER_HOME
+            section in generalSections -> section=AbSettingsSection.HOME
+            else -> dismiss()
+        }
+    }
+    androidx.activity.compose.BackHandler(enabled=section!=AbSettingsSection.HOME && section!=AbSettingsSection.PLAYER_HOME) {back()}
     val context=androidx.compose.ui.platform.LocalContext.current
     val title=data.playback.bookTitle
     val eq=loadEqSettings(prefs,title)
@@ -10973,18 +11266,21 @@ private fun AbSettingsDialog(data: AbScreenData,prefs: android.content.SharedPre
     key(section) { AbDialog(section.label,theme,dismiss) {
         if(section==AbSettingsSection.HOME) {
             Text("Выберите блок настроек",color=theme.muted,fontSize=13.sp)
-            AbSettingsTiles(theme){section=it}
+            AbSettingsTiles(theme,generalSections){section=it}
             AbButton("Telegram-канал ↗",theme) {
                 try {context.startActivity(Intent(Intent.ACTION_VIEW,Uri.parse("https://t.me/c/3702128532/1")))}
                 catch(_:android.content.ActivityNotFoundException) {
                     Toast.makeText(context,"Не удалось открыть Telegram-ссылку",Toast.LENGTH_LONG).show()
                 }
             }
+        } else if(section==AbSettingsSection.PLAYER_HOME) {
+            AbSettingsTiles(theme,playerSections){section=it}
         } else {
             Row(Modifier.fillMaxWidth().heightIn(min=48.dp).clip(RoundedCornerShape(12.dp))
-                .clickable{section=AbSettingsSection.HOME}.padding(horizontal=4.dp),verticalAlignment=Alignment.CenterVertically) {
+                .clickable{back()}.padding(horizontal=4.dp),verticalAlignment=Alignment.CenterVertically) {
                 AbIcon(AbIcon.BACK,theme.accent,Modifier.size(18.dp))
-                Text("Все настройки",color=theme.accent,fontSize=13.sp,modifier=Modifier.padding(start=10.dp))
+                Text(when {section in playerSections->"Меню плеера";section in generalSections->"Все настройки";else->"Назад"},
+                    color=theme.accent,fontSize=13.sp,modifier=Modifier.padding(start=10.dp))
             }
         }
 
@@ -10992,16 +11288,6 @@ private fun AbSettingsDialog(data: AbScreenData,prefs: android.content.SharedPre
         if(section==AbSettingsSection.STORAGE)AbStoragePanel(sync.books.value,prefs,theme,actions.deleteBook)
         if(section==AbSettingsSection.UPDATES)AbButton("Проверить обновления",theme){context.startActivity(Intent(context,PreviewUpdatesActivity::class.java))}
         if(section==AbSettingsSection.PLAYER_TOOLS)AbPlayerToolSettings(prefs,theme)
-        if(section==AbSettingsSection.CATALOG_VIEW) {
-            var hidden by remember(prefs){mutableStateOf(prefs.getBoolean(AbListeningFeatures.HIDE_FINISHED,false))}
-            Row(verticalAlignment=Alignment.CenterVertically) {
-                Text("Скрывать прослушанные издания",color=theme.text,modifier=Modifier.weight(1f))
-                androidx.compose.material3.Switch(hidden,onCheckedChange={checked ->
-                    hidden=checked
-                    prefs.edit().putBoolean(AbListeningFeatures.HIDE_FINISHED,checked).apply()
-                },modifier=Modifier.semantics{contentDescription="Скрывать прослушанные издания"})
-            }
-        }
         if(section==AbSettingsSection.SPEED) {
             AbHeading("Скорость воспроизведения",theme)
             val speed=PlaybackOptions.rate(if(data.playback.hasPlayer) data.playback.speed else
@@ -11015,14 +11301,23 @@ private fun AbSettingsDialog(data: AbScreenData,prefs: android.content.SharedPre
         }
         if(section==AbSettingsSection.EQUALIZER) {
             AbHeading("Эквалайзер",theme)
-            AbOptions(listOf("Выкл","Речь","Бас","Чёткость"),eq.preset,theme){setEq(eq.copy(preset=it))}
-            AbOptions(listOf("0 дБ","+3 дБ","+6 дБ","+9 дБ"),listOf(0,3,6,9).indexOf(eq.gainDb),theme) {
-                setEq(eq.copy(gainDb=listOf(0,3,6,9)[it]))
+            var editableEq by remember(title,perBook){mutableStateOf(eq)}
+            fun update(value:EqSettings){editableEq=value;setEq(value)}
+            AbOptions(listOf("Выкл","Речь","Бас","Чёткость","Ручной"),editableEq.preset,theme){update(editableEq.copy(preset=it))}
+            if(editableEq.preset==4)listOf("Низкие","Нижняя середина","Середина","Верхняя середина","Высокие").forEachIndexed{i,label->
+                val bands=editableEq.custom.takeIf{it.size==5}?:List(5){0}
+                Text(label+" · "+bands[i]+" дБ",color=theme.text,fontSize=12.sp)
+                androidx.compose.material3.Slider(value=bands[i].toFloat(),onValueChange={v->
+                    update(editableEq.copy(custom=bands.mapIndexed{j,old->if(i==j)v.toInt() else old}))
+                },valueRange=-6f..6f,steps=11)
+            }
+            AbOptions(listOf("0 дБ","+3 дБ","+6 дБ","+9 дБ"),listOf(0,3,6,9).indexOf(editableEq.gainDb),theme) {
+                update(editableEq.copy(gainDb=listOf(0,3,6,9)[it]))
             }
             AbOptions(listOf("Для всех книг","Только эта"),if(perBook) 1 else 0,theme) {index ->
                 if(index==1 && title.isBlank()) Toast.makeText(context,"Сначала включите книгу",Toast.LENGTH_SHORT).show()
                 else {
-                    if(index==1) saveEqSettings(prefs,eqBookKey(title),eq)
+                    if(index==1) saveEqSettings(prefs,eqBookKey(title),editableEq)
                     else prefs.edit().remove(eqBookKey(title)).apply()
                     PlaybackService.refreshSettings(context)
                 }
@@ -11053,20 +11348,6 @@ private fun AbSettingsDialog(data: AbScreenData,prefs: android.content.SharedPre
             AbButton("Повторить: "+formatSleepTime(previous),theme,enabled=data.playback.hasPlayer) {
                 PlaybackService.setSleepTimer(context,previous)
             }
-        }
-        if(section==AbSettingsSection.REWIND) {
-            AbHeading("Перемотка в плеере",theme)
-            Text("Короткий шаг",color=theme.text,fontSize=14.sp)
-            AbOptions(listOf("5 с","10 с","15 с","30 с"),listOf(5,10,15,30).indexOf(prefs.getInt("experience_seek_short",10)),theme){updateInt("experience_seek_short",listOf(5,10,15,30)[it])}
-            Text("Длинный шаг",color=theme.text,fontSize=14.sp)
-            AbOptions(listOf("30 с","1 мин","2 мин"),listOf(30,60,120).indexOf(prefs.getInt("experience_seek_long",60)),theme){updateInt("experience_seek_long",listOf(30,60,120)[it])}
-            AbHeading("Откат после паузы",theme)
-            Text("Вернуться немного назад после паузы длиннее 30 секунд",color=theme.muted,fontSize=12.sp)
-            AbOptions(listOf("Выкл","5 с","10 с","30 с"),listOf(0,5,10,30).indexOf(prefs.getInt("rewind_after_pause_sec",5)),theme) {
-                updateInt("rewind_after_pause_sec",listOf(0,5,10,30)[it])
-            }
-        }
-        if(section==AbSettingsSection.SCHEDULE) {
             AbHeading("Ночной таймер по расписанию",theme)
             val intervals=listOf(21 to 5,22 to 6,23 to 7,0 to 8)
             val enabled=prefs.getBoolean("sleep_sched_enabled",false)
@@ -11081,6 +11362,18 @@ private fun AbSettingsDialog(data: AbScreenData,prefs: android.content.SharedPre
             }
             AbOptions(listOf("15 мин","30 мин","45 мин","60 мин"),listOf(15,30,45,60).indexOf(prefs.getInt("sleep_sched_minutes",30)),theme) {
                 updateInt("sleep_sched_minutes",listOf(15,30,45,60)[it])
+            }
+        }
+        if(section==AbSettingsSection.REWIND) {
+            AbHeading("Перемотка в плеере",theme)
+            Text("Короткий шаг",color=theme.text,fontSize=14.sp)
+            AbOptions(listOf("5 с","10 с","15 с","30 с"),listOf(5,10,15,30).indexOf(prefs.getInt("experience_seek_short",10)),theme){updateInt("experience_seek_short",listOf(5,10,15,30)[it])}
+            Text("Длинный шаг",color=theme.text,fontSize=14.sp)
+            AbOptions(listOf("30 с","1 мин","2 мин"),listOf(30,60,120).indexOf(prefs.getInt("experience_seek_long",60)),theme){updateInt("experience_seek_long",listOf(30,60,120)[it])}
+            AbHeading("Откат после паузы",theme)
+            Text("Вернуться немного назад после паузы длиннее 30 секунд",color=theme.muted,fontSize=12.sp)
+            AbOptions(listOf("Выкл","5 с","10 с","30 с"),listOf(0,5,10,30).indexOf(prefs.getInt("rewind_after_pause_sec",5)),theme) {
+                updateInt("rewind_after_pause_sec",listOf(0,5,10,30)[it])
             }
         }
         if(section==AbSettingsSection.SHAKE) {
@@ -11130,7 +11423,6 @@ private fun AbSettingsDialog(data: AbScreenData,prefs: android.content.SharedPre
             }
         }
         if(section==AbSettingsSection.HOME) {
-            AbButton("Что нового · "+BuildConfig.VERSION_NAME,theme){context.startActivity(Intent(context,ReleaseNotesActivity::class.java))}
             AbButton("Перенос и копия коллекций",theme){context.startActivity(Intent(context,CollectionTransferActivity::class.java))}
             AbButton("Обновления · "+BuildConfig.VERSION_NAME,theme) {
                 context.startActivity(Intent(context,PreviewUpdatesActivity::class.java))
@@ -11138,8 +11430,8 @@ private fun AbSettingsDialog(data: AbScreenData,prefs: android.content.SharedPre
         }
         if(section==AbSettingsSection.DIAGNOSTICS) {
             AbHeading("Диагностика",theme)
-            AbButton("Диагностика и логи",theme,onClick=onCrashReport)
-            Text("Сведения об устройстве, события плеера и последний сохранённый сбой. Можно скопировать или отправить отчёт через выбранное приложение, даже если сбоя не было. При запуске отчёт не открывается.",color=theme.muted,fontSize=12.sp)
+            AbButton("Отчёт после обновления или проверки (.txt)",theme,onClick=onCrashReport)
+            Text("Включает версию, дату обновления, технические события, сравнение источников и статистику последних поисков по каждому сайту. Поиск без VPN и с VPN сопоставляется без передачи названия книги. Отправка вручную через Android.",color=theme.muted,fontSize=12.sp)
         }
         Text(AB_PRODUCT_NAME,color=theme.muted,fontSize=12.sp)
     } }
@@ -11258,7 +11550,7 @@ internal data class AbDownloadEdition @JvmOverloads constructor(val ref:BookRef,
 internal fun abDownloadEdition(ref:BookRef,root:JSONObject,url:String):AbDownloadEdition? {
     val parsed=root.optJSONObject("player")?.let{parsePlayer(it)} ?: return null
     return AbDownloadEdition(ref.copy(url=url,cover=root.optString("cover").ifBlank{ref.cover}),parsed.tracks,
-        EditionDownloadRules.isPreview(ref.title+" "+root.optString("title"),parsed.tracks.map{it.src}),
+        EditionDownloadRules.isPreviewPlaylist(ref.title+" "+root.optString("title"),parsed.tracks.map{it.src},parsed.tracks.map{it.title}),
         sourceTitle=root.optString("title"),sourceAuthor=root.optString("author"),sourceCycles=nextVolumeSourceCycles(root.optJSONArray("cycles"),url))
 }
 
@@ -11440,8 +11732,8 @@ internal fun AbReadDownloadEdition(ref:BookRef,done:(AbDownloadEdition?,String)-
             try {
                 val loaded=withContext(Dispatchers.IO){VerifiedBooks.load(ref.url)}
                 val edition=AbDownloadEdition(ref.copy(cover=loaded.cover.ifBlank{ref.cover}),loaded.data.tracks,
-                    EditionDownloadRules.isPreview(loaded.title,loaded.data.tracks.map{it.src}))
-                AbSourceAvailability.record(observationPrefs,ref.url,edition.tracks.isNotEmpty(),preview=edition.preview)
+                    EditionDownloadRules.isPreviewPlaylist(loaded.title,loaded.data.tracks.map{it.src},loaded.data.tracks.map{it.title}))
+                AbSourceAvailability.observe(observationPrefs,ref.url,loaded.title,loaded.data)
                 report(edition,"")
             }catch(cancel:kotlinx.coroutines.CancellationException){throw cancel}
             catch(_:Exception){report(null,"Не удалось проверить издание. Повторите позже.")}
@@ -11451,8 +11743,9 @@ internal fun AbReadDownloadEdition(ref:BookRef,done:(AbDownloadEdition?,String)-
             val parsed=root?.let{abDownloadEdition(ref,it,url)}
             if(error.isNotBlank()||parsed==null)report(null,error.ifBlank{"Источник не передал список глав. Скачивание не начато."})
             else {
-                AbSourceAvailability.record(observationPrefs,url,parsed.tracks.isNotEmpty(),preview=parsed.preview)
-                if(url!=ref.url)AbSourceAvailability.record(observationPrefs,ref.url,parsed.tracks.isNotEmpty(),preview=parsed.preview)
+                val playlist=root?.optJSONObject("player")?.let{parsePlayer(it)}
+                val availability=if(playlist!=null)AbSourceAvailability.observe(observationPrefs,url,parsed.sourceTitle.ifBlank{ref.title},playlist) else AbChapterAvailability.UNKNOWN
+                if(url!=ref.url)AbSourceAvailability.record(observationPrefs,ref.url,parsed.tracks.isNotEmpty(),preview=parsed.preview||availability==AbChapterAvailability.PREVIEW,suspected=availability==AbChapterAvailability.SUSPECTED)
                 report(parsed,"")
             }
         }
@@ -11614,7 +11907,7 @@ private fun AbTransferLine(item:AbDownloadItem,theme:AbTheme) {
 }
 
 @Composable
-private fun AbBookDownloadFeedback(data:AbScreenData,title:String,theme:AbTheme) {
+internal fun AbBookDownloadFeedback(data:AbScreenData,title:String,theme:AbTheme) {
     val items=data.downloads.filter{AbLibraryHousekeeping.bookKey(it.book)==AbLibraryHousekeeping.bookKey(title)}
     if(items.isEmpty())return
     val active=items.count{it.state==TrackState.DOWNLOADING}
@@ -11987,7 +12280,7 @@ private fun abWriteBookMetadata(file: File,json: JSONObject) {
 }
 
 private const val AB_BOOKINFO_GENRES="https://bookinfo.net/genres"
-private data class AbNativeGenre(val title:String,val url:String,val count:Int?=null,val site:String="Bookinfo")
+internal data class AbNativeGenre(val title:String,val url:String,val count:Int?=null,val site:String="Bookinfo")
 
 private fun abNativeGenreDirectoryJs():String = """
     (function() {
@@ -12703,8 +12996,8 @@ private fun AbSeriesBlock(cycles: List<BookCycle>,theme: AbTheme,actions: AbActi
                 modifier=Modifier.clickable{context.startActivity(Intent(Intent.ACTION_VIEW,Uri.parse(cycle.referenceUrl)))})
             else Text("Сведения аудиоисточника; независимая сверка не выполнена",color=theme.muted,fontSize=10.sp)
             Text(abVolumeLabel(cycle),color=theme.muted,fontSize=12.sp)
-            if(cycle.referenceUrl.isNotBlank()) AbButton("Найти аудиокниги этой серии",theme){actions.cycle(cycle)}
-            else if(cycle.url.isNotBlank()) AbButton("Все книги серии · ${bookSiteName(cycle.url)}",theme) {actions.cycle(cycle)}
+            if(cycle.referenceUrl.isNotBlank()) AbButton("Найти аудиокниги этой серии",theme){actions.cycle(cycle.copy(seedTitle=book?.title.orEmpty(),seedAuthor=book?.author.orEmpty()))}
+            else if(cycle.url.isNotBlank()) AbButton("Все книги серии · ${bookSiteName(cycle.url)}",theme) {actions.cycle(cycle.copy(seedTitle=book?.title.orEmpty(),seedAuthor=book?.author.orEmpty()))}
             else Text("Сайт не указал ссылку на список книг",color=theme.muted,fontSize=11.sp)
         }
     }
@@ -12749,7 +13042,7 @@ internal fun AbOfficialSeriesPanel(title:String,author:String,prefs:android.cont
         val current=snapshot?.takeIf{SeriesAuthorityRules.sameTitle(title,it.title,"")}
         if(current!=null) {
             if(compact&&current.sources.any{it.error.isNotBlank()})
-                Text("Часть справочников недоступна. Сохранённые сведения доступны; подробности — ниже.",color=theme.muted,fontSize=11.sp)
+                Text(if(current.sources.any{it.books.isNotEmpty()})"Не все справочники подтвердили серию. Сохранённые сведения показаны ниже." else "Серия пока не подтверждена ни одним справочником. Повторите сверку.",color=theme.muted,fontSize=11.sp)
             if(!compact||details)current.sources.forEach{s->
                 val checked=if(s.checked>0)java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.SHORT,java.text.DateFormat.SHORT).format(java.util.Date(s.checked)) else "успешной сверки ещё нет"
                 val attempted=if(s.attempted>0)java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.SHORT,java.text.DateFormat.SHORT).format(java.util.Date(s.attempted)) else "ещё не выполнялась"
@@ -12765,11 +13058,11 @@ internal fun AbOfficialSeriesPanel(title:String,author:String,prefs:android.cont
                 current.sources.flatMap{s->s.books.filter{b->
                     (filter==0||b.format==if(filter==1)"text" else "audio")&&
                         (scope==1||s.seedOrder==null||b.order==null||b.order>s.seedOrder)&&
-                        (scope==1||!SeriesAuthorityRules.sameTitle(title,b.title,s.series))
+                        (scope==1||!SeriesAuthorityRules.referenceMatches(title,b.title,s.series,b.author))
                 }}.groupBy{SeriesAuthorityRules.series(it.series)+"|"+SeriesAuthorityRules.author(it.author)+"|"+SeriesAuthorityRules.title(it.title)}
                     .values.sortedWith(compareBy<List<OfficialEdition>>{it.first().series}.thenBy{it.mapNotNull{b->b.order}.minOrNull() ?: Double.MAX_VALUE})
             }
-            if(grouped.isEmpty())Text(if(running)"Загружаем сведения…" else "Подтверждённых продолжений для выбранного формата пока не найдено. Можно открыть всю серию или повторить сверку.",color=theme.muted,fontSize=12.sp)
+            if(grouped.isEmpty())Text(when{running->"Загружаем сведения…";current.sources.none{it.books.isNotEmpty()}->"Список серии не получен. Это не означает, что продолжений нет.";else->"Подтверждённых продолжений для выбранного формата пока не найдено. Можно открыть всю серию или повторить сверку."},color=theme.muted,fontSize=12.sp)
             val listed=grouped.map{it.first()}
             val completed=listed.count{book->library.any{SeriesAuthorityRules.title(it.title)==SeriesAuthorityRules.title(book.title)&&StableProgress.isCompleted(prefs,it)}}
             Text("В этом списке прослушано: $completed из ${listed.size}",color=theme.muted,fontSize=12.sp)
@@ -12807,7 +13100,7 @@ internal fun AbOfficialSeriesPanel(title:String,author:String,prefs:android.cont
 }
 
 @Composable
-private fun AbPlayerSeries(metadata:BookLink,ref:BookRef,books:List<LibraryBook>,prefs:android.content.SharedPreferences,
+internal fun AbPlayerSeries(metadata:BookLink,ref:BookRef,books:List<LibraryBook>,prefs:android.content.SharedPreferences,
     theme:AbTheme,actions:AbActions,onShelf:(BookRef)->Unit,onSettings:(AbSettingsSection)->Unit) {
     val context=androidx.compose.ui.platform.LocalContext.current
     val continuationStore=remember{ContinuationStore(context)}
@@ -13163,8 +13456,18 @@ internal object AbCrashReport {
             ?: context.getSharedPreferences("audiobook_diagnostics",Context.MODE_PRIVATE).getLong(FIRST_RUN,0L)
         val text=StringBuilder("Версия диагностики: "+REVISION+"\nОтчёт собран: "+java.util.Date()+"\nAndroid ${Build.VERSION.SDK_INT}, ${Build.MANUFACTURER} ${Build.MODEL}\n")
         text.append("\n=== Установленная сборка ===\n"+installedBuild(context)+"\n")
+        try {
+            text.append("\n=== Сравнение источников: без VPN / с VPN ===\n")
+            text.append(AbVpnDiagnosticReport.collect(context)).append('\n')
+        }catch(_:Exception){
+            text.append("\nДанные сравнения VPN пока недоступны.\n")
+        }
         val source=AbSourceTrace.read(context)
         if(source.isNotBlank())text.append("\n=== Последняя проверка источника ===\n"+AbDiagnosticSections.summary(source,(AbBookSources.all+AbExtraSources.browserOnly.map{it.first}).toSet())+"\n")
+        try {text.append(AbSearchDiagnostics.collect(context))}
+        catch(_:Exception) {text.append("\nДанные диагностики поиска недоступны.\n")}
+        val checks=AbSourceTrace.readChecks(context)
+        if(checks.isNotBlank())text.append("\n=== Последние проверки аудио по источникам ===\n"+checks+"\n")
         val search=AbSourceTrace.readSearch(context)
         if(search.isNotBlank())text.append("\n=== Последний общий поиск (без запроса) ===\n"+AbDiagnosticSections.summary(search,(AbBookSources.all+AbExtraSources.browserOnly.map{it.first}).toSet())+"\n")
         val library=context.getSharedPreferences("audiobook_diagnostics",Context.MODE_PRIVATE).getString("last_library","").orEmpty()
@@ -13448,7 +13751,7 @@ internal fun AbCrashReports(theme: AbTheme,requested: Int) {
     val saved=report ?: return
     fun dismiss() {shareJob?.cancel();shareJob=null;sharing=false;shareError="";visible=false;report=null}
     AbDialog("Диагностика и логи",theme,{dismiss()}) {
-        Text("Отчёт содержит сведения об устройстве, последние события плеера и сохранённую ошибку, если она есть. Секреты, ссылки на главы и поисковые запросы скрыты. Проверьте текст ниже перед отправкой. Получателя вы выбираете сами.",
+        Text("Отчёт содержит версию после обновления, сравнение источников, статистику поиска, события плеера и сохранённую ошибку. Пароли, ссылки на главы и поисковые запросы скрыты. Проверьте текст перед отправкой — получателя выбираете сами.",
             color=theme.muted,fontSize=14.sp,lineHeight=20.sp)
         if(AbCrashReport.historical(context,saved.first)) Text(
             "В отчёте есть событие предыдущей версии диагностики. Его дата указана отдельно.",color=theme.muted,fontSize=12.sp)
@@ -14737,6 +15040,19 @@ private suspend fun abEnrichAudioOnline(web:WebView,root:JSONObject,page:String)
 
 
 private object AbSourceTrace {
+    private val outcomes=setOf("EMPTY","UNCONFIRMED","IDENTITY_MISMATCH","DEMO","POSSIBLE_DEMO","CHAPTERS_AND_SIZE","CHAPTERS_ONLY","OPEN_ERROR")
+    @Synchronized fun check(context:Context,site:String,outcome:String,chapters:Int=0) {
+        if(site !in AbBookSources.all || outcome !in outcomes)return
+        val prefs=context.applicationContext.getSharedPreferences("audiobook_diagnostics",Context.MODE_PRIVATE)
+        val entry=site+" | "+outcome+" | chapters="+chapters.coerceIn(0,3000)
+        val history=(prefs.getString("audio_checks_v1","").orEmpty().lines().filter{it.isNotBlank()}+entry).takeLast(64)
+        prefs.edit().putString("audio_checks_v1",history.joinToString("\n")).apply()
+    }
+    fun readChecks(context:Context):String=context.getSharedPreferences("audiobook_diagnostics",Context.MODE_PRIVATE)
+        .getString("audio_checks_v1","").orEmpty().lines().takeLast(64).filter{line->
+            val parts=line.split(" | ")
+            parts.size==3&&parts[0] in AbBookSources.all&&parts[1] in outcomes&&Regex("chapters=[0-9]{1,4}").matches(parts[2])
+        }.joinToString("\n")
     fun recordSearch(context:Context,query:String,reports:Map<String,SiteSearchResult>,
         requested:List<String> = AbBookSources.searchOrder) {
         val sites=JSONArray()
@@ -14763,8 +15079,9 @@ private object AbSourceTrace {
         .getString("last_source","").orEmpty()
 }
 
-internal fun abSourceHealthTargets():List<SourceHealthTarget> = AbBookSources.searchOrder.distinct()
-    .map{SourceHealthTarget(it,AbBookSources.home(it))}
+internal fun abSourceHealthTargets(includeManual:Boolean=false):List<SourceHealthTarget> =
+    (AbBookSources.searchOrder.distinct().map{SourceHealthTarget(it,AbBookSources.home(it))} +
+        if(includeManual)AbExtraSources.browserOnly.map{(name,home,_)->SourceHealthTarget(name,home)} else emptyList()).distinctBy{it.key}
 
 private object AbBookSources {
     const val AZBYKA="Азбука веры"
@@ -15178,6 +15495,11 @@ internal fun AbBookSize(title:String,tracks:List<AudioTrack>,local:LibraryBook?,
     }
     val complete=tracks.isNotEmpty() && bytes.all{it!=null && it>=0}
     val sum=bytes.filterNotNull().sum()
+    val sizePrefs=androidx.compose.ui.platform.LocalContext.current.getSharedPreferences("audiobook_downloader",0)
+    val remoteSources=tracks.map{it.src}.distinct()
+    val remoteComplete=remoteSources.isNotEmpty()&&remoteSources.all{isNetworkAudio(it)&&(known[it]?:0)>0}
+    val remoteSum=remoteSources.mapNotNull{known[it]}.sum()
+    LaunchedEffect(page,remoteComplete,remoteSum){if(remoteComplete)AbSourceAvailability.recordSize(sizePrefs,page,remoteSum)}
     LaunchedEffect(title,tracks,page,retry) {
         if(!complete && tracks.any{isNetworkAudio(it.src)}) {
             checking=true
@@ -15191,6 +15513,7 @@ internal fun AbBookSize(title:String,tracks:List<AudioTrack>,local:LibraryBook?,
             sum>0L->"Известный объём: "+formatFileSize(sum)+" · "+bytes.count{it!=null}+" из ${tracks.size} глав"
             else->"Размер аудиофайлов неизвестен"
         },color=theme.muted,fontSize=11.sp)
+        if(remoteComplete&&remoteSum<AbSourceAvailability.WARN_AUDIO_BYTES)Text(if(remoteSum<AbSourceAvailability.MIN_AUDIO_BYTES) "Демо по объёму · менее 20 МБ" else "Возможное демо · менее 30 МБ",color=theme.error,fontSize=12.sp)
         if(!complete && !checking && tracks.any{isNetworkAudio(it.src)})Text("Уточнить размер",color=theme.accent,fontSize=11.sp,
             modifier=Modifier.heightIn(min=36.dp).clickable{retry++}.padding(vertical=8.dp))
     }
@@ -15345,7 +15668,7 @@ private fun abPlayerReaderJs():String {
 }
 
 @Composable
-private fun AbBookmarkRow(book:String,mark:Bookmark,theme:AbTheme,onOpen:()->Unit,onEdit:()->Unit,onDelete:()->Unit) {
+internal fun AbBookmarkRow(book:String,mark:Bookmark,theme:AbTheme,onOpen:()->Unit,onEdit:()->Unit,onDelete:()->Unit) {
     Row(Modifier.fillMaxWidth().abGlass(theme,13).padding(12.dp),verticalAlignment=Alignment.CenterVertically) {
         Column(Modifier.weight(1f).clickable(onClick=onOpen)) {
             if(book.isNotBlank())Text(book,color=theme.muted,fontSize=12.sp)

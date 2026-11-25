@@ -50,4 +50,17 @@ test('Life takes the largest declared book cover and ignores recommended images'
  assert.equal(detail.cover,'https://audiokniga.life/l.jpg');
 });
 test('Search refuses login and third-party forms',()=>{const c=sources[0],doc=makeDocument('<form action="https://evil.invalid/search"><input name="q"></form><form action="/login"><input name="q"><input type="password"></form>',c.home);assert.equal(doc.evaluate(`(${extra}).search('test')`),'SEARCH_NOT_FOUND');});
+test('Modern English human-verification page is access restriction, not failed search form',()=>{
+  for(const id of ['a-kniga-com','slushat-knigi-com']){
+    const c=sources.find(x=>x.id===id);
+    assert(c,id);
+    const html='<html><head><title>Checking that you are human</title></head><body><main><button>I am not a robot — continue</button></main></body></html>';
+    const doc=makeDocument(html,c.home);
+    assert.equal(doc.evaluate(`(${extra}).search('проверка')`),'SEARCH_ERROR: Сайт требует проверки соединения',id);
+    const result=run(catalog,html,c.home);
+    assert.equal(result.blocked,true,id);
+    assert.deepEqual(result.links,[],id);
+  }
+});
+
 console.log(`PASS: ${passed} additional-source fixtures (recorded HTML and parser behaviour; no live audio playback assertion)`);

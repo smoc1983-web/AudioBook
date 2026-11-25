@@ -9,9 +9,8 @@ class AbGlobalBookResultsTest {
 
     @Test fun globalSeriesSearchRetainsFifthVolumeAcrossSourceReports() {
         val first=(1..4).map{volume("Файролл. Том $it",it.toDouble(),"https://one.invalid/$it")}
-        // The native engine returns installment 5, but omits the parent series in its card.
-        // The former presentation filter discarded this otherwise relevant result.
-        val fifth=volume("Сицилианская защита",5.0,"https://two.invalid/fifth","two").copy(cycles=emptyList())
+        // The fifth installment is included when its series membership is known.
+        val fifth=volume("Сицилианская защита",5.0,"https://two.invalid/fifth","two")
         val reports=linkedMapOf(
             "one" to SiteSearchResult(first),
             "two" to AbGlobalBookResults.nativeResult(SiteSearchResult(listOf(fifth)),"Файролл")

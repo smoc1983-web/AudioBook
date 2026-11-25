@@ -1,6 +1,7 @@
 package com.audiobookdownloader
 
 import android.content.SharedPreferences
+import kotlinx.coroutines.*
 
 internal fun rankedAudioResult(prefs:SharedPreferences, wanted:BookRankingRules.Book, candidate:BookLink):BookLink? {
     val title = cleanBookTitle(candidate.title)
@@ -42,4 +43,18 @@ internal data class NarrationLookup(val ref:BookRef,val author:String,val voice:
         val first=alternatives.firstOrNull() ?: return null
         return book.copy(url=first.url,coverUrl=first.coverUrl.ifBlank{book.coverUrl},sources=alternatives)
     }
+}
+
+/** Resolve the selected official work, not its popularity-list title as a cycle query. */
+internal suspend fun rankedCycle(prefs:SharedPreferences,book:BookRankingRules.Book,
+    resolver:SeriesAuthorityResolver=SeriesAuthorityResolver()):BookCycle? = withContext(Dispatchers.IO) {
+    val provider=SeriesAuthorityRules.provider(book.url)
+    if(provider.isBlank()||!SeriesAuthorityRules.work(book.url))return@withContext null
+    val evidence=withTimeoutOrNull(25_000L){
+        resolver.resolveFrom(provider,book.title,book.author,book.url).first
+    } ?: return@withContext null
+    if(evidence.series.isBlank()||!SeriesAuthorityRules.cycle(evidence.seriesUrl))return@withContext null
+    SeriesAuthorityCache.save(prefs,book.title,book.author,evidence,"confirmed")
+    BookCycle(evidence.series,order=evidence.order,referenceUrl=evidence.seriesUrl,
+        referenceSite=provider,seedTitle=evidence.title,seedAuthor=evidence.author)
 }

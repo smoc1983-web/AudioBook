@@ -164,4 +164,24 @@ class OfficialSeriesTest {
         assertTrue(store.notices().first{it.id==existing.id}.read)
         assertTrue(store.notices().first{it.id==existing.id}.notified)
     }
+    @Test(timeout=60000) fun legacyCollectionTitleResolvesWithoutRemovingTheStoredBook()=runBlocking {
+        latest=2
+        val raw=title+" - Автор Тест"
+        assertEquals(listOf(raw,title),SeriesAuthorityRules.referenceQueries(raw,""))
+        assertTrue(SeriesAuthorityRules.referenceMatches(raw,title,"Тестовая серия",author))
+        val requests=mutableListOf<String>()
+        val provider=SeriesAuthorityFetcher{url->
+            requests.add(url)
+            if(url.contains("/search")&&java.net.URLDecoder.decode(url,"UTF-8").contains(raw))"<h1>Нет совпадений</h1>"
+            else fetcher.html(url)
+        }
+        val result=OfficialSeriesCatalog(context,provider).refresh(raw,"",true)
+        assertEquals(raw,result.title)
+        assertEquals(author,result.author)
+        assertEquals(2,result.sources.size)
+        assertTrue(result.sources.joinToString{it.error},result.sources.all{it.complete&&it.seedOrder==1.0})
+        assertTrue(result.sources.all{source->source.books.any{it.title==name(2)}})
+        assertTrue(requests.any{it.contains("/search")&&java.net.URLDecoder.decode(it,"UTF-8").contains(raw)})
+        assertNotNull(OfficialSeriesStore(context).read(raw,""))
+    }
 }

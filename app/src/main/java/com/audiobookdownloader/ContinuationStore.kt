@@ -16,8 +16,22 @@ internal data class ContinuationNotice(val id:String,val seed:String,val title:S
 internal class ContinuationStore(private val context:Context) {
     val preferences=context.getSharedPreferences("continuations_v1",0)
     private val folder=File(context.filesDir,"continuations-v1")
-    fun seeds():List<ContinuationSeed> = loadShelves(context.getSharedPreferences("audiobook_downloader",0))
-        .flatMap{it.books}.filter{SeriesAuthorityRules.title(it.title) !in preferences.getStringSet("muted_titles",emptySet()).orEmpty()}.map{ContinuationSeed(hash(it.url.ifBlank{SearchBookIndex.normal(it.title)}),it.title,it.url)}.distinctBy{it.id}
+    fun seeds():List<ContinuationSeed> = (loadShelves(context.getSharedPreferences("audiobook_downloader",0))
+        .flatMap{it.books}.filter{SeriesAuthorityRules.title(it.title) !in preferences.getStringSet("muted_titles",emptySet()).orEmpty()}.map{ContinuationSeed(hash(it.url.ifBlank{SearchBookIndex.normal(it.title)}),it.title,it.url)}+ explicitSeeds()).distinctBy{it.id}
+    private fun explicitSeeds():List<ContinuationSeed> = try{
+        val a=JSONArray(preferences.getString("explicit_series_seeds","[]"));(0 until minOf(100,a.length())).mapNotNull{i->
+            val j=a.optJSONObject(i)?:return@mapNotNull null;val url=j.optString("url");val title=j.optString("title")
+            if(title.isBlank()||!ContinuationPolicy(AB_EXTRA_SOURCE_JSON).book(url))null else ContinuationSeed(hash(url),title,url)
+        }
+    }catch(_:Exception){emptyList()}
+    fun isSubscribed(url:String)=explicitSeeds().any{it.url==url}
+    @Synchronized fun toggleSubscription(book:BookLink):Boolean {
+        val url=book.url;require(book.title.isNotBlank()&&book.cycles.isNotEmpty()&&ContinuationPolicy(AB_EXTRA_SOURCE_JSON).book(url))
+        val old=explicitSeeds();val active=old.none{it.url==url}
+        val next=if(active)(old+ContinuationSeed(hash(url),book.title,url)).takeLast(100) else old.filter{it.url!=url}
+        preferences.edit().putString("explicit_series_seeds",JSONArray(next.map{JSONObject().put("title",it.title).put("url",it.url)}).toString()).apply()
+        return active
+    }
     fun available(seed:String?=null):List<ContinuationNotice> = try {
         val a=JSONArray(preferences.getString("available","[]"));(0 until minOf(a.length(),300)).map{a.getJSONObject(it)}
             .filter{seed==null||it.optString("seed")==seed}.map{j->ContinuationNotice(j.getString("id"),j.getString("seed"),j.getString("title"),j.optString("url"),j.optString("series"),j.optString("author"),j.optLong("at"),format=j.optString("format","audio"),order=j.optDouble("order").takeIf{it.isFinite()&&it>0})}

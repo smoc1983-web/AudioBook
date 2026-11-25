@@ -14,8 +14,9 @@ internal interface UpdateBackend {
 
 internal data class UpdateUiState(@JvmField val busy:Boolean=false,
     @JvmField val release:PreviewUpdater.Release?=null,
-    @JvmField val message:String="После обновления новый номер версии появится вверху этого экрана. Проверка и загрузка выполняются здесь, без браузера.",
-    @JvmField val rejectedCachedApk:Boolean=false,@JvmField val operationId:Long=0)
+    @JvmField val message:String="",
+    @JvmField val rejectedCachedApk:Boolean=false,@JvmField val operationId:Long=0,
+    @JvmField val busyLabel:String="")
 
 /** Application-owned work; observers belong only to visible updater windows. */
 internal class UpdateSession(val target:File,private val factory:()->UpdateBackend,private val executor:Executor) {
@@ -33,19 +34,23 @@ internal class UpdateSession(val target:File,private val factory:()->UpdateBacke
         state.release?.info?.isNewer(BuildConfig.VERSION_CODE.toLong())==true -> Operation.DOWNLOAD
         else -> Operation.CHECK
     }
-    fun primaryLabel():String=when(availableAction()) {
+    fun primaryLabel():String=if(state.busy)state.busyLabel.ifBlank{"Выполняется…"} else when(availableAction()) {
         Operation.INSTALL -> "Установить загруженное обновление"
         Operation.DOWNLOAD -> "Загрузить обновление"
         Operation.CHECK -> "Проверить обновления"
     }
     fun primary():Boolean=start(availableAction())
-    fun notesText():String=state.release?.notes?.takeIf{it.isNotEmpty()}?.let{"Что нового\n"+it}
-        ?: "Список изменений появится после проверки нового выпуска."
+    fun notesText():String=state.release?.takeIf{it.info.isNewer(BuildConfig.VERSION_CODE.toLong()) && it.notes.isNotBlank()}
+        ?.let{"Доступное обновление · ${it.info.versionName}\n"+it.notes}.orEmpty()
     fun addListener(listener:Listener){synchronized(lock){listeners.add(listener)};listener.changed()}
     fun removeListener(listener:Listener){synchronized(lock){listeners.remove(listener)}}
     private fun changed(){synchronized(lock){listeners.toList()}.forEach{it.changed()}}
     fun check():Boolean=start(Operation.CHECK)
     fun download():Boolean=start(Operation.DOWNLOAD)
+    fun resumeDownload(release:PreviewUpdater.Release):Boolean {
+        synchronized(lock){if(state.busy||!release.info.isNewer(BuildConfig.VERSION_CODE.toLong()))return false;state=state.copy(release=release)}
+        return start(Operation.DOWNLOAD)
+    }
     fun install():Boolean=start(Operation.INSTALL)
     private fun start(operation:Operation):Boolean {
         val running:Running
@@ -57,7 +62,15 @@ internal class UpdateSession(val target:File,private val factory:()->UpdateBacke
             running=Running(state.operationId+1,factory())
             active=running;installer=null
             state=state.copy(busy=true,operationId=running.id,release=if(operation==Operation.CHECK)null else selected,
-                message=if(operation==Operation.INSTALL)"Проверяю APK перед установкой…" else "Выполняется проверка…")
+                message=when(operation){
+                    Operation.CHECK -> "Проверяю наличие новой версии…"
+                    Operation.DOWNLOAD -> "Подготавливаю загрузку APK…"
+                    Operation.INSTALL -> "Проверяю APK перед установкой…"
+                },busyLabel=when(operation){
+                    Operation.CHECK -> "Проверяем обновления…"
+                    Operation.DOWNLOAD -> "Подготовка загрузки…"
+                    Operation.INSTALL -> "Проверяем APK…"
+                })
         }
         changed()
         executor.execute{perform(running,operation,selected)}
@@ -70,7 +83,11 @@ internal class UpdateSession(val target:File,private val factory:()->UpdateBacke
                 Operation.CHECK -> release=running.backend.latest()
                 Operation.DOWNLOAD -> running.backend.download(requireNotNull(selected)){percent->
                     synchronized(lock) {
-                        if(active===running&&!running.cancelled)state=state.copy(message="Загрузка обновления: ${percent.coerceIn(0,100)}%")
+                        if(active===running&&!running.cancelled){
+                            val progress=percent.coerceIn(0,100)
+                            state=if(progress==100)state.copy(message="APK скачан. Проверяю целостность и подпись…",busyLabel="Проверяем APK…")
+                            else state.copy(message="Загрузка обновления: $progress%",busyLabel="Скачивается…")
+                        }
                     }
                     changed()
                 }
@@ -88,7 +105,7 @@ internal class UpdateSession(val target:File,private val factory:()->UpdateBacke
                 else -> "APK проверен. Запрашиваю системное подтверждение установки."
             }
             installer=prepared?.takeIf{!running.cancelled&&failure==null}
-            state=state.copy(busy=false,message=message,
+            state=state.copy(busy=false,message=message,busyLabel="",
                 release=if(operation==Operation.CHECK&&(failure!=null||running.cancelled))null else release,
                 rejectedCachedApk=when {
                     operation==Operation.INSTALL&&failure!=null -> true
@@ -106,7 +123,7 @@ internal class UpdateSession(val target:File,private val factory:()->UpdateBacke
     }
     fun cancel() {
         val running=synchronized(lock) {
-            active?.also{it.cancelled=true;installer=null;state=state.copy(message="Отменяю загрузку…")}
+            active?.also{it.cancelled=true;installer=null;state=state.copy(message="Отменяю текущую операцию…",busyLabel="Отмена…")}
         } ?: return
         running.backend.cancel();changed()
     }
@@ -119,7 +136,9 @@ internal object UpdateSessions {
     @JvmStatic @Synchronized fun shared(context:Context):UpdateSession {
         instance?.let{return it}
         val app=context.applicationContext
-        val session=UpdateSession(PreviewUpdater(app).target(),{
+        val initial=PreviewUpdater(app)
+        initial.clearInstalledCache()
+        val session=UpdateSession(initial.target(),{
             val updater=PreviewUpdater(app)
             object:UpdateBackend {
                 override fun latest()=updater.latest()
@@ -128,6 +147,8 @@ internal object UpdateSessions {
                 override fun cancel()=updater.cancel()
             }
         },Executors.newSingleThreadExecutor())
-        instance=session;return session
+        instance=session
+        initial.pending()?.let{session.resumeDownload(it)}
+        return session
     }
 }

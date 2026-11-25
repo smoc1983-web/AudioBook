@@ -56,6 +56,23 @@ class AbSourceAvailabilityJvmTest {
         AbSourceAvailability.record(p,url,true)
         assertEquals(AbChapterAvailability.AVAILABLE,AbSourceAvailability.get(p,url))
     }
+    @Test fun suspectIsSeparateAndFilteringKeepsAlternative(){
+        val p=preferences();val suspect="https://source.example/short";val full="https://other.example/book"
+        AbSourceAvailability.record(p,suspect,true,suspected=true)
+        assertEquals(AbChapterAvailability.SUSPECTED,AbSourceAvailability.get(p,suspect))
+        assertEquals(full,AbSourceAvailability.withoutPreviews(p,BookLink("Книга",suspect,
+            sources=listOf(BookSource("one",suspect),BookSource("two",full))))?.url)
+        AbSourceAvailability.record(p,suspect,true)
+        assertEquals(AbChapterAvailability.AVAILABLE,AbSourceAvailability.get(p,suspect))
+    }
+    @Test fun chapterObservationsDoNotReorderVisibleSources() {
+        val p=preferences();val first="https://first.example/book";val last="https://last.example/book"
+        val book=BookLink("Книга",first,sources=listOf(BookSource("first",first),BookSource("last",last)))
+        AbSourceAvailability.record(p,last,true)
+        assertEquals(listOf(first,last),AbSourceAvailability.withoutPreviews(p,book)!!.sources.map{it.url})
+        AbSourceAvailability.record(p,first,false)
+        assertEquals(first,AbSourceAvailability.withoutPreviews(p,book)!!.url)
+    }
     @Test fun hidingDemoRetainsUnknownAndFullAlternativesWithoutLosingTheBook() {
         val p=preferences();val demo="https://source.example/demo";val full="https://other.example/book"
         AbSourceAvailability.record(p,demo,true,preview=true)
@@ -65,5 +82,71 @@ class AbSourceAvailabilityJvmTest {
         assertEquals(2,book.sources.size)
         assertNull(AbSourceAvailability.withoutPreviews(p,book.copy(sources=listOf(BookSource("one",demo)))))
         assertNull(AbSourceAvailability.withoutPreviews(p,book.copy(title="Книга (демоверсия)")))
+    }
+    @Test fun searchSuppressesRecentEmptyAndDemoButRetainsUnknownAndPreferredAudio() {
+        val p=preferences()
+        val dead="https://dead.example/book";val demo="https://demo.example/book"
+        val unknown="https://unknown.example/book";val live="https://live.example/book"
+        AbSourceAvailability.record(p,dead,false)
+        AbSourceAvailability.record(p,demo,true,preview=true)
+        AbSourceAvailability.record(p,live,true)
+        val book=BookLink("Книга",dead,sources=listOf(BookSource("dead",dead),BookSource("demo",demo),BookSource("unknown",unknown),BookSource("live",live)))
+        val filtered=AbSourceAvailability.searchCandidates(p,book,false)!!
+        assertEquals(live,filtered.url)
+        assertEquals(listOf(live,unknown),filtered.sources.map{it.url})
+        assertNull(AbSourceAvailability.searchCandidates(p,book.copy(sources=listOf(BookSource("dead",dead))),false))
+    }
+    @Test fun mismatchedTaxiCandidateDoesNotDisplaceValidAlternativeOrBanOtherWork() {
+        val p=preferences();val wrong="https://wrong.invalid/book";val good="https://good.invalid/book"
+        val book=BookLink("Таксист из Forbes",wrong,author="Ник Тарасов",sources=listOf(BookSource("wrong",wrong),BookSource("good",good)))
+        AbSourceAvailability.recordMismatch(p,book,wrong)
+        AbSourceAvailability.record(p,good,true)
+        val filtered=AbSourceAvailability.searchCandidates(p,book,false)!!
+        assertEquals(listOf(good),filtered.sources.map{it.url})
+        assertFalse(AbSourceAvailability.mismatched(p,book.copy(title="Таксист из Forbes 2"),wrong))
+        AbSourceAvailability.recordMismatch(p,book,wrong,1000L)
+        assertFalse(AbSourceAvailability.mismatched(p,book,wrong,901001L))
+        AbSourceAvailability.clearMismatch(p,book,wrong)
+        assertFalse(AbSourceAvailability.mismatched(p,book,wrong))
+    }
+    @Test fun emptyPlaylistCanBeRetriedAfterFifteenMinutes() {
+        val p=preferences();val url="https://dead.example/book"
+        AbSourceAvailability.record(p,url,false,1000)
+        assertEquals(AbChapterAvailability.EMPTY,AbSourceAvailability.get(p,url,1000+899999L))
+        assertEquals(AbChapterAvailability.UNKNOWN,AbSourceAvailability.get(p,url,1000+900001L))
+    }
+    @Test fun fullSizeThresholdsAndPartialEvidenceAreDifferent() {
+        val p=preferences();val url="https://example.org/book"
+        AbSourceAvailability.recordSize(p,url,18_000_000L,complete=false)
+        assertFalse(AbSourceAvailability.tooSmall(p,url))
+        assertFalse(AbSourceAvailability.sizePassed(p,url))
+        assertEquals("",AbSourceAvailability.sizeWarning(p,url))
+        AbSourceAvailability.recordSize(p,url,18_000_000L)
+        assertTrue(AbSourceAvailability.tooSmall(p,url))
+        // Supply a source explicitly: the Android site registry is not available in a pure JVM test.
+        val book=BookLink("Книга",url,sources=listOf(BookSource("fixture",url)))
+        assertNull(AbSourceAvailability.searchCandidates(p,book,false))
+        AbSourceAvailability.recordSize(p,url,20_000_000L)
+        assertFalse(AbSourceAvailability.tooSmall(p,url))
+        assertTrue(AbSourceAvailability.sizeWarning(p,url).contains("Возможное демо"))
+        assertEquals(url,AbSourceAvailability.searchCandidates(p,book,false)?.url)
+        assertTrue(AbSourceAvailability.sizePassed(p,url))
+        AbSourceAvailability.recordSize(p,url,29_999_999L)
+        assertTrue(AbSourceAvailability.sizeWarning(p,url).isNotBlank())
+        AbSourceAvailability.recordSize(p,url,30_000_000L,complete=false)
+        assertTrue(AbSourceAvailability.sizeWarning(p,url).isNotBlank())
+        AbSourceAvailability.recordSize(p,url,30_000_000L)
+        assertEquals("",AbSourceAvailability.sizeWarning(p,url))
+    }
+    @Test fun fullSizePreferredToShortAlternativeAndLegacyCacheCannotReject() {
+        val p=preferences();val short="https://example.org/short";val full="https://example.org/full"
+        val book=BookLink("Книга",short,sources=listOf(BookSource("one",short),BookSource("two",full)))
+        AbSourceAvailability.record(p,short,true)
+        val oldKey=p.all.keys.single()
+        p.edit().putString(oldKey+"_size","18000000:"+System.currentTimeMillis()).apply()
+        assertFalse(AbSourceAvailability.tooSmall(p,short))
+        AbSourceAvailability.recordSize(p,short,25_000_000L)
+        AbSourceAvailability.recordSize(p,full,40_000_000L,complete=false)
+        assertEquals(full,AbSourceAvailability.searchCandidates(p,book,false)?.url)
     }
 }

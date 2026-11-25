@@ -1,0 +1,3 @@
+# Updater: duplicate download progress — 2026-11-24
+
+Reported in Test: download progress appears twice in the updater window. The session previously emitted the percentage in both status.message and primaryLabel; the Activity rendered both. Keep the percentage only in the status line, hide the unavailable primary action while busy, and retain Cancel and the existing verification/installation states. No changes to DownloadManager, APK integrity verification, signing or release selection. Regression assertions updated; Android build and on-device verification deliberately deferred at user's request. If the user means Android's separate system download notification, that is independent of this screen and remains unchanged.
