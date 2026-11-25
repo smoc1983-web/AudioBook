@@ -29,12 +29,12 @@ public class UpdateScreenTest {
   try(ActivityScenario<PreviewUpdatesActivity> scenario=ActivityScenario.launch(PreviewUpdatesActivity.class)){
    StartupUpdatePrompt[] prompt=new StartupUpdatePrompt[1];
    scenario.onActivity(a->{prompt[0]=new StartupUpdatePrompt(a,()->{checks.incrementAndGet();return release;},Runnable::run,r->accepted.incrementAndGet());prompt[0].resume();});
-   assertFalse(device.hasObject(androidx.test.uiautomator.By.text("Обновиться позже")));
+   assertFalse("Prompt shown before focus",device.hasObject(androidx.test.uiautomator.By.res("android","button2")));
    scenario.onActivity(a->prompt[0].focusChanged(true));
-   androidx.test.uiautomator.UiObject2 later=device.wait(androidx.test.uiautomator.Until.findObject(androidx.test.uiautomator.By.text("Обновиться позже")),5000);
-   assertNotNull(later);later.click();
+   androidx.test.uiautomator.UiObject2 later=device.wait(androidx.test.uiautomator.Until.findObject(androidx.test.uiautomator.By.res("android","button2")),10000);
+   assertNotNull("Negative button not visible after focus",later);assertEquals("Обновиться позже",later.getText());later.click();
    scenario.onActivity(a->{prompt[0].pause();prompt[0].resume();prompt[0].focusChanged(true);});
-   assertFalse(device.hasObject(androidx.test.uiautomator.By.text("Обновиться позже")));assertEquals(0,accepted.get());assertEquals(1,checks.get());
+   assertTrue("Deferred dialog must close and stay closed during this launch",device.wait(androidx.test.uiautomator.Until.gone(androidx.test.uiautomator.By.res("android","button2")),5000));assertEquals(0,accepted.get());assertEquals(1,checks.get());
    scenario.onActivity(a->prompt[0].close());
   }finally{prefs.edit().putBoolean("auto",previous).commit();}
  }
@@ -48,8 +48,8 @@ public class UpdateScreenTest {
   try(ActivityScenario<PreviewUpdatesActivity> scenario=ActivityScenario.launch(PreviewUpdatesActivity.class)){
    StartupUpdatePrompt[] prompt=new StartupUpdatePrompt[1];
    scenario.onActivity(a->{prompt[0]=new StartupUpdatePrompt(a,()->release,Runnable::run,accepted::set);prompt[0].focusChanged(true);prompt[0].resume();});
-   androidx.test.uiautomator.UiObject2 update=device.wait(androidx.test.uiautomator.Until.findObject(androidx.test.uiautomator.By.text("Обновиться")),5000);
-   assertNotNull(update);update.click();device.waitForIdle();assertSame(release,accepted.get());
+   androidx.test.uiautomator.UiObject2 update=device.wait(androidx.test.uiautomator.Until.findObject(androidx.test.uiautomator.By.res("android","button1")),10000);
+   assertNotNull("Positive button not visible",update);assertEquals("Обновиться",update.getText());update.click();device.waitForIdle();assertSame("Click must pass the exact checked release",release,accepted.get());
    scenario.onActivity(a->prompt[0].close());
   }finally{prefs.edit().putBoolean("auto",previous).commit();}
  }

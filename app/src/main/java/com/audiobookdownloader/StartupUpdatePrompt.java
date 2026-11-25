@@ -61,6 +61,9 @@ final class StartupUpdatePrompt {
             .setNegativeButton("Обновиться позже",null)
             .create();
         dialog.show();
+        // Native Material dialogs transform button text to uppercase by default.
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setAllCaps(false);
+        dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setAllCaps(false);
     }
     void close(){closed=true;pending=null;if(dialog!=null)dialog.dismiss();}
 }
