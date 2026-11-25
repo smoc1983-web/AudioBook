@@ -1,0 +1,55 @@
+name: AudioBook player visual preview (no release)
+on:
+  push:
+    branches: ['visual/player-preview-20261125']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  screenshots:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+      - name: Android SDK
+        run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;35.0.0"'
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Capture real player screenshots
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 36
+          target: aosp_atd
+          arch: x86_64
+          profile: pixel_6
+          emulator-boot-timeout: 420
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -memory 2048 -cores 2
+          script: |
+            mkdir -p visual-evidence
+            status=0
+            GITHUB_RUN_NUMBER=104 gradle :app:connectedDebugAndroidTest -PaudiobookChannel=test -Pandroid.testInstrumentationRunnerArguments.class=com.audiobookdownloader.PlayerVisualPreviewTest --max-workers=2 --console=plain || status=$?
+            adb pull /sdcard/Download/player-preview.png visual-evidence/ || true
+            adb pull /sdcard/Download/player-menu-preview.png visual-evidence/ || true
+            if [ "$status" -ne 0 ]; then adb exec-out screencap -p > visual-evidence/failure-screen.png; fi
+            exit "$status"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: player-visual-preview
+          path: |
+            visual-evidence/
+            app/build/outputs/androidTest-results/
+          if-no-files-found: warn
+          retention-days: 14
