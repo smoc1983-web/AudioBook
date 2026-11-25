@@ -57,12 +57,20 @@ final class StartupUpdatePrompt {
         dialog=new AlertDialog.Builder(activity)
             .setTitle("Доступно обновление")
             .setMessage("Установлена версия: "+BuildConfig.VERSION_NAME+"\nДоступна новая версия: "+release.info.versionName)
-            .setPositiveButton("Обновиться",(d,w)->accept.update(release))
+            .setPositiveButton("Обновиться",null)
             .setNegativeButton("Обновиться позже",null)
             .create();
         dialog.show();
         // Native Material dialogs transform button text to uppercase by default.
-        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setAllCaps(false);
+        // Deliver the explicit user action directly, before dismissing the window.
+        AlertDialog shown=dialog;
+        android.widget.Button update=shown.getButton(AlertDialog.BUTTON_POSITIVE);
+        update.setAllCaps(false);
+        update.setOnClickListener(view->{
+            if(closed||!shown.isShowing()||!update.isEnabled())return;
+            update.setEnabled(false);
+            try{accept.update(release);}finally{shown.dismiss();}
+        });
         dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setAllCaps(false);
     }
     void close(){closed=true;pending=null;if(dialog!=null)dialog.dismiss();}

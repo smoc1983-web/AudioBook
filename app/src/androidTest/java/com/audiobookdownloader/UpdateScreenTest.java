@@ -44,12 +44,17 @@ public class UpdateScreenTest {
   boolean previous=prefs.getBoolean("auto",true);prefs.edit().putBoolean("auto",true).commit();
   PreviewUpdater.Release release=newerRelease();
   java.util.concurrent.atomic.AtomicReference<PreviewUpdater.Release> accepted=new java.util.concurrent.atomic.AtomicReference<>();
+   java.util.concurrent.CountDownLatch delivered=new java.util.concurrent.CountDownLatch(1);
   androidx.test.uiautomator.UiDevice device=androidx.test.uiautomator.UiDevice.getInstance(androidx.test.platform.app.InstrumentationRegistry.getInstrumentation());
   try(ActivityScenario<PreviewUpdatesActivity> scenario=ActivityScenario.launch(PreviewUpdatesActivity.class)){
    StartupUpdatePrompt[] prompt=new StartupUpdatePrompt[1];
-   scenario.onActivity(a->{prompt[0]=new StartupUpdatePrompt(a,()->release,Runnable::run,accepted::set);prompt[0].focusChanged(true);prompt[0].resume();});
+   scenario.onActivity(a->{prompt[0]=new StartupUpdatePrompt(a,()->release,Runnable::run,r->{accepted.set(r);delivered.countDown();});prompt[0].focusChanged(true);prompt[0].resume();});
    androidx.test.uiautomator.UiObject2 update=device.wait(androidx.test.uiautomator.Until.findObject(androidx.test.uiautomator.By.res("android","button1")),10000);
-   assertNotNull("Positive button not visible",update);assertEquals("Обновиться",update.getText());update.click();device.waitForIdle();assertSame("Click must pass the exact checked release",release,accepted.get());
+   assertNotNull("Positive button not visible",update);assertEquals("Обновиться",update.getText());assertTrue("Positive button disabled",update.isEnabled());
+   device.waitForIdle();update.click();
+   assertTrue("Actual tap did not deliver update acceptance within 8 seconds",delivered.await(8,java.util.concurrent.TimeUnit.SECONDS));
+   assertSame("Click must pass the exact checked release",release,accepted.get());
+   assertTrue("Accepted dialog must close",device.wait(androidx.test.uiautomator.Until.gone(androidx.test.uiautomator.By.res("android","button1")),5000));
    scenario.onActivity(a->prompt[0].close());
   }finally{prefs.edit().putBoolean("auto",previous).commit();}
  }
