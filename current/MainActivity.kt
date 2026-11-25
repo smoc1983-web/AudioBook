@@ -8823,7 +8823,18 @@ private suspend fun abResolveCycleAudio(context:Context,prefs:android.content.Sh
         checkpoint.broadReports[site]?.books?.count{position(it)!=null} ?: 0
     }.thenBy{if(checkpoint.broadReports[it]?.error.isNullOrBlank())0 else 1})}
     // Do not stop at the first unverified audiobook link: other sites may have the complete edition.
-    fun enoughAlternatives(i:Int)=AbCycleSourceRules.enoughAlternatives(checkpoint.rows[i].orEmpty())
+    fun enoughAlternatives(i:Int)=AbCycleSourceRules.enoughAlternatives(
+        checkpoint.rows[i].orEmpty(),
+        usable={url->
+            val state=AbSourceAvailability.get(prefs,url)
+            state!=AbChapterAvailability.EMPTY && !AbSourceAvailability.hidden(state) &&
+                !AbSourceAvailability.tooSmall(prefs,url)
+        },
+        verified={url->
+            AbSourceAvailability.get(prefs,url)==AbChapterAvailability.AVAILABLE &&
+                AbSourceAvailability.sizePassed(prefs,url)
+        }
+    )
     for(i in volumes.indices){
         kotlinx.coroutines.yield()
         abRequireSearchWindow(context)
@@ -8880,17 +8891,16 @@ private suspend fun abResolveCycleAudio(context:Context,prefs:android.content.Sh
             checkpoint.verified.add(source.url)
             if(ok)break
         }
-        // Keep every discovered source attached to its volume. Failed or inconclusive
-        // chapter probes update availability labels instead of deleting the source.
-        val checked=list.map{candidate->
-            if(candidate.catalogState !in setOf("candidate","checked"))candidate else {
-                val valid=AbSourceAvailability.searchCandidates(prefs,candidate,true)
-                val best=valid ?: candidate
-                val retained=(bookSources(best)+bookSources(candidate))
-                    .distinctBy{it.url.substringBefore('#').trimEnd('/')}
-                best.copy(sources=retained,
-                    catalogState=if(retained.any{AbSourceAvailability.get(prefs,it.url)==AbChapterAvailability.AVAILABLE})"checked" else "candidate")
-            }
+        // A temporarily empty playlist can be a network failure: retain it as unverified.
+        // Confirmed previews, wrong books and known too-small excerpts remain excluded.
+        val checked=list.mapNotNull{candidate->
+            if(candidate.catalogState !in setOf("candidate","checked"))candidate else
+                AbSourceAvailability.searchCandidates(prefs,candidate,true,keepEmpty=true)?.let{book->
+                    book.copy(catalogState=if(bookSources(book).any{source->
+                        AbSourceAvailability.get(prefs,source.url)==AbChapterAvailability.AVAILABLE &&
+                            !AbSourceAvailability.tooSmall(prefs,source.url)
+                    })"checked" else "candidate")
+                }
         }.sortedBy{AbSourceAvailability.priority(prefs,bookSources(it))}
         checkpoint.rows[i]=checked.ifEmpty{listOf(placeholder(volumes[i],OfficialCycleSearch.missingState(cycle.title,volumes[i],catalogs)))}
         report("Проверено изданий цикла: ${i+1}/${volumes.size}.")
