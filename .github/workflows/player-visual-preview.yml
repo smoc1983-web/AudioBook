@@ -31,19 +31,19 @@ jobs:
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 36
-          target: aosp_atd
+          target: google_apis
           arch: x86_64
           profile: pixel_6
           emulator-boot-timeout: 420
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -memory 2048 -cores 2
           script: |
             mkdir -p visual-evidence
-            status=0
-            GITHUB_RUN_NUMBER=104 gradle :app:connectedDebugAndroidTest -PaudiobookChannel=test -Pandroid.testInstrumentationRunnerArguments.class=com.audiobookdownloader.PlayerVisualPreviewTest --max-workers=2 --console=plain || status=$?
-            adb pull /sdcard/Download/player-preview.png visual-evidence/ || true
-            adb pull /sdcard/Download/player-menu-preview.png visual-evidence/ || true
-            if [ "$status" -ne 0 ]; then adb exec-out screencap -p > visual-evidence/failure-screen.png; fi
-            exit "$status"
+            bash -c 'status=0; GITHUB_RUN_NUMBER=104 gradle :app:connectedDebugAndroidTest -PaudiobookChannel=test -Pandroid.testInstrumentationRunnerArguments.class=com.audiobookdownloader.PlayerVisualPreviewTest --max-workers=2 --console=plain || status=$?; adb pull /sdcard/Download/player-preview.png visual-evidence/ || status=1; adb pull /sdcard/Download/player-menu-preview.png visual-evidence/ || status=1; if [ "$status" -ne 0 ]; then adb exec-out screencap -p > visual-evidence/failure-screen.png; fi; exit "$status"'
+      - name: Check screenshot evidence
+        run: |
+          test -s visual-evidence/player-preview.png
+          test -s visual-evidence/player-menu-preview.png
+          if cmp -s visual-evidence/player-preview.png visual-evidence/player-menu-preview.png; then echo 'Screenshots are identical; visual preview invalid'; exit 1; fi
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -51,5 +51,12 @@ jobs:
           path: |
             visual-evidence/
             app/build/outputs/androidTest-results/
+          if-no-files-found: warn
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: player-preview-debug-apk
+          path: app/build/outputs/apk/**/*.apk
           if-no-files-found: warn
           retention-days: 14
