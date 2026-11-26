@@ -98,4 +98,14 @@ class SearchScrollTest {
             assertNull("Ambiguous local editions must not match",matched.single().local)
         }finally{prefs.edit().clear().commit()}
     }
+
+    @Test fun longSeriesHeadingAndCountHaveSeparateRows(){
+        val title="Файролл. Хроники Хейгена"
+        val count="21 книг по справочникам · 21 после фильтров"
+        compose.setContent {Box(Modifier.width(320.dp)){AbCycleResultsHeading(title,count,abTheme(2))}}
+        val top=compose.onNodeWithText(title).assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        val bottom=compose.onNodeWithText(count).assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        assertTrue("The count must be below the title",bottom.top>=top.bottom)
+        assertEquals(top.width,bottom.width,1f)
+    }
 }
