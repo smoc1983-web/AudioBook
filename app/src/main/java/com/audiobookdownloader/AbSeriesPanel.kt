@@ -54,6 +54,17 @@ internal fun abStoredCatalog(prefs: android.content.SharedPreferences,title: Str
     } catch(_:Exception) {BookLink(title,"",author=prefs.getString(abAuthorKey(title),"").orEmpty())}
 }
 
+/** A previously opened catalogue card is useful if this same site omits it from search. */
+internal fun abOpenedCatalogMatch(prefs:android.content.SharedPreferences,query:String,sites:List<String>):BookLink? {
+    val originalTitle=runCatching {
+        JSONObject(prefs.getString(abCatalogKey(query),"{}").orEmpty()).optString("title")
+    }.getOrDefault("")
+    if(originalTitle.isBlank() || SearchBookIndex.titleKey(originalTitle)!=SearchBookIndex.titleKey(query))return null
+    return abStoredCatalog(prefs,originalTitle).takeIf {
+        supportedBookUrl(it.url)!=null && bookSiteName(it.url) in sites
+    }
+}
+
 internal fun abRememberCatalog(prefs: android.content.SharedPreferences,book: BookLink) {
     if(book.title.isBlank() || (book.genres.isEmpty() && book.cycles.isEmpty() && book.author.isBlank() && book.narrator.isBlank())) return
     val old=abStoredCatalog(prefs,book.title)

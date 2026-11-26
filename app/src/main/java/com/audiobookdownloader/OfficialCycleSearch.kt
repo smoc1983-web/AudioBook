@@ -27,7 +27,14 @@ internal object OfficialCycleSearch {
                 OpenedBookIdentity.matches(query,it.title,"","","",null)
             }.flatMap{it.authors}
         }.filter{it.isNotBlank()}.distinctBy{SeriesAuthorityRules.author(it)}
-        return Reference(template,authors.singleOrNull().orEmpty())
+        return Reference(template?.takeIf { isCycleQuery(query,it) },authors.singleOrNull().orEmpty())
+    }
+    internal fun isCycleQuery(query:String,template:Template):Boolean {
+        val queryKey=key(query)
+        if(queryKey.isBlank())return false
+        return known(query,"Author.Today")!=null || template.sources.any { source ->
+            key(source.series)==queryKey
+        }
     }
     private val prefixNumber=Regex("(?iu)^\\s*(?:[-–—:]\\s*)?\\d+(?:[.,]\\d+)?\\s*[.\\-–—:]?\\s*")
     private val bonus=Regex("(?iu)\\s*\\(\\s*\\+?\\s*бонус\\s*\\)\\s*$")

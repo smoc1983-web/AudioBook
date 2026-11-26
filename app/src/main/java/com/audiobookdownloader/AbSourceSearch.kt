@@ -23,11 +23,12 @@ internal suspend fun abRunUnifiedBookSearch(context:android.content.Context,quer
     onCached:suspend (Map<String,SiteSearchResult>)->Unit,
     report:suspend (String,SiteSearchResult)->Unit) {
         // Bounded browser concurrency; slow sitemap enumeration starts last.
-        val scheduled=AbSearchTiming.order(context,requested.sortedBy{if(it==AbBookSources.AZBYKA)1 else 0})
+        val timing=AbSearchTiming.snapshot(context,requested)
+        val scheduled=AbSearchTiming.order(requested.sortedBy{if(it==AbBookSources.AZBYKA)1 else 0},timing)
         val mode=AbSearchDiagnostics.mode(prefs)
         val session=runCatching{AbSearchDiagnostics.begin(context,query,scheduled,mode)}.getOrDefault("")
         try {
-            val timeout:(String)->Long={site->if(site==AbBookSources.AZBYKA)95_000L else 50_000L}
+            val timeout:(String)->Long={site->AbSearchTiming.timeout(if(site==AbBookSources.AZBYKA)95_000L else 50_000L,timing[site])}
             val fetch:suspend (String)->SiteSearchResult={site->
                 abSearchOneSource(context,site,query,prefs).also{
                     // A failed refresh must not overwrite a good saved result.

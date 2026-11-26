@@ -4,6 +4,41 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class AbSearchCoordinatorTest {
+    @Test(timeout=5000) fun priorityUsesIdenticalResponsesAndPreservesVolumeOrder()=runBlocking {
+        val sites=listOf("slow","fast","unknown")
+        val timings=mapOf("slow" to 80L,"fast" to 10L)
+        val fixture=sites.mapIndexed { index, site ->
+            site to BookLink("Book ${index+1}", "https://$site.invalid/book",
+                cycles=listOf(BookCycle("Cycle", order=(index+1).toDouble())))
+        }.toMap()
+        suspend fun search(queue:List<String>):Pair<Long,List<BookLink>> {
+            var elapsed=0L
+            var first:Long?=null
+            val books=mutableListOf<BookLink>()
+            AbSearchCoordinator.search(queue,{1000L},{site->
+                elapsed+=timings[site] ?: 30L
+                SiteSearchResult(listOf(fixture.getValue(site)))
+            },kotlinx.coroutines.sync.Semaphore(1)){_,result->
+                if(first==null)first=elapsed
+                books.addAll(result.books)
+            }
+            return first!! to books.sortedBy{it.cycles.single().order}
+        }
+        val baseline=search(sites)
+        val prioritized=search(AbSearchTiming.order(sites,timings))
+        assertEquals(80L,baseline.first)
+        assertEquals(10L,prioritized.first)
+        assertEquals(baseline.second,prioritized.second)
+        assertEquals(fixture.values.toList(),prioritized.second)
+    }
+
+    @Test fun sourceTimeoutKeepsDefaultAndCapsExtension() {
+        assertEquals(20_000L,AbSearchTiming.timeout(20_000L,null))
+        assertEquals(20_000L,AbSearchTiming.timeout(20_000L,1_000L))
+        assertEquals(24_000L,AbSearchTiming.timeout(20_000L,12_000L))
+        assertEquals(30_000L,AbSearchTiming.timeout(20_000L,300_000L))
+    }
+
     @Test fun compactProgressCountsCompletedSourcesOnlyWithoutTechnicalDetails() {
         val sources=listOf("A","B","C","D","A")
         assertEquals("Проверено источников: 0 из 4",unifiedSearchStatus(emptyMap(),0,sources))
