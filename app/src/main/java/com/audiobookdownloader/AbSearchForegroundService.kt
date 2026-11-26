@@ -14,6 +14,7 @@ import android.os.IBinder
 import android.os.Looper
 import android.os.PowerManager
 import androidx.core.content.ContextCompat
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -77,13 +78,16 @@ internal fun AbSearchTaskEffect(context:Context,request:Any,onStopped:()->Unit={
     val stop=rememberUpdatedState(onStopped)
     val run=rememberUpdatedState(work)
     DisposableEffect(context,request){
-        val scope=CoroutineScope(SupervisorJob()+Dispatchers.Main.immediate)
+        val scope=CoroutineScope(SupervisorJob()+Dispatchers.Main)
         val stopped=stop.value
         val block=run.value
         var job:Job?=null
         val token=AbSearchRuntime.begin(context){job?.cancel();stopped()}
         job=scope.launch {
-            try{block()}
+            try{
+                if(token==null)stopped() else block()
+            }catch(cancel:CancellationException){throw cancel}
+            catch(error:Exception){AbCrashReport.record(context,error,"Фоновый поиск");stopped()}
             finally{AbSearchRuntime.end(token)}
         }
         onDispose {job?.cancel();scope.cancel();AbSearchRuntime.end(token)}
@@ -102,6 +106,7 @@ class AbSearchForegroundService:Service(){
     private val handler=Handler(Looper.getMainLooper())
     private var wake:PowerManager.WakeLock?=null
     private val deadline=Runnable{AbSearchRuntime.cancelAll();stopSelf()}
+    private val idleStop=Runnable{if(!AbSearchRuntime.hasWork())stopSelf()}
     override fun onCreate(){
         super.onCreate()
         current=this
@@ -131,22 +136,26 @@ class AbSearchForegroundService:Service(){
                 android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
             else startForeground(NOTIFICATION_ID,notification)
         }catch(_:RuntimeException){AbSearchRuntime.cancelAll();stopSelf();return START_NOT_STICKY}
-        if(!AbSearchRuntime.hasWork()){stopSelf();return START_NOT_STICKY}
+        handler.removeCallbacks(idleStop)
+        if(!AbSearchRuntime.hasWork()){finishIfIdle();return START_NOT_STICKY}
         if(wake==null){
             wake=getSystemService(PowerManager::class.java).newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,"AudioBook:search")
                 .apply{setReferenceCounted(false);acquire(LIMIT)}
+            handler.postDelayed(deadline,LIMIT)
         }
-        handler.removeCallbacks(deadline)
-        handler.postDelayed(deadline,LIMIT)
         return START_NOT_STICKY
     }
-    internal fun finishIfIdle(){if(!AbSearchRuntime.hasWork())stopSelf()}
+    internal fun finishIfIdle(){
+        handler.removeCallbacks(idleStop)
+        if(!AbSearchRuntime.hasWork())handler.postDelayed(idleStop,1000L)
+    }
     override fun onTimeout(startId:Int,fgsType:Int){
         AbSearchRuntime.cancelAll()
         stopSelf()
     }
     override fun onDestroy(){
         handler.removeCallbacks(deadline)
+        handler.removeCallbacks(idleStop)
         wake?.let{if(it.isHeld)it.release()}
         wake=null
         if(current===this){
