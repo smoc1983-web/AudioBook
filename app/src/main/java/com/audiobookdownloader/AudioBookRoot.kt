@@ -1721,6 +1721,9 @@ internal fun AudioBookApp(searchInput: AbSearchInputModel,libraryAccessVersion: 
             }
         }
 
+        }
+        }
+        // User-initiated searches are independent of the foreground browser subtree.
         if (unifiedQuery.isNotBlank()) {
             key(unifiedSearchId) {
                 val requestId = unifiedSearchId
@@ -1783,7 +1786,13 @@ internal fun AudioBookApp(searchInput: AbSearchInputModel,libraryAccessVersion: 
                     }
                 }
                 if(referenceChecked) UnifiedBookSearch(unifiedQuery, prefs,requestSources,refreshCached=true,
-                    onCached={saved->presentCached(saved)}) { site, report ->
+                    onCached={saved->presentCached(saved)},
+                    onStopped={
+                        if(requestId==unifiedSearchId){
+                            unifiedQuery="";unifiedMergeJob?.cancel();unifiedMerging=false
+                            status="Поиск остановлен. Найденные результаты сохранены."
+                        }
+                    }) { site, report ->
                     if (requestId == unifiedSearchId && unifiedQuery.isNotBlank()) {
                         val limited=report.copy(books=report.books.take(AB_SEARCH_LIMIT))
                         modernWork.launch(Dispatchers.IO){limited.books.forEach{abRememberCatalog(prefs,it)}}
@@ -1843,10 +1852,12 @@ internal fun AudioBookApp(searchInput: AbSearchInputModel,libraryAccessVersion: 
                 }
                 if(cycle.referenceUrl.isNotBlank() || cycle.seedTitle.isNotBlank()) {
                     val fallback=remember(requestId){bookLinks.toList()}
-                    LaunchedEffect(requestId) {
+                    AbSearchTaskEffect(context,requestId,onStopped={
+                        if(requestId==cycleRequestId){cycleLoading=false;status="Поиск остановлен. Найденные результаты сохранены."}
+                    }) {
                         abResolveCycleAudio(context,prefs,cycle,fallback,cycleCheckpoint,publish)
                     }
-                } else CycleBookBrowser(cycle) { books, finished, error ->
+                } else if(foreground) CycleBookBrowser(cycle) { books, finished, error ->
                     if (requestId == cycleRequestId && cycleBrowsing) {
                         books.forEach {abRememberCatalog(prefs,it)}
                         publish(books,finished,if(error.isNotBlank())"Книг цикла: ${books.size}. $error"
@@ -1856,6 +1867,8 @@ internal fun AudioBookApp(searchInput: AbSearchInputModel,libraryAccessVersion: 
             }
         }
 
+        if(foreground) key(browserGeneration) {
+        Box(Modifier.fillMaxWidth().height(1.dp).clipToBounds()) {
         /*
          * =====================================================
          * WEBVIEW
