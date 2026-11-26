@@ -23,7 +23,7 @@ internal suspend fun abRunUnifiedBookSearch(context:android.content.Context,quer
     onCached:suspend (Map<String,SiteSearchResult>)->Unit,
     report:suspend (String,SiteSearchResult)->Unit) {
         // Bounded browser concurrency; slow sitemap enumeration starts last.
-        val scheduled=requested.sortedBy{if(it==AbBookSources.AZBYKA)1 else 0}
+        val scheduled=AbSearchTiming.order(context,requested.sortedBy{if(it==AbBookSources.AZBYKA)1 else 0})
         val mode=AbSearchDiagnostics.mode(prefs)
         val session=runCatching{AbSearchDiagnostics.begin(context,query,scheduled,mode)}.getOrDefault("")
         try {
@@ -35,6 +35,7 @@ internal suspend fun abRunUnifiedBookSearch(context:android.content.Context,quer
                 }
             }
             val deliver:suspend (String,SiteSearchResult)->Unit={site,result->
+                AbSearchTiming.record(context,site,result)
                 if(session.isNotBlank())runCatching{AbSearchDiagnostics.result(context,session,site,result)}
                 report(site,AbGlobalBookResults.nativeResult(result,query))
             }

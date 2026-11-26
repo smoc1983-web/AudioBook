@@ -161,6 +161,14 @@ internal object OfficialCycleSearch {
         }
         return if(editions.any{it.format=="text"}&&editions.none{it.format=="audio"})"text_only" else "incomplete"
     }
+    fun textEdition(cycle:String,volume:OfficialEdition,sources:List<OfficialSource>):OfficialEdition? {
+        val author=SeriesAuthorityRules.author(volume.author)
+        val keys=aliases(cycle,volume,sources).map{matchKey(cycle,it,volume.author)}.filter{it.isNotBlank()}.toSet()
+        return sources.asSequence().flatMap{it.books.asSequence()}.firstOrNull {
+            it.format=="text" && SeriesAuthorityRules.work(it.url) &&
+                SeriesAuthorityRules.author(it.author)==author && matchKey(cycle,it.title,it.author) in keys
+        }
+    }
     internal fun sourceSummary(sources:List<OfficialSource>):String {
         val reports=sources.distinctBy{it.provider}.map{
             val count=ordered(it).size

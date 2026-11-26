@@ -1,6 +1,11 @@
 package com.audiobookdownloader
 
 import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.flow.first
 import androidx.compose.foundation.layout.size
 import android.content.Context
@@ -152,7 +157,7 @@ private suspend fun abProbeCycleEdition(context:Context,volume:OfficialEdition,a
 }
 
 
-internal class AbCycleCheckpoint(val forceFullSearch:Boolean=false) {
+internal class AbCycleCheckpoint(val forceFullSearch:Boolean=false, val prioritizeFastSources:Boolean=true) {
     var catalogs:List<OfficialSource>?=null
     val broadReports=linkedMapOf<String,SiteSearchResult>()
     val rows=linkedMapOf<Int,List<BookLink>>()
@@ -212,7 +217,9 @@ internal suspend fun abResolveCycleAudio(context:Context,prefs:android.content.S
     }
 
     fun reference(v:OfficialEdition)=cycle.copy(order=v.order,referenceUrl=v.url,referenceSite=v.provider,seedTitle=v.title,seedAuthor=v.author)
-    fun placeholder(v:OfficialEdition,state:String)=BookLink(v.title,v.url,author=v.author,cycles=listOf(reference(v)),catalogState=state)
+    fun placeholder(v:OfficialEdition,state:String)=BookLink(v.title,
+        if(state=="text_only")OfficialCycleSearch.textEdition(cycle.title,v,catalogs)?.url.orEmpty() else v.url,
+        author=v.author,cycles=listOf(reference(v)),catalogState=state)
     val partial=catalogs.map{it.provider}.toSet().size<2||catalogs.any{!it.complete||it.error.isNotBlank()}
     val aliases=withContext(Dispatchers.Default){volumes.map{OfficialCycleSearch.aliases(cycle.title,it,catalogs)}}
     val volumeAuthors=volumes.map{SeriesAuthorityRules.author(it.author)}
@@ -276,9 +283,18 @@ internal suspend fun abResolveCycleAudio(context:Context,prefs:android.content.S
         }
         checkpoint.savedLoaded=true
     }
-    fun referencesFor(i:Int)=catalogs.flatMap{it.books}.filter{b->
-        aliases[i].any{OfficialCycleSearch.matches(cycle.title,it,b.title)}&&
-            SeriesAuthorityRules.author(b.author)==SeriesAuthorityRules.author(volumes[i].author)
+    val referencesByVolume=withContext(Dispatchers.Default){
+        val references=catalogs.flatMap{it.books}.groupBy { edition ->
+            SeriesAuthorityRules.author(edition.author)
+        }.mapValues { (_, editions) ->
+            editions.map { it to OfficialCycleSearch.matchKey(cycle.title,it.title) }
+        }
+        aliases.mapIndexed { i, titles ->
+            val keys=titles.map{OfficialCycleSearch.matchKey(cycle.title,it)}.filter{it.isNotBlank()}.toSet()
+            references[volumeAuthors[i]].orEmpty().mapNotNull { (edition,key) ->
+                edition.takeIf{key in keys}
+            }
+        }
     }
     if(!checkpoint.savedRefreshDone&&!checkpoint.forceFullSearch){
         val cachedChoices=volumes.indices.flatMap{i->
@@ -291,7 +307,7 @@ internal suspend fun abResolveCycleAudio(context:Context,prefs:android.content.S
             abRequireSearchWindow(context)
             val candidate=cachedChoices.getValue(link)
             abProbeCycleEdition(context,volumes[link.volume],link.url,cycle.title,aliases[link.volume],
-                candidate.author,referencesFor(link.volume)) &&
+                candidate.author,referencesByVolume[link.volume]) &&
                 AbSourceAvailability.get(prefs,link.url)==AbChapterAvailability.AVAILABLE &&
                 AbSourceAvailability.sizePassed(prefs,link.url)
         },{link,ok->
@@ -311,10 +327,12 @@ internal suspend fun abResolveCycleAudio(context:Context,prefs:android.content.S
     report("Сверяю найденные книги…",force=true)
     // Cold searches and incomplete official catalogs still use one broad query per source.
     if(!checkpoint.broadDone){
-        val remaining=sources.filter{it !in checkpoint.broadReports}
+        val pending=sources.filter{it !in checkpoint.broadReports}
+        val remaining=if(checkpoint.prioritizeFastSources)AbSearchTiming.order(context,pending) else pending
         AbSearchCoordinator.search(remaining,{25_000L},{site->abCycleSource(context,prefs,site,cycle.title,forceNetwork=checkpoint.forceFullSearch)},{site,result->
             abRequireSearchWindow(context)
             checkpoint.broadReports[site]=result
+            AbSearchTiming.record(context,site,result)
             val grouped=withContext(Dispatchers.Default){result.books.groupBy{position(it)}}
             for((i,books) in grouped)if(i!=null)accept(i,books,matched=true)
             report("Общий поиск: ${checkpoint.broadReports.size}/${sources.size} источников.")
@@ -326,83 +344,94 @@ internal suspend fun abResolveCycleAudio(context:Context,prefs:android.content.S
     val priority=withContext(Dispatchers.Default){sources.sortedWith(compareByDescending<String>{site->
         checkpoint.broadReports[site]?.books?.count{position(it)!=null} ?: 0
     }.thenBy{if(checkpoint.broadReports[it]?.error.isNullOrBlank())0 else 1})}
-    // Do not stop at the first unverified audiobook link: other sites may have the complete edition.
+    val confirmed=mutableSetOf<Int>()
+    val sourceSlots=Semaphore(4)
+    val attempted=mutableSetOf<AbSavedCycleLink>()
+    val uncertain=mutableSetOf<Int>()
     fun enoughAlternatives(i:Int):Boolean {
-        if(checkpoint.savedVerified.any{it.volume==i})return true
-        val retry=AbSavedCycleRefresh.needsExactSearch(i,checkpoint.savedAttempted,checkpoint.savedVerified)
-        return AbCycleSourceRules.enoughAlternatives(
-        checkpoint.rows[i].orEmpty(),
-        usable={url->
-            val state=AbSourceAvailability.get(prefs,url)
-            (!retry || !AbSavedCycleRefresh.wasAttempted(i,url,checkpoint.savedAttempted)) &&
-                state!=AbChapterAvailability.EMPTY && !AbSourceAvailability.hidden(state) &&
-                !AbSourceAvailability.tooSmall(prefs,url)
-        },
-        verified={url->
-            (!retry || !AbSavedCycleRefresh.wasAttempted(i,url,checkpoint.savedAttempted)) &&
+        if(i in confirmed || checkpoint.savedVerified.any{it.volume==i})return true
+        return AbCycleSourceRules.enoughAlternatives(checkpoint.rows[i].orEmpty()) { url ->
+            !AbSavedCycleRefresh.wasAttempted(i,url,checkpoint.savedAttempted) &&
                 AbSourceAvailability.get(prefs,url)==AbChapterAvailability.AVAILABLE &&
                 AbSourceAvailability.sizePassed(prefs,url)
         }
-    )
     }
-    for(i in volumes.indices){
+    suspend fun verifyCandidates(i:Int):Boolean {
+        if(enoughAlternatives(i))return true
+        val choices=checkpoint.rows[i].orEmpty().filter{it.catalogState in setOf("candidate","checked")}
+            .flatMap{candidate->bookSources(candidate).map{source->candidate to source}}
+            .distinctBy{it.second.url}
+            .filter{!AbSourceAvailability.hidden(AbSourceAvailability.get(prefs,it.second.url))&&!AbSourceAvailability.tooSmall(prefs,it.second.url)}
+            .sortedBy{AbSourceAvailability.get(prefs,it.second.url).priority}
+        for((candidate,source) in choices){
+            abRequireSearchWindow(context)
+            if(AbSavedCycleLink(i,source.url) in checkpoint.savedAttempted)continue
+            val attempt=AbSavedCycleLink(i,source.url)
+            if(!attempted.add(attempt))continue
+            report("Проверка глав: ${i+1}/${volumes.size}.")
+            val references=referencesByVolume[i]
+            val ok=kotlinx.coroutines.withTimeoutOrNull(40_000L){
+                sourceSlots.withPermit {
+                    abProbeCycleEdition(context,volumes[i],source.url,cycle.title,aliases[i],candidate.author,references)
+                }
+            }==true
+            abRequireSearchWindow(context)
+            if(ok){confirmed.add(i);return true}
+        }
+        return false
+    }
+    suspend fun searchVolume(i:Int){
         kotlinx.coroutines.yield()
         abRequireSearchWindow(context)
-        if(i in checkpoint.exactDone||enoughAlternatives(i))continue
+        if(i in checkpoint.exactDone||kotlinx.coroutines.withTimeoutOrNull(40_000L){verifyCandidates(i)}==true)return
         val queries=OfficialCycleSearch.lookupQueries(cycle.title,volumes[i],aliases[i])
         val preferred=priority.take(4)
         report("Точечный поиск: ${i+1}/${volumes.size}.",force=true)
         suspend fun searchBatch(query:String,batch:List<String>){
             if(batch.isEmpty()||enoughAlternatives(i))return
-            kotlinx.coroutines.withTimeoutOrNull(45_000L){
+            val batchFinished=kotlinx.coroutines.withTimeoutOrNull(45_000L){
                 AbSearchCoordinator.search(batch,{20_000L},{site->abCycleSource(context,prefs,site,query,
-                    forceNetwork=checkpoint.forceFullSearch||checkpoint.savedAttempted.isNotEmpty())},{_,result->
+                    forceNetwork=checkpoint.forceFullSearch||checkpoint.savedAttempted.isNotEmpty())},sourceSlots){_,result->
                     abRequireSearchWindow(context)
+                    if(result.error.isNotBlank())uncertain.add(i)
                     accept(i,result.books)
                     report("Точечный поиск: ${i+1}/${volumes.size}.")
-                })
+                }
+                true
             }
+            if(batchFinished!=true)uncertain.add(i)
+            verifyCandidates(i)
         }
         // Alternate exact forms first, then the remaining configured sites; stop once a matching edition exists.
         // Keep a hard budget per missing volume so an unavailable work cannot stall the entire cycle.
-        kotlinx.coroutines.withTimeoutOrNull(120_000L){
-            queries.forEach{query->if(!enoughAlternatives(i))searchBatch(query,preferred)}
+        val exactFinished=kotlinx.coroutines.withTimeoutOrNull(120_000L){
             queries.firstOrNull()?.let{query->
-                for(batch in priority.drop(4).chunked(4)){
+                searchBatch(query,preferred)
+                for(alternate in queries.drop(1)){
+                    if(enoughAlternatives(i))break
+                    searchBatch(alternate,preferred)
+                }
+                for(batch in priority.drop(preferred.size).chunked(4)){
                     if(enoughAlternatives(i))break
                     searchBatch(query,batch)
                 }
             }
+            true
         }
+        if(exactFinished!=true)uncertain.add(i)
         abRequireSearchWindow(context)
         checkpoint.exactDone.add(i)
-        if(checkpoint.rows[i].isNullOrEmpty())checkpoint.rows[i]=listOf(placeholder(volumes[i],OfficialCycleSearch.missingState(cycle.title,volumes[i],catalogs)))
     }
-    // If a leading edition is an excerpt, check the next available source instead.
-    // Keep the total per-volume budget bounded and retain every usable alternative.
+    val volumeSlots=Semaphore(2)
+    coroutineScope {
+        volumes.indices.map { i -> async {
+            volumeSlots.withPermit { searchVolume(i) }
+        } }.awaitAll()
+    }
     for(i in volumes.indices){
         kotlinx.coroutines.yield()
         abRequireSearchWindow(context)
         val list=checkpoint.rows[i].orEmpty()
-        val choices=list.filter{it.catalogState in setOf("candidate","checked")}
-            .flatMap{candidate->bookSources(candidate).map{source->candidate to source}}
-            .distinctBy{it.second.url}
-            .filter{!AbSourceAvailability.hidden(AbSourceAvailability.get(prefs,it.second.url))&&!AbSourceAvailability.tooSmall(prefs,it.second.url)}
-            .sortedBy{AbSourceAvailability.get(prefs,it.second.url).priority}
-        for((candidate,source) in choices.filter{AbSavedCycleLink(i,it.second.url) !in checkpoint.savedAttempted}.take(3)){
-            abRequireSearchWindow(context)
-            if(AbSavedCycleLink(i,source.url) in checkpoint.savedAttempted)continue
-            if(AbSourceAvailability.get(prefs,source.url)==AbChapterAvailability.AVAILABLE&&AbSourceAvailability.sizePassed(prefs,source.url))break
-            if(source.url in checkpoint.verified)continue
-            report("Проверка глав: ${i+1}/${volumes.size}.")
-            val references=referencesFor(i)
-            val ok=kotlinx.coroutines.withTimeoutOrNull(40_000L){
-                abProbeCycleEdition(context,volumes[i],source.url,cycle.title,aliases[i],candidate.author,references)
-            }==true
-            abRequireSearchWindow(context)
-            checkpoint.verified.add(source.url)
-            if(ok)break
-        }
         // A temporarily empty playlist can be a network failure: retain it as unverified.
         // Confirmed previews, wrong books and known too-small excerpts remain excluded.
         val checked=list.mapNotNull{candidate->
@@ -416,7 +445,15 @@ internal suspend fun abResolveCycleAudio(context:Context,prefs:android.content.S
                     })"checked" else "candidate")
                 }
         }.sortedBy{AbSourceAvailability.priority(prefs,bookSources(it))}
-        checkpoint.rows[i]=checked.ifEmpty{listOf(placeholder(volumes[i],OfficialCycleSearch.missingState(cycle.title,volumes[i],catalogs)))}
+        checkpoint.rows[i]=checked.ifEmpty {
+            val volume=volumes[i]
+            val state=when {
+                OfficialCycleSearch.textEdition(cycle.title,volume,catalogs)!=null -> "text_only"
+                i in uncertain || checkpoint.broadReports.values.any{it.error.isNotBlank()} -> "incomplete"
+                else -> "missing"
+            }
+            listOf(placeholder(volume,state))
+        }
         report("Проверено изданий цикла: ${i+1}/${volumes.size}.")
     }
     report("Поиск завершён. Откройте книгу для проверки оставшихся озвучек.",true)
