@@ -69,4 +69,36 @@ class SearchConcurrencyAndroidTest {
             }
         } finally {browser?.let{AbWebViews.release(it)}}
     }
+
+    @Test(timeout=30000) fun olderDiskCacheIsPreviewOnlyAndDoesNotSurviveRetentionLimit() {
+        val context=androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().targetContext
+        val query="cache-fixture-"+java.util.UUID.randomUUID()
+        val site="Bookinfo"
+        val key=site+"\u0000"+SearchBookIndex.normal(query)
+        val dir=java.io.File(context.filesDir,"search-cache-v2").apply{mkdirs()}
+        val file=java.io.File(dir,ContinuationStore.hash(SearchBookIndex.normal(query))+"-"+ContinuationStore.hash(site)+".json")
+        val book=BookLink("Cache fixture","https://fixture.invalid/cached-book")
+        fun write(days:Long,hasBooks:Boolean) {
+            val books=org.json.JSONArray()
+            if(hasBooks)books.put(AbSearchCache.encode(book))
+            file.writeText(org.json.JSONObject().put("schema",2).put("key",key)
+                .put("at",System.currentTimeMillis()-days*86400000L)
+                .put("error","").put("pages",1).put("more",false).put("books",books).toString())
+        }
+        try {
+            runBlocking {
+                write(4,true)
+                assertNull(AbSearchCache.get(context,site,query))
+                val saved=AbSearchCache.getPreview(context,site,query)
+                assertNotNull(saved)
+                assertTrue(saved!!.fromCache)
+                assertEquals(listOf(book),saved.books)
+                assertTrue(file.exists())
+                write(31,true)
+                assertNull(AbSearchCache.getPreview(context,site,query))
+                write(4,false)
+                assertNull(AbSearchCache.getPreview(context,site,query))
+            }
+        }finally{file.delete()}
+    }
 }
