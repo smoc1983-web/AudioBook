@@ -4,6 +4,16 @@ import org.junit.Test
 class OfficialCycleSearchTest {
     private fun book(title:String,n:Double,provider:String="Author.Today")=
         OfficialEdition(title,"https://author.today/work/1","Андрей Васильев","Файролл",provider,"text","published",n)
+    @Test fun aVerifiedWorkToSeriesLinkDoesNotTurnTitleSearchIntoSeriesSearch() {
+        val template=OfficialCycleSearch.Template("Андрей Васильев", listOf(
+            OfficialSource("Author.Today",series="Файролл. Хроники Хейгена")
+        ))
+        assertFalse(OfficialCycleSearch.isCycleQuery("Файролл. Слово и сталь",template))
+        assertFalse(OfficialCycleSearch.isCycleQuery("Слово и сталь",template))
+        assertTrue(OfficialCycleSearch.isCycleQuery("Файролл",template))
+        assertTrue(OfficialCycleSearch.isCycleQuery("Файролл. Хроники Хейгена",template))
+    }
+
     @Test fun officialPositionNotInternalVolumeNumber(){
         val items=listOf(book("Файролл-12. Квадратура круга. Том 1",14.0),book("Файролл-1. Игра не ради игры",1.0),
             book("Файролл-13. Петля судеб. Том 2",19.0))

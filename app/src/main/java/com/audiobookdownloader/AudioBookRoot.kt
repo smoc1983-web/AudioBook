@@ -1775,13 +1775,12 @@ internal fun AudioBookApp(searchInput: AbSearchInputModel,libraryAccessVersion: 
                     suspend fun runCycle(target:BookCycle){
                         if(!active())return
                         selectedCycle=target
-                        if(!searchBehindBook)searchText=target.title
                         cycleBrowsing=true;cycleLoading=true
                         publishSearch(cycle=target)
                         val id=++cycleRequestId
                         unifiedCycleRequest=id
                         val fallback=activeSearchBooks().toList()
-                        abResolveCycleAudio(context,prefs,target,fallback,AbCycleCheckpoint(forceFullSearch=force)){books,finished,message->
+                        abResolveCycleAudio(context,prefs,target,fallback,AbCycleCheckpoint(forceFullSearch=force,requestedSources=requestSources)){books,finished,message->
                             if(active()&&id==cycleRequestId&&cycleBrowsing){
                                 publishSearch(abOrderSeries(books,target),message,cycle=target,finished=finished)
                                 if(finished)cycleLoading=false

@@ -157,7 +157,8 @@ private suspend fun abProbeCycleEdition(context:Context,volume:OfficialEdition,a
 }
 
 
-internal class AbCycleCheckpoint(val forceFullSearch:Boolean=false, val prioritizeFastSources:Boolean=true) {
+internal class AbCycleCheckpoint(val forceFullSearch:Boolean=false, val prioritizeFastSources:Boolean=true,
+    val requestedSources:List<String>?=null) {
     var catalogs:List<OfficialSource>?=null
     val broadReports=linkedMapOf<String,SiteSearchResult>()
     val rows=linkedMapOf<Int,List<BookLink>>()
@@ -186,7 +187,8 @@ private suspend fun abCycleSource(context:Context,prefs:android.content.SharedPr
 }
 internal suspend fun abResolveCycleAudio(context:Context,prefs:android.content.SharedPreferences,cycle:BookCycle,
     fallback:List<BookLink>,checkpoint:AbCycleCheckpoint,publish:(List<BookLink>,Boolean,String)->Unit) {
-    val sources=AbBookSources.enabled(prefs).filter{it!=AbBookSources.AZBYKA || AbBookSources.enabled(prefs).size==1}.ifEmpty{AbBookSources.enabled(prefs)}
+    val configured=checkpoint.requestedSources ?: AbBookSources.enabled(prefs)
+    val sources=configured.filter{it!=AbBookSources.AZBYKA || configured.size==1}.ifEmpty{configured}
     abRequireSearchWindow(context)
     val direct=if(checkpoint.catalogs!=null)null else OfficialCycleSearch.cached(cycle.title) ?: if(SeriesAuthorityRules.cycle(cycle.referenceUrl))
         OfficialCycleSearch.find(cycle.title,context) else null
