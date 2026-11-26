@@ -78,7 +78,7 @@ internal class AbAppUiState(prefs: android.content.SharedPreferences) {
         private set
     fun preserveSearchForBook():Boolean {
         if(searchBehindBook)return true
-        if(searchReturns.isEmpty()||selectedGenre.isNotBlank()||
+        if(insideBook||searchReturns.lastOrNull()?.screenId!=searchScreenId||selectedGenre.isNotBlank()||
             (unifiedQuery.isBlank()&&!cycleLoading&&!unifiedMerging))return false
         searchBehindBook=true
         return true
