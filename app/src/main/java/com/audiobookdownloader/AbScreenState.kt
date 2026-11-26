@@ -73,6 +73,35 @@ internal class AbAppUiState(prefs: android.content.SharedPreferences) {
     var coverRefresh by mutableStateOf(0)
     var userDataVersion by mutableStateOf(0)
     var coverRetentionVersion by mutableStateOf(0)
+    // Keep the active search request alive while a separate book page owns bookLinks/status.
+    var searchBehindBook by mutableStateOf(false)
+        private set
+    fun preserveSearchForBook():Boolean {
+        if(searchBehindBook)return true
+        if(insideBook||searchReturns.lastOrNull()?.screenId!=searchScreenId||selectedGenre.isNotBlank()||
+            (unifiedQuery.isBlank()&&!cycleLoading&&!unifiedMerging))return false
+        searchBehindBook=true
+        return true
+    }
+    fun leaveBookSearch():Boolean {
+        val continued=searchBehindBook
+        searchBehindBook=false
+        return continued
+    }
+    fun activeSearchBooks():List<BookLink> =
+        if(searchBehindBook)searchReturns.lastOrNull()?.books.orEmpty() else bookLinks
+    fun publishSearch(books:List<BookLink>?=null,message:String?=null,cycle:BookCycle?=null,finished:Boolean=false){
+        if(searchBehindBook){
+            val saved=searchReturns.lastOrNull()?:return
+            searchReturns=searchReturns.dropLast(1)+saved.copy(
+                books=books?:saved.books,status=message?:saved.status,
+                cycle=cycle?:saved.cycle,cycleBrowsing=cycle!=null||saved.cycleBrowsing,
+                query=cycle?.title?:saved.query,interrupted=if(finished)false else saved.interrupted)
+        }else{
+            if(books!=null)bookLinks=books
+            if(message!=null)status=message
+        }
+    }
     val playback = AbPlaybackUiState(prefs)
     val library = AbLibraryUiState()
 }
