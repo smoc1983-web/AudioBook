@@ -18,7 +18,7 @@ internal suspend fun abSearchOneSource(context:Context,site:String,query:String,
     try {
         return kotlinx.coroutines.suspendCancellableCoroutine {reply ->
             fun finish(result:SiteSearchResult) {if(reply.isActive)reply.resumeWith(Result.success(result))}
-            browser=abCreateBrowser(context,{error ->finish(SiteSearchResult(emptyList(),error))}) {
+            browser=abCreateBrowser(context,{error ->finish(SiteSearchResult(emptyList(),error))},search=true) {
                 settings.javaScriptEnabled=true
                 settings.domStorageEnabled=true
                 settings.loadsImagesAutomatically=false
@@ -86,7 +86,7 @@ internal suspend fun abProbePlaylist(context:Context,address:String,onEmpty:()->
         return kotlinx.coroutines.withTimeoutOrNull(25_000L) {
             kotlinx.coroutines.suspendCancellableCoroutine<AbProbedPlaylist?> { reply ->
                 fun finish(value:AbProbedPlaylist?){if(reply.isActive)reply.resumeWith(Result.success(value))}
-                browser=abCreateBrowser(context,{finish(null)}) {
+                browser=abCreateBrowser(context,{finish(null)},search=true) {
                     settings.javaScriptEnabled=true;settings.domStorageEnabled=true;settings.loadsImagesAutomatically=false
                     val created=AbOpenPageTask(this,address,{},23_000L){root,_,error->
                         if(reply.isActive&&error=="Страница открылась, но источник не передал читаемый список глав.")onEmpty()
@@ -165,7 +165,7 @@ private fun abRequireSearchWindow(context:Context){
     while(c is android.content.ContextWrapper && c !is android.app.Activity){
         val base=c.baseContext;if(base===c)break;c=base
     }
-    if(c is MainActivity && !c.searchWindowVisible())throw kotlinx.coroutines.CancellationException("Search paused in background")
+    if(c is MainActivity && !c.searchWindowVisible() && !SearchTransferService.active)throw kotlinx.coroutines.CancellationException("Search paused in background")
 }
 private suspend fun abCycleSource(context:Context,prefs:android.content.SharedPreferences,site:String,query:String):SiteSearchResult {
     abRequireSearchWindow(context)

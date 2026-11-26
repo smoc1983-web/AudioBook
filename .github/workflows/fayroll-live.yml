@@ -39,4 +39,4 @@ jobs:
           arch: x86_64
           profile: pixel_6
           script: |
-            result=0; GITHUB_RUN_NUMBER=124 gradle :app:connectedDebugAndroidTest -PaudiobookChannel=test -Pandroid.testInstrumentationRunnerArguments.class=com.audiobookdownloader.FayrollLiveTest --max-workers=2 || result=$?; adb logcat -d -s FayrollQA:I '*:S'; exit "$result"
+            result=0; GITHUB_RUN_NUMBER=124 gradle :app:connectedDebugAndroidTest -PaudiobookChannel=test -Pandroid.testInstrumentationRunnerArguments.class=com.audiobookdownloader.SearchLabReliabilityTest,com.audiobookdownloader.FayrollLiveTest --max-workers=2 || result=$?; adb logcat -d -s FayrollQA:I '*:S'; exit "$result"

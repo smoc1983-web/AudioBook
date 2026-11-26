@@ -209,12 +209,13 @@ class MainActivity : ComponentActivity() {
         // A voluntary exit after composing is not a failed startup.
         if(appStarted)AbLaunchState.healthy(this,launchToken)
         if(appStarted)AbLibraryHousekeeping.request(applicationContext)
-        try {AbWebViews.closeAll(this)}
+        try {AbWebViews.closeAll(this,keepSearch=SearchTransferService.active)}
         catch(error: RuntimeException){AbCrashReport.record(this,error,"Закрытие браузеров")}
         catch(error: LinkageError){AbCrashReport.record(this,error,"Закрытие браузеров")}
         super.onStop()
     }
     override fun onDestroy() {
+        AbWebViews.closeAll(this)
         startupUpdatePrompt.close()
         activityWork.coroutineContext[kotlinx.coroutines.Job]?.cancel()
         super.onDestroy()
