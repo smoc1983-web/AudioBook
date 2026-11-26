@@ -34,6 +34,9 @@ internal object AbSavedCycleRefresh {
     fun coversCycle(volumeCount:Int,verified:Set<AbSavedCycleLink>,catalogComplete:Boolean):Boolean =
         catalogComplete && volumeCount>0 && (0 until volumeCount).all {i->verified.any{it.volume==i}}
 
+    fun wasAttempted(volume:Int,url:String,attempted:Set<AbSavedCycleLink>):Boolean =
+        attempted.any{it.volume==volume && it.url.substringBefore('#').trimEnd('/')==url.substringBefore('#').trimEnd('/')}
+
     fun needsExactSearch(volume:Int,attempted:Set<AbSavedCycleLink>,verified:Set<AbSavedCycleLink>):Boolean =
         attempted.any{it.volume==volume} && verified.none{it.volume==volume}
 }
