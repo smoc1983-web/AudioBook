@@ -326,10 +326,11 @@ internal suspend fun abResolveCycleAudio(context:Context,prefs:android.content.S
     }
     report("Сверяю найденные книги…",force=true)
     // Cold searches and incomplete official catalogs still use one broad query per source.
+    val timing=AbSearchTiming.snapshot(context,sources)
     if(!checkpoint.broadDone){
         val pending=sources.filter{it !in checkpoint.broadReports}
-        val remaining=if(checkpoint.prioritizeFastSources)AbSearchTiming.order(context,pending) else pending
-        AbSearchCoordinator.search(remaining,{25_000L},{site->abCycleSource(context,prefs,site,cycle.title,forceNetwork=checkpoint.forceFullSearch)},{site,result->
+        val remaining=if(checkpoint.prioritizeFastSources)AbSearchTiming.order(pending,timing) else pending
+        AbSearchCoordinator.search(remaining,{site->AbSearchTiming.timeout(25_000L,timing[site])},{site->abCycleSource(context,prefs,site,cycle.title,forceNetwork=checkpoint.forceFullSearch)},{site,result->
             abRequireSearchWindow(context)
             checkpoint.broadReports[site]=result
             AbSearchTiming.record(context,site,result)
@@ -367,14 +368,17 @@ internal suspend fun abResolveCycleAudio(context:Context,prefs:android.content.S
             abRequireSearchWindow(context)
             if(AbSavedCycleLink(i,source.url) in checkpoint.savedAttempted)continue
             val attempt=AbSavedCycleLink(i,source.url)
-            if(!attempted.add(attempt))continue
-            report("Проверка глав: ${i+1}/${volumes.size}.")
+            if(attempt in attempted)continue
             val references=referencesByVolume[i]
-            val ok=kotlinx.coroutines.withTimeoutOrNull(40_000L){
-                sourceSlots.withPermit {
+            val ok=sourceSlots.withPermit {
+                attempted.add(attempt)
+                report("Проверка глав: ${i+1}/${volumes.size}.")
+                val verified=kotlinx.coroutines.withTimeoutOrNull(40_000L) {
                     abProbeCycleEdition(context,volumes[i],source.url,cycle.title,aliases[i],candidate.author,references)
                 }
-            }==true
+                if(verified==null)uncertain.add(i)
+                verified==true
+            }
             abRequireSearchWindow(context)
             if(ok){confirmed.add(i);return true}
         }
@@ -383,23 +387,22 @@ internal suspend fun abResolveCycleAudio(context:Context,prefs:android.content.S
     suspend fun searchVolume(i:Int){
         kotlinx.coroutines.yield()
         abRequireSearchWindow(context)
-        if(i in checkpoint.exactDone||kotlinx.coroutines.withTimeoutOrNull(40_000L){verifyCandidates(i)}==true)return
+        if(i in checkpoint.exactDone)return
+        val initialCheck=kotlinx.coroutines.withTimeoutOrNull(40_000L){verifyCandidates(i)}
+        if(initialCheck==true)return
+        if(initialCheck==null)uncertain.add(i)
         val queries=OfficialCycleSearch.lookupQueries(cycle.title,volumes[i],aliases[i])
         val preferred=priority.take(4)
         report("Точечный поиск: ${i+1}/${volumes.size}.",force=true)
         suspend fun searchBatch(query:String,batch:List<String>){
             if(batch.isEmpty()||enoughAlternatives(i))return
-            val batchFinished=kotlinx.coroutines.withTimeoutOrNull(45_000L){
-                AbSearchCoordinator.search(batch,{20_000L},{site->abCycleSource(context,prefs,site,query,
+            AbSearchCoordinator.search(batch,{site->AbSearchTiming.timeout(20_000L,timing[site])},{site->abCycleSource(context,prefs,site,query,
                     forceNetwork=checkpoint.forceFullSearch||checkpoint.savedAttempted.isNotEmpty())},sourceSlots){_,result->
                     abRequireSearchWindow(context)
                     if(result.error.isNotBlank())uncertain.add(i)
                     accept(i,result.books)
                     report("Точечный поиск: ${i+1}/${volumes.size}.")
                 }
-                true
-            }
-            if(batchFinished!=true)uncertain.add(i)
             verifyCandidates(i)
         }
         // Alternate exact forms first, then the remaining configured sites; stop once a matching edition exists.

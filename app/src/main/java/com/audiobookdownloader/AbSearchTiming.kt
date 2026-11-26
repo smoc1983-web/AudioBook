@@ -6,14 +6,25 @@ internal object AbSearchTiming {
     private const val STORE = "search_source_timing_v1"
     private const val MAX_AGE = 7 * 86_400_000L
 
-    fun order(context: Context, sources: List<String>): List<String> {
+    fun order(context: Context, sources: List<String>): List<String> =
+        order(sources, snapshot(context, sources))
+
+    fun order(sources: List<String>, timings: Map<String, Long>): List<String> =
+        sources.sortedBy { timings[it] ?: Long.MAX_VALUE }
+
+    fun snapshot(context: Context, sources: List<String>): Map<String, Long> {
         val prefs = context.getSharedPreferences(STORE, 0)
         val now = System.currentTimeMillis()
-        val times = sources.associateWith { source ->
+        return sources.mapNotNull { source ->
             val recent = now - prefs.getLong("$source:at", 0L) in 0..MAX_AGE
-            if (recent) prefs.getLong(source, Long.MAX_VALUE) else Long.MAX_VALUE
-        }
-        return sources.sortedBy { times.getValue(it) }
+            prefs.getLong(source, 0L).takeIf { recent && it > 0 }?.let { source to it }
+        }.toMap()
+    }
+
+    fun timeout(defaultMs: Long, observedMs: Long?): Long {
+        val sample = observedMs?.coerceIn(0L, 100_000L) ?: return defaultMs
+        // Extend time for consistently slower sources while keeping the existing floor.
+        return (sample * 2).coerceIn(defaultMs, defaultMs + 10_000L)
     }
 
     fun record(context: Context, source: String, result: SiteSearchResult) {
