@@ -317,10 +317,12 @@ internal fun AbSearchScreen(data: AbScreenData,actions: AbActions,books: List<Li
             itemsIndexed(book.tracks,key={index,track->"$index:${track.src}"}) { index,track -> AbOnlineChapter(data,actions,theme,index,track) }
         }
         if(resultBooks.isNotEmpty() || data.cycleBrowsing || data.genre.isNotBlank()) item {
-            AbHeading(if(data.genre.isNotBlank()) "Жанр: ${data.genre}"
-                else if(data.cycleBrowsing) data.cycle?.title ?: "Книги цикла" else "Результаты",theme,
-                if(officialCycleCount>0)"$officialCycleCount книг по справочникам · ${resultBooks.size} после фильтров"
-                else "${if(data.genre.isNotBlank())minOf(resultBooks.size,visibleCount) else resultBooks.size} книг")
+            val heading=if(data.genre.isNotBlank()) "Жанр: ${data.genre}"
+                else if(data.cycleBrowsing) data.cycle?.title ?: "Книги цикла" else "Результаты"
+            val count=if(officialCycleCount>0)"$officialCycleCount книг по справочникам · ${resultBooks.size} после фильтров"
+                else "${if(data.genre.isNotBlank())minOf(resultBooks.size,visibleCount) else resultBooks.size} книг"
+            if(data.cycleBrowsing) AbCycleResultsHeading(heading,count,theme)
+            else AbHeading(heading,theme,count)
         }
         if(data.cycleBrowsing && resultBooks.isNotEmpty()) item {
             Text(if(data.results.any{it.catalogState.isNotBlank()})"Позиции из справочников. Найденные аудиоиздания появляются постепенно; непроверенные главы обозначены отдельно." else "Порядок по сведениям источника.",
@@ -560,5 +562,14 @@ private fun AbGenreCard(title:String,index:Int,atlas:androidx.compose.ui.graphic
         Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Black.copy(alpha=.08f),Color.Black.copy(alpha=.82f)))))
         Text(title,color=Color.White,fontSize=12.sp,lineHeight=14.sp,fontWeight=FontWeight.SemiBold,maxLines=2,
             overflow=TextOverflow.Ellipsis,modifier=Modifier.align(Alignment.BottomStart).padding(horizontal=8.dp,vertical=9.dp))
+    }
+}
+
+/** The title and count each receive the full screen width. */
+@Composable
+internal fun AbCycleResultsHeading(heading:String,count:String,theme:AbTheme){
+    Column(Modifier.fillMaxWidth(),verticalArrangement=Arrangement.spacedBy(4.dp)){
+        Text(heading,Modifier.fillMaxWidth(),color=theme.text,fontWeight=FontWeight.Bold,fontSize=20.sp)
+        Text(count,Modifier.fillMaxWidth(),color=theme.muted,fontSize=12.sp)
     }
 }

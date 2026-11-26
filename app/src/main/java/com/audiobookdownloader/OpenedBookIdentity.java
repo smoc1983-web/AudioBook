@@ -62,6 +62,10 @@ public final class OpenedBookIdentity {
             }
             if(!rest.isEmpty())return new Part(titleKey(rest),null);
         }
+        // A descriptive subtitle of the official series heading is not printed on every work.
+        // Only the explicit heading prefix before ". " is eligible; never strip an arbitrary first word.
+        int separator=c.indexOf(". ");
+        if(separator>0)return part(s,author,c.substring(0,separator));
         return new Part(titleKey(s),null);
     }
     public static boolean matches(String wanted,String actual,String wantedAuthor,String actualAuthor,String cycle,Double expectedOrder){
