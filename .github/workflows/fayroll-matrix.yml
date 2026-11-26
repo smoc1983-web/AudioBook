@@ -42,9 +42,9 @@ jobs:
           target: google_apis
           arch: x86_64
           profile: pixel_6
-          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -memory 2048 -cores 2
+          emulator-options: -no-window -gpu swiftshader -feature -Vulkan -no-snapshot -noaudio -no-boot-anim -camera-back none -memory 2048 -cores 2
           script: |
-            result=0; gradle :app:connectedDebugAndroidTest -PaudiobookChannel=test -Pandroid.testInstrumentationRunnerArguments.class=com.audiobookdownloader.FayrollSourceMatrixTest -Pandroid.testInstrumentationRunnerArguments.sourceMode=${{ matrix.mode }} --max-workers=2 --console=plain || result=$?; adb logcat -d -b crash; adb logcat -d -s FayrollMatrix:I '*:S' | tee matrix-${{ matrix.mode }}.txt; exit "$result"
+            bash -c 'timeout 15s adb logcat -G 16M || true; adb logcat -s FayrollMatrix:I "*:S" > matrix-${{ matrix.mode }}.txt & logger=$!; trap "kill $logger 2>/dev/null || true" EXIT; result=0; gradle :app:connectedDebugAndroidTest -PaudiobookChannel=test -Pandroid.testInstrumentationRunnerArguments.class=com.audiobookdownloader.FayrollSourceMatrixTest -Pandroid.testInstrumentationRunnerArguments.sourceMode=${{ matrix.mode }} --max-workers=2 --console=plain || result=$?; timeout 15s adb logcat -d -b crash || true; exit "$result"'
       - uses: actions/upload-artifact@v4
         if: always()
         with:
