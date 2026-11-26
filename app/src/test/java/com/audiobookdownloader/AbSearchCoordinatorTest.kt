@@ -49,10 +49,10 @@ class AbSearchCoordinatorTest {
     }
     @Test(timeout=5000) fun parentCancellationClosesWorkWithoutReportingFakeSiteFailures()=runBlocking {
         var started=0;var closed=0;var reports=0
-        withTimeoutOrNull(100){AbSearchCoordinator.search(listOf("a","b","c"),{5000},{
+        withTimeoutOrNull(100){AbSearchCoordinator.search(listOf("a","b","c","d","e","f"),{5000},{
             started++;try{awaitCancellation()}finally{closed++}
         },{_,_->reports++})}
-        assertEquals(2,started);assertEquals(started,closed);assertEquals(0,reports)
+        assertEquals(4,started);assertEquals(started,closed);assertEquals(0,reports)
     }
     @Test(timeout=5000) fun repeatedSourceChoicesReportOnceAndSingleSourceUsesSameRunner()=runBlocking {
         val calls=mutableListOf<String>();val reports=mutableListOf<String>()
@@ -95,5 +95,38 @@ class AbSearchCoordinatorTest {
                 {previewed=true},{_,_->reports++})
         }
         assertTrue(previewed);assertEquals(0,reports)
+    }
+
+    @Test(timeout=10000) fun all28SourcesUseFourBoundedSlotsAndReportExactlyOnce()=runBlocking {
+        val sources=(1..28).map{"source-$it"}
+        val release=CompletableDeferred<Unit>()
+        val firstFour=CompletableDeferred<Unit>()
+        var active=0;var peak=0;var started=0
+        val reports=linkedMapOf<String,SiteSearchResult>()
+        val run=launch {
+            AbSearchCoordinator.search(sources+sources.first(),{5000},{site->
+                active++;started++;peak=maxOf(peak,active)
+                if(started==4)firstFour.complete(Unit)
+                try {
+                    release.await()
+                    delay(5)
+                    SiteSearchResult(listOf(BookLink("Fixture","https://fixture.invalid/$site")))
+                } finally {active--}
+            },{site,result->
+                assertFalse(reports.containsKey(site))
+                reports[site]=result
+            })
+        }
+        try {
+            withTimeout(3000){firstFour.await()}
+            assertEquals(4,active)
+            assertEquals(4,started)
+        } finally {release.complete(Unit)}
+        run.join()
+        assertEquals(4,peak)
+        assertEquals(28,started)
+        assertEquals(sources.toSet(),reports.keys)
+        assertTrue(reports.values.all{it.books.size==1 && it.error.isBlank()})
+        assertEquals(0,active)
     }
 }
