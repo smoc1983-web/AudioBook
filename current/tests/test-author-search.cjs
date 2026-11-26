@@ -1,6 +1,7 @@
 const fs=require('fs'),assert=require('assert');
 const {makeDocument}=require(require('path').join(__dirname, 'fixtures/fixture-dom.cjs'));
-const main=fs.readFileSync(process.env.AB_SEARCH_MAIN||require('path').join(__dirname,'../MainActivity.kt'),'utf8');
+const kotlin = name => fs.readFileSync(require('path').join(__dirname, '../../app/src/main/java/com/audiobookdownloader', name), 'utf8');
+const main = process.env.AB_SEARCH_MAIN ? fs.readFileSync(process.env.AB_SEARCH_MAIN, 'utf8') : kotlin('AbBookinfoSearchScripts.kt');
 function script(query,saved='/api/search?q={q}') {
   const start=main.indexOf('fun bookinfoSearchJs('),a=main.indexOf('"""',start)+3,b=main.indexOf('""".trimIndent()',a);
   return main.slice(a,b).replaceAll("${'$'}",'$').replaceAll('$safeQuery',JSON.stringify(query)).replaceAll('$safeSaved',JSON.stringify(saved));
@@ -63,11 +64,12 @@ function equal(a,b){assert.deepStrictEqual(a,b);checks++;}
   equal(result.length,0);
   // Verify that the Kotlin orchestration forwards native results unchanged;
   // the sitemap scanner and external genre verification retain local matching.
-  const unified=main.slice(main.indexOf('fun UnifiedBookSearch('),main.indexOf('class BookCycleTask('));
+  const unified=kotlin('AbSourceSearch.kt');
   assert(!unified.includes('abMatchesBookQuery')&&!unified.includes('books.filter'));checks++;
-  assert(main.includes('books.filter{abMatchesBookQuery(it,query)}.forEach'));checks++;
-  assert(main.includes('name in book.genres && abMatchesBookQuery(book,queryText)'));checks++;
-  const task=main.slice(main.indexOf('class BookSearchTask('),main.indexOf('@Composable\nfun UnifiedBookSearch('));
-  equal((task.match(/bookCatalogJs\(web.url.orEmpty\(\).ifBlank\{home\}\)/g)||[]).length,2);
+  assert(kotlin('AbAzbykaSource.kt').includes('books.filter{abMatchesBookQuery(it,query)}.forEach'));checks++;
+  assert(kotlin('AbPublicCatalogSource.kt').includes('name in book.genres && abMatchesBookQuery(book,queryText)'));checks++;
+  const task = kotlin('AbCatalogBrowser.kt').split('class BookCycleTask(')[0];
+  assert(task.includes('bookCatalogJs(web.url.orEmpty().ifBlank{home})'));checks++;
+  assert(task.includes('bookCatalogJs(rootSearchPage.ifBlank{web.url.orEmpty().ifBlank{home}})'));checks++;
   console.log(`PASS: ${checks} author-search checks (executed Bookinfo JS + Kotlin integration guards; not an Android build)`);
 })().catch(e=>{console.error(e);process.exitCode=1;});

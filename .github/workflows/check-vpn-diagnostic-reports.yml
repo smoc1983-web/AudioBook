@@ -34,6 +34,19 @@ jobs:
         run: |
           GITHUB_RUN_NUMBER=104 gradle :app:testDebugUnitTest :app:testReleaseUnitTest :app:assembleDebugAndroidTest :app:assembleRelease :app:lintRelease -PaudiobookChannel=test --max-workers=2 --console=plain
           python3 scripts/check-android-lint.py app/build/reports/lint-results-release.xml
+      - name: Compare unsigned Test release sizes for the Activity refactor
+        if: github.head_ref == 'refactor/bookinfo-scripts-20261125'
+        run: |
+          git fetch --depth=1 origin 98a1a98df229c2f2f32f1b0676f20363c8f0102c
+          baseline="$RUNNER_TEMP/audiobook-before"
+          git worktree add --detach "$baseline" FETCH_HEAD
+          GITHUB_RUN_NUMBER=104 gradle -p "$baseline" :app:assembleRelease -PaudiobookChannel=test --max-workers=2 --console=plain
+          python3 - "$baseline" <<'PYTHON'
+          import pathlib, sys
+          for label, root in (("before", pathlib.Path(sys.argv[1])), ("after", pathlib.Path.cwd())):
+              apk, = (root/"app/build/outputs/apk/release").glob("*.apk")
+              print(f"APK_BYTES {label} {apk.stat().st_size}")
+          PYTHON
       - name: Test reports
         if: always()
         uses: actions/upload-artifact@v4
@@ -77,12 +90,26 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -memory 2048 -cores 2
           script: |
             GITHUB_RUN_NUMBER=104 gradle :app:connectedDebugAndroidTest -PaudiobookChannel=test -Pandroid.testInstrumentationRunnerArguments.class=com.audiobookdownloader.CycleSubscriptionsNavigationTest,com.audiobookdownloader.CollectionTransferTest,com.audiobookdownloader.NovaListeningFeaturesTest,com.audiobookdownloader.SearchScrollTest,com.audiobookdownloader.SearchFiltersTest,com.audiobookdownloader.RankedAudioSearchTest,com.audiobookdownloader.UpdateScreenTest,com.audiobookdownloader.LatestMenuRegressionTest,com.audiobookdownloader.LibraryExperienceTest,com.audiobookdownloader.OfficialSeriesTest,com.audiobookdownloader.EditionDownloadTest,com.audiobookdownloader.MiniPlayerSwipeTest --max-workers=2 --console=plain
+      - name: Refactor regressions and download recovery across emulator reboot
+        if: github.head_ref == 'refactor/bookinfo-scripts-20261125'
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 36
+          target: aosp_atd
+          arch: x86_64
+          profile: pixel_6
+          emulator-boot-timeout: 420
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -memory 2048 -cores 2
+          script: |
+            GITHUB_RUN_NUMBER=104 gradle :app:connectedDebugAndroidTest -PaudiobookChannel=test -Pandroid.testInstrumentationRunnerArguments.class=com.audiobookdownloader.AbSearchInputTest,com.audiobookdownloader.BookmarkUiTest,com.audiobookdownloader.IdlePlaybackTest,com.audiobookdownloader.DiagnosticPrivacyAndroidTest,com.audiobookdownloader.WebViewIsolationTest,com.audiobookdownloader.DownloadQueueStoreTest,com.audiobookdownloader.DurableQueueTest --max-workers=2 --console=plain
+            bash tools/tests/queue-process-check.sh com.audiobookdownloader.test
       - name: Upload emulator evidence, including failures
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: audiobook-test-emulator-reports
           path: |
+            app/build/reports/stage3-process/
             app/build/reports/androidTests/
             app/build/outputs/androidTest-results/
             app/build/reports/
