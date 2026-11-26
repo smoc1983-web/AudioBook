@@ -52,4 +52,5 @@ jobs:
           name: fayroll-${{ matrix.mode }}
           path: |
             matrix-${{ matrix.mode }}.txt
-            instrumentation-${{ matrix.mode }}.txt
+            instrumentation-${{ matrix.mode }}-*.txt
+            crash-${{ matrix.mode }}.txt
