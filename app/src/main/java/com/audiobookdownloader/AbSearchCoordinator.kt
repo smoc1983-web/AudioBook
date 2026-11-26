@@ -4,6 +4,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.supervisorScope
@@ -37,6 +38,14 @@ internal object AbSearchCoordinator {
         Unit
     }
 
+    /** Read the disk cache concurrently, retaining the configured source order. */
+    suspend fun cachedPreview(sources:List<String>,cached:suspend (String)->SiteSearchResult?):Map<String,SiteSearchResult> = coroutineScope {
+        val slots=Semaphore(4)
+        sources.distinct().map {site->async {
+            slots.withPermit {cached(site)?.let{site to it.copy(fromCache=true)}}
+        }}.awaitAll().filterNotNull().toMap()
+    }
+
     /**
      * Show local metadata before network I/O, then report one final result per source.
      * A temporary failure must not erase previously saved books.
@@ -46,11 +55,7 @@ internal object AbSearchCoordinator {
         fetch: suspend (String)->SiteSearchResult,
         preview: suspend (Map<String,SiteSearchResult>)->Unit,
         report: suspend (String,SiteSearchResult)->Unit) {
-        val saved=linkedMapOf<String,SiteSearchResult>()
-        for(site in sources.distinct()){
-            currentCoroutineContext().ensureActive()
-            cached(site)?.let{saved[site]=it.copy(fromCache=true)}
-        }
+        val saved=cachedPreview(sources,cached)
         if(saved.isNotEmpty())preview(saved.toMap())
         search(sources,timeoutMs,fetch){site,fresh->
             val old=saved[site]
