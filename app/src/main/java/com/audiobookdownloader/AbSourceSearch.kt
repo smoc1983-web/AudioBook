@@ -14,6 +14,14 @@ fun UnifiedBookSearch(query: String, prefs: android.content.SharedPreferences,
     val requested=sources.filter{it in AbBookSources.searchOrder}.distinct()
     val report by androidx.compose.runtime.rememberUpdatedState(onResult)
     AbSearchTaskEffect(context,Triple(query,requested,prefs),onStopped) {
+        abRunUnifiedBookSearch(context,query,prefs,requested,refreshCached,onCached){site,result->report(site,result)}
+    }
+}
+
+internal suspend fun abRunUnifiedBookSearch(context:android.content.Context,query:String,
+    prefs:android.content.SharedPreferences,requested:List<String>,refreshCached:Boolean,
+    onCached:suspend (Map<String,SiteSearchResult>)->Unit,
+    report:suspend (String,SiteSearchResult)->Unit) {
         // Bounded browser concurrency; slow sitemap enumeration starts last.
         val scheduled=requested.sortedBy{if(it==AbBookSources.AZBYKA)1 else 0}
         val mode=AbSearchDiagnostics.mode(prefs)
@@ -41,4 +49,3 @@ fun UnifiedBookSearch(query: String, prefs: android.content.SharedPreferences,
             }
         } finally {if(session.isNotBlank())runCatching{AbSearchDiagnostics.finish(context,session)}}
     }
-}
