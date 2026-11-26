@@ -54,3 +54,16 @@ jobs:
             matrix-${{ matrix.mode }}.txt
             instrumentation-${{ matrix.mode }}-*.txt
             crash-${{ matrix.mode }}.txt
+  compare:
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: fayroll-*
+          path: reports
+      - name: Check streaming coverage
+        run: python3 scripts/compare-fayroll-matrix.py reports
