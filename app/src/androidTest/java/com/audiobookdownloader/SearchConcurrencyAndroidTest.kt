@@ -45,14 +45,14 @@ class SearchConcurrencyAndroidTest {
         }
     }
 
-    private suspend fun fixture(activity:MainActivity,site:String):SiteSearchResult {
+    private suspend fun fixture(activity:MainActivity,site:String,searchOwned:Boolean=false):SiteSearchResult {
         var browser:WebView?=null
         try {
             return suspendCancellableCoroutine { reply ->
                 fun finish(value:SiteSearchResult) {
                     if(reply.isActive)reply.resumeWith(Result.success(value))
                 }
-                browser=abCreateBrowser(activity,{error->finish(SiteSearchResult(emptyList(),error))}) {
+                browser=abCreateBrowser(activity,{error->finish(SiteSearchResult(emptyList(),error))},searchOwned=searchOwned) {
                     settings.javaScriptEnabled=true
                     webViewClient=object:AbBookWebViewClient({finish(SiteSearchResult(emptyList(),"Renderer lost"))}) {
                         override fun onPageFinished(view:WebView,url:String) {
@@ -100,5 +100,61 @@ class SearchConcurrencyAndroidTest {
                 assertNull(AbSearchCache.getPreview(context,site,query))
             }
         }finally{file.delete()}
+    }
+
+    @Test(timeout=180000) fun leasedSearchBrowsersContinueAfterHomeAndScreenOff() {
+        val device=androidx.test.uiautomator.UiDevice.getInstance(
+            androidx.test.platform.app.InstrumentationRegistry.getInstrumentation())
+        ActivityScenario.launch(MainActivity::class.java).use {scenario->
+            lateinit var activity:MainActivity
+            scenario.onActivity{activity=it}
+            var token:Long?=null
+            var retained:WebView?=null
+            var normal:WebView?=null
+            val reports=linkedMapOf<String,SiteSearchResult>()
+            try {
+                runBlocking {
+                    withContext(Dispatchers.Main){
+                        token=AbSearchRuntime.begin(activity){}
+                        assertNotNull("Foreground search lease",token)
+                        retained=abCreateBrowser(activity,{fail(it)},searchOwned=true){}
+                        normal=abCreateBrowser(activity,{fail(it)}){}
+                        assertNotNull(retained)
+                        assertNotNull(normal)
+                        kotlinx.coroutines.withTimeout(10000){
+                            while(AbSearchForegroundService.current==null)kotlinx.coroutines.delay(50)
+                        }
+                    }
+                    assertTrue(device.pressHome())
+                    withContext(Dispatchers.Main){
+                        kotlinx.coroutines.withTimeout(15000){
+                            while(activity.searchWindowVisible())kotlinx.coroutines.delay(50)
+                        }
+                        assertTrue(AbWebViews.available(retained!!))
+                        assertFalse(AbWebViews.available(normal!!))
+                    }
+                    device.sleep()
+                    assertFalse("Screen must be off during source processing",device.isScreenOn)
+                    withContext(Dispatchers.Main){
+                        assertTrue(AbSearchRuntime.active(activity))
+                        AbSearchCoordinator.search((1..8).map{"off-$it"},{20000L},{site->
+                            fixture(activity,site,searchOwned=true)
+                        },{site,result->reports[site]=result})
+                        assertTrue(AbWebViews.available(retained!!))
+                    }
+                    assertEquals(8,reports.size)
+                    assertTrue(reports.values.all{it.error.isBlank()&&it.books.size==1})
+                    assertFalse("Search must finish before waking screen",device.isScreenOn)
+                }
+            } finally {
+                runBlocking{withContext(Dispatchers.Main){
+                    retained?.let{AbWebViews.release(it)}
+                    normal?.let{AbWebViews.release(it)}
+                    AbSearchRuntime.end(token)
+                }}
+                device.wakeUp()
+                device.executeShellCommand("wm dismiss-keyguard")
+            }
+        }
     }
 }
