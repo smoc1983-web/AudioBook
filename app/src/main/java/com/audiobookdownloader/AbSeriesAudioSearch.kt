@@ -298,6 +298,7 @@ internal suspend fun abResolveCycleAudio(context:Context,prefs:android.content.S
             abRequireSearchWindow(context)
             checkpoint.savedAttempted.add(link)
             if(ok)checkpoint.savedVerified.add(link)
+            else AbSourceAvailability.markUnverified(prefs,link.url)
             report("Проверено сохранённых ссылок: ${checkpoint.savedAttempted.size}/${cachedChoices.size}.")
         })
         checkpoint.savedRefreshDone=true
