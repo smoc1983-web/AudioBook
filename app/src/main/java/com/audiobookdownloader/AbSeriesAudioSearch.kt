@@ -334,12 +334,12 @@ internal suspend fun abResolveCycleAudio(context:Context,prefs:android.content.S
         checkpoint.rows[i].orEmpty(),
         usable={url->
             val state=AbSourceAvailability.get(prefs,url)
-            (!retry || AbSavedCycleLink(i,url) !in checkpoint.savedAttempted) &&
+            (!retry || !AbSavedCycleRefresh.wasAttempted(i,url,checkpoint.savedAttempted)) &&
                 state!=AbChapterAvailability.EMPTY && !AbSourceAvailability.hidden(state) &&
                 !AbSourceAvailability.tooSmall(prefs,url)
         },
         verified={url->
-            (!retry || AbSavedCycleLink(i,url) !in checkpoint.savedAttempted) &&
+            (!retry || !AbSavedCycleRefresh.wasAttempted(i,url,checkpoint.savedAttempted)) &&
                 AbSourceAvailability.get(prefs,url)==AbChapterAvailability.AVAILABLE &&
                 AbSourceAvailability.sizePassed(prefs,url)
         }
