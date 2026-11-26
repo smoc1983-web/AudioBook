@@ -986,6 +986,7 @@ internal fun AudioBookApp(searchInput: AbSearchInputModel,libraryAccessVersion: 
     }
 
     fun openWebsiteCycle(cycle: BookCycle) {
+        forceFullCycleSearch=false
         bookOpening=null;bookPageLoading=false;bookPageError=""
         rememberSearchResults()
         searchSelectedKey="";searchSelectedUrl="";searchRestored=false
