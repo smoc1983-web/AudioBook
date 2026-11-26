@@ -478,10 +478,14 @@ internal fun AbSearchResultCard(row:AbSearchRow,theme:AbTheme,onOpen:(BookLink,S
         return
     }
     if(book.catalogState in setOf("pending","missing","incomplete","text_only")) {
+        val uriHandler=androidx.compose.ui.platform.LocalUriHandler.current
         Column(Modifier.fillMaxWidth().abGlass(theme,13,field=true).padding(12.dp),verticalArrangement=Arrangement.spacedBy(5.dp)) {
             Text(book.title,color=theme.text,fontSize=15.sp,fontWeight=FontWeight.SemiBold)
             Text(book.author+" · "+(book.cycles.firstOrNull()?.let{abVolumeLabel(it)} ?: "Порядок не указан"),color=theme.muted,fontSize=12.sp)
-            Text(when(book.catalogState){"pending"->"Поиск аудио ожидается";"text_only"->"Текстовая версия · озвучка пока не найдена";"incomplete"->"Аудио не подтверждено";else->"Аудиоверсия не найдена"},color=theme.muted,fontSize=12.sp)
+            Text(when(book.catalogState){"pending"->"Поиск аудио ожидается";"text_only"->"Текстовая версия · озвучка пока не найдена";"incomplete"->"Проверка источников неполная · аудио не подтверждено";else->"Аудио не найдено в проверенных источниках"},color=theme.muted,fontSize=12.sp)
+            if(book.catalogState=="text_only" && SeriesAuthorityRules.work(book.url)){
+                AbButton("Открыть текстовую версию",theme){runCatching{uriHandler.openUri(book.url)}}
+            }
         }
         return
     }

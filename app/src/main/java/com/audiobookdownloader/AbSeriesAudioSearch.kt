@@ -1,6 +1,11 @@
 package com.audiobookdownloader
 
 import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.flow.first
 import androidx.compose.foundation.layout.size
 import android.content.Context
@@ -212,7 +217,9 @@ internal suspend fun abResolveCycleAudio(context:Context,prefs:android.content.S
     }
 
     fun reference(v:OfficialEdition)=cycle.copy(order=v.order,referenceUrl=v.url,referenceSite=v.provider,seedTitle=v.title,seedAuthor=v.author)
-    fun placeholder(v:OfficialEdition,state:String)=BookLink(v.title,v.url,author=v.author,cycles=listOf(reference(v)),catalogState=state)
+    fun placeholder(v:OfficialEdition,state:String)=BookLink(v.title,
+        if(state=="text_only")OfficialCycleSearch.textEdition(cycle.title,v,catalogs)?.url.orEmpty() else v.url,
+        author=v.author,cycles=listOf(reference(v)),catalogState=state)
     val partial=catalogs.map{it.provider}.toSet().size<2||catalogs.any{!it.complete||it.error.isNotBlank()}
     val aliases=withContext(Dispatchers.Default){volumes.map{OfficialCycleSearch.aliases(cycle.title,it,catalogs)}}
     val volumeAuthors=volumes.map{SeriesAuthorityRules.author(it.author)}
@@ -336,6 +343,9 @@ internal suspend fun abResolveCycleAudio(context:Context,prefs:android.content.S
         checkpoint.broadReports[site]?.books?.count{position(it)!=null} ?: 0
     }.thenBy{if(checkpoint.broadReports[it]?.error.isNullOrBlank())0 else 1})}
     val confirmed=mutableSetOf<Int>()
+    val sourceSlots=Semaphore(4)
+    val attempted=mutableSetOf<AbSavedCycleLink>()
+    val uncertain=mutableSetOf<Int>()
     fun enoughAlternatives(i:Int):Boolean {
         if(i in confirmed || checkpoint.savedVerified.any{it.volume==i})return true
         return AbCycleSourceRules.enoughAlternatives(checkpoint.rows[i].orEmpty()) { url ->
@@ -354,40 +364,45 @@ internal suspend fun abResolveCycleAudio(context:Context,prefs:android.content.S
         for((candidate,source) in choices){
             abRequireSearchWindow(context)
             if(AbSavedCycleLink(i,source.url) in checkpoint.savedAttempted)continue
-            if(source.url in checkpoint.verified)continue
+            val attempt=AbSavedCycleLink(i,source.url)
+            if(!attempted.add(attempt))continue
             report("Проверка глав: ${i+1}/${volumes.size}.")
             val references=referencesByVolume[i]
             val ok=kotlinx.coroutines.withTimeoutOrNull(40_000L){
-                abProbeCycleEdition(context,volumes[i],source.url,cycle.title,aliases[i],candidate.author,references)
+                sourceSlots.withPermit {
+                    abProbeCycleEdition(context,volumes[i],source.url,cycle.title,aliases[i],candidate.author,references)
+                }
             }==true
             abRequireSearchWindow(context)
-            checkpoint.verified.add(source.url)
             if(ok){confirmed.add(i);return true}
         }
         return false
     }
-    for(i in volumes.indices){
+    suspend fun searchVolume(i:Int){
         kotlinx.coroutines.yield()
         abRequireSearchWindow(context)
-        if(i in checkpoint.exactDone||kotlinx.coroutines.withTimeoutOrNull(40_000L){verifyCandidates(i)}==true)continue
+        if(i in checkpoint.exactDone||kotlinx.coroutines.withTimeoutOrNull(40_000L){verifyCandidates(i)}==true)return
         val queries=OfficialCycleSearch.lookupQueries(cycle.title,volumes[i],aliases[i])
         val preferred=priority.take(4)
         report("Точечный поиск: ${i+1}/${volumes.size}.",force=true)
         suspend fun searchBatch(query:String,batch:List<String>){
             if(batch.isEmpty()||enoughAlternatives(i))return
-            kotlinx.coroutines.withTimeoutOrNull(45_000L){
+            val batchFinished=kotlinx.coroutines.withTimeoutOrNull(45_000L){
                 AbSearchCoordinator.search(batch,{20_000L},{site->abCycleSource(context,prefs,site,query,
-                    forceNetwork=checkpoint.forceFullSearch||checkpoint.savedAttempted.isNotEmpty())},{_,result->
+                    forceNetwork=checkpoint.forceFullSearch||checkpoint.savedAttempted.isNotEmpty())},sourceSlots){_,result->
                     abRequireSearchWindow(context)
+                    if(result.error.isNotBlank())uncertain.add(i)
                     accept(i,result.books)
                     report("Точечный поиск: ${i+1}/${volumes.size}.")
-                })
+                }
+                true
             }
+            if(batchFinished!=true)uncertain.add(i)
             verifyCandidates(i)
         }
         // Alternate exact forms first, then the remaining configured sites; stop once a matching edition exists.
         // Keep a hard budget per missing volume so an unavailable work cannot stall the entire cycle.
-        kotlinx.coroutines.withTimeoutOrNull(120_000L){
+        val exactFinished=kotlinx.coroutines.withTimeoutOrNull(120_000L){
             queries.firstOrNull()?.let{query->
                 searchBatch(query,preferred)
                 for(alternate in queries.drop(1)){
@@ -399,10 +414,17 @@ internal suspend fun abResolveCycleAudio(context:Context,prefs:android.content.S
                     searchBatch(query,batch)
                 }
             }
+            true
         }
+        if(exactFinished!=true)uncertain.add(i)
         abRequireSearchWindow(context)
         checkpoint.exactDone.add(i)
-        if(checkpoint.rows[i].isNullOrEmpty())checkpoint.rows[i]=listOf(placeholder(volumes[i],OfficialCycleSearch.missingState(cycle.title,volumes[i],catalogs)))
+    }
+    val volumeSlots=Semaphore(2)
+    coroutineScope {
+        volumes.indices.map { i -> async {
+            volumeSlots.withPermit { searchVolume(i) }
+        } }.awaitAll()
     }
     for(i in volumes.indices){
         kotlinx.coroutines.yield()
@@ -421,7 +443,15 @@ internal suspend fun abResolveCycleAudio(context:Context,prefs:android.content.S
                     })"checked" else "candidate")
                 }
         }.sortedBy{AbSourceAvailability.priority(prefs,bookSources(it))}
-        checkpoint.rows[i]=checked.ifEmpty{listOf(placeholder(volumes[i],OfficialCycleSearch.missingState(cycle.title,volumes[i],catalogs)))}
+        checkpoint.rows[i]=checked.ifEmpty {
+            val volume=volumes[i]
+            val state=when {
+                OfficialCycleSearch.textEdition(cycle.title,volume,catalogs)!=null -> "text_only"
+                i in uncertain || checkpoint.broadReports.values.any{it.error.isNotBlank()} -> "incomplete"
+                else -> "missing"
+            }
+            listOf(placeholder(volume,state))
+        }
         report("Проверено изданий цикла: ${i+1}/${volumes.size}.")
     }
     report("Поиск завершён. Откройте книгу для проверки оставшихся озвучек.",true)
