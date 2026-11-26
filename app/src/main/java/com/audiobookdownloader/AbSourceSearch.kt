@@ -9,11 +9,11 @@ import androidx.compose.runtime.setValue
 @Composable
 fun UnifiedBookSearch(query: String, prefs: android.content.SharedPreferences,
     sources:List<String> = AbBookSources.searchOrder,refreshCached:Boolean=false,
-    onCached:suspend (Map<String,SiteSearchResult>)->Unit={},onResult: (String, SiteSearchResult) -> Unit) {
+    onCached:suspend (Map<String,SiteSearchResult>)->Unit={},onStopped:()->Unit={},onResult: (String, SiteSearchResult) -> Unit) {
     val context=androidx.compose.ui.platform.LocalContext.current
     val requested=sources.filter{it in AbBookSources.searchOrder}.distinct()
     val report by androidx.compose.runtime.rememberUpdatedState(onResult)
-    LaunchedEffect(query,requested,prefs) {
+    AbSearchTaskEffect(context,Triple(query,requested,prefs),onStopped) {
         // Bounded browser concurrency; slow sitemap enumeration starts last.
         val scheduled=requested.sortedBy{if(it==AbBookSources.AZBYKA)1 else 0}
         val mode=AbSearchDiagnostics.mode(prefs)
