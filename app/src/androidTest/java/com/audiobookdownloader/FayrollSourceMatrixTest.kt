@@ -17,11 +17,40 @@ class FayrollSourceMatrixTest {
         val context=instrumentation.targetContext
         val mode=InstrumentationRegistry.getArguments().getString("sourceMode","all")
         val selected=when(mode){
-            "all"->AbBookSources.searchOrder
+            "all","baseline"->AbBookSources.searchOrder
             "pair"->listOf("Книгоблуд","Bookinfo")
             "knigoblud"->listOf("Книгоблуд")
             "bookinfo"->listOf("Bookinfo")
             else->error("Unknown source mode")
+        }
+        // Same snapshot in both arms, from live successful source responses in run 45858451412.
+        if(mode in setOf("all","baseline")) {
+            val samples=mapOf(
+            "Bookinfo" to 6334L,
+            "Книга в Ухе" to 8137L,
+            "Книгоблуд" to 8139L,
+            "Audiokniga-online.ru" to 8505L,
+            "Izibuk" to 11181L,
+            "Поле книг" to 11499L,
+            "Аудиокниги Все" to 15616L,
+            "Uknig" to 18609L,
+            "Akniga" to 7256L,
+            "Отруб" to 12285L,
+            "Предание.ру" to 5740L,
+            "База книг" to 7630L,
+            "Библус" to 6791L,
+            "Aknigi24" to 3575L,
+            "Аудиополка" to 8429L,
+            "AudioKniga.one" to 10614L,
+            "Аудиокниги онлайн" to 6324L,
+            "Audiokniga.life" to 12591L,
+            "Bookish" to 12022L,
+            "Book-Zvuk" to 11358L,
+            "Audioknigi.top" to 15099L
+            )
+            samples.forEach { (site,ms) ->
+                AbSearchTiming.record(context,site,SiteSearchResult(emptyList(),durationMs=ms))
+            }
         }
         val prefs=context.getSharedPreferences("audiobook_downloader",0)
         prefs.edit().putStringSet("search_enabled_sources",selected.toSet())
@@ -38,11 +67,16 @@ class FayrollSourceMatrixTest {
                 runBlocking(Dispatchers.Main) {
                     val start=SystemClock.elapsedRealtime()
                     val cycle=BookCycle("Файролл",referenceUrl="https://author.today/work/series/1350",seedAuthor="Андрей Васильев")
-                    val checkpoint=AbCycleCheckpoint()
+                    val checkpoint=AbCycleCheckpoint(prioritizeFastSources=mode!="baseline")
+                    var firstCandidateMs:Long?=null
                     var rows=emptyList<BookLink>()
                     var complete=false
                     withTimeoutOrNull(55*60_000L){
                         abResolveCycleAudio(activity,prefs,cycle,emptyList(),checkpoint){books,finished,message->
+                            if(firstCandidateMs==null && books.any{it.catalogState in setOf("candidate","checked")}){
+                                firstCandidateMs=SystemClock.elapsedRealtime()-start
+                                Log.i("FayrollMatrix","FIRST_CANDIDATE $mode elapsedMs=$firstCandidateMs")
+                            }
                             rows=books
                             complete=finished
                             Log.i("FayrollMatrix","PROGRESS $mode $message")

@@ -157,7 +157,7 @@ private suspend fun abProbeCycleEdition(context:Context,volume:OfficialEdition,a
 }
 
 
-internal class AbCycleCheckpoint(val forceFullSearch:Boolean=false) {
+internal class AbCycleCheckpoint(val forceFullSearch:Boolean=false, val prioritizeFastSources:Boolean=true) {
     var catalogs:List<OfficialSource>?=null
     val broadReports=linkedMapOf<String,SiteSearchResult>()
     val rows=linkedMapOf<Int,List<BookLink>>()
@@ -327,10 +327,12 @@ internal suspend fun abResolveCycleAudio(context:Context,prefs:android.content.S
     report("Сверяю найденные книги…",force=true)
     // Cold searches and incomplete official catalogs still use one broad query per source.
     if(!checkpoint.broadDone){
-        val remaining=sources.filter{it !in checkpoint.broadReports}
+        val pending=sources.filter{it !in checkpoint.broadReports}
+        val remaining=if(checkpoint.prioritizeFastSources)AbSearchTiming.order(context,pending) else pending
         AbSearchCoordinator.search(remaining,{25_000L},{site->abCycleSource(context,prefs,site,cycle.title,forceNetwork=checkpoint.forceFullSearch)},{site,result->
             abRequireSearchWindow(context)
             checkpoint.broadReports[site]=result
+            AbSearchTiming.record(context,site,result)
             val grouped=withContext(Dispatchers.Default){result.books.groupBy{position(it)}}
             for((i,books) in grouped)if(i!=null)accept(i,books,matched=true)
             report("Общий поиск: ${checkpoint.broadReports.size}/${sources.size} источников.")

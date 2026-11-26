@@ -9,7 +9,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        mode: [all, pair, knigoblud, bookinfo]
+        mode: [baseline, all, pair, knigoblud, bookinfo]
     runs-on: ubuntu-latest
     timeout-minutes: 150
     env:
