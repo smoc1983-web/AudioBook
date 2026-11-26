@@ -37,7 +37,7 @@ private class AbBrowserHost(context:Context,private val viewportWidth:Int,
 }
 
 internal fun abCreateBrowser(context: Context,failed:(String)->Unit,
-    setup:WebView.()->Unit):WebView? {
+    searchOwned:Boolean=false,setup:WebView.()->Unit):WebView? {
     var browser:WebView?=null
     fun failure(error:Throwable):WebView? {
         AbCrashReport.record(context,error,"Создание браузера")
@@ -50,7 +50,7 @@ internal fun abCreateBrowser(context: Context,failed:(String)->Unit,
     return try {
         val web=WebView(context)
         browser=web
-        AbWebViews.register(web)
+        AbWebViews.register(web,searchOwned&&AbSearchRuntime.active(context))
         val metrics=context.resources.displayMetrics
         val width=metrics.widthPixels.coerceAtLeast(320)
         val height=(760*metrics.density).toInt().coerceAtLeast(640)
@@ -91,7 +91,7 @@ internal fun AbParsingBrowser(onFailure:(String)->Unit,setup:WebView.()->Unit) {
 
 
 internal object AbWebViews {
-    private class Entry(val owner:Context) {
+    private class Entry(val owner:Context,val searchOwned:Boolean) {
         var released=false; var rendererGone=false; var destroyed=false
         var cancel:(()->Unit)?=null
         var host:AbBrowserHost?=null
@@ -107,7 +107,7 @@ internal object AbWebViews {
         }
         return current
     }
-    fun register(web: WebView) { entries[web]=Entry(owner(web.context)) }
+    fun register(web: WebView,searchOwned:Boolean=false) { entries[web]=Entry(owner(web.context),searchOwned) }
     fun attach(web:WebView,width:Int,height:Int) {
         val entry=checkNotNull(entries[web])
         val activity=entry.owner as? android.app.Activity
@@ -128,11 +128,11 @@ internal object AbWebViews {
         val entry=entries[web] ?: return false
         return !entry.released && !entry.rendererGone && !entry.destroyed
     }
-    fun closeAll(context: Context) {
+    fun closeAll(context: Context,includeSearch:Boolean=true) {
         // Compose's recomposer can already be paused by ON_STOP. Cancel work
         // synchronously; the activity changes the browser generation on start.
         val activity=owner(context)
-        entries.keys.toList().filter {entries[it]?.owner===activity}.forEach {web ->
+        entries.keys.toList().filter {web->entries[web]?.let{it.owner===activity && (includeSearch||!it.searchOwned||!AbSearchRuntime.active(activity))}==true}.forEach {web ->
             entries[web]?.cancel?.invoke()
             release(web)
         }
