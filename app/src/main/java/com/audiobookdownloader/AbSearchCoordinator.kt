@@ -4,9 +4,12 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.supervisorScope
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withTimeout
@@ -15,7 +18,9 @@ import kotlinx.coroutines.withTimeout
 internal object AbSearchCoordinator {
     suspend fun search(sources: List<String>, timeoutMs: (String)->Long,
         fetch: suspend (String)->SiteSearchResult, report: suspend (String,SiteSearchResult)->Unit) = supervisorScope {
-        val slots=Semaphore(2)
+        val slots=Semaphore(4)
+        // Reports mutate shared search/UI state; keep callbacks sequential even if they suspend.
+        val delivery=Mutex()
         sources.distinct().map {site -> async {
             slots.withPermit {
                 val started=System.nanoTime()
@@ -27,10 +32,18 @@ internal object AbSearchCoordinator {
                 catch(error: Exception) {SiteSearchResult(emptyList(),"Не удалось выполнить поиск на этом сайте")}
                 currentCoroutineContext().ensureActive()
                 val elapsed=((System.nanoTime()-started)/1_000_000L).coerceIn(0L,300_000L)
-                report(site,result.copy(durationMs=elapsed))
+                delivery.withLock { report(site,result.copy(durationMs=elapsed)) }
             }
         }}.awaitAll()
         Unit
+    }
+
+    /** Read the disk cache concurrently, retaining the configured source order. */
+    suspend fun cachedPreview(sources:List<String>,cached:suspend (String)->SiteSearchResult?):Map<String,SiteSearchResult> = coroutineScope {
+        val slots=Semaphore(4)
+        sources.distinct().map {site->async {
+            slots.withPermit {cached(site)?.let{site to it.copy(fromCache=true)}}
+        }}.awaitAll().filterNotNull().toMap()
     }
 
     /**
@@ -42,11 +55,7 @@ internal object AbSearchCoordinator {
         fetch: suspend (String)->SiteSearchResult,
         preview: suspend (Map<String,SiteSearchResult>)->Unit,
         report: suspend (String,SiteSearchResult)->Unit) {
-        val saved=linkedMapOf<String,SiteSearchResult>()
-        for(site in sources.distinct()){
-            currentCoroutineContext().ensureActive()
-            cached(site)?.let{saved[site]=it.copy(fromCache=true)}
-        }
+        val saved=cachedPreview(sources,cached)
         if(saved.isNotEmpty())preview(saved.toMap())
         search(sources,timeoutMs,fetch){site,fresh->
             val old=saved[site]

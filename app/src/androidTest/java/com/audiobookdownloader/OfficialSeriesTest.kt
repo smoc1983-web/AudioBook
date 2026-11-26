@@ -184,4 +184,39 @@ class OfficialSeriesTest {
         assertTrue(requests.any{it.contains("/search")&&java.net.URLDecoder.decode(it,"UTF-8").contains(raw)})
         assertNotNull(OfficialSeriesStore(context).read(raw,""))
     }
+
+    @Test fun fayrollOfficialRowsKeepAll21PositionsThroughParserAndMerge(){
+        // Reconstructed public catalogue rows, not downloaded books or live audio.
+        val writer="Андрей Васильев"
+        val series="Файролл"
+        val names=listOf("Игра не ради игры","Пути Востока","Край холодных ветров","Гонг и чаша",
+            "Сицилианская защита","Под черным флагом","Разные стороны","Слово и сталь",
+            "Право выбора","Два огня")+(1..3).map{"Снисхождение. Том $it"}+
+            (1..4).map{"Квадратура круга. Том $it"}+(1..4).map{"Петля судеб. Том $it"}
+        val atHtml=names.mapIndexed{i,name->
+            val number=when(i){in 0..9->i+1;in 10..12->11;in 13..16->12;else->13}
+            "<div class='work-row-content'><div class='work-title'><span class='label-row-index'>${i+1}</span><a href='/work/${980000+i}'>Файролл-$number. $name</a></div><div class='work-author'>$writer</div><div class='work-info'><i class='icon-book2'></i><i class='icon-check-bold'></i>100K зн.</div></div>"
+        }.joinToString("")
+        val ltHtml=names.mapIndexed{i,name->
+            val audioName=if(i==5)"Черные флаги Архипелага" else name
+            "<div data-testid='art__wrapper'><a data-testid='art__title' href='/audiobook/test-writer/work-${980000+i}/'>Файролл. $audioName</a><a data-testid='art__authorName--link'>$writer</a><span data-testid='book__seriesCounter--text'>${i+1}</span><span data-testid='art__finalPrice'>100 ₽</span></div>"
+        }.joinToString("")
+        val sources=listOf(Triple("Author.Today",at,atHtml),Triple("Литрес",lt,ltHtml)).map{(provider,url,html)->
+            val page=OfficialSeriesParser.page("<h1>$series</h1>"+html,url,url,series,writer)
+            OfficialSource(provider,series,url,complete=!page.incomplete,books=page.books.map{
+                OfficialEdition(it.title,it.url,it.author,it.series,it.provider,it.format,it.status,it.order)
+            })
+        }
+        assertEquals(listOf(21,21),sources.map{it.books.mapNotNull{b->b.order}.distinct().size})
+        val volumes=OfficialCycleSearch.template(series,sources)
+        assertEquals((1..21).map{it.toDouble()},volumes.map{it.order})
+        assertTrue(OfficialCycleSearch.aliases(series,volumes[5],sources).any{it.contains("Черные флаги")})
+        assertTrue(volumes.all{OfficialCycleSearch.missingState(series,it,sources)=="incomplete"})
+        val matches=AbLocalCatalog.match(BookCycle(series),volumes,sources,listOf(
+            BookLink("Черные флаги Архипелага","https://fixture.invalid/six",author=writer)))
+        assertEquals(21,matches.books.size)
+        assertEquals("candidate",matches.books[5].catalogState)
+        assertTrue(matches.unmatched.isEmpty())
+        assertEquals(20,matches.books.count{it.catalogState=="incomplete"})
+    }
 }

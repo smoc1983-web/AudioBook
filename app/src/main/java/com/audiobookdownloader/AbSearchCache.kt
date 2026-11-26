@@ -89,7 +89,15 @@ internal object AbSearchCache {
         strings(j.optJSONArray("genres")),objects(j.optJSONArray("cycles"),24).map{BookCycle(it.optString("title"),it.optString("url"),
             it.optDouble("order").takeIf{v->v.isFinite()&&v>0},it.optString("reference"),it.optString("provider"),
             it.optString("parent"),it.optString("seedTitle"),it.optString("seedAuthor"))},j.optString("origin"),j.optString("query"),j.optString("narrator"),j.optString("state"))
-    suspend fun get(context:Context,site:String,query:String):SiteSearchResult? {
+    suspend fun get(context:Context,site:String,query:String):SiteSearchResult? =
+        read(context,site,query,preview=false)
+
+    // Older successful results are useful only as a provisional display, never as a fresh
+    // network result. Retention remains bounded by the existing disk quota and age limit.
+    suspend fun getPreview(context:Context,site:String,query:String):SiteSearchResult? =
+        read(context,site,query,preview=true)
+
+    private suspend fun read(context:Context,site:String,query:String,preview:Boolean):SiteSearchResult? {
         get(site,query)?.let{return it.copy(fromCache=true)}
         return withContext(Dispatchers.IO){
             try{
@@ -99,9 +107,12 @@ internal object AbSearchCache {
                 if(j.optInt("schema")!=2||j.optString("key")!=key(site,query))return@withContext null
                 val result=SiteSearchResult(objects(j.optJSONArray("books"),600).map{decode(it)},j.optString("error"),
                     j.optInt("pages"),j.optBoolean("more"),true)
-                if(!cacheable(result)||System.currentTimeMillis()-j.optLong("at") !in 0..ttl(result)){f.delete();return@withContext null}
+                val age=System.currentTimeMillis()-j.optLong("at")
+                val maxAge=if(preview&&result.error.isBlank()&&result.books.isNotEmpty())30*DAY else ttl(result)
+                if(!cacheable(result)||age !in 0..maxAge)return@withContext null
                 result
-            }catch(_:Exception){null}
+            }catch(cancel:CancellationException){throw cancel}
+            catch(_:Exception){null}
         }
     }
     suspend fun put(context:Context,site:String,query:String,result:SiteSearchResult) {

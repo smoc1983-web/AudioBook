@@ -9,12 +9,20 @@ import androidx.compose.runtime.setValue
 @Composable
 fun UnifiedBookSearch(query: String, prefs: android.content.SharedPreferences,
     sources:List<String> = AbBookSources.searchOrder,refreshCached:Boolean=false,
-    onCached:suspend (Map<String,SiteSearchResult>)->Unit={},onResult: (String, SiteSearchResult) -> Unit) {
+    onCached:suspend (Map<String,SiteSearchResult>)->Unit={},onStopped:()->Unit={},onResult: (String, SiteSearchResult) -> Unit) {
     val context=androidx.compose.ui.platform.LocalContext.current
     val requested=sources.filter{it in AbBookSources.searchOrder}.distinct()
     val report by androidx.compose.runtime.rememberUpdatedState(onResult)
-    LaunchedEffect(query,requested,prefs) {
-        // Two browsers at most; slow sitemap enumeration never occupies the first slot.
+    AbSearchTaskEffect(context,Triple(query,requested,prefs),onStopped) {
+        abRunUnifiedBookSearch(context,query,prefs,requested,refreshCached,onCached){site,result->report(site,result)}
+    }
+}
+
+internal suspend fun abRunUnifiedBookSearch(context:android.content.Context,query:String,
+    prefs:android.content.SharedPreferences,requested:List<String>,refreshCached:Boolean,
+    onCached:suspend (Map<String,SiteSearchResult>)->Unit,
+    report:suspend (String,SiteSearchResult)->Unit) {
+        // Bounded browser concurrency; slow sitemap enumeration starts last.
         val scheduled=requested.sortedBy{if(it==AbBookSources.AZBYKA)1 else 0}
         val mode=AbSearchDiagnostics.mode(prefs)
         val session=runCatching{AbSearchDiagnostics.begin(context,query,scheduled,mode)}.getOrDefault("")
@@ -31,7 +39,7 @@ fun UnifiedBookSearch(query: String, prefs: android.content.SharedPreferences,
                 report(site,AbGlobalBookResults.nativeResult(result,query))
             }
             if(refreshCached && mode==AbSearchNetworkMode.NORMAL){
-                AbSearchCoordinator.refresh(scheduled,timeout,{site->AbSearchCache.get(context,site,query)},fetch,
+                AbSearchCoordinator.refresh(scheduled,timeout,{site->AbSearchCache.getPreview(context,site,query)},fetch,
                     {saved->onCached(saved.mapValues{(_,result)->AbGlobalBookResults.nativeResult(result,query)})},deliver)
             }else{
                 AbSearchCoordinator.search(scheduled,timeout,{site->
@@ -41,4 +49,3 @@ fun UnifiedBookSearch(query: String, prefs: android.content.SharedPreferences,
             }
         } finally {if(session.isNotBlank())runCatching{AbSearchDiagnostics.finish(context,session)}}
     }
-}
