@@ -210,6 +210,7 @@ internal fun AudioBookApp(searchInput: AbSearchInputModel,libraryAccessVersion: 
     val libraryBooks by librarySync.books
     val downloadedIndex=librarySync.downloadedIndex
     val modernWork=androidx.compose.runtime.rememberCoroutineScope()
+    var forceFullCycleSearch by remember {mutableStateOf(false)}
     LaunchedEffect(Unit) {PlaybackService.restoreScreenState(context.applicationContext)}
 
 
@@ -1019,7 +1020,8 @@ internal fun AudioBookApp(searchInput: AbSearchInputModel,libraryAccessVersion: 
         status = "Загружаю все книги цикла…"
     }
 
-    fun startCommonBookSearch(ranked:BookRankingRules.Book?=null,narration:NarrationLookup?=null) {
+    fun startCommonBookSearch(ranked:BookRankingRules.Book?=null,narration:NarrationLookup?=null,forceFullSearch:Boolean=false) {
+        forceFullCycleSearch=forceFullSearch
         rankedSearch=ranked
         narrationSearch=narration
         cancelSearchMerges()
@@ -1529,7 +1531,7 @@ internal fun AudioBookApp(searchInput: AbSearchInputModel,libraryAccessVersion: 
         navigate = { if(it==AppPage.SEARCH && appPage==AppPage.SEARCH && searchSessionActive) backToSearchResults() else appPage=it },
         home = {showSearchHome()},
         resetSearch = {showSearchHome()},
-        refreshSearch = {val query=searchText.trim();modernWork.launch{AbSearchCache.invalidate(context,query);OfficialCycleSearch.invalidate(query);withContext(Dispatchers.IO){OfficialSeriesStore(context.applicationContext).remove("Цикл: "+query,"")};startCommonBookSearch()}},
+        refreshSearch = {val query=searchText.trim();modernWork.launch{AbSearchCache.invalidate(context,query);OfficialCycleSearch.invalidate(query);withContext(Dispatchers.IO){OfficialSeriesStore(context.applicationContext).remove("Цикл: "+query,"")};startCommonBookSearch(forceFullSearch=true)}},
         selectResult = {key,url->searchSelectedKey=key;searchSelectedUrl=url;searchRestored=false},
         recordSearchVisit = {key,visit->
             searchVisits=searchVisits+(key to visit)
@@ -1648,7 +1650,7 @@ internal fun AudioBookApp(searchInput: AbSearchInputModel,libraryAccessVersion: 
 
     // Checkpoints live outside the foreground/browser-generation subtree.
     // onStop closes WebViews; onStart resumes unfinished tasks without resetting completed rows.
-    val cycleCheckpoint=remember(cycleRequestId){AbCycleCheckpoint()}
+    val cycleCheckpoint=remember(cycleRequestId){AbCycleCheckpoint(forceFullSearch=forceFullCycleSearch)}
     Box(Modifier.fillMaxSize()) {
         // Browser sessions keep their own viewport and are not measured by Compose.
         if(foreground) key(browserGeneration) {
