@@ -72,14 +72,23 @@ class FayrollSourceMatrixTest {
                     var rows=emptyList<BookLink>()
                     var complete=false
                     withTimeoutOrNull(55*60_000L){
-                        abResolveCycleAudio(activity,prefs,cycle,emptyList(),checkpoint){books,finished,message->
-                            if(firstCandidateMs==null && books.any{it.catalogState in setOf("candidate","checked")}){
-                                firstCandidateMs=SystemClock.elapsedRealtime()-start
-                                Log.i("FayrollMatrix","FIRST_CANDIDATE $mode elapsedMs=$firstCandidateMs")
+                        suspend fun resolve(attempt:AbCycleCheckpoint) {
+                            abResolveCycleAudio(activity,prefs,cycle,emptyList(),attempt){books,finished,message->
+                                if(firstCandidateMs==null && books.any{it.catalogState in setOf("candidate","checked")}){
+                                    firstCandidateMs=SystemClock.elapsedRealtime()-start
+                                    Log.i("FayrollMatrix","FIRST_CANDIDATE $mode elapsedMs=$firstCandidateMs")
+                                }
+                                rows=books
+                                complete=finished
+                                Log.i("FayrollMatrix","PROGRESS $mode $message")
                             }
-                            rows=books
-                            complete=finished
-                            Log.i("FayrollMatrix","PROGRESS $mode $message")
+                        }
+                        resolve(checkpoint)
+                        if(rows.isEmpty() && checkpoint.catalogs.isNullOrEmpty()) {
+                            Log.i("FayrollMatrix","CATALOG_RETRY $mode")
+                            delay(1500)
+                            OfficialCycleSearch.invalidate(cycle.title)
+                            resolve(checkpoint)
                         }
                     }
                     Log.i("FayrollMatrix","SEARCH $mode requested=${selected.size} completed=$complete elapsedMs=${SystemClock.elapsedRealtime()-start}")

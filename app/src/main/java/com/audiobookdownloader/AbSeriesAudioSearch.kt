@@ -350,6 +350,7 @@ internal suspend fun abResolveCycleAudio(context:Context,prefs:android.content.S
     val confirmed=mutableSetOf<Int>()
     val sourceSlots=Semaphore(4)
     val attempted=mutableSetOf<AbSavedCycleLink>()
+    val sourceOrder=sources.withIndex().associate{it.value to it.index}
     val uncertain=mutableSetOf<Int>()
     fun enoughAlternatives(i:Int):Boolean {
         if(i in confirmed || checkpoint.savedVerified.any{it.volume==i})return true
@@ -365,7 +366,9 @@ internal suspend fun abResolveCycleAudio(context:Context,prefs:android.content.S
             .flatMap{candidate->bookSources(candidate).map{source->candidate to source}}
             .distinctBy{it.second.url}
             .filter{!AbSourceAvailability.hidden(AbSourceAvailability.get(prefs,it.second.url))&&!AbSourceAvailability.tooSmall(prefs,it.second.url)}
-            .sortedBy{AbSourceAvailability.get(prefs,it.second.url).priority}
+            .sortedWith(compareBy<Pair<BookLink,BookSource>>{AbSourceAvailability.get(prefs,it.second.url).priority}
+                .thenBy{sourceOrder[it.second.site] ?: Int.MAX_VALUE}
+                .thenBy{it.second.url})
         for((candidate,source) in choices){
             abRequireSearchWindow(context)
             if(AbSavedCycleLink(i,source.url) in checkpoint.savedAttempted)continue
