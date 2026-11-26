@@ -26,4 +26,4 @@ cat "matrix-$mode.txt"
 if (( result != 0 )); then
     exit "$result"
 fi
-rg -q '^OK \(1 test\)' "instrumentation-$mode.txt"
+grep -Eq '^OK \(1 test\)' "instrumentation-$mode.txt"
