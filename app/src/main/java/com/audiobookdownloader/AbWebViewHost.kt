@@ -36,8 +36,11 @@ private class AbBrowserHost(context:Context,private val viewportWidth:Int,
     override fun dispatchTouchEvent(event:android.view.MotionEvent):Boolean=false
 }
 
+internal fun abCreateBrowser(context:Context,failed:(String)->Unit,setup:WebView.()->Unit):WebView? =
+    abCreateBrowser(context,failed,false,setup)
+
 internal fun abCreateBrowser(context: Context,failed:(String)->Unit,
-    searchOwned:Boolean=false,setup:WebView.()->Unit):WebView? {
+    searchOwned:Boolean,setup:WebView.()->Unit):WebView? {
     var browser:WebView?=null
     fun failure(error:Throwable):WebView? {
         AbCrashReport.record(context,error,"Создание браузера")
