@@ -389,12 +389,16 @@ internal suspend fun abResolveCycleAudio(context:Context,prefs:android.content.S
         // Keep a hard budget per missing volume so an unavailable work cannot stall the entire cycle.
         kotlinx.coroutines.withTimeoutOrNull(120_000L){
             queries.firstOrNull()?.let{query->
-                for(batch in priority.chunked(4)){
+                searchBatch(query,preferred)
+                for(alternate in queries.drop(1)){
+                    if(enoughAlternatives(i))break
+                    searchBatch(alternate,preferred)
+                }
+                for(batch in priority.drop(preferred.size).chunked(4)){
                     if(enoughAlternatives(i))break
                     searchBatch(query,batch)
                 }
             }
-            queries.drop(1).forEach{query->if(!enoughAlternatives(i))searchBatch(query,preferred)}
         }
         abRequireSearchWindow(context)
         checkpoint.exactDone.add(i)
