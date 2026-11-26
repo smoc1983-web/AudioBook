@@ -15,7 +15,7 @@ import kotlinx.coroutines.withTimeout
 internal object AbSearchCoordinator {
     suspend fun search(sources: List<String>, timeoutMs: (String)->Long,
         fetch: suspend (String)->SiteSearchResult, report: suspend (String,SiteSearchResult)->Unit) = supervisorScope {
-        val slots=Semaphore(2)
+        val slots=Semaphore(3)
         sources.distinct().map {site -> async {
             slots.withPermit {
                 val started=System.nanoTime()

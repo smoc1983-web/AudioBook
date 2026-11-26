@@ -54,7 +54,7 @@ class FayrollLiveTest {
                         val edition=withTimeoutOrNull(20000){abProbePlaylist(activity,source.url)} ?: continue
                         if(!OpenedBookIdentity.matches(volume.title,edition.title,volume.author,edition.author,cycle,volume.order))continue
                         val tracks=edition.player.tracks
-                        if(tracks.isEmpty()||EditionDownloadRules.isPreview(edition.title,tracks.map{it.title}))continue
+                        if(tracks.isEmpty()||EditionDownloadRules.isPreviewPlaylist(edition.title,tracks.map{it.src},tracks.map{it.title}))continue
                         val count=tracks.count{starts(it.src)}
                         Log.i("FayrollQA","AUDIO | ${volume.order} | ${volume.title} | ${source.site} | $count/${tracks.size}")
                         if(count==tracks.size){ok=true;break}
