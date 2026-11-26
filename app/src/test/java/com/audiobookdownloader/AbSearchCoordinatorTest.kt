@@ -129,4 +129,28 @@ class AbSearchCoordinatorTest {
         assertTrue(reports.values.all{it.books.size==1 && it.error.isBlank()})
         assertEquals(0,active)
     }
+
+    @Test(timeout=5000) fun cachedPreviewReadsFourAtOnceAndPreservesSourceOrder()=runBlocking {
+        val sources=(1..8).map{"site-$it"}
+        val four=CompletableDeferred<Unit>()
+        val release=CompletableDeferred<Unit>()
+        var active=0;var peak=0
+        val preview=async {
+            AbSearchCoordinator.cachedPreview(sources+sources.first()) {site ->
+                active++;peak=maxOf(peak,active)
+                if(active==4)four.complete(Unit)
+                try {
+                    release.await()
+                    if(site.endsWith("3"))null
+                    else SiteSearchResult(listOf(BookLink("Fixture","https://fixture.invalid/$site")))
+                }finally{active--}
+            }
+        }
+        try {withTimeout(2000){four.await()}} finally {release.complete(Unit)}
+        val saved=preview.await()
+        assertEquals(4,peak)
+        assertEquals(sources.filterNot{it.endsWith("3")},saved.keys.toList())
+        assertTrue(saved.values.all{it.fromCache})
+        assertEquals(0,active)
+    }
 }
