@@ -1749,9 +1749,8 @@ internal fun AudioBookApp(searchInput: AbSearchInputModel,libraryAccessVersion: 
                 }
                 LaunchedEffect(requestId) {
                     if(AbSearchDiagnostics.mode(prefs)==AbSearchNetworkMode.NORMAL){
-                        val saved=linkedMapOf<String,SiteSearchResult>()
-                        for(site in requestSources){
-                            AbSearchCache.get(context,site,requestQuery)?.let{saved[site]=AbGlobalBookResults.nativeResult(it,requestQuery)}
+                        val saved=AbSearchCoordinator.cachedPreview(requestSources){site->
+                            AbSearchCache.get(context,site,requestQuery)?.let{AbGlobalBookResults.nativeResult(it,requestQuery)}
                         }
                         if(saved.isNotEmpty())presentCached(saved)
                     }
