@@ -155,9 +155,9 @@ internal object OfficialCycleSearch {
     /** Text is confirmed; absence of an audio listing is not proof that no narration exists anywhere. */
     fun missingState(cycle:String,volume:OfficialEdition,sources:List<OfficialSource>):String {
         val author=SeriesAuthorityRules.author(volume.author)
-        val key=matchKey(cycle,volume.title,volume.author)
+        val keys=aliases(cycle,volume,sources).map{matchKey(cycle,it,volume.author)}.filter{it.isNotBlank()}.toSet()
         val editions=sources.flatMap{it.books}.filter{
-            SeriesAuthorityRules.author(it.author)==author&&matchKey(cycle,it.title,it.author)==key
+            SeriesAuthorityRules.author(it.author)==author&&matchKey(cycle,it.title,it.author) in keys
         }
         return if(editions.any{it.format=="text"}&&editions.none{it.format=="audio"})"text_only" else "incomplete"
     }
