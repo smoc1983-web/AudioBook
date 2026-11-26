@@ -8,7 +8,7 @@
 
 - [Actions 45794357468](https://github.com/smoc1983-web/AudioBook/actions/runs/45794357468), HEAD `112ee0f`: checks success, Android regression failure. Скачан XML артефакт 15103804878: 55 тестов, 1 отказ. `FayrollPlaybackRegressionTest.all21OfficialPositionsPassIdentityAndPlayEveryFixtureChapter` прошёл (31.951 с): 21 позиция и 63 синтетических WAV, не реальные главы. Проверка фонового поиска упала в SearchConcurrencyAndroidTest.kt:128 на assertTrue(device.pressHome()), до проверки остановки Activity или воспроизведения WebView. Причина именно отсутствия true от UIAutomator, не подтверждённый дефект фонового сервиса; почему Home не получил подтверждение, неизвестно.
 - `54c7b99`: использовать input keyevent KEYCODE_HOME и проверять реальное видимое состояние до Home и остановку Activity после Home (15 с), сохранение leased WebView и закрытие обычного. Проверки выключенного экрана, всех восьми результатов и завершения до включения экрана не удалены. Производственный код этим исправлением не менялся.
-- Новый HEAD `54c7b99`: новый прогон ожидает появления во вкладке Checks PR #33. PR #33 остаётся draft, APK не выпущен. Реальные источники и открытие всех глав по-прежнему требуют отдельной проверки.
+- Новый HEAD `54c7b99`: [Actions 45796659272](https://github.com/smoc1983-web/AudioBook/actions/runs/45796659272) QA in_progress; [45796659392](https://github.com/smoc1983-web/AudioBook/actions/runs/45796659392) ub-mode in_progress. PR #33 остаётся draft, APK не выпущен. Реальные источники и открытие всех глав по-прежнему требуют отдельной проверки.
 
 ## 2026-11-26 — Ручной QA 4.2.130: отказ открытия книг, PR #33
 
