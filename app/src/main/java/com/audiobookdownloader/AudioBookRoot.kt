@@ -812,6 +812,7 @@ internal fun AudioBookApp(searchInput: AbSearchInputModel,libraryAccessVersion: 
     }
 
     fun openDownloadedBook(libraryBook:LibraryBook,autoPlay:Boolean=true) {
+        leaveBookSearch()
         genreDeferredPending=genreDeferredPending+genrePending
         if(genreExternalLoading) {genreExternalMore=true;genreExternalBatch--}
         cancelSearchMerges()
@@ -897,12 +898,13 @@ internal fun AudioBookApp(searchInput: AbSearchInputModel,libraryAccessVersion: 
         attemptedAudioSources=attemptedAudioSources+attempt
         if(OpenAudioCatalog.fromPage(sourceUrl)!=null) {
             if(rememberResults)rememberSearchResults()
-            cancelSearchMerges()
+            val keepSearch=preserveSearchForBook()
+            if(!keepSearch)cancelSearchMerges()
             val request=++bookOpenId
             bookOpening=AbBookOpen(book,sourceUrl);bookPageLoading=true;bookPageError=""
             searchSessionActive=true;searchScreenId++;searchScrollTarget=0 to 0
-            unifiedQuery="";unifiedSearchId++;genrePending=emptySet();genreExternalLoading=false
-            cycleLoading=false;cycleBrowsing=false;detectedCycle=null;selectedGenre=""
+            if(!keepSearch){unifiedQuery="";unifiedSearchId++;cycleRequestId++;cycleLoading=false;cycleBrowsing=false}
+            genrePending=emptySet();genreExternalLoading=false;detectedCycle=null;selectedGenre=""
             player=null;bookLinks=emptyList();insideBook=true;currentUrl=sourceUrl
             pageTitle=book.title;currentBookAuthor=book.author;currentCoverUrl=book.coverUrl
             resumeAfterLoad=false;loadId=0;trackStates.clear();appPage=AppPage.SEARCH;status="Загружаю главы…"
@@ -952,7 +954,8 @@ internal fun AudioBookApp(searchInput: AbSearchInputModel,libraryAccessVersion: 
             it.url.substringBefore('#').trimEnd('/')==selectedUrl.substringBefore('#').trimEnd('/')
         }?.coverUrl.orEmpty().ifBlank{book.coverUrl}
         if(rememberResults)rememberSearchResults()
-        cancelSearchMerges()
+        val keepSearch=preserveSearchForBook()
+        if(!keepSearch)cancelSearchMerges()
         bookOpening=AbBookOpen(book,selectedUrl)
         bookPageLoading=true;bookPageError=""
         searchScrollTarget=0 to 0
@@ -964,12 +967,14 @@ internal fun AudioBookApp(searchInput: AbSearchInputModel,libraryAccessVersion: 
         selectedGenre = ""
         genreDeferredPending=emptySet();genreResultTarget=AB_GENRE_PAGE
         genreNext = emptyMap()
-        unifiedQuery = ""
-        unifiedSearchId++
-        cycleRequestId++
-        cycleLoading = false
-        if (!cycleBrowsing) selectedCycle = null
-        cycleBrowsing = false
+        if(!keepSearch){
+            unifiedQuery = ""
+            unifiedSearchId++
+            cycleRequestId++
+            cycleLoading = false
+            if (!cycleBrowsing) selectedCycle = null
+            cycleBrowsing = false
+        }
         detectedCycle = null
         player = null
         bookLinks = emptyList()
@@ -987,6 +992,7 @@ internal fun AudioBookApp(searchInput: AbSearchInputModel,libraryAccessVersion: 
     }
 
     fun openWebsiteCycle(cycle: BookCycle) {
+        leaveBookSearch()
         forceFullCycleSearch=false
         bookOpening=null;bookPageLoading=false;bookPageError=""
         rememberSearchResults()
@@ -1039,6 +1045,7 @@ internal fun AudioBookApp(searchInput: AbSearchInputModel,libraryAccessVersion: 
             status="Поддерживаются ссылки на сайты из раздела «Источники»"
             return
         }
+        leaveBookSearch()
         searchReturns=emptyList();searchScrollTarget=0 to 0
         bookOpening=null;bookPageLoading=false;bookPageError=""
         genreExternalId++;genreExternalLoading=false
@@ -1102,6 +1109,7 @@ internal fun AudioBookApp(searchInput: AbSearchInputModel,libraryAccessVersion: 
             bookOpening=AbBookOpen(BookLink(displayTitle,ref.url,ref.cover,savedAuthor),ref.url)
             bookPageLoading=true;bookPageError=""
             rememberSearchResults()
+            leaveBookSearch()
             cancelSearchMerges()
             searchScrollTarget=0 to 0
             genreExternalId++;genreExternalLoading=false
@@ -1204,6 +1212,7 @@ internal fun AudioBookApp(searchInput: AbSearchInputModel,libraryAccessVersion: 
     }
 
     fun showSearchHome() {
+        leaveBookSearch()
         searchSelectedKey="";searchSelectedUrl="";searchRestored=false;searchVisits=emptyMap();searchOpenedUrls=emptySet();searchRestoreKey=""
         cancelSearchMerges()
         bookOpening=null;bookPageLoading=false;bookPageError=""
@@ -1226,14 +1235,16 @@ internal fun AudioBookApp(searchInput: AbSearchInputModel,libraryAccessVersion: 
     }
 
     fun backToSearchResults() {
-        cancelSearchMerges()
+        val keepSearch=leaveBookSearch()
+        if(!keepSearch)cancelSearchMerges()
         bookOpening=null;bookPageLoading=false;bookPageError=""
         val saved=searchReturns.lastOrNull()
         if(saved==null) {showSearchHome();return}
         searchReturns=searchReturns.dropLast(1)
-        // Invalidate page/search callbacks before restoring immutable results.
-        bookOpenId++;loadId++;unifiedSearchId++;cycleRequestId++;genreRequestId++;genreExternalId++
-        resumeAfterLoad=false;currentUrl="";unifiedQuery="";cycleLoading=false
+        // Invalidate the book page, not the still-running search.
+        bookOpenId++;loadId++;genreRequestId++;genreExternalId++
+        resumeAfterLoad=false;currentUrl=""
+        if(!keepSearch){unifiedSearchId++;cycleRequestId++;unifiedQuery="";cycleLoading=false}
         genrePending=emptySet();genreExternalLoading=false
         player=null;insideBook=false;pageTitle="";currentCoverUrl="";currentBookAuthor=""
         detectedCycle=null;selectedCycle=saved.cycle;cycleBrowsing=saved.cycleBrowsing
@@ -1243,10 +1254,11 @@ internal fun AudioBookApp(searchInput: AbSearchInputModel,libraryAccessVersion: 
         genreResultTarget=genre.visibleCount;genreDeferredPending=genre.pending
         genreExternalMore=genre.externalMore;genreExternalBooks=genre.externalBooks
         genreExternalVisited=genre.externalVisited;genreExternalStatus=genre.externalStatus
-        searchReports=emptyMap();bookLinks=saved.books;searchText=saved.query
+        if(!keepSearch)searchReports=emptyMap()
+        bookLinks=saved.books;searchText=saved.query
         selectedSearchSource=saved.source
         prefs.edit().putString("search_source",selectedSearchSource).apply()
-        status=if(saved.interrupted) "Сохранено результатов: ${saved.books.size}. Поиск был прерван открытием книги. Для обновления нажмите «Найти»."
+        status=if(saved.interrupted&&!keepSearch) "Сохранено результатов: ${saved.books.size}. Поиск был прерван открытием книги. Для обновления нажмите «Найти»."
             else saved.status
         searchSelectedKey=saved.selectedKey;searchSelectedUrl=saved.selectedUrl;searchRestored=true
         searchScrollTarget=saved.scrollIndex to saved.scrollOffset;searchRestoreKey=saved.scrollKey
@@ -1630,7 +1642,7 @@ internal fun AudioBookApp(searchInput: AbSearchInputModel,libraryAccessVersion: 
         page = appPage, query = searchText, searchSource=selectedSearchSource,results = bookLinks, onlineBook = player,
         pageTitle = pageTitle, pageUrl = currentUrl, pageCover = currentCoverUrl,
         bookOpening=bookOpening,bookPageLoading=bookPageLoading,bookPageError=bookPageError,
-        cycle = detectedCycle ?: selectedCycle, cycleBrowsing = cycleBrowsing,
+        cycle = if(searchBehindBook)detectedCycle else detectedCycle ?: selectedCycle, cycleBrowsing = cycleBrowsing&&!searchBehindBook,
         searchActive = searchSessionActive, searchScreenId = searchScreenId,
         canReturnResults = searchReturns.isNotEmpty(), searchListState = searchListState, searchRestoreIndex=searchScrollTarget.first,
         selectedResultKey=searchSelectedKey,selectedResultUrl=searchSelectedUrl,restoreSelection=searchRestored,
@@ -1641,7 +1653,7 @@ internal fun AudioBookApp(searchInput: AbSearchInputModel,libraryAccessVersion: 
         coverRepairRunning = coverRepairRunning, coverRepairStatus = coverRepairStatus,
         searching = unifiedQuery.isNotBlank() || cycleLoading || unifiedMerging || genreIsWorking(),
         status = status,
-        sourceProgress=if(unifiedQuery.isNotBlank()||unifiedMerging)abSourceProgress(searchReports,unifiedSources) else null,
+        sourceProgress=if((unifiedQuery.isNotBlank()||unifiedMerging)&&!cycleBrowsing)abSourceProgress(searchReports,unifiedSources) else null,
         skin = appSkin, backgroundUri = customBackgroundUri,
         version = userDataVersion + bookmarksVersion + coverRefresh,
         playback = playbackState, durations = modernDurations,
@@ -1736,7 +1748,7 @@ internal fun AudioBookApp(searchInput: AbSearchInputModel,libraryAccessVersion: 
                 AbSearchTaskEffect(context,requestId,onStopped={
                     if(requestId==unifiedSearchId){
                         unifiedQuery="";cycleLoading=false;unifiedMergeJob?.cancel();unifiedMerging=false
-                        status="Поиск остановлен. Найденные результаты сохранены."
+                        publishSearch(message="Поиск остановлен. Найденные результаты сохранены.",finished=true)
                     }
                 }) {
                     var referenceAuthor=""
@@ -1757,19 +1769,21 @@ internal fun AudioBookApp(searchInput: AbSearchInputModel,libraryAccessVersion: 
                         cachedReports=saved
                         val merged=merge(saved)
                         if(active()&&searchReports.isEmpty()&&merged.isNotEmpty()){
-                            bookLinks=merged;status="Сохранённые результаты. Обновляю поиск…"
+                            publishSearch(merged,"Сохранённые результаты. Обновляю поиск…")
                         }
                     }
                     suspend fun runCycle(target:BookCycle){
                         if(!active())return
-                        selectedCycle=target;searchText=target.title
+                        selectedCycle=target
+                        if(!searchBehindBook)searchText=target.title
                         cycleBrowsing=true;cycleLoading=true
+                        publishSearch(cycle=target)
                         val id=++cycleRequestId
                         unifiedCycleRequest=id
-                        val fallback=bookLinks.toList()
+                        val fallback=activeSearchBooks().toList()
                         abResolveCycleAudio(context,prefs,target,fallback,AbCycleCheckpoint(forceFullSearch=force)){books,finished,message->
                             if(active()&&id==cycleRequestId&&cycleBrowsing){
-                                bookLinks=abOrderSeries(books,target);status=message
+                                publishSearch(abOrderSeries(books,target),message,cycle=target,finished=finished)
                                 if(finished)cycleLoading=false
                             }
                         }
@@ -1782,7 +1796,7 @@ internal fun AudioBookApp(searchInput: AbSearchInputModel,libraryAccessVersion: 
                             if(saved.isNotEmpty())presentCached(saved)
                         }
                         if(!active())return@AbSearchTaskEffect
-                        status="Сначала сверяю книгу и цикл по Author.Today и Литрес…"
+                        publishSearch(message="Сначала сверяю книгу и цикл по Author.Today и Литрес…")
                         val reference=OfficialCycleSearch.preflight(requestQuery,context)
                         val rankedSeries=if(ranked!=null&&narration==null)rankedCycle(prefs,ranked) else null
                         val template=if(ranked==null&&narration==null)reference.template else null
@@ -1810,7 +1824,7 @@ internal fun AudioBookApp(searchInput: AbSearchInputModel,libraryAccessVersion: 
                                             try{
                                                 val merged=merge(cachedReports+reports)
                                                 if(version==unifiedMergeVersion&&active()){
-                                                    bookLinks=merged;status=unifiedSearchStatus(reports,merged.size,requestSources)
+                                                    publishSearch(merged,unifiedSearchStatus(reports,merged.size,requestSources))
                                                 }
                                             }finally{if(version==unifiedMergeVersion)unifiedMerging=false}
                                         }
@@ -1819,17 +1833,18 @@ internal fun AudioBookApp(searchInput: AbSearchInputModel,libraryAccessVersion: 
                             }
                             unifiedMergeJob?.join()
                             if(active()){
-                                if(ranked!=null&&bookLinks.isEmpty()){
+                                if(ranked!=null&&activeSearchBooks().isEmpty()){
                                     val local=libraryBooks.any{it.files.isNotEmpty()&&SeriesAuthorityRules.sameTitle(ranked.title,it.title,"")}
-                                    rankedAudioStatus(ranked,local,requestSources.isNotEmpty()&&requestSources.all{searchReports[it]?.error.isNullOrBlank()})?.let{status=it}
+                                    rankedAudioStatus(ranked,local,requestSources.isNotEmpty()&&requestSources.all{searchReports[it]?.error.isNullOrBlank()})?.let{publishSearch(message=it)}
                                 }
                                 if(ranked==null&&narration==null&&!cycleBrowsing)
-                                    abExactCycleSeed(bookLinks,requestQuery)?.let{runCycle(it)}
+                                    abExactCycleSeed(activeSearchBooks(),requestQuery)?.let{runCycle(it)}
                             }
                         }
                     } finally {
                         if(active()){
                             unifiedQuery="";unifiedMerging=false;cycleLoading=false
+                            publishSearch(finished=true)
                         }
                     }
                 }
@@ -1842,15 +1857,14 @@ internal fun AudioBookApp(searchInput: AbSearchInputModel,libraryAccessVersion: 
                 val cycle = selectedCycle!!
                 val publish:(List<BookLink>,Boolean,String)->Unit = { books,finished,message ->
                     if(requestId==cycleRequestId && cycleBrowsing) {
-                        bookLinks=abOrderSeries(books,cycle)
-                        status=message
+                        publishSearch(abOrderSeries(books,cycle),message,cycle=cycle,finished=finished)
                         if(finished)cycleLoading=false
                     }
                 }
                 if(cycle.referenceUrl.isNotBlank() || cycle.seedTitle.isNotBlank()) {
-                    val fallback=remember(requestId){bookLinks.toList()}
+                    val fallback=remember(requestId){activeSearchBooks().toList()}
                     AbSearchTaskEffect(context,requestId,onStopped={
-                        if(requestId==cycleRequestId){cycleLoading=false;status="Поиск остановлен. Найденные результаты сохранены."}
+                        if(requestId==cycleRequestId){cycleLoading=false;publishSearch(message="Поиск остановлен. Найденные результаты сохранены.",finished=true)}
                     }) {
                         abResolveCycleAudio(context,prefs,cycle,fallback,cycleCheckpoint,publish)
                     }
