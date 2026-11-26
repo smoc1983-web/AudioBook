@@ -34,13 +34,13 @@ class FayrollSourceMatrixTest {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             lateinit var activity:MainActivity
             scenario.onActivity{activity=it}
-            runBlocking(Dispatchers.Main) {
-                val start=SystemClock.elapsedRealtime()
-                val cycle=BookCycle("Файролл",referenceUrl="https://author.today/work/series/1350",seedAuthor="Андрей Васильев")
-                val checkpoint=AbCycleCheckpoint()
-                var rows=emptyList<BookLink>()
-                var complete=false
-                try {
+            try {
+                runBlocking(Dispatchers.Main) {
+                    val start=SystemClock.elapsedRealtime()
+                    val cycle=BookCycle("Файролл",referenceUrl="https://author.today/work/series/1350",seedAuthor="Андрей Васильев")
+                    val checkpoint=AbCycleCheckpoint()
+                    var rows=emptyList<BookLink>()
+                    var complete=false
                     withTimeoutOrNull(55*60_000L){
                         abResolveCycleAudio(activity,prefs,cycle,emptyList(),checkpoint){books,finished,message->
                             rows=books
@@ -81,7 +81,9 @@ class FayrollSourceMatrixTest {
                     }
                     assertTrue("Cycle search failed to complete",complete)
                     assertTrue("Official catalogue returned no rows",rows.isNotEmpty())
-                }finally{finishPlaybackFixture(activity)}
+                }
+            } finally {
+                finishPlaybackFixture(activity)
             }
         }
     }

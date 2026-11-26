@@ -276,9 +276,18 @@ internal suspend fun abResolveCycleAudio(context:Context,prefs:android.content.S
         }
         checkpoint.savedLoaded=true
     }
-    fun referencesFor(i:Int)=catalogs.flatMap{it.books}.filter{b->
-        aliases[i].any{OfficialCycleSearch.matches(cycle.title,it,b.title)}&&
-            SeriesAuthorityRules.author(b.author)==SeriesAuthorityRules.author(volumes[i].author)
+    val referencesByVolume=withContext(Dispatchers.Default){
+        val references=catalogs.flatMap{it.books}.groupBy { edition ->
+            SeriesAuthorityRules.author(edition.author)
+        }.mapValues { (_, editions) ->
+            editions.map { it to OfficialCycleSearch.matchKey(cycle.title,it.title) }
+        }
+        aliases.mapIndexed { i, titles ->
+            val keys=titles.map{OfficialCycleSearch.matchKey(cycle.title,it)}.filter{it.isNotBlank()}.toSet()
+            references[volumeAuthors[i]].orEmpty().mapNotNull { (edition,key) ->
+                edition.takeIf{key in keys}
+            }
+        }
     }
     if(!checkpoint.savedRefreshDone&&!checkpoint.forceFullSearch){
         val cachedChoices=volumes.indices.flatMap{i->
@@ -291,7 +300,7 @@ internal suspend fun abResolveCycleAudio(context:Context,prefs:android.content.S
             abRequireSearchWindow(context)
             val candidate=cachedChoices.getValue(link)
             abProbeCycleEdition(context,volumes[link.volume],link.url,cycle.title,aliases[link.volume],
-                candidate.author,referencesFor(link.volume)) &&
+                candidate.author,referencesByVolume[link.volume]) &&
                 AbSourceAvailability.get(prefs,link.url)==AbChapterAvailability.AVAILABLE &&
                 AbSourceAvailability.sizePassed(prefs,link.url)
         },{link,ok->
@@ -347,7 +356,7 @@ internal suspend fun abResolveCycleAudio(context:Context,prefs:android.content.S
             if(AbSavedCycleLink(i,source.url) in checkpoint.savedAttempted)continue
             if(source.url in checkpoint.verified)continue
             report("Проверка глав: ${i+1}/${volumes.size}.")
-            val references=referencesFor(i)
+            val references=referencesByVolume[i]
             val ok=kotlinx.coroutines.withTimeoutOrNull(40_000L){
                 abProbeCycleEdition(context,volumes[i],source.url,cycle.title,aliases[i],candidate.author,references)
             }==true
