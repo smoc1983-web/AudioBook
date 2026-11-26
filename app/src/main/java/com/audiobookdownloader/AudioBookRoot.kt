@@ -1585,7 +1585,11 @@ internal fun AudioBookApp(searchInput: AbSearchInputModel,libraryAccessVersion: 
         nativeGenre = {openGenre(it.title,native=it)},
         moreGenre = {loadMoreGenre()},
         repairCovers = {repairModernCovers()},
-        openSite = { book, source -> openWebsiteBook(book, source) },
+        openSite = { book, source ->
+            // A home poster opens a detail page without inheriting an unsent query.
+            if(!searchSessionActive)searchText=""
+            openWebsiteBook(book, source)
+        },
         openRef = { openBookRef(it) },
         cycle = { cycle -> openWebsiteCycle(cycle) },
         playOnline = { index ->
@@ -1753,10 +1757,19 @@ internal fun AudioBookApp(searchInput: AbSearchInputModel,libraryAccessVersion: 
                 }) {
                     var referenceAuthor=""
                     var cachedReports:Map<String,SiteSearchResult> = emptyMap()
+                    val openedCatalogueCard=if(ranked==null && narration==null && !force)
+                        abOpenedCatalogMatch(prefs,requestQuery,requestSources) else null
                     fun active()=requestId==unifiedSearchId && unifiedQuery.isNotBlank()
                     suspend fun merge(reports:Map<String,SiteSearchResult>):List<BookLink> = withContext(Dispatchers.Default){
                         val job=kotlinx.coroutines.currentCoroutineContext()
-                        val result=AbGlobalBookResults.prepare(reports,requestSources,requestQuery,AB_SEARCH_LIMIT,checkActive={job.ensureActive()})
+                        val catalogue=openedCatalogueCard?.let{card->
+                            val site=bookSiteName(card.url)
+                            val report=reports[site] ?: SiteSearchResult(emptyList(),fromCache=true)
+                            val url=card.url.substringBefore('#').trimEnd('/')
+                            if(report.books.any{book->bookSources(book).any{it.url.substringBefore('#').trimEnd('/')==url}})
+                                reports else reports+(site to report.copy(books=report.books+card))
+                        } ?: reports
+                        val result=AbGlobalBookResults.prepare(catalogue,requestSources,requestQuery,AB_SEARCH_LIMIT,checkActive={job.ensureActive()})
                         when {
                             narration!=null -> result.mapNotNull{narration.match(prefs,it)}
                             ranked!=null -> result.mapNotNull{rankedAudioResult(prefs,ranked,it)}
@@ -1792,7 +1805,7 @@ internal fun AudioBookApp(searchInput: AbSearchInputModel,libraryAccessVersion: 
                             val saved=AbSearchCoordinator.cachedPreview(requestSources){site->
                                 AbSearchCache.getPreview(context,site,requestQuery)?.let{AbGlobalBookResults.nativeResult(it,requestQuery)}
                             }
-                            if(saved.isNotEmpty())presentCached(saved)
+                            if(saved.isNotEmpty() || openedCatalogueCard!=null)presentCached(saved)
                         }
                         if(!active())return@AbSearchTaskEffect
                         publishSearch(message="Сначала сверяю книгу и цикл по Author.Today и Литрес…")
