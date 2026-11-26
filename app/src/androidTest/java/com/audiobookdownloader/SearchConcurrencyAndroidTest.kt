@@ -164,4 +164,80 @@ class SearchConcurrencyAndroidTest {
             }
         }
     }
+
+    @Test(timeout=180000) fun liveSearchResultsContinueWhileBookDetailsAreOpenAndAfterReturn(){
+        ActivityScenario.launch(MainActivity::class.java).use {scenario->
+            lateinit var activity:MainActivity
+            scenario.onActivity{activity=it}
+            runBlocking{withContext(Dispatchers.Main){
+                for(cycleMode in listOf(false,true)){
+                    val prefs=activity.getSharedPreferences("search_navigation_fixture",0)
+                    val state=AbAppUiState(prefs)
+                    val cycle=BookCycle("Fixture series")
+                    state.searchScreenId=42
+                    state.unifiedSearchId=101
+                    state.cycleRequestId=102
+                    state.unifiedQuery="Fixture"
+                    state.cycleBrowsing=cycleMode
+                    state.cycleLoading=cycleMode
+                    state.selectedCycle=cycle.takeIf{cycleMode}
+                    val reports=linkedMapOf<String,SiteSearchResult>()
+                    val requested=mutableListOf<String>()
+                    val sources=(1..8).map{"navigation-$it"}
+                    val page=PlayerData("opened",60,listOf(AudioTrack("Chapter",60,"https://fixture.invalid/chapter.wav")))
+                    AbSearchCoordinator.search(sources,{20000L},{site->
+                        requested.add(site)
+                        fixture(activity,site)
+                    },{site,result->
+                        assertTrue(result.error,result.error.isBlank())
+                        reports[site]=result
+                        state.publishSearch(reports.values.flatMap{it.books},"Reports: "+reports.size,
+                            cycle=cycle.takeIf{cycleMode})
+                        if(reports.size==1){
+                            val genre=AbGenreReturn("","",emptyMap(),emptyMap(),emptyMap(),emptyMap(),0,false,emptyList(),emptySet(),"",20,emptySet())
+                            val selected=state.bookLinks.single()
+                            state.searchReturns=listOf(AbSearchReturn(42,"Fixture",state.bookLinks,state.status,state.selectedCycle,
+                                cycleMode,genre,7,13,true,selectedKey="selected",selectedUrl=selected.url,scrollKey="anchor"))
+                            assertTrue(state.preserveSearchForBook())
+                            state.searchScreenId++
+                            state.insideBook=true
+                            state.bookLinks=emptyList()
+                            state.status="Book details"
+                            state.player=page
+                        }else if(reports.size<=5){
+                            assertTrue(state.searchBehindBook)
+                            assertTrue(state.bookLinks.isEmpty())
+                            assertSame(page,state.player)
+                            assertEquals("Book details",state.status)
+                            assertEquals(reports.size,state.activeSearchBooks().size)
+                            if(reports.size==5){
+                                val saved=state.searchReturns.single()
+                                assertEquals(7,saved.scrollIndex)
+                                assertEquals(13,saved.scrollOffset)
+                                assertEquals("selected",saved.selectedKey)
+                                assertEquals("anchor",saved.scrollKey)
+                                assertEquals(cycleMode,saved.cycleBrowsing)
+                                assertTrue(state.leaveBookSearch())
+                                state.searchReturns=emptyList()
+                                state.insideBook=false
+                                state.player=null
+                                state.bookLinks=saved.books
+                                state.status=saved.status
+                            }
+                        }else{
+                            assertFalse(state.searchBehindBook)
+                            assertEquals(reports.size,state.bookLinks.size)
+                        }
+                    })
+                    state.publishSearch(finished=true)
+                    assertEquals(sources.toSet(),requested.toSet())
+                    assertEquals(8,requested.size)
+                    assertEquals(8,state.bookLinks.size)
+                    assertEquals(101,state.unifiedSearchId)
+                    assertEquals(102,state.cycleRequestId)
+                    println("SEARCH_NAVIGATION_FIXTURE cycle="+cycleMode+" sources=8 unique=8")
+                }
+            }}
+        }
+    }
 }
