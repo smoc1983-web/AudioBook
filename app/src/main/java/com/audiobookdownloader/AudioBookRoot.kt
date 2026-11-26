@@ -211,6 +211,7 @@ internal fun AudioBookApp(searchInput: AbSearchInputModel,libraryAccessVersion: 
     val downloadedIndex=librarySync.downloadedIndex
     val modernWork=androidx.compose.runtime.rememberCoroutineScope()
     var forceFullCycleSearch by remember {mutableStateOf(false)}
+    var unifiedCycleRequest by remember {mutableStateOf(-1)}
     LaunchedEffect(Unit) {PlaybackService.restoreScreenState(context.applicationContext)}
 
 
@@ -1723,123 +1724,119 @@ internal fun AudioBookApp(searchInput: AbSearchInputModel,libraryAccessVersion: 
 
         }
         }
-        // User-initiated searches are independent of the foreground browser subtree.
+        // User-initiated search owns one job across preflight, discovery and cycle resolution.
         if (unifiedQuery.isNotBlank()) {
             key(unifiedSearchId) {
-                val requestId = unifiedSearchId
+                val requestId=unifiedSearchId
                 val requestSources=unifiedSources.toList()
                 val requestQuery=unifiedQuery
                 val ranked=rankedSearch
                 val narration=narrationSearch
-                var referenceChecked by remember(requestId){mutableStateOf(false)}
-                var referenceAuthor by remember(requestId){mutableStateOf("")}
-                var cachedReports by remember(requestId){mutableStateOf<Map<String,SiteSearchResult>>(emptyMap())}
-                suspend fun presentCached(saved:Map<String,SiteSearchResult>) {
-                    if(requestId!=unifiedSearchId || unifiedQuery.isBlank() || searchReports.isNotEmpty())return
-                    cachedReports=saved
-                    val merged=withContext(Dispatchers.Default){
+                val force=forceFullCycleSearch
+                AbSearchTaskEffect(context,requestId,onStopped={
+                    if(requestId==unifiedSearchId){
+                        unifiedQuery="";cycleLoading=false;unifiedMergeJob?.cancel();unifiedMerging=false
+                        status="Поиск остановлен. Найденные результаты сохранены."
+                    }
+                }) {
+                    var referenceAuthor=""
+                    var cachedReports:Map<String,SiteSearchResult> = emptyMap()
+                    fun active()=requestId==unifiedSearchId && unifiedQuery.isNotBlank()
+                    suspend fun merge(reports:Map<String,SiteSearchResult>):List<BookLink> = withContext(Dispatchers.Default){
                         val job=kotlinx.coroutines.currentCoroutineContext()
-                        val result=AbGlobalBookResults.prepare(saved,requestSources,requestQuery,AB_SEARCH_LIMIT,checkActive={job.ensureActive()})
+                        val result=AbGlobalBookResults.prepare(reports,requestSources,requestQuery,AB_SEARCH_LIMIT,checkActive={job.ensureActive()})
                         when {
                             narration!=null -> result.mapNotNull{narration.match(prefs,it)}
                             ranked!=null -> result.mapNotNull{rankedAudioResult(prefs,ranked,it)}
-                            else -> if(referenceAuthor.isBlank())result else result.filter{
-                                it.author.isBlank()||SeriesAuthorityRules.author(it.author)==SeriesAuthorityRules.author(referenceAuthor)
+                            referenceAuthor.isBlank() -> result
+                            else -> result.filter{it.author.isBlank()||SeriesAuthorityRules.author(it.author)==SeriesAuthorityRules.author(referenceAuthor)}
+                        }
+                    }
+                    suspend fun presentCached(saved:Map<String,SiteSearchResult>){
+                        if(!active()||searchReports.isNotEmpty())return
+                        cachedReports=saved
+                        val merged=merge(saved)
+                        if(active()&&searchReports.isEmpty()&&merged.isNotEmpty()){
+                            bookLinks=merged;status="Сохранённые результаты. Обновляю поиск…"
+                        }
+                    }
+                    suspend fun runCycle(target:BookCycle){
+                        if(!active())return
+                        selectedCycle=target;searchText=target.title
+                        cycleBrowsing=true;cycleLoading=true
+                        val id=++cycleRequestId
+                        unifiedCycleRequest=id
+                        val fallback=bookLinks.toList()
+                        abResolveCycleAudio(context,prefs,target,fallback,AbCycleCheckpoint(forceFullSearch=force)){books,finished,message->
+                            if(active()&&id==cycleRequestId&&cycleBrowsing){
+                                bookLinks=abOrderSeries(books,target);status=message
+                                if(finished)cycleLoading=false
                             }
                         }
                     }
-                    if(requestId==unifiedSearchId && unifiedQuery.isNotBlank() && searchReports.isEmpty() && merged.isNotEmpty()){
-                        bookLinks=merged
-                        status="Сохранённые результаты. Обновляю поиск…"
-                    }
-                }
-                LaunchedEffect(requestId) {
-                    if(AbSearchDiagnostics.mode(prefs)==AbSearchNetworkMode.NORMAL){
-                        val saved=AbSearchCoordinator.cachedPreview(requestSources){site->
-                            AbSearchCache.getPreview(context,site,requestQuery)?.let{AbGlobalBookResults.nativeResult(it,requestQuery)}
+                    try{
+                        if(AbSearchDiagnostics.mode(prefs)==AbSearchNetworkMode.NORMAL&&!force){
+                            val saved=AbSearchCoordinator.cachedPreview(requestSources){site->
+                                AbSearchCache.getPreview(context,site,requestQuery)?.let{AbGlobalBookResults.nativeResult(it,requestQuery)}
+                            }
+                            if(saved.isNotEmpty())presentCached(saved)
                         }
-                        if(saved.isNotEmpty())presentCached(saved)
-                    }
-                }
-                LaunchedEffect(requestId) {
-                    if(!referenceChecked) {
+                        if(!active())return@AbSearchTaskEffect
                         status="Сначала сверяю книгу и цикл по Author.Today и Литрес…"
                         val reference=OfficialCycleSearch.preflight(requestQuery,context)
                         val rankedSeries=if(ranked!=null&&narration==null)rankedCycle(prefs,ranked) else null
                         val template=if(ranked==null&&narration==null)reference.template else null
-                        if(requestId==unifiedSearchId && unifiedQuery.isNotBlank()){
-                            referenceAuthor=reference.author
-                            if(rankedSeries!=null){
-                                selectedCycle=rankedSeries;searchText=rankedSeries.title
-                                cycleBrowsing=true;cycleLoading=true;cycleRequestId++
-                                unifiedQuery="";bookLinks=emptyList()
-                                status="Цикл книги подтверждён. Ищу аудио всех томов…"
-                            }else if(template!=null){
-                                val primary=template.sources.sortedWith(compareByDescending<OfficialSource>{it.complete&&it.error.isBlank()}.thenByDescending{it.books.mapNotNull{b->b.order}.distinct().size}.thenBy{it.provider!="Author.Today"}).first()
-                                selectedCycle=BookCycle(primary.series,referenceUrl=primary.seriesUrl,
-                                    referenceSite=primary.provider,seedAuthor=template.author)
-                                cycleBrowsing=true;cycleLoading=true;cycleRequestId++
-                                unifiedQuery="";bookLinks=emptyList()
-                                status="Цикл подтверждён справочниками. Ищу аудиокниги по порядку…"
-                            }else referenceChecked=true
+                        if(!active())return@AbSearchTaskEffect
+                        referenceAuthor=reference.author
+                        val target=rankedSeries ?: template?.let{
+                            val primary=it.sources.sortedWith(compareByDescending<OfficialSource>{source->source.complete&&source.error.isBlank()}
+                                .thenByDescending{source->source.books.mapNotNull{book->book.order}.distinct().size}
+                                .thenBy{source->source.provider!="Author.Today"}).first()
+                            BookCycle(primary.series,referenceUrl=primary.seriesUrl,referenceSite=primary.provider,seedAuthor=it.author)
                         }
-                    }
-                }
-                if(referenceChecked) UnifiedBookSearch(unifiedQuery, prefs,requestSources,refreshCached=true,
-                    onCached={saved->presentCached(saved)},
-                    onStopped={
-                        if(requestId==unifiedSearchId){
-                            unifiedQuery="";unifiedMergeJob?.cancel();unifiedMerging=false
-                            status="Поиск остановлен. Найденные результаты сохранены."
-                        }
-                    }) { site, report ->
-                    if (requestId == unifiedSearchId && unifiedQuery.isNotBlank()) {
-                        val limited=report.copy(books=report.books.take(AB_SEARCH_LIMIT))
-                        modernWork.launch(Dispatchers.IO){limited.books.forEach{abRememberCatalog(prefs,it)}}
-                        searchReports=searchReports+(site to limited)
-                        AbSourceTrace.recordSearch(context,unifiedQuery,searchReports,requestSources)
-                        val reports=searchReports
-                        val version=++unifiedMergeVersion
-                        unifiedMergeJob?.cancel();unifiedMerging=true
-                        unifiedMergeJob=modernWork.launch {
-                            try {
-                                val merged=withContext(Dispatchers.Default) {
-                                    val context=kotlinx.coroutines.currentCoroutineContext()
-                                    val result=AbGlobalBookResults.prepare(cachedReports+reports,requestSources,requestQuery,AB_SEARCH_LIMIT,checkActive={context.ensureActive()})
-                                    when {
-                                        narration!=null -> result.mapNotNull{narration.match(prefs,it)}
-                                        ranked!=null -> result.mapNotNull{rankedAudioResult(prefs,ranked,it)}
-                                        else -> if(referenceAuthor.isBlank())result else result.filter{
-                                            it.author.isBlank()||SeriesAuthorityRules.author(it.author)==SeriesAuthorityRules.author(referenceAuthor)
+                        if(target!=null)runCycle(target)
+                        else {
+                            abRunUnifiedBookSearch(context,requestQuery,prefs,requestSources,refreshCached=true,onCached={saved->presentCached(saved)}){site,report->
+                                if(active()){
+                                    val limited=report.copy(books=report.books.take(AB_SEARCH_LIMIT))
+                                    withContext(Dispatchers.IO){limited.books.forEach{abRememberCatalog(prefs,it)}}
+                                    if(active()){
+                                        searchReports=searchReports+(site to limited)
+                                        AbSourceTrace.recordSearch(context,requestQuery,searchReports,requestSources)
+                                        val reports=searchReports
+                                        val version=++unifiedMergeVersion
+                                        unifiedMergeJob?.cancel();unifiedMerging=true
+                                        unifiedMergeJob=modernWork.launch{
+                                            try{
+                                                val merged=merge(cachedReports+reports)
+                                                if(version==unifiedMergeVersion&&active()){
+                                                    bookLinks=merged;status=unifiedSearchStatus(reports,merged.size,requestSources)
+                                                }
+                                            }finally{if(version==unifiedMergeVersion)unifiedMerging=false}
                                         }
                                     }
                                 }
-                                if(version!=unifiedMergeVersion || requestId!=unifiedSearchId || unifiedQuery.isBlank())return@launch
-                                bookLinks=merged
-                                status=unifiedSearchStatus(reports,merged.size,requestSources)
-                                if(requestSources.all{it in reports}) {
-                                    if(ranked!=null && merged.isEmpty()) {
-                                        val local=libraryBooks.any { it.files.isNotEmpty() &&
-                                            SeriesAuthorityRules.sameTitle(ranked.title,it.title,"") }
-                                        rankedAudioStatus(ranked,local,requestSources.isNotEmpty() &&
-                                            requestSources.all{reports[it]?.error.isNullOrBlank()})?.let {status=it}
-                                    }
-                                    unifiedQuery=""
-                                    if(ranked==null && narration==null && !cycleBrowsing) {
-                                        abExactCycleSeed(merged,requestQuery)?.let { target ->
-                                            selectedCycle=target;cycleBrowsing=true;cycleLoading=true;cycleRequestId++
-                                            status="Сверяю состав цикла по справочникам…"
-                                        }
-                                    }
+                            }
+                            unifiedMergeJob?.join()
+                            if(active()){
+                                if(ranked!=null&&bookLinks.isEmpty()){
+                                    val local=libraryBooks.any{it.files.isNotEmpty()&&SeriesAuthorityRules.sameTitle(ranked.title,it.title,"")}
+                                    rankedAudioStatus(ranked,local,requestSources.isNotEmpty()&&requestSources.all{searchReports[it]?.error.isNullOrBlank()})?.let{status=it}
                                 }
-                            }finally{if(version==unifiedMergeVersion)unifiedMerging=false}
+                                if(ranked==null&&narration==null&&!cycleBrowsing)
+                                    abExactCycleSeed(bookLinks,requestQuery)?.let{runCycle(it)}
+                            }
+                        }
+                    } finally {
+                        if(active()){
+                            unifiedQuery="";unifiedMerging=false;cycleLoading=false
                         }
                     }
                 }
             }
         }
 
-        if (cycleLoading && selectedCycle != null) {
+        if (cycleLoading && selectedCycle != null && unifiedCycleRequest!=cycleRequestId) {
             key(cycleRequestId) {
                 val requestId = cycleRequestId
                 val cycle = selectedCycle!!
