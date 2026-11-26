@@ -4,6 +4,12 @@
 
 Это **техническая история решений и разработки**, не дословный автоматический экспорт всей переписки ChatGPT. Репозиторий публичный: личную переписку и секреты здесь не хранить. Сведения о статусе перепроверять через GitHub.
 
+## 2026-11-26 — Оба независимых QA прошли, совместный PR #37
+
+- Владелец подтвердил второй тест. Сверено GitHub: [PR #33 QA 45796659272](https://github.com/smoc1983-web/AudioBook/actions/runs/45796659272), HEAD `54c7b99`, и [PR #35 QA 45799929364](https://github.com/smoc1983-web/AudioBook/actions/runs/45799929364), HEAD `323037a`: checks и Android 36 emulator success; promote skipped (draft).
+- Не ожидая повторной команды, объединены обе проверенные ветки в `qa/search-combined-20261126`, merge commit `b0ba7441bdff6bc1db6ea14d7fef509c010feb86`, [draft PR #37](https://github.com/smoc1983-web/AudioBook/pull/37) к test `0a235c53`. Сохранены обе версии изменений общего SearchConcurrencyAndroidTest (Home и новый тест навигации). Сравнение с test: 9 файлов, 276 добавлений, 41 удаление.
+- Совместный HEAD: [Actions 45802290586](https://github.com/smoc1983-web/AudioBook/actions/runs/45802290586) ub-mode source analysis in_progress/ожидается; [Actions 45802290531](https://github.com/smoc1983-web/AudioBook/actions/runs/45802290531) AudioBook QA - unit, emulator and promote Test in_progress/ожидается. До результата не объявлять совместный QA успешным. Реальные аудиозаписи и полный UI-сценарий не подтверждены; тесты на фикстурах. Подписанный APK пока не выпускался; test и main функционально не изменены. Не публиковать отдельные PR #33/#35 поверх объединённого #37.
+
 ## 2026-11-26 — Параллельный QA продолжения поиска при открытии книги, PR #35
 
 - Владелец явно попросил запустить отдельный тест улучшения навигации, не ждать первого. PR #33 HEAD `54c7b99`, [45796659272](https://github.com/smoc1983-web/AudioBook/actions/runs/45796659272): checks и Android 36 emulator success, публикация skipped. 21 позиция/63 синтетических трека прошли; реальные книги и источники не подтверждены.
