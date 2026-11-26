@@ -152,7 +152,7 @@ private suspend fun abProbeCycleEdition(context:Context,volume:OfficialEdition,a
 }
 
 
-internal class AbCycleCheckpoint {
+internal class AbCycleCheckpoint(val forceFullSearch:Boolean=false) {
     var catalogs:List<OfficialSource>?=null
     val broadReports=linkedMapOf<String,SiteSearchResult>()
     val rows=linkedMapOf<Int,List<BookLink>>()
@@ -280,7 +280,7 @@ internal suspend fun abResolveCycleAudio(context:Context,prefs:android.content.S
         aliases[i].any{OfficialCycleSearch.matches(cycle.title,it,b.title)}&&
             SeriesAuthorityRules.author(b.author)==SeriesAuthorityRules.author(volumes[i].author)
     }
-    if(!checkpoint.savedRefreshDone){
+    if(!checkpoint.savedRefreshDone&&!checkpoint.forceFullSearch){
         val cachedChoices=volumes.indices.flatMap{i->
             checkpoint.rows[i].orEmpty().filter{it.catalogState in setOf("candidate","checked")}
                 .flatMap{candidate->bookSources(candidate).map{source->AbSavedCycleLink(i,source.url) to candidate}}
@@ -311,7 +311,7 @@ internal suspend fun abResolveCycleAudio(context:Context,prefs:android.content.S
     // Cold searches and incomplete official catalogs still use one broad query per source.
     if(!checkpoint.broadDone){
         val remaining=sources.filter{it !in checkpoint.broadReports}
-        AbSearchCoordinator.search(remaining,{25_000L},{site->abCycleSource(context,prefs,site,cycle.title)},{site,result->
+        AbSearchCoordinator.search(remaining,{25_000L},{site->abCycleSource(context,prefs,site,cycle.title,forceNetwork=checkpoint.forceFullSearch)},{site,result->
             abRequireSearchWindow(context)
             checkpoint.broadReports[site]=result
             val grouped=withContext(Dispatchers.Default){result.books.groupBy{position(it)}}
@@ -355,7 +355,7 @@ internal suspend fun abResolveCycleAudio(context:Context,prefs:android.content.S
             if(batch.isEmpty()||enoughAlternatives(i))return
             kotlinx.coroutines.withTimeoutOrNull(45_000L){
                 AbSearchCoordinator.search(batch,{20_000L},{site->abCycleSource(context,prefs,site,query,
-                    forceNetwork=checkpoint.savedAttempted.isNotEmpty())},{_,result->
+                    forceNetwork=checkpoint.forceFullSearch||checkpoint.savedAttempted.isNotEmpty())},{_,result->
                     abRequireSearchWindow(context)
                     accept(i,result.books)
                     report("Точечный поиск: ${i+1}/${volumes.size}.")
