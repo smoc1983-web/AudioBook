@@ -125,13 +125,20 @@ class SearchConcurrencyAndroidTest {
                             while(AbSearchForegroundService.current==null)kotlinx.coroutines.delay(50)
                         }
                     }
-                    assertTrue(device.pressHome())
+                    // UiDevice.pressHome() waits for a launcher accessibility event; it may
+                    // return false even when Home was delivered. Assert the real lifecycle instead.
                     withContext(Dispatchers.Main){
-                        kotlinx.coroutines.withTimeout(15000){
+                        assertTrue("Activity must be visible before Home",activity.searchWindowVisible())
+                    }
+                    device.executeShellCommand("input keyevent KEYCODE_HOME")
+                    withContext(Dispatchers.Main){
+                        val stopped=kotlinx.coroutines.withTimeoutOrNull(15000){
                             while(activity.searchWindowVisible())kotlinx.coroutines.delay(50)
+                            true
                         }
-                        assertTrue(AbWebViews.available(retained!!))
-                        assertFalse(AbWebViews.available(normal!!))
+                        assertEquals("Home must actually stop the Activity",true,stopped)
+                        assertTrue("Leased browser must survive Home",AbWebViews.available(retained!!))
+                        assertFalse("Ordinary browser must close on stop",AbWebViews.available(normal!!))
                     }
                     device.sleep()
                     assertFalse("Screen must be off during source processing",device.isScreenOn)
