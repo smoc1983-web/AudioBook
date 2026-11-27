@@ -107,6 +107,7 @@ class FayrollSourceMatrixTest {
                                 edition==null -> "playlist_unavailable"
                                 !abOpenedBookMatches(book,edition.title,edition.author) -> "identity_mismatch"
                                 EditionDownloadRules.isPreviewPlaylist(edition.title,tracks.map{it.src},tracks.map{it.title}) -> "explicit_preview"
+                                tracks.size<2 && edition.listedTracks>=2 -> "listed_tracks_rejected_by_parser"
                                 tracks.size<2 -> "no_second_track"
                                 tracks[1].src==tracks[0].src -> "repeated_first_track_url"
                                 else -> "second_track_present"
@@ -126,7 +127,7 @@ class FayrollSourceMatrixTest {
                                     }==true
                                 } finally {PlaybackService.stop(activity,clearSelection=true)}
                             }else false
-                            Log.i("FayrollMatrix","PLAY $mode $order ${source.site} variant=$variant chapters=${tracks.size} chapter=2 reason=$reason started=$playing")
+                            Log.i("FayrollMatrix","PLAY $mode $order ${source.site} variant=$variant chapters=${tracks.size} listedTracks=${edition?.listedTracks ?: 0} chapter=2 reason=$reason started=$playing")
                         }
                     }
                     assertTrue("Cycle search failed to complete",complete)

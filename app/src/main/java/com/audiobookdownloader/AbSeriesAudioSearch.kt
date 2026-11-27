@@ -92,7 +92,9 @@ private suspend fun abCycleSearch(context:Context,prefs:android.content.SharedPr
 }
 
 /** Use the same page analyzer as a tap on a search result. Never start a player or a download. */
-internal data class AbProbedPlaylist(val title:String,val author:String,val player:PlayerData)
+internal data class AbProbedPlaylist(
+    val title:String,val author:String,val player:PlayerData,val listedTracks:Int=player.tracks.size
+)
 internal suspend fun abProbePlaylist(context:Context,address:String,onEmpty:()->Unit={}):AbProbedPlaylist? {
     if(OpenAudioCatalog.fromPage(address)!=null){
         return try{withContext(Dispatchers.IO){VerifiedBooks.load(address).let{AbProbedPlaylist(it.title,it.author,it.data)}}}
@@ -109,9 +111,11 @@ internal suspend fun abProbePlaylist(context:Context,address:String,onEmpty:()->
                     settings.javaScriptEnabled=true;settings.domStorageEnabled=true;settings.loadsImagesAutomatically=false
                     val created=AbOpenPageTask(this,address,{},23_000L){root,_,error->
                         if(reply.isActive&&error=="Страница открылась, но источник не передал читаемый список глав.")onEmpty()
-                        val parsed=root?.optJSONObject("player")?.let{parsePlayer(it)}
+                        val playlist=root?.optJSONObject("player")
+                        val parsed=playlist?.let{parsePlayer(it)}
                         finish(if(error.isBlank()&&parsed!=null&&parsed.tracks.isNotEmpty())
-                            AbProbedPlaylist(root?.optString("title").orEmpty(),root?.optString("author").orEmpty(),parsed) else null)
+                            AbProbedPlaylist(root?.optString("title").orEmpty(),root?.optString("author").orEmpty(),
+                                parsed,playlist?.optJSONArray("playlist")?.length() ?: parsed.tracks.size) else null)
                     }
                     task=created
                     AbWebViews.onClose(this){created.close();finish(null)}
