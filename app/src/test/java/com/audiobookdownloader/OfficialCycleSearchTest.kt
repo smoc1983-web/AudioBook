@@ -4,6 +4,43 @@ import org.junit.Test
 class OfficialCycleSearchTest {
     private fun book(title:String,n:Double,provider:String="Author.Today")=
         OfficialEdition(title,"https://author.today/work/1","Андрей Васильев","Файролл",provider,"text","published",n)
+    @Test fun arhilFirstVolumeRetainsBothSourceSpellingsAndRejectsOtherBooks() {
+        val cycle=BookCycle("Архил...?")
+        val author="Павел Кожевников"
+        val first=book("Архил...?",1.0).copy(author=author,series=cycle.title)
+        val second=first.copy(title="Архил...? Книга 2",order=2.0)
+        val source=OfficialSource("Author.Today",cycle.title,books=listOf(first,second))
+        val audio=BookLink("Архил. Книга 1","https://knigoblud.club/fixture",author=author)
+        val secondSource=audio.copy(url="https://audiopolka.club/fixture")
+        val unrelated=audio.copy(title="Книга 1",url="https://example.org/other")
+        val wrongAuthor=audio.copy(author="Другой Автор",url="https://example.org/wrong-author")
+        val matched=AbLocalCatalog.match(cycle,listOf(first,second),listOf(source),
+            listOf(audio,secondSource,unrelated,wrongAuthor))
+        assertEquals(listOf(audio.url,secondSource.url),matched.books.filter{it.catalogState=="candidate"}.map{it.url})
+        assertEquals(listOf(unrelated,wrongAuthor),matched.unmatched)
+        val firstCard=matched.books.first()
+        assertTrue(abOpenedBookMatches(firstCard,audio.title,author))
+        assertFalse(abOpenedBookMatches(firstCard,audio.title,wrongAuthor.author))
+        assertFalse(abOpenedBookMatches(firstCard,"Архил. Книга 2",author))
+        assertTrue(OfficialCycleSearch.lookupQueries(cycle.title,first,emptyList()).any{
+            SearchBookIndex.titleKey(it)=="архил книга 1"
+        })
+    }
+
+    @Test fun builderCycleUsesVerifiedReferenceAndRetainsUnnumberedFallbackEditions() {
+        val title="Путь строителя"
+        val catalogue=OfficialSource("Author.Today","Строитель","https://author.today/work/series/52163")
+        assertEquals(catalogue.seriesUrl,OfficialCycleSearch.known(title,"Author.Today")?.first)
+        assertEquals(title,OfficialCycleSearch.audioQueryForCycle(catalogue.series))
+        assertFalse(OfficialCycleSearch.isCycleQuery(title,
+            OfficialCycleSearch.Template("Алексей Ковтунов",listOf(catalogue))))
+        val audio=BookLink("Путь строителя 18","https://audiopolka.club/fixture",author="Ковтунов Алексей")
+        assertTrue(OfficialCycleSearch.matchesWithoutBibliography(title,audio))
+        assertTrue(OfficialCycleSearch.matchesWithoutBibliography(catalogue.series,audio))
+        assertFalse(OfficialCycleSearch.matchesWithoutBibliography(title,audio.copy(author="Другой Автор")))
+        assertFalse(OfficialCycleSearch.matchesWithoutBibliography(title,audio.copy(title="Иной путь строителя 18")))
+    }
+
     @Test fun aVerifiedWorkToSeriesLinkDoesNotTurnTitleSearchIntoSeriesSearch() {
         val template=OfficialCycleSearch.Template("Андрей Васильев", listOf(
             OfficialSource("Author.Today",series="Файролл. Хроники Хейгена")

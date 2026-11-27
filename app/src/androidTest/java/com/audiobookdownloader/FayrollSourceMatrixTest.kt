@@ -97,7 +97,12 @@ class FayrollSourceMatrixTest {
                         }
                     }
                     Log.i("FayrollMatrix","SEARCH $mode requested=${selected.size} completed=$complete elapsedMs=${SystemClock.elapsedRealtime()-start}")
+                    val auditPaths=setOf("/3079826","/1459212","/14142663-90fc-4b62-828f-8543ee03b7ce")
                     for((site,report) in checkpoint.broadReports){
+                        for(book in report.books){
+                            val publicPath=android.net.Uri.parse(book.url).path.orEmpty().trimEnd('/')
+                            if(publicPath in auditPaths)Log.i("FayrollMatrix","AUDIT_RAW $seriesQuery $site $publicPath title=${book.title} author=${book.author}")
+                        }
                         Log.i("FayrollMatrix","SOURCE $mode $site candidates=${report.books.size} elapsedMs=${report.durationMs} queueMs=${report.queueMs} parseMs=${report.parseMs} error=${report.error.isNotBlank()}")
                     }
                     var playbackAttempt=0

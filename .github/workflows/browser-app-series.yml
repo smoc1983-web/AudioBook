@@ -6,6 +6,8 @@ on:
       - '.github/workflows/browser-app-series.yml'
       - 'scripts/audit-series-browser.cjs'
       - 'scripts/compare-browser-app-series.py'
+      - 'app/src/main/java/com/audiobookdownloader/OfficialCycleSearch.kt'
+      - 'app/src/main/java/com/audiobookdownloader/OpenedBookIdentity.java'
   workflow_dispatch:
 permissions:
   contents: read

@@ -32,7 +32,7 @@ internal object OfficialCycleSearch {
     internal fun isCycleQuery(query:String,template:Template):Boolean {
         val queryKey=key(query)
         if(queryKey.isBlank())return false
-        return known(query,"Author.Today")!=null || template.sources.any { source ->
+        return isFayroll(query) || template.sources.any { source ->
             key(source.series)==queryKey
         }
     }
@@ -52,16 +52,22 @@ internal object OfficialCycleSearch {
             t=t.substring(short.length).trimStart(' ','.',':','-','–','—')
             t=prefixNumber.replaceFirst(t,"")
         }
-        return t.trim().trimEnd('.').ifBlank{title}
+        val shortened=t.trim().trimEnd('.')
+        return shortened.takeIf{OpenedBookIdentity.titleKey(it).isNotBlank()} ?: title
     }
-    fun matchKey(cycle:String,title:String,author:String="")=
-        OpenedBookIdentity.titleKey(lookupTitle(cycle,OpenedBookIdentity.cleanPresentation(title,author)))
+    fun matchKey(cycle:String,title:String,author:String=""):String {
+        val clean=SeriesAuthorityRules.referenceTitle(title,author)
+        val full=OpenedBookIdentity.titleKey(clean)
+        if(full==OpenedBookIdentity.firstBookAlias(cycle,cycle,1.0))return full
+        return OpenedBookIdentity.titleKey(lookupTitle(cycle,clean))
+    }
     fun matches(cycle:String,first:String,second:String)=
         matchKey(cycle,first)==matchKey(cycle,second)&&matchKey(cycle,first).isNotBlank()
     /** Keep the volume in every query. Never substitute an adjacent volume. */
     fun lookupQueries(cycle:String,volume:OfficialEdition,aliases:List<String>):List<String> {
         val short=lookupTitle(cycle,volume.title)
         val variants=linkedSetOf(short,volume.title.trim().trim('«','»','"','“','”'))
+        OpenedBookIdentity.firstBookAlias(volume.title,cycle,volume.order).takeIf{it.isNotBlank()}?.let{variants.add(it)}
         if(volume.author.isNotBlank())variants.add(volume.author+" "+short)
         aliases.forEach{variants.add(lookupTitle(cycle,it))}
         return variants.filter{it.isNotBlank()}.distinctBy{SearchBookIndex.normal(it)}.take(4)
@@ -73,11 +79,29 @@ internal object OfficialCycleSearch {
         cache[key(query)]=Cached(System.currentTimeMillis(),value)
         while(cache.size>12)cache.remove(cache.keys.first())
     }
-    // Verified equivalent series names/URLs; general discovery below also handles other cycles.
-    private fun known(query:String,provider:String):Pair<String,String>? {
-        if(key(query) !in setOf(key("Файролл"),key("Файролл. Хроники Хейгена")))return null
-        return if(provider=="Author.Today")"https://author.today/work/series/1350" to "Андрей Васильев"
-            else "https://www.litres.ru/series/fayroll-208918" to "Андрей Васильев"
+    private fun isFayroll(query:String)=key(query) in setOf("файролл","файролл хроники хейгена")
+    private fun isBuilder(query:String)=key(query) in setOf("путь строителя","строитель")
+    private val builderTitle=Regex("путь строителя(?: (?:книга |том )?[1-9][0-9]*)?")
+    internal fun audioQueryForCycle(query:String)=if(isBuilder(query))"Путь строителя" else query
+    internal fun sameSourceCycle(query:String,heading:String)=
+        key(query)==key(heading) || isBuilder(query)&&isBuilder(heading)
+
+    // Public bibliographic pages. The work title "Путь строителя" only opens this
+    // reference during explicit cycle lookup; normal title search remains a title search.
+    internal fun known(query:String,provider:String):Pair<String,String>? = when {
+        isFayroll(query) && provider=="Author.Today" -> "https://author.today/work/series/1350" to "Андрей Васильев"
+        isFayroll(query) && provider=="Литрес" -> "https://www.litres.ru/series/fayroll-208918" to "Андрей Васильев"
+        isBuilder(query) && provider=="Author.Today" -> "https://author.today/work/series/52163" to "Алексей Ковтунов"
+        key(query)=="архил" && provider=="Author.Today" -> "https://author.today/work/series/21436" to "Павел Кожевников"
+        else -> null
+    }
+
+    internal fun matchesWithoutBibliography(query:String,book:BookLink):Boolean {
+        if(isBuilder(query)){
+            if(!SeriesAuthorityRules.sameAuthor("Алексей Ковтунов",listOf(book.author)))return false
+            if(builderTitle.matches(OpenedBookIdentity.titleKey(SeriesAuthorityRules.referenceTitle(book.title,book.author))))return true
+        }
+        return book.cycles.any{sameSourceCycle(query,it.title)}
     }
     private suspend fun discover(query:String,provider:String,http:SeriesAuthorityFetcher):Pair<String,String>? {
         known(query,provider)?.let{return it}
@@ -201,6 +225,7 @@ internal object OfficialCycleSearch {
     }
     fun aliases(cycle:String,volume:OfficialEdition,sources:List<OfficialSource>):List<String> {
         val result=linkedSetOf(volume.title)
+        OpenedBookIdentity.firstBookAlias(volume.title,cycle,volume.order).takeIf{it.isNotBlank()}?.let{result.add(it)}
         val base=sources.firstOrNull{it.provider==volume.provider} ?: return result.toList()
         for(source in sources){
             val same=ordered(base).count{a->ordered(source).any{b->a.order==b.order&&matches(cycle,a.title,b.title)}}

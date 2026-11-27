@@ -159,8 +159,10 @@ private suspend fun abProbeCycleEdition(context:Context,volume:OfficialEdition,a
     val prefs=context.getSharedPreferences("audiobook_downloader",0)
     val identity=BookLink(volume.title,address,author=volume.author)
     val loaded=abProbePlaylist(context,address){AbSourceAvailability.record(prefs,address,false)}?:return false
-    if(!aliases.any{OpenedBookIdentity.matches(it,loaded.title,volume.author,loaded.author.ifBlank{candidateAuthor},cycleTitle,volume.order)} ||
-        SeriesAuthorityRules.author(loaded.author.ifBlank{candidateAuthor})!=SeriesAuthorityRules.author(volume.author)){
+    val sourceAuthor=loaded.author.ifBlank{candidateAuthor}
+    if(sourceAuthor.isBlank())return false
+    if(!aliases.any{OpenedBookIdentity.matches(it,loaded.title,volume.author,sourceAuthor,cycleTitle,volume.order)} ||
+        SeriesAuthorityRules.author(sourceAuthor)!=SeriesAuthorityRules.author(volume.author)){
         AbSourceAvailability.recordMismatch(prefs,identity,address);return false
     }
     AbSourceAvailability.clearMismatch(prefs,identity,address)
@@ -208,8 +210,10 @@ internal suspend fun abResolveCycleAudio(context:Context,prefs:android.content.S
     val configured=checkpoint.requestedSources ?: AbBookSources.enabled(prefs)
     val sources=configured.filter{it!=AbBookSources.AZBYKA || configured.size==1}.ifEmpty{configured}
     abRequireSearchWindow(context)
-    val direct=if(checkpoint.catalogs!=null)null else OfficialCycleSearch.cached(cycle.title) ?: if(SeriesAuthorityRules.cycle(cycle.referenceUrl))
-        OfficialCycleSearch.find(cycle.title,context) else null
+    val knownCatalogue=OfficialCycleSearch.known(cycle.title,"Author.Today")!=null
+    val direct=if(checkpoint.catalogs!=null)null else OfficialCycleSearch.cached(cycle.title) ?:
+        if(SeriesAuthorityRules.cycle(cycle.referenceUrl)||knownCatalogue)OfficialCycleSearch.find(cycle.title,context) else null
+    val audioQuery=OfficialCycleSearch.audioQueryForCycle(cycle.title)
     val snapshot=try {
         var title=cycle.seedTitle;var author=cycle.seedAuthor
         if((title.isBlank()||author.isBlank())&&SeriesAuthorityRules.work(cycle.referenceUrl)) {
@@ -220,7 +224,6 @@ internal suspend fun abResolveCycleAudio(context:Context,prefs:android.content.S
         }
         if(checkpoint.catalogs!=null || direct!=null || title.isBlank()||author.isBlank())null else OfficialSeriesCatalog(context.applicationContext).refresh(title,author)
     }catch(cancel:kotlinx.coroutines.CancellationException){throw cancel}catch(_:Exception){null}
-    val key=AbSearchPresentation.seriesKey(cycle.title)
     abRequireSearchWindow(context)
     val catalogs=checkpoint.catalogs ?: (direct?.sources ?: snapshot?.sources.orEmpty().filter{OfficialCycleSearch.seriesMatches(cycle.title,it.series) && it.books.isNotEmpty()}).also{if(it.isNotEmpty())checkpoint.catalogs=it}
     val volumes=withContext(Dispatchers.Default){OfficialCycleSearch.template(cycle.title,catalogs)}
@@ -229,9 +232,12 @@ internal suspend fun abResolveCycleAudio(context:Context,prefs:android.content.S
     }
     if(volumes.isEmpty()) {
         val backup=(if(fallback.isNotEmpty())fallback else {
-            val reports=abCycleSearch(context,prefs,cycle.title,sources)
-            AbGlobalBookResults.prepare(reports,sources,cycle.title).filter{b->b.cycles.any{AbSearchPresentation.seriesKey(it.title)==key}}
-        }).map{b->b.copy(cycles=b.cycles.map{c->if(AbSearchPresentation.seriesKey(c.title)==key)c.copy(order=null) else c})}
+            val reports=abCycleSearch(context,prefs,audioQuery,sources)
+            checkpoint.broadReports.putAll(reports)
+            AbGlobalBookResults.prepare(reports,sources,audioQuery).filter{OfficialCycleSearch.matchesWithoutBibliography(cycle.title,it)}
+        }).map{b->b.copy(cycles=b.cycles.map{c->
+            if(OfficialCycleSearch.sameSourceCycle(cycle.title,c.title))c.copy(order=null) else c
+        })}
         publish(backup,true,"Справочники недоступны: порядок цикла не подтверждён. Показаны результаты без номеров аудиоисточников.")
         return
     }
@@ -243,6 +249,8 @@ internal suspend fun abResolveCycleAudio(context:Context,prefs:android.content.S
     val partial=catalogs.map{it.provider}.toSet().size<2||catalogs.any{!it.complete||it.error.isNotBlank()}
     val aliases=withContext(Dispatchers.Default){volumes.map{OfficialCycleSearch.aliases(cycle.title,it,catalogs)}}
     val volumeAuthors=volumes.map{SeriesAuthorityRules.author(it.author)}
+    val firstBookAliases=volumes.map{OpenedBookIdentity.firstBookAlias(it.title,cycle.title,it.order)}
+    val candidateAuthors=mutableMapOf<AbSavedCycleLink,String>()
     val aliasIndex=withContext(Dispatchers.Default){
         val index=mutableMapOf<String,MutableSet<Int>>()
         aliases.forEachIndexed{i,values->values.forEach{value->
@@ -268,13 +276,19 @@ internal suspend fun abResolveCycleAudio(context:Context,prefs:android.content.S
             if(links.isEmpty()||EditionDownloadRules.isPreview(candidate.title,emptyList()))null else {
                 val first=links.first()
                 candidate.copy(title=volume.title,author=volume.author,url=first.url,
-                    coverUrl=first.coverUrl.ifBlank{candidate.coverUrl},sources=links,cycles=listOf(reference(volume)),catalogState="candidate")
+                    coverUrl=first.coverUrl.ifBlank{candidate.coverUrl},sources=links,cycles=listOf(reference(volume)),catalogState="candidate") to candidate.author
             }
             }
         }
         if(candidates.isNotEmpty()){
             val previous=checkpoint.rows[i].orEmpty().filter{it.catalogState in setOf("candidate","checked")}
-            checkpoint.rows[i]=AbSearchPresentation.merge(previous+candidates)
+            if(firstBookAliases[i].isNotBlank())for((candidate,author) in candidates){
+                for(source in bookSources(candidate)){
+                    val link=AbSavedCycleLink(i,source.url)
+                    if(author.isNotBlank() || link !in candidateAuthors)candidateAuthors[link]=author
+                }
+            }
+            checkpoint.rows[i]=AbSearchPresentation.merge(previous+candidates.map{it.first})
         }
     }
     val sourceSummary=OfficialCycleSearch.sourceSummary(catalogs)
@@ -292,7 +306,7 @@ internal suspend fun abResolveCycleAudio(context:Context,prefs:android.content.S
     }
     // Recover saved editions by series and by exact official titles before doing any broad audio search.
     if(!checkpoint.savedLoaded){
-        val saved=AbSearchCache.localMatches(context.applicationContext,cycle.title,sources.toSet(),600)
+        val saved=AbSearchCache.localMatches(context.applicationContext,audioQuery,sources.toSet(),600)
         val groups=withContext(Dispatchers.Default){saved.groupBy{position(it)}}
         for((i,books) in groups)if(i!=null)accept(i,books,matched=true)
         report("Сохранённые результаты · проверка ссылок ещё не завершена",force=true)
@@ -327,7 +341,8 @@ internal suspend fun abResolveCycleAudio(context:Context,prefs:android.content.S
             abRequireSearchWindow(context)
             val candidate=cachedChoices.getValue(link)
             abProbeCycleEdition(context,volumes[link.volume],link.url,cycle.title,aliases[link.volume],
-                candidate.author,referencesByVolume[link.volume]) &&
+                if(firstBookAliases[link.volume].isNotBlank())candidateAuthors[link].orEmpty() else candidate.author,
+                referencesByVolume[link.volume]) &&
                 AbSourceAvailability.get(prefs,link.url)==AbChapterAvailability.AVAILABLE &&
                 AbSourceAvailability.sizePassed(prefs,link.url)
         },{link,ok->
@@ -350,7 +365,7 @@ internal suspend fun abResolveCycleAudio(context:Context,prefs:android.content.S
     if(!checkpoint.broadDone){
         val pending=sources.filter{it !in checkpoint.broadReports}
         val remaining=if(checkpoint.prioritizeFastSources)AbSearchTiming.order(pending,timing) else pending
-        AbSearchCoordinator.search(remaining,{site->AbSearchTiming.timeout(25_000L,timing[site])},{site->abCycleSource(context,prefs,site,cycle.title,forceNetwork=checkpoint.forceFullSearch)},{site,result->
+        AbSearchCoordinator.search(remaining,{site->AbSearchTiming.timeout(25_000L,timing[site])},{site->abCycleSource(context,prefs,site,audioQuery,forceNetwork=checkpoint.forceFullSearch)},{site,result->
             abRequireSearchWindow(context)
             checkpoint.broadReports[site]=result
             AbSearchTiming.record(context,site,result)
@@ -397,7 +412,8 @@ internal suspend fun abResolveCycleAudio(context:Context,prefs:android.content.S
                 attempted.add(attempt)
                 report("Проверка глав: ${i+1}/${volumes.size}.")
                 val verified=kotlinx.coroutines.withTimeoutOrNull(40_000L) {
-                    abProbeCycleEdition(context,volumes[i],source.url,cycle.title,aliases[i],candidate.author,references)
+                    val author=if(firstBookAliases[i].isNotBlank())candidateAuthors[attempt].orEmpty() else candidate.author
+                    abProbeCycleEdition(context,volumes[i],source.url,cycle.title,aliases[i],author,references)
                 }
                 if(verified==null)uncertain.add(i)
                 verified==true

@@ -47,6 +47,14 @@ for slug, title in (("fayroll", "Файролл"), ("arhil", "Архил"), ("bu
             url = None
     print(f"App audio links: {len(app)}; chapter 2 started: {sum(value[2] for value in app.values())}")
     print(f"App playable cycle positions: {sorted({value[0] for value in app.values() if value[2]})}")
+    # Cases that played in the independent browser in run 45933581235.
+    # Report even when today's browser controls cannot be verified again.
+    reference_cases = {
+        "arhil": {("audiopolka.club", "/3079826"), ("knigoblud.club", "/14142663-90fc-4b62-828f-8543ee03b7ce")},
+        "builder": {("audiopolka.club", "/1459212")},
+    }
+    for known in sorted(reference_cases.get(slug, ())):
+        print("Previously playable link:", *known, "app =", app.get(known, "link absent"))
     for missing in sorted(browser_started):
         observed = app.get(missing)
         if observed is None or not observed[2]:

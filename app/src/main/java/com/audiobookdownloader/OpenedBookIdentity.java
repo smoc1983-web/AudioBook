@@ -68,6 +68,12 @@ public final class OpenedBookIdentity {
         if(separator>0)return part(s,author,c.substring(0,separator));
         return new Part(titleKey(s),null);
     }
+    /** Some audio sites explicitly number a first work published under the bare cycle title. */
+    public static String firstBookAlias(String officialTitle,String cycle,Double order) {
+        if(order==null||order!=1.0)return "";
+        String series=SeriesAuthorityRules.series(cycle);
+        return !series.isEmpty()&&titleKey(officialTitle).equals(series)?series+" книга 1":"";
+    }
     public static boolean matches(String wanted,String actual,String wantedAuthor,String actualAuthor,String cycle,Double expectedOrder){
         String embeddedWanted=presentationAuthor(wanted),embeddedActual=presentationAuthor(actual);
         String wa=SeriesAuthorityRules.author(wantedAuthor),aa=SeriesAuthorityRules.author(actualAuthor);
@@ -79,6 +85,9 @@ public final class OpenedBookIdentity {
         if(!wa.isEmpty()&&!aa.isEmpty()&&!wa.equals(aa))return false;
         String author=!wa.isEmpty()?(SeriesAuthorityRules.author(wantedAuthor).isEmpty()?embeddedWanted:wantedAuthor)
             :(SeriesAuthorityRules.author(actualAuthor).isEmpty()?embeddedActual:actualAuthor);
+        String firstBook=firstBookAlias(cleanPresentation(wanted,author),cycle,expectedOrder);
+        if(!wa.isEmpty()&&wa.equals(aa)&&!firstBook.isEmpty()
+                &&firstBook.equals(titleKey(cleanPresentation(actual,author))))return true;
         Part a=part(wanted,author,cycle),b=part(actual,author,cycle);
         if(a.key.isEmpty()||!a.key.equals(b.key))return false;
         if(a.number!=null&&b.number!=null&&!a.number.equals(b.number))return false;
