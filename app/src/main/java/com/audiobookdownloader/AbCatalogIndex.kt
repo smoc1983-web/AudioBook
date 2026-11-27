@@ -102,7 +102,8 @@ internal class AbCatalogIndex(context:Context, name:String=DB_NAME):
         if(tokens.isEmpty()||allowed.isEmpty()||now<0)return emptyList()
         // Normalization leaves only letters/numbers. FTS operators cannot be supplied by a query.
         val numeric=tokens.any{word->word.any{it.isDigit()}}
-        val match=tokens.joinToString(" AND "){if(!numeric&&it.length>=3)"$it*" else it}
+        // Android's FTS4 uses implicit AND between terms.
+        val match=tokens.joinToString(" "){if(!numeric&&it.length>=3)"$it*" else it}
         val slots=allowed.joinToString(","){"?"}
         val args=listOf(match,(now-MAX_AGE).toString(),now.toString())+allowed+
             listOf(titleKey(query),limit.coerceIn(1,600).toString())
