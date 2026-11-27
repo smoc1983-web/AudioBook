@@ -46,10 +46,10 @@ internal object OfficialCycleSearch {
     fun lookupTitle(cycle:String,title:String):String {
         var t=SeriesAuthorityRules.queryTitle(OpenedBookIdentity.cleanPresentation(title,"")).trim().trim('«','»','"','“','”')
         t=bonus.replace(t,"").trim()
-        val short=cycle.substringBefore(". ").trim().trim('«','»','"')
+        val short=OpenedBookIdentity.cycleTitlePrefix(cycle.substringBefore(". "))
         if(short.isNotBlank()&&t.startsWith(short,true)&&
             (t.length==short.length||!t[short.length].isLetterOrDigit())){
-            t=t.substring(short.length).trimStart(' ','.',':','-','–','—')
+            t=t.substring(short.length).trimStart(' ','.','?','!','…',':','-','–','—')
             t=prefixNumber.replaceFirst(t,"")
         }
         val shortened=t.trim().trimEnd('.')

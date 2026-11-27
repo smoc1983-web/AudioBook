@@ -48,12 +48,15 @@ public final class OpenedBookIdentity {
         final String key; final Double number;
         Part(String key,Double number){this.key=key;this.number=number;}
     }
+    public static String cycleTitlePrefix(String cycle){
+        return trim(cycle==null?"":cycle).replaceFirst("[\\s.?!…]+$","");
+    }
     private static Part part(String raw,String author,String cycle){
         String s=cleanPresentation(raw,author);
-        String c=trim(cycle==null?"":cycle);
+        String c=cycleTitlePrefix(cycle);
         if(!c.isEmpty()&&s.length()>c.length()&&s.regionMatches(true,0,c,0,c.length())
                 &&!Character.isLetterOrDigit(s.charAt(c.length()))){
-            String rest=s.substring(c.length()).trim().replaceFirst("^[\\s.\\-–—:]+","");
+            String rest=s.substring(c.length()).trim().replaceFirst("^[\\s.?!…\\-–—:]+","");
             Matcher m=VOLUME.matcher(rest);
             if(m.matches()){
                 Double n=null;
