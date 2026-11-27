@@ -94,4 +94,5 @@ data class BookCycle(val title: String, val url: String = "", val order: Double?
     val referenceUrl:String="",val referenceSite:String="",val parentTitle:String="",
     val seedTitle:String="",val seedAuthor:String="")
 data class SiteSearchResult(val books: List<BookLink>, val error: String = "",
-    val pagesVisited:Int=0, val morePages:Boolean=false, val fromCache:Boolean=false, val durationMs:Long=0)
+    val pagesVisited:Int=0, val morePages:Boolean=false, val fromCache:Boolean=false, val durationMs:Long=0,
+    val queueMs:Long=0, val parseMs:Long?=null)
