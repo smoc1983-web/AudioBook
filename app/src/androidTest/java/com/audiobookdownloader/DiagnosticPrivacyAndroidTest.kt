@@ -15,13 +15,13 @@ class DiagnosticPrivacyAndroidTest {
  private val context=ApplicationProvider.getApplicationContext<Context>()
  @Test fun preparedReportIsPreviewedAndExportedWithoutSecrets() {
   val p=context.getSharedPreferences("audiobook_diagnostics",0)
-  p.edit().putString("last_search","date\n{\"query\":\"stage4-private-search\",\"sites\":[{\"site\":\"Aume\",\"count\":2,\"error\":\"Cookie: stage4-private-cookie\"}]}").commit()
+  p.edit().putString("last_search","date\n{\"query\":\"stage4-private-search\",\"sites\":[{\"site\":\"Bookinfo\",\"count\":2,\"error\":\"Cookie: stage4-private-cookie\"}]}").commit()
   val playback=context.getSharedPreferences("audiobook_downloader",0)
   val oldPlayback=playback.getString("playback_trace",null)
   playback.edit().putString("playback_trace","Ошибка перемотки: IOException; stage4-private-message").commit()
   try {
    val report=AbCrashReport.read(context,true)!!.second
-   assertFalse(report.contains("stage4-private"));assertTrue(report.contains("Aume"))
+   assertFalse(report.contains("stage4-private"));assertTrue(report.contains("Bookinfo"))
    val c=Color(0xff222222);val theme=AbTheme(0,"test",false,c,c,c,Color.Cyan,Color.White,Color.LightGray,c,c,Color.Black,c,0)
    compose.setContent{AbCrashReports(theme,1)}
    compose.waitUntil(15000){compose.onAllNodesWithTag("diagnostic_preview").fetchSemanticsNodes().isNotEmpty()}

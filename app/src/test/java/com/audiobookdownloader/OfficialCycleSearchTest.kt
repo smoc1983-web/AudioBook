@@ -4,6 +4,64 @@ import org.junit.Test
 class OfficialCycleSearchTest {
     private fun book(title:String,n:Double,provider:String="Author.Today")=
         OfficialEdition(title,"https://author.today/work/1","Андрей Васильев","Файролл",provider,"text","published",n)
+    @Test fun numberedVolumesMatchWhenOnlyTheOfficialCycleHasTrailingPunctuation() {
+        val cycle="Архил...?"
+        val author="Павел Кожевников"
+        val title="Архил...? Книга 4"
+        assertEquals(OfficialCycleSearch.matchKey(cycle,title,author),
+            OfficialCycleSearch.matchKey(cycle,"Архил. Книга 4",author))
+        assertTrue(OpenedBookIdentity.matches(title,"Архил. Книга 4",author,author,cycle,4.0))
+        assertFalse(OpenedBookIdentity.matches(title,"Архил. Книга 3",author,author,cycle,4.0))
+        assertFalse(OpenedBookIdentity.matches(title,"Архил. Книга 4",author,"Другой Автор",cycle,4.0))
+    }
+
+    @Test fun arhilFirstVolumeRetainsBothSourceSpellingsAndRejectsOtherBooks() {
+        val cycle=BookCycle("Архил...?")
+        val author="Павел Кожевников"
+        val first=book("Архил...?",1.0).copy(author=author,series=cycle.title)
+        val second=first.copy(title="Архил...? Книга 2",order=2.0)
+        val source=OfficialSource("Author.Today",cycle.title,books=listOf(first,second))
+        val audio=BookLink("Архил. Книга 1","https://knigoblud.club/fixture",author=author)
+        val secondSource=audio.copy(url="https://audiopolka.club/fixture")
+        val unrelated=audio.copy(title="Книга 1",url="https://example.org/other")
+        val wrongAuthor=audio.copy(author="Другой Автор",url="https://example.org/wrong-author")
+        val matched=AbLocalCatalog.match(cycle,listOf(first,second),listOf(source),
+            listOf(audio,secondSource,unrelated,wrongAuthor))
+        assertEquals(listOf(audio.url,secondSource.url),matched.books.filter{it.catalogState=="candidate"}.map{it.url})
+        assertEquals(listOf(unrelated,wrongAuthor),matched.unmatched)
+        val firstCard=matched.books.first()
+        assertTrue(abOpenedBookMatches(firstCard,audio.title,author))
+        assertFalse(abOpenedBookMatches(firstCard,audio.title,wrongAuthor.author))
+        assertFalse(abOpenedBookMatches(firstCard,"Архил. Книга 2",author))
+        assertTrue(OfficialCycleSearch.lookupQueries(cycle.title,first,emptyList()).any{
+            SearchBookIndex.titleKey(it)=="архил книга 1"
+        })
+    }
+
+    @Test fun builderCycleUsesVerifiedReferenceAndRetainsUnnumberedFallbackEditions() {
+        val title="Путь строителя"
+        val catalogue=OfficialSource("Author.Today","Строитель","https://author.today/work/series/52163")
+        assertEquals(catalogue.seriesUrl,OfficialCycleSearch.known(title,"Author.Today")?.first)
+        assertEquals(title,OfficialCycleSearch.audioQueryForCycle(catalogue.series))
+        assertFalse(OfficialCycleSearch.isCycleQuery(title,
+            OfficialCycleSearch.Template("Алексей Ковтунов",listOf(catalogue))))
+        val audio=BookLink("Путь строителя 18","https://audiopolka.club/fixture",author="Ковтунов Алексей")
+        assertTrue(OfficialCycleSearch.matchesWithoutBibliography(title,audio))
+        assertTrue(OfficialCycleSearch.matchesWithoutBibliography(catalogue.series,audio))
+        assertFalse(OfficialCycleSearch.matchesWithoutBibliography(title,audio.copy(author="Другой Автор")))
+        assertFalse(OfficialCycleSearch.matchesWithoutBibliography(title,audio.copy(title="Иной путь строителя 18")))
+    }
+
+    @Test fun aVerifiedWorkToSeriesLinkDoesNotTurnTitleSearchIntoSeriesSearch() {
+        val template=OfficialCycleSearch.Template("Андрей Васильев", listOf(
+            OfficialSource("Author.Today",series="Файролл. Хроники Хейгена")
+        ))
+        assertFalse(OfficialCycleSearch.isCycleQuery("Файролл. Слово и сталь",template))
+        assertFalse(OfficialCycleSearch.isCycleQuery("Слово и сталь",template))
+        assertTrue(OfficialCycleSearch.isCycleQuery("Файролл",template))
+        assertTrue(OfficialCycleSearch.isCycleQuery("Файролл. Хроники Хейгена",template))
+    }
+
     @Test fun officialPositionNotInternalVolumeNumber(){
         val items=listOf(book("Файролл-12. Квадратура круга. Том 1",14.0),book("Файролл-1. Игра не ради игры",1.0),
             book("Файролл-13. Петля судеб. Том 2",19.0))
@@ -71,5 +129,40 @@ class OfficialCycleSearchTest {
         assertTrue(OfficialCycleSearch.seriesMatches("Файролл","Файролл. Хроники Хейгена"))
         assertTrue(OfficialCycleSearch.matches("Файролл","Файролл-11. Снисхождение. Том 1","Файролл. Снисхождение. Том 1 (+Бонус)"))
         assertFalse(OfficialCycleSearch.matches("Файролл","Снисхождение. Том 1","Петля судеб. Том 1"))
+    }
+
+    @Test fun fayrollOfficialCatalogSnapshotHas21DistinctPositionsAndAudioAliases(){
+        // Public metadata, observed 2026-11-26:
+        // https://author.today/work/series/1350
+        // https://www.litres.ru/series/fayroll-208918/?art_types=audiobook
+        // Synthetic URLs below; no audio content or credentials.
+        val names=listOf("Игра не ради игры","Пути Востока","Край холодных ветров","Гонг и чаша",
+            "Сицилианская защита","Под черным флагом","Разные стороны","Слово и сталь",
+            "Право выбора","Два огня")+
+            (1..3).map{"Снисхождение. Том $it"}+
+            (1..4).map{"Квадратура круга. Том $it"}+
+            (1..4).map{"Петля судеб. Том $it"}
+        val text=names.mapIndexed{i,name->
+            val number=when(i){in 0..9->i+1;in 10..12->11;in 13..16->12;else->13}
+            book("Файролл-$number. $name",(i+1).toDouble()).copy(url="https://author.today/work/"+(900000+i))
+        }
+        val audio=names.mapIndexed{i,name->
+            val title=when(i){5->"Черные флаги Архипелага";20->"Петля судеб. Том четвертый";in 7..11->"$name (+Бонус)";else->name}
+            book("Файролл. $title",(i+1).toDouble(),"Литрес").copy(format="audio",
+                url="https://www.litres.ru/audiobook/fixture/book-"+(900000+i)+"/")
+        }
+        val sources=listOf(OfficialSource("Author.Today","Файролл. Хроники Хейгена",complete=true,books=text.reversed()),
+            OfficialSource("Литрес","Файролл",complete=true,books=audio.reversed()))
+        val volumes=OfficialCycleSearch.template("Файролл",sources)
+        assertEquals((1..21).map{it.toDouble()},volumes.map{it.order})
+        assertEquals(21,volumes.map{OfficialCycleSearch.matchKey("Файролл",it.title)}.distinct().size)
+        for(i in volumes.indices){
+            assertTrue("Missing alias for position "+(i+1),OfficialCycleSearch.aliases("Файролл",volumes[i],sources).any{
+                OfficialCycleSearch.matches("Файролл",it,audio[i].title)
+            })
+            assertEquals("incomplete",OfficialCycleSearch.missingState("Файролл",volumes[i],sources))
+        }
+        assertFalse(OfficialCycleSearch.matches("Файролл",text[10].title,text[11].title))
+        assertFalse(OfficialCycleSearch.matches("Файролл",text[17].title,text[18].title))
     }
 }

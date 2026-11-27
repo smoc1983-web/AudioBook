@@ -47,7 +47,8 @@ internal object AbSearchRows {
                     // Do not lose locally saved audio merely because its website is currently empty.
                     if(localOnly||exact[input.title]?.isNotEmpty()==true||normalized[localKey(input.title)]?.singleOrNull()!=null) {
                         if(hidePreviews)AbSourceAvailability.withoutPreviews(prefs,sized)?:unavailable(input)?:return@mapNotNull null else sized
-                    } else AbSourceAvailability.searchCandidates(prefs,sized,hidePreviews)?:unavailable(input)?:return@mapNotNull null
+                    } else if(cycle!=null && input.catalogState in setOf("candidate","checked")) sized
+                    else AbSourceAvailability.searchCandidates(prefs,sized,hidePreviews)?:unavailable(input)?:return@mapNotNull null
                 }
             }
             if(genre.isNotBlank()&&raw.genres.none{SearchBookIndex.normal(it).contains(SearchBookIndex.normal(genre))})return@mapNotNull null

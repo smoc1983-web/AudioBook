@@ -1,0 +1,37 @@
+package com.audiobookdownloader
+
+import org.junit.Assert.*
+import org.junit.Test
+
+class AbCycleSourceRulesTest {
+    @Test fun oneUnverifiedSourceDoesNotStopAlternativesSearch() {
+        val book = BookLink("Игра не ради игры", "https://source1.example/book", catalogState="candidate")
+        assertFalse(AbCycleSourceRules.enoughAlternatives(listOf(book)))
+    }
+
+    @Test fun threeUnverifiedSourcesDoNotStopExactSearch() {
+        val first = BookLink("Игра не ради игры", "https://source1.example/book", catalogState="candidate")
+        val same = BookLink("Игра не ради игры", "https://source1.example/book#chapter", catalogState="candidate")
+        val next = BookLink("Игра не ради игры", "https://source2.example/book", catalogState="candidate")
+        assertFalse(AbCycleSourceRules.enoughAlternatives(listOf(first, same, next)))
+        val third = BookLink("Игра не ради игры", "https://source3.example/book", catalogState="candidate")
+        assertFalse(AbCycleSourceRules.enoughAlternatives(listOf(first, same, next, third)))
+        assertTrue(AbCycleSourceRules.enoughAlternatives(listOf(first, same, next, third)) { it == third.url })
+    }
+
+    @Test fun bibliographicPlaceholderIsNotAnAudioCandidate() {
+        val edition = BookLink("Игра не ради игры", "https://catalog.example/text", catalogState="text_only")
+        assertFalse(AbCycleSourceRules.enoughAlternatives(listOf(edition)))
+    }
+
+    @Test fun rejectedCandidatesDoNotStopSearching() {
+        val books = listOf("a","b","c").map { BookLink("Book", "https://example.org/$it", catalogState = "candidate") }
+        assertFalse(AbCycleSourceRules.enoughAlternatives(books, verified = { false }))
+    }
+
+    @Test fun previouslyVerifiedRecordingStopsUnneededSourceRequests() {
+        val book = BookLink("Book", "https://example.org/verified", catalogState = "checked")
+        assertTrue(AbCycleSourceRules.enoughAlternatives(listOf(book), verified = { it.endsWith("/verified") }))
+    }
+
+}

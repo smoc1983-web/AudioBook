@@ -103,6 +103,16 @@ class SharedAudioImportActivity:ComponentActivity() {
             CompositionLocalProvider(LocalDensity provides Density(density.density,density.fontScale*p.getFloat("appearance_text_scale",1f).coerceIn(.85f,1.5f))) {
                 MaterialTheme(colorScheme=if(theme.light)lightColorScheme(primary=theme.accent,background=theme.background,onSurface=theme.text) else darkColorScheme(primary=theme.accent,background=theme.background,onSurface=theme.text)) {
                     val state by model.state.collectAsState()
+                    val openInPlayer=remember{intent.getBooleanExtra("open_import_in_player",false)}
+                    LaunchedEffect(state.result,openInPlayer) {
+                        val imported=state.result
+                        if(openInPlayer&&imported!=null&&imported.metadataSaved) {
+                            startActivity(Intent(this@SharedAudioImportActivity,MainActivity::class.java)
+                                .setAction(AbWidgetRoutes.IMPORTED).putExtra("edition",imported.book.edition)
+                                .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP))
+                            finish()
+                        }
+                    }
                     val picker=rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()){model.select(applicationContext,it)}
                     SharedImportScreen(state,theme,model::title,model::move,{model.start(applicationContext)},model::cancel,{
                         try {picker.launch(arrayOf("audio/*","application/ogg","application/octet-stream"))}

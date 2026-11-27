@@ -48,12 +48,15 @@ public final class OpenedBookIdentity {
         final String key; final Double number;
         Part(String key,Double number){this.key=key;this.number=number;}
     }
+    public static String cycleTitlePrefix(String cycle){
+        return trim(cycle==null?"":cycle).replaceFirst("[\\s.?!…]+$","");
+    }
     private static Part part(String raw,String author,String cycle){
         String s=cleanPresentation(raw,author);
-        String c=trim(cycle==null?"":cycle);
+        String c=cycleTitlePrefix(cycle);
         if(!c.isEmpty()&&s.length()>c.length()&&s.regionMatches(true,0,c,0,c.length())
                 &&!Character.isLetterOrDigit(s.charAt(c.length()))){
-            String rest=s.substring(c.length()).trim().replaceFirst("^[\\s.\\-–—:]+","");
+            String rest=s.substring(c.length()).trim().replaceFirst("^[\\s.?!…\\-–—:]+","");
             Matcher m=VOLUME.matcher(rest);
             if(m.matches()){
                 Double n=null;
@@ -62,7 +65,17 @@ public final class OpenedBookIdentity {
             }
             if(!rest.isEmpty())return new Part(titleKey(rest),null);
         }
+        // A descriptive subtitle of the official series heading is not printed on every work.
+        // Only the explicit heading prefix before ". " is eligible; never strip an arbitrary first word.
+        int separator=c.indexOf(". ");
+        if(separator>0)return part(s,author,c.substring(0,separator));
         return new Part(titleKey(s),null);
+    }
+    /** Some audio sites explicitly number a first work published under the bare cycle title. */
+    public static String firstBookAlias(String officialTitle,String cycle,Double order) {
+        if(order==null||order!=1.0)return "";
+        String series=SeriesAuthorityRules.series(cycle);
+        return !series.isEmpty()&&titleKey(officialTitle).equals(series)?series+" книга 1":"";
     }
     public static boolean matches(String wanted,String actual,String wantedAuthor,String actualAuthor,String cycle,Double expectedOrder){
         String embeddedWanted=presentationAuthor(wanted),embeddedActual=presentationAuthor(actual);
@@ -75,6 +88,9 @@ public final class OpenedBookIdentity {
         if(!wa.isEmpty()&&!aa.isEmpty()&&!wa.equals(aa))return false;
         String author=!wa.isEmpty()?(SeriesAuthorityRules.author(wantedAuthor).isEmpty()?embeddedWanted:wantedAuthor)
             :(SeriesAuthorityRules.author(actualAuthor).isEmpty()?embeddedActual:actualAuthor);
+        String firstBook=firstBookAlias(cleanPresentation(wanted,author),cycle,expectedOrder);
+        if(!wa.isEmpty()&&wa.equals(aa)&&!firstBook.isEmpty()
+                &&firstBook.equals(titleKey(cleanPresentation(actual,author))))return true;
         Part a=part(wanted,author,cycle),b=part(actual,author,cycle);
         if(a.key.isEmpty()||!a.key.equals(b.key))return false;
         if(a.number!=null&&b.number!=null&&!a.number.equals(b.number))return false;

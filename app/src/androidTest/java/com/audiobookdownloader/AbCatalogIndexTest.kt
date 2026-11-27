@@ -37,6 +37,26 @@ class AbCatalogIndexTest {
         }finally{context.deleteDatabase(name)}
     }
 
+    @Test fun thinDiscoveryCardDoesNotErasePreviouslyObservedAuthorOrNarration() {
+        val context=ApplicationProvider.getApplicationContext<Context>()
+        val name="catalog-test-"+UUID.randomUUID()+".db"
+        val now=System.currentTimeMillis()
+        val full=BookLink("Архил. Книга 4","https://akniga.org/fixture-arhil",
+            author="Павел Кожевников",narrator="Иван Петров",cycles=listOf(BookCycle("Архил...?")))
+        try {
+            AbCatalogIndex(context,name).use{db->
+                db.record(listOf(full),now-1,now)
+                db.record(listOf(full.copy(author="",narrator="",cycles=emptyList())),now,now)
+                val found=db.find("Архил",setOf(bookSiteName(full.url)),now=now).single()
+                assertEquals(full.author,found.author)
+                assertEquals(full.narrator,found.narrator)
+                assertEquals(full.cycles,found.cycles)
+            }
+        } finally {
+            context.deleteDatabase(name)
+        }
+    }
+
     @Test fun upsertReplacesTermsAndRejectsUnsupportedAddresses() {
         val context=ApplicationProvider.getApplicationContext<Context>()
         val name="catalog-test-"+UUID.randomUUID()+".db"

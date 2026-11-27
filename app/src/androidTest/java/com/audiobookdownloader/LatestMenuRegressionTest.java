@@ -32,14 +32,18 @@ public class LatestMenuRegressionTest {
   c.getSharedPreferences("preview_updates",0).edit().putBoolean("auto",false).commit();
   try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(MainActivity.class)){
    find(By.text("Плеер")).click();
-   find(By.text("Меню плеера")).click();
+   find(By.text("Настройки")).click();
+   find(By.text("Меню плеера"));find(By.text("Добавить свою книгу"));find(By.text("Все настройки"));
+   assertFalse(d.hasObject(By.text("Оформление")));
    find(By.text("Эквалайзер"));find(By.text("Скорость"));find(By.text("Таймер сна"));
    find(By.text("Таймер сна")).click();
    boolean found=d.hasObject(By.text("Ночной таймер по расписанию"));
    for(int i=0;i<5&&!found;i++){d.swipe(d.getDisplayWidth()/2,d.getDisplayHeight()*3/4,d.getDisplayWidth()/2,d.getDisplayHeight()/3,20);found=d.hasObject(By.text("Ночной таймер по расписанию"));}
    assertTrue("Night schedule not found in sleep timer",found);
    find(By.desc("Закрыть")).click();
-   find(By.desc("Основные настройки")).click();
+   find(By.text("Поиск")).click();
+   find(By.text("Настройки")).click();
+   find(By.text("Выберите блок настроек"));
    find(By.text("Оформление"));assertFalse(d.hasObject(By.text("Эквалайзер")));assertFalse(d.hasObject(By.text("Таймер сна")));assertFalse(d.hasObject(By.text("Продолжения")));assertFalse(d.hasObject(By.text("Каталог")));
   }
  }
