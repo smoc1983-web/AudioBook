@@ -107,6 +107,9 @@ class FayrollSourceMatrixTest {
                     }
                     var playbackAttempt=0
                     var arhilFourthChapterTwo=false
+                    val arhilRegression=seriesQuery=="Архил...?" && mode=="all"
+                    val hasOfficialOrder=arhilRegression &&
+                        OfficialCycleSearch.template(cycle.title,checkpoint.catalogs.orEmpty()).isNotEmpty()
                     for(book in rows){
                         val order=book.cycles.firstOrNull()?.order
                         val candidates=bookSources(book).filter{it.site in selected}.distinctBy{it.url}
@@ -140,14 +143,20 @@ class FayrollSourceMatrixTest {
                             }else false
                             val sourceUri=android.net.Uri.parse(source.url)
                             val comparisonUrl="${sourceUri.scheme}://${sourceUri.host}${sourceUri.encodedPath.orEmpty()}"
-                            if(order==4.0 && source.site=="Книгоблуд" && playing)arhilFourthChapterTwo=true
+                            if(arhilRegression && source.site=="Книгоблуд" &&
+                                sourceUri.path?.trimEnd('/')=="/d6ceab68-e708-4af3-9b86-62e351d10253"){
+                                val expectedOrder=if(hasOfficialOrder)4.0 else null
+                                assertTrue("Arhil volume four must show its order only with catalogue evidence",order==expectedOrder)
+                                arhilFourthChapterTwo=arhilFourthChapterTwo||playing
+                                Log.i("FayrollMatrix","ARHIL_FOURTH officialOrder=$hasOfficialOrder order=$order chapter=2 started=$playing")
+                            }
                             Log.i("FayrollMatrix","EDITION $mode $order $comparisonUrl")
                             Log.i("FayrollMatrix","PLAY $mode $order ${source.site} variant=$variant chapters=${tracks.size} listedTracks=${edition?.listedTracks ?: 0} chapter=2 reason=$reason started=$playing")
                         }
                     }
                     assertTrue("Cycle search failed to complete",complete)
                     assertTrue("Official catalogue returned no rows",rows.isNotEmpty())
-                    if(seriesQuery=="Архил...?" && mode=="all")
+                    if(arhilRegression)
                         assertTrue("Knigoblud chapter two for Arhil volume four must start",arhilFourthChapterTwo)
                 }
             } finally {
