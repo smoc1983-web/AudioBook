@@ -8,7 +8,10 @@ from urllib.parse import urlsplit
 
 def url_key(url):
     parts = urlsplit(url)
-    return (parts.hostname or "").removeprefix("www."), parts.path.rstrip("/")
+    host = (parts.hostname or "").removeprefix("www.")
+    if host == "mob.knigoblud.club":
+        host = "knigoblud.club"
+    return host, parts.path.rstrip("/")
 
 
 root = Path(sys.argv[1])
