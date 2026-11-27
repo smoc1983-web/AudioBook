@@ -306,7 +306,7 @@ internal suspend fun abResolveCycleAudio(context:Context,prefs:android.content.S
     }
     // Recover saved editions by series and by exact official titles before doing any broad audio search.
     if(!checkpoint.savedLoaded){
-        val saved=AbSearchCache.localMatches(context.applicationContext,audioQuery,sources.toSet(),600)
+        val saved=AbLocalCatalog.knownCycleBooks(context.applicationContext,prefs,cycle.title,sources.toSet(),volumes.map{it.title})
         val groups=withContext(Dispatchers.Default){saved.groupBy{position(it)}}
         for((i,books) in groups)if(i!=null)accept(i,books,matched=true)
         report("Сохранённые результаты · проверка ссылок ещё не завершена",force=true)

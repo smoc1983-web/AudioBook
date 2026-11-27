@@ -72,6 +72,15 @@ internal object AbSearchCache {
             catch(_:Exception){emptyList()}
         }
     }
+    suspend fun indexBooks(context:Context,books:List<BookLink>) {
+        if(books.isEmpty())return
+        withContext(Dispatchers.IO) {
+            val job=currentCoroutineContext()
+            try{AbCatalogIndex.get(context).record(books){job.ensureActive()}}
+            catch(cancel:CancellationException){throw cancel}
+            catch(_:Exception){/* Optional discovery metadata must not interrupt search or playback. */}
+        }
+    }
     private fun prefix(query:String)=ContinuationStore.hash(SearchBookIndex.normal(query))+"-"
     private fun file(context:Context,site:String,query:String)=File(folder(context),prefix(query)+ContinuationStore.hash(site)+".json")
     private fun array(values:List<String>)=JSONArray(values)
@@ -118,11 +127,8 @@ internal object AbSearchCache {
     suspend fun put(context:Context,site:String,query:String,result:SiteSearchResult) {
         if(!cacheable(result))return
         put(site,query,result)
+        indexBooks(context,result.books)
         withContext(Dispatchers.IO){
-            val job=currentCoroutineContext()
-            try{AbCatalogIndex.get(context).record(result.books){job.ensureActive()}}
-            catch(cancel:CancellationException){throw cancel}
-            catch(_:Exception){/* An index failure cannot discard a working network result. */}
             try{
                 val f=file(context,site,query);val dir=f.parentFile?:return@withContext
                 if(!dir.isDirectory&&!dir.mkdirs())return@withContext

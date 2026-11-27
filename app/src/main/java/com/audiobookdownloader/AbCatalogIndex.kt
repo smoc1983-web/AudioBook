@@ -50,14 +50,22 @@ internal class AbCatalogIndex(context:Context, name:String=DB_NAME):
                     val site=bookSiteName(source.url)
                     if(site.isBlank()||site=="Открыть")continue
                     // Store the single observed audio-edition page, not unrelated variants or a search query.
-                    val edition=book.copy(url=source.url,coverUrl=source.coverUrl.ifBlank{book.coverUrl},
+                    val incoming=book.copy(url=source.url,coverUrl=source.coverUrl.ifBlank{book.coverUrl},
                         sources=listOf(source.copy(site=site)),searchQuery="",catalogState="")
-                    val payload=AbSearchCache.encode(edition).toString()
-                    if(payload.toByteArray(Charsets.UTF_8).size>MAX_PAYLOAD)continue
-                    val previous=db.rawQuery("SELECT id,observed FROM editions WHERE address=?",arrayOf(address)).use {
-                        if(it.moveToFirst())it.getLong(0) to it.getLong(1) else null
+                    val previous=db.rawQuery("SELECT id,observed,payload FROM editions WHERE address=?",arrayOf(address)).use {
+                        if(it.moveToFirst())Triple(it.getLong(0),it.getLong(1),it.getString(2)) else null
                     }
                     if(previous!=null&&previous.second>observed)continue
+                    val old=previous?.third?.let{runCatching{AbSearchCache.decode(JSONObject(it))}.getOrNull()}
+                    val edition=if(old!=null && titleKey(old.title)==titleKey(incoming.title) &&
+                        (old.author.isBlank() || incoming.author.isBlank() ||
+                            SeriesAuthorityRules.author(old.author)==SeriesAuthorityRules.author(incoming.author))) {
+                        incoming.copy(author=incoming.author.ifBlank{old.author},narrator=incoming.narrator.ifBlank{old.narrator},
+                            coverUrl=incoming.coverUrl.ifBlank{old.coverUrl},cycles=incoming.cycles.ifEmpty{old.cycles},
+                            genres=incoming.genres.ifEmpty{old.genres})
+                    } else incoming
+                    val payload=AbSearchCache.encode(edition).toString()
+                    if(payload.toByteArray(Charsets.UTF_8).size>MAX_PAYLOAD)continue
                     val values=ContentValues().apply{
                         put("address",address);put("site",site);put("title_key",titleKey(edition.title))
                         put("observed",observed);put("payload",payload)

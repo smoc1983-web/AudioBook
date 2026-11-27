@@ -4,6 +4,17 @@ import org.junit.Test
 class OfficialCycleSearchTest {
     private fun book(title:String,n:Double,provider:String="Author.Today")=
         OfficialEdition(title,"https://author.today/work/1","Андрей Васильев","Файролл",provider,"text","published",n)
+    @Test fun numberedVolumesMatchWhenOnlyTheOfficialCycleHasTrailingPunctuation() {
+        val cycle="Архил...?"
+        val author="Павел Кожевников"
+        val title="Архил...? Книга 4"
+        assertEquals(OfficialCycleSearch.matchKey(cycle,title,author),
+            OfficialCycleSearch.matchKey(cycle,"Архил. Книга 4",author))
+        assertTrue(OpenedBookIdentity.matches(title,"Архил. Книга 4",author,author,cycle,4.0))
+        assertFalse(OpenedBookIdentity.matches(title,"Архил. Книга 3",author,author,cycle,4.0))
+        assertFalse(OpenedBookIdentity.matches(title,"Архил. Книга 4",author,"Другой Автор",cycle,4.0))
+    }
+
     @Test fun arhilFirstVolumeRetainsBothSourceSpellingsAndRejectsOtherBooks() {
         val cycle=BookCycle("Архил...?")
         val author="Павел Кожевников"

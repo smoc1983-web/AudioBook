@@ -106,6 +106,7 @@ class FayrollSourceMatrixTest {
                         Log.i("FayrollMatrix","SOURCE $mode $site candidates=${report.books.size} elapsedMs=${report.durationMs} queueMs=${report.queueMs} parseMs=${report.parseMs} error=${report.error.isNotBlank()}")
                     }
                     var playbackAttempt=0
+                    var arhilFourthChapterTwo=false
                     for(book in rows){
                         val order=book.cycles.firstOrNull()?.order
                         val candidates=bookSources(book).filter{it.site in selected}.distinctBy{it.url}
@@ -139,12 +140,15 @@ class FayrollSourceMatrixTest {
                             }else false
                             val sourceUri=android.net.Uri.parse(source.url)
                             val comparisonUrl="${sourceUri.scheme}://${sourceUri.host}${sourceUri.encodedPath.orEmpty()}"
+                            if(order==4.0 && source.site=="Книгоблуд" && playing)arhilFourthChapterTwo=true
                             Log.i("FayrollMatrix","EDITION $mode $order $comparisonUrl")
                             Log.i("FayrollMatrix","PLAY $mode $order ${source.site} variant=$variant chapters=${tracks.size} listedTracks=${edition?.listedTracks ?: 0} chapter=2 reason=$reason started=$playing")
                         }
                     }
                     assertTrue("Cycle search failed to complete",complete)
                     assertTrue("Official catalogue returned no rows",rows.isNotEmpty())
+                    if(seriesQuery=="Архил...?" && mode=="all")
+                        assertTrue("Knigoblud chapter two for Arhil volume four must start",arhilFourthChapterTwo)
                 }
             } finally {
                 finishPlaybackFixture(activity)

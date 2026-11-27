@@ -42,6 +42,65 @@ internal object AbLocalCatalog {
         },rest)
     }
 
+    /** Include legacy catalogue cards previously opened on this device, before they were indexed. */
+    suspend fun knownCycleBooks(context:Context,prefs:SharedPreferences,cycle:String,sites:Set<String>,
+        officialTitles:List<String>):List<BookLink> {
+        val indexed=AbSearchCache.localMatches(context,OfficialCycleSearch.audioQueryForCycle(cycle),sites,600)
+        val legacy=withContext(Dispatchers.IO) {
+            val words=(officialTitles+cycle).map{SearchBookIndex.titleKey(it).substringBefore(' ')}
+                .filter{it.isNotBlank()}.toSet()
+            val job=currentCoroutineContext()
+            prefs.all.asSequence().filter{(key,_)->
+                key.startsWith("book_catalog_") &&
+                    SearchBookIndex.titleKey(key.removePrefix("book_catalog_")).substringBefore(' ') in words
+            }.take(600).mapNotNull{(_,value)->
+                job.ensureActive()
+                val title=(value as? String)?.let{runCatching{org.json.JSONObject(it).optString("title")}.getOrNull()}
+                title?.takeIf{it.isNotBlank()}?.let{abStoredCatalog(prefs,it)}?.takeIf{
+                    it.url.isNotBlank() && supportedBookUrl(it.url)!=null && bookSiteName(it.url) in sites &&
+                        AbSourceAvailability.get(prefs,it.url)==AbChapterAvailability.AVAILABLE
+                }
+            }.toList()
+        }
+        return (legacy+indexed).distinctBy{it.url.substringBefore('#').trimEnd('/')}
+    }
+
+    suspend fun reconcileSavedCycle(context:Context,prefs:SharedPreferences,cycle:BookCycle,
+        books:List<BookLink>,sites:Set<String>):List<BookLink> {
+        val positions=books.mapNotNull{book->
+            val ref=book.cycles.firstOrNull{
+                it.order!=null && SeriesAuthorityRules.series(it.title)==SeriesAuthorityRules.series(cycle.title) &&
+                    SeriesAuthorityRules.work(it.referenceUrl)
+            } ?: return@mapNotNull null
+            val author=ref.seedAuthor.ifBlank{book.author}
+            if(author.isBlank())return@mapNotNull null
+            OfficialEdition(ref.seedTitle.ifBlank{book.title},ref.referenceUrl,author,cycle.title,
+                SeriesAuthorityRules.provider(ref.referenceUrl),"unknown","",ref.order)
+        }.groupBy{it.order}.values.mapNotNull{it.distinctBy{v->
+            OfficialCycleSearch.matchKey(cycle.title,v.title,v.author) to SeriesAuthorityRules.author(v.author)
+        }.singleOrNull()}.sortedBy{it.order}
+        if(positions.isEmpty())return books
+        val known=knownCycleBooks(context,prefs,cycle.title,sites,positions.map{it.title})
+        return withContext(Dispatchers.Default) {
+            val candidates=known.filter{
+                AbSourceAvailability.get(prefs,it.url)==AbChapterAvailability.AVAILABLE &&
+                    AbSourceAvailability.searchCandidates(prefs,it,true)!=null
+            }
+            val additions=match(cycle,positions,emptyList(),candidates).books
+                .filter{it.catalogState=="candidate"}
+                .map{it.copy(catalogState="checked")}
+                .groupBy{it.cycles.single().order}
+            if(additions.isEmpty())return@withContext books
+            val byPosition=books.groupBy{book->book.cycles.firstOrNull{
+                SeriesAuthorityRules.series(it.title)==SeriesAuthorityRules.series(cycle.title)
+            }?.order}
+            byPosition.flatMap{(order,group)->
+                val new=additions[order].orEmpty()
+                if(new.isEmpty())group else AbSearchPresentation.merge(group.filter{bookSources(it).isNotEmpty()}+new)
+            }
+        }
+    }
+
     suspend fun prepare(context:Context,prefs:SharedPreferences,query:String,sites:Set<String>,library:List<LibraryBook>,hidePreviews:Boolean):Result {
         val books=AbSearchCache.localMatches(context,query,sites,600)
         val saved=withContext(Dispatchers.IO){

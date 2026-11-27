@@ -3,6 +3,7 @@ set -euo pipefail
 
 mode=$1
 query=${2:-Файролл}
+test_class=${3:-com.audiobookdownloader.FayrollSourceMatrixTest}
 mapfile -t app_apks < <(find app/build/outputs/apk/debug -maxdepth 1 -name '*.apk')
 mapfile -t test_apks < <(find app/build/outputs/apk/androidTest/debug -maxdepth 1 -name '*.apk')
 if (( ${#app_apks[@]} != 1 || ${#test_apks[@]} != 1 )); then
@@ -21,13 +22,13 @@ trap 'kill "$logger" "$crash_logger" 2>/dev/null || true' EXIT
 for attempt in 1 2; do
     result=0
     timeout 70m adb shell am instrument -w \
-        -e class com.audiobookdownloader.FayrollSourceMatrixTest \
+        -e class "$test_class" \
         -e sourceMode "$mode" \
         -e seriesQuery "'$query'" \
         com.audiobookdownloader.test.test/androidx.test.runner.AndroidJUnitRunner \
         | tee "instrumentation-$mode-$attempt.txt" || result=$?
 
-    if (( result == 0 )) && grep -Eq '^OK \(1 test\)' "instrumentation-$mode-$attempt.txt"; then
+    if (( result == 0 )) && grep -Eq '^OK \([1-9][0-9]* tests?\)' "instrumentation-$mode-$attempt.txt"; then
         cat "matrix-$mode.txt"
         exit 0
     fi

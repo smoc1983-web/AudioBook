@@ -932,7 +932,11 @@ internal fun AudioBookApp(searchInput: AbSearchInputModel,libraryAccessVersion: 
                     }
                     bookOpening=null
                     val title=cleanBookTitle(pageTitle)
-                    abRememberCatalog(prefs,BookLink(title,sourceUrl,loaded.cover,loaded.author))
+                    val openedCard=BookLink(title,sourceUrl,loaded.cover,loaded.author)
+                    abRememberCatalog(prefs,openedCard)
+                    if(availability==AbChapterAvailability.AVAILABLE)modernWork.launch {
+                        AbSearchCache.indexBooks(context.applicationContext,listOf(openedCard))
+                    }
                     prefs.edit().putString(bookUrlKey(title),sourceUrl).putString(bookCoverKey(title),loaded.cover)
                         .putString(abAuthorKey(title),loaded.author).apply()
                     if(!AbSourceAvailability.hidden(availability))StableProgress.observe(prefs,title,loaded.data.tracks,true)
@@ -1234,6 +1238,15 @@ internal fun AudioBookApp(searchInput: AbSearchInputModel,libraryAccessVersion: 
             ?.hideSoftInputFromWindow((context as? android.app.Activity)?.currentFocus?.windowToken,0)
     }
 
+    fun reconcileReturnedCycle(cycle:BookCycle,source:String,books:List<BookLink>) {
+        val screen=searchScreenId
+        val sites=if(source.isNotBlank())setOf(source) else AbBookSources.enabled(prefs).toSet()
+        modernWork.launch {
+            val updated=AbLocalCatalog.reconcileSavedCycle(context.applicationContext,prefs,cycle,books,sites)
+            if(screen==searchScreenId && !insideBook && bookLinks==books)bookLinks=updated
+        }
+    }
+
     fun backToSearchResults() {
         val keepSearch=leaveBookSearch()
         if(!keepSearch)cancelSearchMerges()
@@ -1263,6 +1276,8 @@ internal fun AudioBookApp(searchInput: AbSearchInputModel,libraryAccessVersion: 
         searchSelectedKey=saved.selectedKey;searchSelectedUrl=saved.selectedUrl;searchRestored=true
         searchScrollTarget=saved.scrollIndex to saved.scrollOffset;searchRestoreKey=saved.scrollKey
         searchSessionActive=true;searchScreenId++;appPage=AppPage.SEARCH
+        if(!keepSearch && genre.name.isBlank() && saved.cycleBrowsing)
+            saved.cycle?.let{reconcileReturnedCycle(it,saved.source,saved.books)}
     }
 
     fun openGenre(name: String,query: String="",native:AbNativeGenre?=null) {
@@ -1562,6 +1577,7 @@ internal fun AudioBookApp(searchInput: AbSearchInputModel,libraryAccessVersion: 
                 searchSelectedKey=saved.selectedKey;searchSelectedUrl=saved.selectedUrl;searchRestored=true
                 searchVisits=saved.visits;searchOpenedUrls=saved.opened;searchSessionActive=true
                 status="Восстановлены сохранённые результаты · доступность аудио проверяется при открытии"
+                saved.cycle?.let{reconcileReturnedCycle(it,selectedSearchSource,saved.books)}
             }
         }},
         backSearch = {backToSearchResults()},
@@ -2029,8 +2045,12 @@ internal fun AudioBookApp(searchInput: AbSearchInputModel,libraryAccessVersion: 
                                                     pageTitle
                                                 )
 
-                                            abRememberCatalog(prefs,BookLink(realBookTitle,currentUrl,currentCoverUrl,currentBookAuthor,
-                                                genres=abReadGenres(root.optJSONArray("genres")),cycles=abReadCycles(root.optJSONArray("cycles"))))
+                                            val openedCard=BookLink(realBookTitle,currentUrl,currentCoverUrl,currentBookAuthor,
+                                                genres=abReadGenres(root.optJSONArray("genres")),cycles=abReadCycles(root.optJSONArray("cycles")))
+                                            abRememberCatalog(prefs,openedCard)
+                                            if(availability==AbChapterAvailability.AVAILABLE)modernWork.launch {
+                                                AbSearchCache.indexBooks(context.applicationContext,listOf(openedCard))
+                                            }
                                             prefs.edit()
                                                 .putString(abAuthorKey(realBookTitle), currentBookAuthor)
                                                 .putString(

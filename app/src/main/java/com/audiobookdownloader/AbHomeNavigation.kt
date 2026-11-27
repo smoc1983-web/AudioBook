@@ -1,5 +1,7 @@
 package com.audiobookdownloader
 
+import kotlinx.coroutines.launch
+
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.ui.draw.shadow
 import androidx.compose.foundation.background
@@ -77,6 +79,7 @@ internal fun AbModernApp(data: AbScreenData, actions: AbActions, sync: LibrarySy
     LaunchedEffect(data.page,data.searchActive,data.searching) {
         AbCrashReport.screen="${data.page} · поиск=${data.searchActive} · загрузка=${data.searching}"
     }
+    val catalogueWork=androidx.compose.runtime.rememberCoroutineScope()
     val housekeepingContext=androidx.compose.ui.platform.LocalContext.current.applicationContext
     LaunchedEffect(data.searching,data.searchScreenId,data.page) {
         if(!data.searching)AbLibraryHousekeeping.request(housekeepingContext)
@@ -88,6 +91,7 @@ internal fun AbModernApp(data: AbScreenData, actions: AbActions, sync: LibrarySy
             if(data.searchSource.isBlank())AbBookSources.enabled(prefs) else listOf(data.searchSource)) {site,result ->
             result.books.forEach {abRememberCatalog(prefs,it)}
             catalogue=catalogue+(site to result)
+            catalogueWork.launch { AbSearchCache.indexBooks(housekeepingContext,result.books) }
         }}
     }
     val state=data.playback
