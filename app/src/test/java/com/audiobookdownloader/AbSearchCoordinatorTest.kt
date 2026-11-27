@@ -84,9 +84,15 @@ class AbSearchCoordinatorTest {
     }
     @Test(timeout=5000) fun parentCancellationClosesWorkWithoutReportingFakeSiteFailures()=runBlocking {
         var started=0;var closed=0;var reports=0
-        withTimeoutOrNull(100){AbSearchCoordinator.search(listOf("a","b","c","d","e","f"),{5000},{
-            started++;try{awaitCancellation()}finally{closed++}
-        },{_,_->reports++})}
+        val allSlotsOccupied=CompletableDeferred<Unit>()
+        val search=launch {
+            AbSearchCoordinator.search(listOf("a","b","c","d","e","f"),{5000},{
+                if(++started==4)allSlotsOccupied.complete(Unit)
+                try{awaitCancellation()}finally{closed++}
+            },{_,_->reports++})
+        }
+        allSlotsOccupied.await()
+        search.cancelAndJoin()
         assertEquals(4,started);assertEquals(started,closed);assertEquals(0,reports)
     }
     @Test(timeout=5000) fun repeatedSourceChoicesReportOnceAndSingleSourceUsesSameRunner()=runBlocking {
