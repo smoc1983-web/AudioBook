@@ -3,6 +3,8 @@ import argparse,json,re,struct,subprocess,zipfile
 from pathlib import Path
 FORBIDDEN_PERMISSIONS={'android.permission.BIND_ACCESSIBILITY_SERVICE','android.permission.BIND_NOTIFICATION_LISTENER_SERVICE','android.permission.READ_SMS','android.permission.RECEIVE_SMS','android.permission.READ_CALL_LOG','android.permission.READ_PHONE_STATE','android.permission.SYSTEM_ALERT_WINDOW','android.permission.QUERY_ALL_PACKAGES','android.permission.MANAGE_EXTERNAL_STORAGE','moe.shizuku.manager.permission.API_V23'}
 ALLOWED={'android.permission.INTERNET','android.permission.ACCESS_NETWORK_STATE','android.permission.WAKE_LOCK','android.permission.FOREGROUND_SERVICE','android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK','android.permission.READ_MEDIA_AUDIO','android.permission.READ_EXTERNAL_STORAGE','android.permission.WRITE_EXTERNAL_STORAGE','android.permission.REQUEST_INSTALL_PACKAGES','android.permission.POST_NOTIFICATIONS','android.permission.MODIFY_AUDIO_SETTINGS','android.permission.RECEIVE_BOOT_COMPLETED'}
+# Android 14+ requires this normal permission for the internal dataSync search service.
+ALLOWED.add('android.permission.FOREGROUND_SERVICE_DATA_SYNC')
 RETIRED=('Lcom/audiobookdownloader/LegacyCollections','Lcom/audiobookdownloader/LegacyCollectionScreens','Lcom/audiobookdownloader/ILegacyCollections','Lrikka/shizuku/')
 def audit_manifest(identity,manifest,package):
  assert "package: name='"+package+"'" in identity,'Wrong package'
