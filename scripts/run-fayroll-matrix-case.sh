@@ -2,6 +2,7 @@
 set -euo pipefail
 
 mode=$1
+query=${2:-Файролл}
 mapfile -t app_apks < <(find app/build/outputs/apk/debug -maxdepth 1 -name '*.apk')
 mapfile -t test_apks < <(find app/build/outputs/apk/androidTest/debug -maxdepth 1 -name '*.apk')
 if (( ${#app_apks[@]} != 1 || ${#test_apks[@]} != 1 )); then
@@ -22,6 +23,7 @@ for attempt in 1 2; do
     timeout 70m adb shell am instrument -w \
         -e class com.audiobookdownloader.FayrollSourceMatrixTest \
         -e sourceMode "$mode" \
+        -e seriesQuery "'$query'" \
         com.audiobookdownloader.test.test/androidx.test.runner.AndroidJUnitRunner \
         | tee "instrumentation-$mode-$attempt.txt" || result=$?
 

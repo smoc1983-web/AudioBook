@@ -16,6 +16,7 @@ class FayrollSourceMatrixTest {
         val instrumentation=InstrumentationRegistry.getInstrumentation()
         val context=instrumentation.targetContext
         val mode=InstrumentationRegistry.getArguments().getString("sourceMode","all")
+        val seriesQuery=InstrumentationRegistry.getArguments().getString("seriesQuery","Файролл")
         val selected=when(mode){
             "all","baseline"->AbBookSources.searchOrder
             "pair"->listOf("Книгоблуд","Bookinfo")
@@ -24,7 +25,7 @@ class FayrollSourceMatrixTest {
             else->error("Unknown source mode")
         }
         // Same snapshot in both arms, from live successful source responses in run 45858451412.
-        if(mode in setOf("all","baseline")) {
+        if(seriesQuery=="Файролл" && mode in setOf("all","baseline")) {
             val samples=mapOf(
             "Bookinfo" to 6334L,
             "Книга в Ухе" to 8137L,
@@ -66,7 +67,11 @@ class FayrollSourceMatrixTest {
             try {
                 runBlocking(Dispatchers.Main) {
                     val start=SystemClock.elapsedRealtime()
-                    val cycle=BookCycle("Файролл",referenceUrl="https://author.today/work/series/1350",seedAuthor="Андрей Васильев")
+                    val referenceUrl=if(seriesQuery=="Файролл")"https://author.today/work/series/1350" else ""
+                    val target=if(referenceUrl.isEmpty())OfficialCycleSearch.preflight(seriesQuery,activity).template
+                        ?.sources?.firstOrNull{it.seriesUrl.isNotBlank()} else null
+                    val cycle=BookCycle(seriesQuery,referenceUrl=target?.seriesUrl ?: referenceUrl,
+                        referenceSite=target?.provider.orEmpty())
                     val checkpoint=AbCycleCheckpoint(prioritizeFastSources=mode!="baseline")
                     var firstCandidateMs:Long?=null
                     var rows=emptyList<BookLink>()
@@ -127,6 +132,9 @@ class FayrollSourceMatrixTest {
                                     }==true
                                 } finally {PlaybackService.stop(activity,clearSelection=true)}
                             }else false
+                            val sourceUri=android.net.Uri.parse(source.url)
+                            val comparisonUrl="${sourceUri.scheme}://${sourceUri.host}${sourceUri.encodedPath.orEmpty()}"
+                            Log.i("FayrollMatrix","EDITION $mode $order $comparisonUrl")
                             Log.i("FayrollMatrix","PLAY $mode $order ${source.site} variant=$variant chapters=${tracks.size} listedTracks=${edition?.listedTracks ?: 0} chapter=2 reason=$reason started=$playing")
                         }
                     }
