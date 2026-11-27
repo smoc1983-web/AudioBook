@@ -82,6 +82,8 @@ class BookSearchTask(
         web.loadUrl(home)
     }
 
+    private var parseNanos=0L
+
     private fun scheduleCollect(token: Int) {
         handler.postDelayed({ collect(token) }, 800L)
     }
@@ -125,8 +127,10 @@ class BookSearchTask(
         evaluate(bookCatalogJs(rootSearchPage.ifBlank{web.url.orEmpty().ifBlank{home}})) { raw ->
             if (!active || finished || token != pageToken) return@evaluate
             try {
+                val started=System.nanoTime()
                 val root = JSONObject(decodeJsString(raw))
                 val candidates = parseBookLinks(root.optJSONArray("links") ?: JSONArray(), strict = false)
+                parseNanos+=System.nanoTime()-started
                 val navigated = web.url.orEmpty().trimEnd('/') != home.trimEnd('/')
                 val books = if (navigated) candidates else candidates.filter { it.url !in baseline }
                 val nextSignature = books.joinToString("|") { it.url }
@@ -177,7 +181,8 @@ class BookSearchTask(
         val available=if(discovered.isEmpty())books else
             (discovered.values+books).distinctBy{it.url.substringBefore('#').trimEnd('/')}
         done(SiteSearchResult(available, error, pagesVisited=completedSearchPages,
-            morePages=error.contains("ещё страницы") || error.contains("еще страницы")), endpoint)
+            morePages=error.contains("ещё страницы") || error.contains("еще страницы"),
+            parseMs=parseNanos/1_000_000L), endpoint)
     }
 }
 

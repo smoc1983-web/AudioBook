@@ -24,7 +24,9 @@ internal object AbSearchCoordinator {
         report: suspend (String,SiteSearchResult)->Unit) = supervisorScope {
         // Reports mutate shared search/UI state; keep callbacks sequential even if they suspend.
         val delivery=Mutex()
-        sources.distinct().map {site -> async {
+        sources.distinct().map {site ->
+            val enqueued=System.nanoTime()
+            async {
             slots.withPermit {
                 val started=System.nanoTime()
                 val result=try {withTimeout(timeoutMs(site)) {fetch(site)}}
@@ -35,7 +37,7 @@ internal object AbSearchCoordinator {
                 catch(error: Exception) {SiteSearchResult(emptyList(),"Не удалось выполнить поиск на этом сайте")}
                 currentCoroutineContext().ensureActive()
                 val elapsed=((System.nanoTime()-started)/1_000_000L).coerceIn(0L,300_000L)
-                delivery.withLock { report(site,result.copy(durationMs=elapsed)) }
+                delivery.withLock { report(site,result.copy(durationMs=elapsed,queueMs=((started-enqueued)/1_000_000L).coerceAtLeast(0))) }
             }
         }}.awaitAll()
         Unit

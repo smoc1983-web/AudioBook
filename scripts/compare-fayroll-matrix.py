@@ -11,7 +11,7 @@ def playback(root: Path, mode: str) -> set[int]:
     current = log[searches[-1].end():]
     volumes = {
         int(position)
-        for position in re.findall(rf"PLAY {mode} (\d+)\.0 [^\n]*\bstarted=true\b", current)
+        for position in re.findall(rf"PLAY {mode} (\d+)\.0 [^\n]*\bchapter=2\b[^\n]*\bstarted=true\b", current)
     }
     if not volumes:
         raise ValueError(f"{mode}: no streaming playback confirmed")

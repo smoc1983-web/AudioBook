@@ -15,8 +15,22 @@ import androidx.compose.runtime.key
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-/** Every search mode uses the same site task, headers, form discovery and parser. */
+private data class AbSourceRequest(
+    val owner:Context, val site:String, val query:String, val mode:AbSearchNetworkMode
+)
+
+private val abInFlightSources=AbInFlightSearch<AbSourceRequest,SiteSearchResult>(
+    kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob()+Dispatchers.Main.immediate)
+)
+
 internal suspend fun abSearchOneSource(context:Context,site:String,query:String,
+    prefs:android.content.SharedPreferences):SiteSearchResult =
+    abInFlightSources.run(AbSourceRequest(context,site,query,AbSearchDiagnostics.mode(prefs))) {
+        abSearchSourcePage(context,site,query,prefs)
+    }
+
+/** Every search mode uses the same site task, headers, form discovery and parser. */
+private suspend fun abSearchSourcePage(context:Context,site:String,query:String,
     prefs:android.content.SharedPreferences):SiteSearchResult {
     var browser:WebView?=null
     var task:BookWebsiteTask?=null

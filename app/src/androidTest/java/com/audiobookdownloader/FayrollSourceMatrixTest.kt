@@ -93,8 +93,9 @@ class FayrollSourceMatrixTest {
                     }
                     Log.i("FayrollMatrix","SEARCH $mode requested=${selected.size} completed=$complete elapsedMs=${SystemClock.elapsedRealtime()-start}")
                     for((site,report) in checkpoint.broadReports){
-                        Log.i("FayrollMatrix","SOURCE $mode $site candidates=${report.books.size} elapsedMs=${report.durationMs} error=${report.error.isNotBlank()}")
+                        Log.i("FayrollMatrix","SOURCE $mode $site candidates=${report.books.size} elapsedMs=${report.durationMs} queueMs=${report.queueMs} parseMs=${report.parseMs} error=${report.error.isNotBlank()}")
                     }
+                    var playbackAttempt=0
                     for(book in rows){
                         val order=book.cycles.firstOrNull()?.order
                         val candidates=bookSources(book).filter{it.site in selected}.distinctBy{it.url}
@@ -102,15 +103,21 @@ class FayrollSourceMatrixTest {
                         for((variant,source) in candidates.withIndex()){
                             val edition=withTimeoutOrNull(20_000L){abProbePlaylist(activity,source.url)}
                             val tracks=edition?.player?.tracks.orEmpty()
-                            val valid=edition!=null && abOpenedBookMatches(book,edition.title,edition.author) &&
-                                !EditionDownloadRules.isPreviewPlaylist(edition.title,tracks.map{it.src},tracks.map{it.title})
-                            val playing=if(valid && tracks.isNotEmpty()){
-                                val label="QA $mode $order $variant"
-                                PlaybackService.play(activity,label,"online",tracks.map{ServiceTrack(it.title,it.src)},0)
+                            val reason=when {
+                                edition==null -> "playlist_unavailable"
+                                !abOpenedBookMatches(book,edition.title,edition.author) -> "identity_mismatch"
+                                EditionDownloadRules.isPreviewPlaylist(edition.title,tracks.map{it.src},tracks.map{it.title}) -> "explicit_preview"
+                                tracks.size<2 -> "no_second_track"
+                                tracks[1].src==tracks[0].src -> "repeated_first_track_url"
+                                else -> "second_track_present"
+                            }
+                            val playing=if(reason=="second_track_present"){
+                                val label="QA $mode $order ${++playbackAttempt}"
+                                PlaybackService.play(activity,label,"online",tracks.map{ServiceTrack(it.title,it.src)},1)
                                 try {
                                     withTimeoutOrNull(15_000L){
                                         var state=PlaybackService.state.value
-                                        while(state.bookTitle!=label || !state.isPlaying || state.positionMs<=150){
+                                        while(state.bookTitle!=label || state.trackIndex!=1 || !state.isPlaying || state.positionMs<=150){
                                             if(state.bookTitle==label && state.error.isNotBlank())return@withTimeoutOrNull false
                                             delay(100)
                                             state=PlaybackService.state.value
@@ -119,7 +126,7 @@ class FayrollSourceMatrixTest {
                                     }==true
                                 } finally {PlaybackService.stop(activity,clearSelection=true)}
                             }else false
-                            Log.i("FayrollMatrix","PLAY $mode $order ${source.site} variant=$variant chapters=${tracks.size} identityAndNonDemo=$valid started=$playing")
+                            Log.i("FayrollMatrix","PLAY $mode $order ${source.site} variant=$variant chapters=${tracks.size} chapter=2 reason=$reason started=$playing")
                         }
                     }
                     assertTrue("Cycle search failed to complete",complete)
